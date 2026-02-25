@@ -1,10 +1,10 @@
-import { Home, ShoppingBag, Users, User } from "lucide-react";
+import { Home, ShoppingBag, Wallet, User } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 const navItems = [
-  { icon: Home, label: "Maison", path: "/" },
-  { icon: ShoppingBag, label: "Produits", path: "/produits" },
-  { icon: Users, label: "Équipe", path: "/equipe" },
+  { icon: Home, label: "Accueil", path: "/" },
+  { icon: ShoppingBag, label: "Produit", path: "/produits" },
+  { icon: Wallet, label: "Portefeuille", path: "/portefeuille" },
   { icon: User, label: "Moi", path: "/profil" },
 ];
 
