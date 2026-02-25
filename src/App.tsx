@@ -8,7 +8,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Products from "./pages/Products";
 import Team from "./pages/Team";
-import Vip from "./pages/Vip";
+
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -27,7 +27,7 @@ const App = () => (
           <Route path="/inscription" element={<Signup />} />
           <Route path="/produits" element={<Products />} />
           <Route path="/equipe" element={<Team />} />
-          <Route path="/vip" element={<Vip />} />
+          
           <Route path="/profil" element={<Profile />} />
           <Route path="/parametres" element={<Settings />} />
           <Route path="*" element={<NotFound />} />
