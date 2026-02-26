@@ -75,7 +75,7 @@ const Index = () => {
     <div className="min-h-screen bg-background pb-20">
       {/* Banner */}
       <section className="px-4 pt-4">
-        <div className="rounded-xl overflow-hidden">
+        <div className="rounded-xl overflow-hidden cursor-pointer" onClick={() => navigate("/loterie")}>
           <img src={bannerHome} alt="ESKOM Energy" className="w-full h-44 object-cover" />
         </div>
       </section>
