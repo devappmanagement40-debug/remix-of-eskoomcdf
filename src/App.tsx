@@ -9,6 +9,8 @@ import Signup from "./pages/Signup";
 import Products from "./pages/Products";
 import Team from "./pages/Team";
 import Portefeuille from "./pages/Portefeuille";
+import Historique from "./pages/Historique";
+import Aide from "./pages/Aide";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -28,6 +30,8 @@ const App = () => (
           <Route path="/produits" element={<Products />} />
           <Route path="/equipe" element={<Team />} />
           <Route path="/portefeuille" element={<Portefeuille />} />
+          <Route path="/historique" element={<Historique />} />
+          <Route path="/aide" element={<Aide />} />
           <Route path="/profil" element={<Profile />} />
           <Route path="/parametres" element={<Settings />} />
           <Route path="*" element={<NotFound />} />

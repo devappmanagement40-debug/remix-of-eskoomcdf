@@ -1,12 +1,12 @@
-import { ChevronRight, Settings, Wallet, History, HelpCircle } from "lucide-react";
+import { ChevronRight, Settings, Wallet, History, HelpCircle, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 
 const menuItems = [
-  { icon: Wallet, label: "Mon Portefeuille", path: "#" },
-  { icon: History, label: "Historique", path: "#" },
-  { icon: HelpCircle, label: "Centre d'aide", path: "#" },
+  { icon: Wallet, label: "Mon Portefeuille", path: "/portefeuille" },
+  { icon: History, label: "Historique", path: "/historique" },
+  { icon: HelpCircle, label: "Centre d'aide", path: "/aide" },
   { icon: Settings, label: "Paramètres", path: "/parametres" },
 ];
 
@@ -50,6 +50,15 @@ const Profile = () => {
             </button>
           ))}
         </div>
+
+        {/* Déconnexion */}
+        <button
+          onClick={() => navigate("/connexion")}
+          className="w-full mt-4 bg-destructive/10 rounded-xl border border-destructive/30 p-4 flex items-center justify-center gap-3 hover:bg-destructive/20 transition-colors"
+        >
+          <LogOut size={20} className="text-destructive" />
+          <span className="text-sm font-medium text-destructive">Se déconnecter</span>
+        </button>
       </div>
       <BottomNav />
     </div>
