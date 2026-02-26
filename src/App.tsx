@@ -13,6 +13,7 @@ import Historique from "./pages/Historique";
 import Aide from "./pages/Aide";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
+import Loterie from "./pages/Loterie";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
           <Route path="/aide" element={<Aide />} />
           <Route path="/profil" element={<Profile />} />
           <Route path="/parametres" element={<Settings />} />
+          <Route path="/loterie" element={<Loterie />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
