@@ -1,13 +1,23 @@
-import { ChevronRight, Settings, Wallet, History, HelpCircle, LogOut } from "lucide-react";
+import { Wallet, Download, Clock, MessageCircle, Headphones, FileText, Smartphone, CreditCard, Lock, Gift, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 
-const menuItems = [
-  { icon: Wallet, label: "Mon Portefeuille", path: "/portefeuille" },
-  { icon: History, label: "Historique", path: "/historique" },
-  { icon: HelpCircle, label: "Centre d'aide", path: "/aide" },
-  { icon: Settings, label: "Paramètres", path: "/parametres" },
+const actionButtons = [
+  { icon: Wallet, label: "Recharger", path: "/portefeuille" },
+  { icon: Download, label: "Retirer", path: "/portefeuille" },
+  { icon: Clock, label: "Historique", path: "/historique" },
+];
+
+const menuGrid = [
+  { icon: MessageCircle, label: "À propos de nous", path: "/aide" },
+  { icon: Headphones, label: "Service client", path: "/aide" },
+  { icon: Clock, label: "Enregistrements", path: "/historique" },
+  { icon: FileText, label: "Réglementation", path: "/aide" },
+  { icon: Smartphone, label: "Télécharger APP", path: "#" },
+  { icon: CreditCard, label: "Lier carte bancaire", path: "#" },
+  { icon: Lock, label: "Changer mot de passe", path: "/parametres" },
+  { icon: Gift, label: "Échanger cadeau", path: "#" },
 ];
 
 const Profile = () => {
@@ -17,47 +27,51 @@ const Profile = () => {
     <div className="min-h-screen bg-background pb-20">
       <PageHeader title="Mon Compte" />
       <div className="px-4 pt-6">
-        {/* User info card */}
-        <div className="bg-card rounded-xl border border-secondary p-5 mb-6 flex items-center gap-4">
-          <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center text-primary font-bold text-xl">
-            E
-          </div>
-          <div>
-            <p className="font-bold text-foreground">Utilisateur ESKOM</p>
-            <p className="text-xs text-muted-foreground">+226 XX XX XX XX</p>
-          </div>
-        </div>
-
         {/* Balance */}
-        <div className="bg-card rounded-xl border border-secondary p-5 mb-6">
+        <div className="bg-card rounded-xl border border-secondary p-5 mb-4">
           <p className="text-xs text-muted-foreground mb-1">Solde disponible</p>
           <p className="text-2xl font-bold text-primary">0,00 FCFA</p>
         </div>
 
-        {/* Menu */}
-        <div className="space-y-2">
-          {menuItems.map((item) => (
+        {/* Action buttons */}
+        <div className="bg-card rounded-xl border border-secondary p-5 mb-4 flex items-center justify-around">
+          {actionButtons.map((item) => (
             <button
               key={item.label}
               onClick={() => navigate(item.path)}
-              className="w-full bg-card rounded-xl border border-secondary p-4 flex items-center justify-between hover:border-primary transition-colors"
+              className="flex flex-col items-center gap-2"
             >
-              <div className="flex items-center gap-3">
-                <item.icon size={20} className="text-muted-foreground" />
-                <span className="text-sm font-medium text-foreground">{item.label}</span>
-              </div>
-              <ChevronRight size={18} className="text-muted-foreground" />
+              <item.icon size={24} className="text-foreground" />
+              <span className="text-xs font-medium text-foreground">{item.label}</span>
             </button>
           ))}
         </div>
 
-        {/* Déconnexion */}
+        {/* Menu grid */}
+        <div className="bg-card rounded-xl border border-secondary p-5 mb-4">
+          <div className="grid grid-cols-4 gap-y-6">
+            {menuGrid.map((item) => (
+              <button
+                key={item.label}
+                onClick={() => navigate(item.path)}
+                className="flex flex-col items-center gap-2"
+              >
+                <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
+                  <item.icon size={22} className="text-muted-foreground" />
+                </div>
+                <span className="text-[11px] font-medium text-foreground text-center leading-tight">{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Déconnexion - same style */}
         <button
           onClick={() => navigate("/connexion")}
-          className="w-full mt-4 bg-destructive/10 rounded-xl border border-destructive/30 p-4 flex items-center justify-center gap-3 hover:bg-destructive/20 transition-colors"
+          className="w-full bg-card rounded-xl border border-secondary p-4 flex items-center justify-center gap-3 hover:border-primary transition-colors"
         >
-          <LogOut size={20} className="text-destructive" />
-          <span className="text-sm font-medium text-destructive">Se déconnecter</span>
+          <LogOut size={20} className="text-primary" />
+          <span className="text-sm font-medium text-primary">Se déconnecter</span>
         </button>
       </div>
       <BottomNav />
