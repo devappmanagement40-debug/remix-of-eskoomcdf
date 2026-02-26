@@ -1,4 +1,5 @@
 import { Headphones, Mail, RefreshCw, ShoppingBag, Clock, Download, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import ProductCard from "@/components/ProductCard";
 import productServer from "@/assets/product-server.jpg";
@@ -68,6 +69,8 @@ const newsItems = [
 ];
 
 const Index = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-screen bg-background pb-20">
       {/* Banner */}
