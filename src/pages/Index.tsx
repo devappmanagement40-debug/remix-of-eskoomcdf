@@ -1,6 +1,7 @@
 import { Headphones, Mail, RefreshCw, ShoppingBag, Clock, Download, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
+import FloatingButtons from "@/components/FloatingButtons";
 import ProductCard from "@/components/ProductCard";
 import productServer from "@/assets/product-server.jpg";
 import productSolar from "@/assets/product-solar.jpg";
@@ -140,6 +141,7 @@ const Index = () => {
         </div>
       </section>
 
+      <FloatingButtons />
       <BottomNav />
     </div>
   );
