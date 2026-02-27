@@ -59,6 +59,15 @@ serve(async (req) => {
     const withdrawalFee = settingsMap["withdrawal_fee_percent"] || "5";
     const supportPhone = settingsMap["support_phone"] || "Non configuré";
 
+    // Official info module
+    const officialServicePhone = settingsMap["official_service_phone"] || "";
+    const officialWhatsapp = settingsMap["official_whatsapp_link"] || "";
+    const officialTelegram = settingsMap["official_telegram_link"] || "";
+    const officialWhatsappGroup = settingsMap["official_whatsapp_group"] || "";
+    const officialTelegramGroup = settingsMap["official_telegram_group"] || "";
+    const officialPrivateGroupMsg = settingsMap["official_private_group_msg"] || "";
+    const officialWelcomeMsg = settingsMap["official_welcome_message"] || "";
+
     const paymentInfo = (paymentMethods || []).map((m: any) => `- ${m.name} (${m.country}): ${m.phone || "N/A"}, bénéficiaire: ${m.holder_name || "N/A"}${m.instructions ? `, instructions: ${m.instructions}` : ""}`).join("\n");
     const productInfo = (products || []).map((p: any) => `- ${p.name}: prix ${p.price} FCFA, revenu journalier ${p.daily_revenue} FCFA, durée ${p.cycles} jours, revenu total ${p.total_revenue} FCFA, rendement ${p.return_percent}%`).join("\n");
 
@@ -186,6 +195,24 @@ SEUILS VIP :
 - VIP5 : ${settingsMap["vip_threshold_5"] || "N/A"} FCFA
 ${userContext}
 ═══════════════════════════════════════
+INFORMATIONS OFFICIELLES (MODULE COMPLÉMENTAIRE)
+═══════════════════════════════════════
+IMPORTANT : Quand l'utilisateur pose une question contenant des mots-clés comme "service client", "numéro", "WhatsApp", "Telegram", "groupe", "rejoindre groupe", "groupe privé", "investisseur", tu DOIS utiliser UNIQUEMENT les informations ci-dessous. Ne JAMAIS inventer d'informations. Si une information est vide, réponds : "Veuillez contacter le service client pour plus d'informations."
+
+- Numéro du service client : ${officialServicePhone || "Non renseigné"}
+- Lien WhatsApp : ${officialWhatsapp || "Non renseigné"}
+- Lien Telegram : ${officialTelegram || "Non renseigné"}
+- Lien Groupe WhatsApp : ${officialWhatsappGroup || "Non renseigné"}
+- Lien Groupe Telegram : ${officialTelegramGroup || "Non renseigné"}
+- Message Groupe Privé Investisseurs : ${officialPrivateGroupMsg || "Non renseigné"}
+- Message de bienvenue : ${officialWelcomeMsg || "Non renseigné"}
+
+Exemples de réponses attendues :
+- "Quel est le numéro du service client ?" → "Voici le numéro officiel du service client : [numéro enregistré]"
+- "Comment rejoindre le groupe privé ?" → "[Message Groupe Privé enregistré]. Vous pouvez contacter le service client ici : [lien WhatsApp]"
+- Si l'info est vide → "Veuillez contacter le service client pour plus d'informations."
+
+═══════════════════════════════════════
 RÈGLES DE RÉPONSE
 ═══════════════════════════════════════
 1. Réponds UNIQUEMENT en français
@@ -195,7 +222,8 @@ RÈGLES DE RÉPONSE
 5. Sois rassurante en cas de retard ou problème
 6. Varie TOUJOURS tes formulations
 7. Utilise les données de l'utilisateur pour personnaliser tes réponses (appelle-le par son prénom si disponible)
-8. En cas de doute, propose toujours le contact humain au ${supportPhone}`;
+8. En cas de doute, propose toujours le contact humain au ${supportPhone}
+9. Pour les questions sur les contacts officiels, utilise EXCLUSIVEMENT les données du module "Informations Officielles" ci-dessus`;
 
     const messages = [
       { role: "system", content: systemPrompt },
