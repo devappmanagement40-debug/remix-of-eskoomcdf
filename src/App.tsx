@@ -18,6 +18,9 @@ import NotFound from "./pages/NotFound";
 import ServiceChat from "./pages/ServiceChat";
 import APropos from "./pages/APropos";
 import NewsDetail from "./pages/NewsDetail";
+import HistoriqueRetraits from "./pages/HistoriqueRetraits";
+import HistoriqueFonds from "./pages/HistoriqueFonds";
+import PointsCadeaux from "./pages/PointsCadeaux";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +41,9 @@ const App = () => (
           <Route path="/aide" element={<Aide />} />
           <Route path="/a-propos" element={<APropos />} />
           <Route path="/actualite/:slug" element={<NewsDetail />} />
+          <Route path="/historique-retraits" element={<HistoriqueRetraits />} />
+          <Route path="/historique-fonds" element={<HistoriqueFonds />} />
+          <Route path="/points-cadeaux" element={<PointsCadeaux />} />
           <Route path="/profil" element={<Profile />} />
           <Route path="/parametres" element={<Settings />} />
           <Route path="/loterie" element={<Loterie />} />
