@@ -5,6 +5,7 @@ import BottomNav from "@/components/BottomNav";
 import FloatingButtons from "@/components/FloatingButtons";
 import ProductCard from "@/components/ProductCard";
 import PremiumModal from "@/components/PremiumModal";
+import InviteModal from "@/components/InviteModal";
 import productServer from "@/assets/product-server.jpg";
 import productSolar from "@/assets/product-solar.jpg";
 import productWind from "@/assets/product-wind.jpg";
@@ -83,6 +84,7 @@ const Index = () => {
   const navigate = useNavigate();
   const [currentBanner, setCurrentBanner] = useState(0);
   const [showService, setShowService] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
 
   const nextBanner = useCallback(() => {
     setCurrentBanner((prev) => (prev + 1) % banners.length);
@@ -149,6 +151,8 @@ const Index = () => {
               key={action.label}
               onClick={() => {
                 if (action.label === "Service") setShowService(true);
+                else if (action.label === "Inviter des amis") setShowInvite(true);
+                else if (action.label === "Échangeur") navigate("/echanger-code");
               }}
               className="flex flex-col items-center gap-2 bg-card rounded-xl py-4 px-2 border border-secondary hover:border-primary transition-colors"
             >
@@ -198,6 +202,7 @@ const Index = () => {
         onConfirm={() => navigate("/service-chat")}
       />
 
+      <InviteModal open={showInvite} onClose={() => setShowInvite(false)} />
       <FloatingButtons />
       <BottomNav />
     </div>
