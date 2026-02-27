@@ -1,5 +1,7 @@
+import { useState, useEffect } from "react";
 import { ChevronRight, Wallet, Send, Zap, Gift } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 
@@ -10,15 +12,42 @@ const menuItems = [
   { label: "Points Cadeaux", path: "/points-cadeaux", value: "0", hasChevron: true },
 ];
 
-const stats = [
-  { label: "Revenu D'aujourd'hui", value: "0.00" },
-  { label: "Revenu Total", value: "0.00" },
-  { label: "Recharge Totale", value: "0.00" },
-  { label: "Total Retraits", value: "0.00" },
-];
-
 const Portefeuille = () => {
   const navigate = useNavigate();
+  const [balance, setBalance] = useState(0);
+  const [depositBalance, setDepositBalance] = useState(0);
+  const [earningsBalance, setEarningsBalance] = useState(0);
+  const [referralBalance, setReferralBalance] = useState(0);
+  const [depositNotWithdrawable, setDepositNotWithdrawable] = useState(true);
+
+  useEffect(() => { loadData(); }, []);
+
+  const loadData = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const [profileRes, settingsRes] = await Promise.all([
+      supabase.from("profiles").select("balance, deposit_balance, earnings_balance, referral_balance").eq("user_id", user.id).single(),
+      supabase.from("site_settings").select("value").eq("key", "deposit_not_withdrawable").single(),
+    ]);
+    if (profileRes.data) {
+      setBalance(profileRes.data.balance || 0);
+      setDepositBalance(profileRes.data.deposit_balance || 0);
+      setEarningsBalance(profileRes.data.earnings_balance || 0);
+      setReferralBalance(profileRes.data.referral_balance || 0);
+    }
+    if (settingsRes.data) setDepositNotWithdrawable(settingsRes.data.value === "true");
+  };
+
+  const withdrawable = depositNotWithdrawable
+    ? earningsBalance + referralBalance
+    : balance;
+
+  const stats = [
+    { label: "Revenu D'aujourd'hui", value: "0.00" },
+    { label: "Revenu Total", value: earningsBalance.toLocaleString("fr-FR", { minimumFractionDigits: 2 }) },
+    { label: "Recharge Totale", value: depositBalance.toLocaleString("fr-FR", { minimumFractionDigits: 2 }) },
+    { label: "Total Retraits", value: "0.00" },
+  ];
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -31,13 +60,32 @@ const Portefeuille = () => {
             <span className="inline-block bg-secondary text-muted-foreground text-xs px-4 py-1.5 rounded-full mb-3">
               Portefeuil Revenus
             </span>
-            <p className="text-4xl font-bold text-primary">0.00 <span className="text-base font-normal">FCFA</span></p>
+            <p className="text-4xl font-bold text-primary">{earningsBalance.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-base font-normal">FCFA</span></p>
+          </div>
+
+          {/* Split balances */}
+          <div className="grid grid-cols-3 gap-2 mb-4">
+            <div className="bg-secondary/50 rounded-lg p-2.5 text-center">
+              <p className="text-[10px] text-muted-foreground">Dépôt</p>
+              <p className="text-xs font-bold text-foreground">{depositBalance.toLocaleString("fr-FR")} F</p>
+              {depositNotWithdrawable && <p className="text-[8px] text-destructive">Non retirable</p>}
+            </div>
+            <div className="bg-secondary/50 rounded-lg p-2.5 text-center">
+              <p className="text-[10px] text-muted-foreground">Gains</p>
+              <p className="text-xs font-bold text-success">{earningsBalance.toLocaleString("fr-FR")} F</p>
+              <p className="text-[8px] text-success">Retirable</p>
+            </div>
+            <div className="bg-secondary/50 rounded-lg p-2.5 text-center">
+              <p className="text-[10px] text-muted-foreground">Parrainage</p>
+              <p className="text-xs font-bold text-primary">{referralBalance.toLocaleString("fr-FR")} F</p>
+              <p className="text-[8px] text-primary">Retirable</p>
+            </div>
           </div>
 
           {/* Portefeuil Recharge */}
           <div className="flex items-center justify-center mb-5">
             <span className="inline-flex items-center gap-2 bg-secondary text-muted-foreground text-xs px-4 py-1.5 rounded-full">
-              Portefeuil Recharge <span className="text-primary font-semibold">0.00 FCFA</span>
+              Solde retirable <span className="text-primary font-semibold">{withdrawable.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} FCFA</span>
             </span>
           </div>
 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import AdminWheelTab from "@/components/AdminWheelTab";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
@@ -14,7 +15,8 @@ import {
 // ==================== TYPES ====================
 type Profile = {
   id: string; user_id: string; full_name: string | null; phone: string | null;
-  balance: number | null; country_code: string | null; referral_code: string | null;
+  balance: number | null; deposit_balance: number | null; earnings_balance: number | null;
+  referral_balance: number | null; country_code: string | null; referral_code: string | null;
   is_suspended: boolean | null; created_at: string | null; vip_level: number | null;
 };
 type Recharge = {
@@ -57,6 +59,7 @@ const tabs = [
   { key: "deposits", icon: Download, label: "Dépôts" },
   { key: "withdrawals", icon: Upload, label: "Retraits" },
   { key: "products", icon: Package, label: "Produits" },
+  { key: "wheel", icon: Activity, label: "Roue" },
   { key: "countries", icon: Globe, label: "Pays" },
   { key: "payments", icon: CreditCard, label: "Paiement" },
   { key: "links", icon: Link2, label: "Liens" },
@@ -184,6 +187,7 @@ const AdminPanel = () => {
         {activeTab === "withdrawals" && <WithdrawalsTab withdrawals={withdrawals} profiles={profiles} reload={loadAll} showSuccess={showSuccess} showError={showError} logAction={logAction} />}
         {activeTab === "products" && <ProductsTab series={series} products={products} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "countries" && <CountriesTab countries={countries} methods={paymentMethods} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
+        {activeTab === "wheel" && <AdminWheelTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} logAction={logAction} adminId={adminId} />}
         {activeTab === "payments" && <PaymentsTab methods={paymentMethods} countries={countries} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "links" && <LinksTab links={socialLinks} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "popups" && <PopupsTab popups={popups} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
@@ -332,9 +336,12 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
         <div className="bg-card rounded-xl border border-secondary p-4">
           <p className="text-sm font-bold text-foreground">{detailUser.full_name || "Sans nom"}</p>
           <p className="text-xs text-muted-foreground">{detailUser.country_code} {detailUser.phone}</p>
-          <div className="grid grid-cols-3 gap-3 mt-3">
-            <div><p className="text-[10px] text-muted-foreground">Solde</p><p className="text-xs font-bold text-primary">{(detailUser.balance || 0).toLocaleString("fr-FR")} F</p></div>
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            <div><p className="text-[10px] text-muted-foreground">Solde total</p><p className="text-xs font-bold text-primary">{(detailUser.balance || 0).toLocaleString("fr-FR")} F</p></div>
             <div><p className="text-[10px] text-muted-foreground">Niveau</p><p className="text-xs font-bold text-foreground">VIP{detailUser.vip_level || 0}</p></div>
+            <div><p className="text-[10px] text-muted-foreground">Dépôt</p><p className="text-xs font-bold text-foreground">{(detailUser.deposit_balance || 0).toLocaleString("fr-FR")} F</p></div>
+            <div><p className="text-[10px] text-muted-foreground">Gains</p><p className="text-xs font-bold text-success">{(detailUser.earnings_balance || 0).toLocaleString("fr-FR")} F</p></div>
+            <div><p className="text-[10px] text-muted-foreground">Parrainage</p><p className="text-xs font-bold text-primary">{(detailUser.referral_balance || 0).toLocaleString("fr-FR")} F</p></div>
             <div><p className="text-[10px] text-muted-foreground">Code</p><p className="text-xs font-semibold text-foreground">{detailUser.referral_code || "—"}</p></div>
           </div>
         </div>
@@ -514,7 +521,10 @@ const DepositsTab = ({ recharges, profiles, reload, showSuccess, showError, logA
     await supabase.from("recharges").update({ status }).eq("id", r.id);
     if (status === "approved") {
       const p = profileMap[r.user_id];
-      if (p) await supabase.from("profiles").update({ balance: (p.balance || 0) + r.amount }).eq("user_id", r.user_id);
+      if (p) await supabase.from("profiles").update({
+        balance: (p.balance || 0) + r.amount,
+        deposit_balance: (p.deposit_balance || 0) + r.amount,
+      }).eq("user_id", r.user_id);
     }
     logAction(`deposit_${status}`, "recharge", r.id, `${r.amount} FCFA`);
     showSuccess(status === "approved" ? "Dépôt approuvé ✅" : "Dépôt refusé ❌", "");
@@ -601,7 +611,24 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
     await supabase.from("withdrawals").update({ status }).eq("id", w.id);
     if (status === "approved") {
       const p = profileMap[w.user_id];
-      if (p) await supabase.from("profiles").update({ balance: Math.max(0, (p.balance || 0) - w.amount) }).eq("user_id", w.user_id);
+      if (p) {
+        // Debit from earnings first, then referral
+        let remaining = w.amount;
+        let newEarnings = p.earnings_balance || 0;
+        let newReferral = p.referral_balance || 0;
+        const debitEarnings = Math.min(newEarnings, remaining);
+        newEarnings -= debitEarnings;
+        remaining -= debitEarnings;
+        if (remaining > 0) {
+          const debitReferral = Math.min(newReferral, remaining);
+          newReferral -= debitReferral;
+        }
+        await supabase.from("profiles").update({
+          balance: Math.max(0, (p.balance || 0) - w.amount),
+          earnings_balance: Math.max(0, newEarnings),
+          referral_balance: Math.max(0, newReferral),
+        }).eq("user_id", w.user_id);
+      }
     }
     logAction(`withdrawal_${status}`, "withdrawal", w.id, `${w.amount} FCFA`);
     showSuccess(status === "approved" ? "Retrait approuvé ✅" : "Retrait refusé ❌", "");

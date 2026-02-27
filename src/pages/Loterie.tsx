@@ -1,62 +1,109 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Zap, Trophy } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/PageHeader";
 import BottomNav from "@/components/BottomNav";
 
-const segments = [
-  { label: "50", value: 50 },
-  { label: "100", value: 100 },
-  { label: "200", value: 200 },
-  { label: "VIP", value: 0 },
-  { label: "500", value: 500 },
-  { label: "3K", value: 3000 },
-  { label: "10K", value: 10000 },
-  { label: "50K", value: 50000 },
-];
+type WheelPrize = {
+  id: string; label: string; value: number; prize_type: string;
+  vip_level: number | null; probability: number; is_active: boolean;
+};
 
-const winners = [
-  { time: "25/02 15:05", user: "76****2018", gain: "300 FCFA" },
-  { time: "25/02 15:00", user: "75****7825", gain: "300 FCFA" },
-  { time: "25/02 15:02", user: "72****5941", gain: "200 FCFA" },
-  { time: "25/02 14:42", user: "77****5055", gain: "100 FCFA" },
-  { time: "25/02 14:30", user: "75****8581", gain: "500 FCFA" },
-];
-
-const SEGMENT_COUNT = segments.length;
-const SEGMENT_ANGLE = 360 / SEGMENT_COUNT;
+type WheelSetting = { key: string; value: string | null };
 
 const Loterie = () => {
+  const [prizes, setPrizes] = useState<WheelPrize[]>([]);
+  const [settings, setSettings] = useState<Record<string, string>>({});
   const [rotation, setRotation] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<string | null>(null);
+  const [resultType, setResultType] = useState<string>("cash");
+  const [loading, setLoading] = useState(true);
   const wheelRef = useRef<SVGSVGElement>(null);
 
-  const spin = () => {
-    if (spinning) return;
+  useEffect(() => { loadData(); }, []);
+
+  const loadData = async () => {
+    const [pz, ss] = await Promise.all([
+      supabase.from("wheel_prizes").select("*").eq("is_active", true).order("sort_order"),
+      supabase.from("site_settings").select("key, value").eq("category", "wheel"),
+    ]);
+    if (pz.data) setPrizes(pz.data as WheelPrize[]);
+    const settingsMap: Record<string, string> = {};
+    (ss.data || []).forEach((s: WheelSetting) => { if (s.value) settingsMap[s.key] = s.value; });
+    setSettings(settingsMap);
+    setLoading(false);
+  };
+
+  const segments = prizes.length > 0 ? prizes : [{ id: "1", label: "—", value: 0, prize_type: "cash", vip_level: null, probability: 100, is_active: true }];
+  const SEGMENT_COUNT = segments.length;
+  const SEGMENT_ANGLE = 360 / SEGMENT_COUNT;
+
+  // Weighted random selection based on probability
+  const selectPrize = () => {
+    const totalProb = segments.reduce((s, p) => s + p.probability, 0);
+    let rand = Math.random() * totalProb;
+    for (let i = 0; i < segments.length; i++) {
+      rand -= segments[i].probability;
+      if (rand <= 0) return i;
+    }
+    return segments.length - 1;
+  };
+
+  const spin = async () => {
+    if (spinning || segments.length === 0) return;
     setSpinning(true);
     setResult(null);
 
-    const randomSegment = Math.floor(Math.random() * SEGMENT_COUNT);
+    const winIndex = selectPrize();
     const extraSpins = 5 * 360;
-    const targetAngle = extraSpins + (360 - randomSegment * SEGMENT_ANGLE - SEGMENT_ANGLE / 2);
+    const targetAngle = extraSpins + (360 - winIndex * SEGMENT_ANGLE - SEGMENT_ANGLE / 2);
 
     setRotation((prev) => prev + targetAngle);
 
-    setTimeout(() => {
+    setTimeout(async () => {
       setSpinning(false);
-      setResult(segments[randomSegment].label === "VIP" ? "VIP" : `${segments[randomSegment].label} FCFA`);
+      const prize = segments[winIndex];
+      setResultType(prize.prize_type);
+
+      if (prize.prize_type === "vip") {
+        setResult(`VIP${prize.vip_level || 1}`);
+      } else {
+        setResult(`${Number(prize.value).toLocaleString("fr-FR")} FCFA`);
+      }
+
+      // Save spin to DB
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const spinData: any = {
+          user_id: user.id,
+          prize_id: prize.id,
+          prize_label: prize.label,
+          prize_value: prize.value,
+          prize_type: prize.prize_type,
+          vip_level: prize.vip_level,
+          status: prize.prize_type === "vip" ? "pending_vip" : "completed",
+        };
+        await supabase.from("wheel_spins").insert(spinData);
+
+        // If cash prize, credit earnings_balance
+        if (prize.prize_type === "cash" && prize.value > 0) {
+          const { data: profile } = await supabase.from("profiles").select("balance, earnings_balance").eq("user_id", user.id).single();
+          if (profile) {
+            await supabase.from("profiles").update({
+              balance: (profile.balance || 0) + prize.value,
+              earnings_balance: (profile.earnings_balance || 0) + prize.value,
+            }).eq("user_id", user.id);
+          }
+        }
+      }
     }, 4000);
   };
 
   const colors = [
-    "hsl(190, 60%, 35%)",
-    "hsl(190, 50%, 28%)",
-    "hsl(195, 60%, 38%)",
-    "hsl(195, 50%, 30%)",
-    "hsl(200, 60%, 35%)",
-    "hsl(200, 50%, 28%)",
-    "hsl(185, 60%, 38%)",
-    "hsl(185, 50%, 30%)",
+    "hsl(190, 60%, 35%)", "hsl(190, 50%, 28%)", "hsl(195, 60%, 38%)", "hsl(195, 50%, 30%)",
+    "hsl(200, 60%, 35%)", "hsl(200, 50%, 28%)", "hsl(185, 60%, 38%)", "hsl(185, 50%, 30%)",
+    "hsl(210, 60%, 35%)", "hsl(210, 50%, 28%)", "hsl(205, 60%, 38%)", "hsl(205, 50%, 30%)",
   ];
 
   const renderSegments = () => {
@@ -83,46 +130,50 @@ const Loterie = () => {
             stroke="hsl(190, 40%, 20%)"
             strokeWidth="1"
           />
-          <text
-            x={textX}
-            y={textY}
-            fill="white"
-            fontSize="14"
-            fontWeight="bold"
-            textAnchor="middle"
-            dominantBaseline="middle"
-            transform={`rotate(${textRotation}, ${textX}, ${textY})`}
-          >
+          <text x={textX} y={textY} fill="white" fontSize={SEGMENT_COUNT > 8 ? "11" : "14"} fontWeight="bold"
+            textAnchor="middle" dominantBaseline="middle" transform={`rotate(${textRotation}, ${textX}, ${textY})`}>
             {seg.label}
           </text>
-          <text
-            x={cx + r * 0.52 * Math.cos(midAngle)}
-            y={cy + r * 0.52 * Math.sin(midAngle)}
-            fill="hsla(0,0%,100%,0.6)"
-            fontSize="8"
-            textAnchor="middle"
-            dominantBaseline="middle"
-            transform={`rotate(${textRotation}, ${cx + r * 0.52 * Math.cos(midAngle)}, ${cy + r * 0.52 * Math.sin(midAngle)})`}
-          >
-            {seg.label === "VIP" ? "" : "FCFA"}
-          </text>
+          {seg.prize_type === "cash" && (
+            <text x={cx + r * 0.52 * Math.cos(midAngle)} y={cy + r * 0.52 * Math.sin(midAngle)}
+              fill="hsla(0,0%,100%,0.6)" fontSize="8" textAnchor="middle" dominantBaseline="middle"
+              transform={`rotate(${textRotation}, ${cx + r * 0.52 * Math.cos(midAngle)}, ${cy + r * 0.52 * Math.sin(midAngle)})`}>
+              FCFA
+            </text>
+          )}
         </g>
       );
     });
   };
 
+  const wheelTitle = settings.wheel_title || "Roue de la Fortune";
+  const wheelSubtitle = settings.wheel_subtitle || "100% Gagnant • Cadeaux Divers";
+  const wheelInfoTitle = settings.wheel_info_title || "Règlement du jeu";
+  const wheelRules = settings.wheel_rules || "Règle 1 : Chaque investissement vous donne droit à un tirage.\nRègle 2 : Inviter un membre valide vous donne droit à un tirage.";
+  const wheelWinMessage = settings.wheel_win_message || "Vous avez gagné";
+  const wheelBanner = settings.wheel_banner_url;
+
+  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Chargement...</p></div>;
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <PageHeader title="⚡ LOTERIE ESKOM" showBack />
+
+      {/* Banner */}
+      {wheelBanner && (
+        <div className="px-4 pt-4">
+          <img src={wheelBanner} alt="Bannière" className="w-full rounded-xl object-cover max-h-32" />
+        </div>
+      )}
 
       {/* Header section */}
       <div className="bg-gradient-to-b from-[hsl(250,50%,30%)] to-background px-4 pt-6 pb-8">
         <div className="text-center mb-4">
           <h1 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">
-            <Zap size={24} className="text-warning" /> Roue de la Fortune
+            <Zap size={24} className="text-warning" /> {wheelTitle}
           </h1>
           <div className="mt-2 inline-block bg-[hsl(270,30%,25%)] rounded-full px-6 py-1.5">
-            <span className="text-sm text-primary font-medium">100% Gagnant • Cadeaux Divers</span>
+            <span className="text-sm text-primary font-medium">{wheelSubtitle}</span>
           </div>
         </div>
 
@@ -142,59 +193,41 @@ const Loterie = () => {
       {/* Wheel */}
       <div className="flex flex-col items-center px-4 -mt-2">
         <div className="relative w-[300px] h-[300px]">
-          {/* Pointer */}
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 z-10">
             <div className="w-0 h-0 border-l-[12px] border-r-[12px] border-t-[20px] border-l-transparent border-r-transparent border-t-primary" />
           </div>
 
-          {/* Dots around */}
           {Array.from({ length: 16 }).map((_, i) => {
             const angle = (i * 22.5 - 90) * (Math.PI / 180);
             const x = 150 + 148 * Math.cos(angle);
             const y = 150 + 148 * Math.sin(angle);
-            return (
-              <div
-                key={i}
-                className="absolute w-2 h-2 rounded-full bg-primary"
-                style={{ left: x - 4, top: y - 4 }}
-              />
-            );
+            return <div key={i} className="absolute w-2 h-2 rounded-full bg-primary" style={{ left: x - 4, top: y - 4 }} />;
           })}
 
-          <svg
-            ref={wheelRef}
-            viewBox="0 0 300 300"
-            className="w-full h-full"
-            style={{
-              transform: `rotate(${rotation}deg)`,
-              transition: spinning ? "transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)" : "none",
-            }}
-          >
+          <svg ref={wheelRef} viewBox="0 0 300 300" className="w-full h-full"
+            style={{ transform: `rotate(${rotation}deg)`, transition: spinning ? "transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)" : "none" }}>
             {renderSegments()}
-            {/* Center circle */}
             <circle cx="150" cy="150" r="35" fill="hsl(220, 25%, 12%)" stroke="hsl(45, 90%, 50%)" strokeWidth="3" />
             <text x="150" y="144" fill="hsl(45, 90%, 50%)" fontSize="18" fontWeight="bold" textAnchor="middle" dominantBaseline="middle">⚡</text>
             <text x="150" y="162" fill="white" fontSize="10" fontWeight="bold" textAnchor="middle" dominantBaseline="middle">ESKOM</text>
           </svg>
         </div>
 
-        {/* Spin button */}
-        <button
-          onClick={spin}
-          disabled={spinning}
-          className="mt-4 gradient-button text-primary-foreground font-bold py-3 px-10 rounded-xl text-lg disabled:opacity-50 transition-opacity"
-        >
+        <button onClick={spin} disabled={spinning}
+          className="mt-4 gradient-button text-primary-foreground font-bold py-3 px-10 rounded-xl text-lg disabled:opacity-50 transition-opacity">
           {spinning ? "En cours..." : "TOURNER"}
         </button>
 
         {result && (
-          <div className="mt-3 bg-card border border-primary rounded-xl px-6 py-3 text-center">
-            <p className="text-sm text-muted-foreground">Vous avez gagné</p>
-            <p className="text-xl font-bold text-primary">{result}</p>
+          <div className={`mt-3 bg-card border rounded-xl px-6 py-3 text-center ${resultType === "vip" ? "border-warning" : "border-primary"}`}>
+            <p className="text-sm text-muted-foreground">{wheelWinMessage}</p>
+            <p className={`text-xl font-bold ${resultType === "vip" ? "text-warning" : "text-primary"}`}>{result}</p>
+            {resultType === "vip" && (
+              <p className="text-xs text-muted-foreground mt-1">⏳ En attente de validation par l'administration</p>
+            )}
           </div>
         )}
 
-        {/* History link */}
         <button className="mt-4 text-sm text-muted-foreground hover:text-foreground transition-colors">
           Voir l'historique →
         </button>
@@ -204,43 +237,15 @@ const Loterie = () => {
       <div className="px-4 mt-6">
         <div className="bg-card rounded-xl border border-secondary p-5">
           <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
-            🏛 Règlement du jeu
+            🏛 {wheelInfoTitle}
           </h3>
           <div className="border-t border-secondary pt-3 space-y-3">
-            <p className="text-sm text-muted-foreground">
-              <span className="text-primary font-semibold">Règle 1 :</span> Chaque investissement vous donne droit à un tirage.
-            </p>
-            <p className="text-sm text-muted-foreground">
-              <span className="text-primary font-semibold">Règle 2 :</span> Inviter un membre valide vous donne droit à un tirage.
-            </p>
+            {wheelRules.split("\n").filter(Boolean).map((rule: string, i: number) => (
+              <p key={i} className="text-sm text-muted-foreground">
+                <span className="text-primary font-semibold">{rule.split(":")[0]}:</span>{rule.includes(":") ? rule.substring(rule.indexOf(":") + 1) : ""}
+              </p>
+            ))}
           </div>
-        </div>
-      </div>
-
-      {/* Winners */}
-      <div className="px-4 mt-4 mb-6">
-        <div className="bg-card rounded-xl border border-secondary p-5">
-          <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-4">
-            <Trophy size={16} className="text-warning" /> Derniers gagnants
-          </h3>
-          <table className="w-full">
-            <thead>
-              <tr className="text-xs text-muted-foreground">
-                <th className="text-left pb-3 font-medium">Heure</th>
-                <th className="text-left pb-3 font-medium">Utilisateur</th>
-                <th className="text-right pb-3 font-medium">Gain</th>
-              </tr>
-            </thead>
-            <tbody>
-              {winners.map((w, i) => (
-                <tr key={i} className="border-t border-secondary">
-                  <td className="py-3 text-xs text-muted-foreground">{w.time}</td>
-                  <td className="py-3 text-sm font-bold text-foreground">{w.user}</td>
-                  <td className="py-3 text-sm font-bold text-primary text-right">{w.gain}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       </div>
 
