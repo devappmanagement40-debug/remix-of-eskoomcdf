@@ -14,6 +14,89 @@ export type Database = {
   }
   public: {
     Tables: {
+      product_series: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          id: string
+          name: string
+          sort_order: number | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          sort_order?: number | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      products: {
+        Row: {
+          created_at: string | null
+          cycles: number | null
+          daily_revenue: number | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          is_new: boolean | null
+          name: string
+          price: number | null
+          return_percent: number | null
+          series_id: string
+          sort_order: number | null
+          total_revenue: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          cycles?: number | null
+          daily_revenue?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          is_new?: boolean | null
+          name: string
+          price?: number | null
+          return_percent?: number | null
+          series_id: string
+          sort_order?: number | null
+          total_revenue?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          cycles?: number | null
+          daily_revenue?: number | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          is_new?: boolean | null
+          name?: string
+          price?: number | null
+          return_percent?: number | null
+          series_id?: string
+          sort_order?: number | null
+          total_revenue?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "product_series"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           balance: number | null
