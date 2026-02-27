@@ -21,6 +21,7 @@ const Loterie = () => {
   const [resultType, setResultType] = useState<string>("cash");
   const [loading, setLoading] = useState(true);
   const [spins, setSpins] = useState<SpinRecord[]>([]);
+  const [globalSpins, setGlobalSpins] = useState<any[]>([]);
   const [totalWon, setTotalWon] = useState(0);
   const [spinsLeft, setSpinsLeft] = useState(0);
   const wheelRef = useRef<SVGSVGElement>(null);
@@ -47,6 +48,11 @@ const Loterie = () => {
         setTotalWon(total);
       }
     }
+
+    // Load global recent winners via RPC
+    const { data: globalData } = await supabase.rpc("get_recent_winners", { lim: 30 });
+    if (globalData) setGlobalSpins(globalData);
+
     setLoading(false);
   };
 
@@ -247,40 +253,61 @@ const Loterie = () => {
 
       </div>
 
-      {/* Spin History */}
-      <div className="px-4 mt-6">
+      {/* Spin History link */}
+      <div className="px-4 mt-4">
+        <button onClick={() => {/* could navigate to full history */}} className="text-sm text-primary font-semibold w-full text-center">
+          Voir l'historique →
+        </button>
+      </div>
+
+      {/* Rules */}
+      <div className="px-4 mt-4">
+        <div className="bg-card rounded-xl border border-secondary p-5">
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
+            🏛 {wheelInfoTitle}
+          </h3>
+          <div className="border-t border-secondary pt-3 space-y-3">
+            {wheelRules.split("\n").filter(Boolean).map((rule: string, i: number) => (
+              <p key={i} className="text-sm text-muted-foreground">
+                <span className="text-primary font-semibold">{rule.split(":")[0]}:</span>{rule.includes(":") ? rule.substring(rule.indexOf(":") + 1) : ""}
+              </p>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Derniers gagnants */}
+      <div className="px-4 mt-4">
         <div className="bg-card rounded-xl border border-secondary p-4">
           <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
-            <History size={16} className="text-primary" /> Historique des tirages
+            <Trophy size={16} className="text-primary" /> Derniers gagnants
           </h3>
-          {spins.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-4">Aucun tirage effectué</p>
-          ) : (
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {spins.map((spin) => (
-                <div key={spin.id} className="flex items-center justify-between border-b border-secondary pb-2 last:border-0">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${spin.prize_type === "vip" ? "bg-warning/20" : "bg-primary/20"}`}>
-                      {spin.prize_type === "vip" ? <Trophy size={14} className="text-warning" /> : <Gift size={14} className="text-primary" />}
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-foreground">{spin.prize_label}</p>
-                      <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                        <Clock size={10} />
-                        {new Date(spin.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className={`text-xs font-bold ${spin.prize_type === "vip" ? "text-warning" : "text-primary"}`}>
-                      {spin.prize_type === "vip" ? `VIP${spin.vip_level || ""}` : `${Number(spin.prize_value).toLocaleString("fr-FR")} FCFA`}
-                    </p>
-                    {spin.status === "pending_vip" && <span className="text-[10px] text-warning">⏳ En attente</span>}
-                  </div>
-                </div>
-              ))}
+          <div className="border-t border-secondary">
+            {/* Table header */}
+            <div className="grid grid-cols-3 py-2.5 text-xs text-muted-foreground font-semibold">
+              <span>Heure</span>
+              <span>Utilisateur</span>
+              <span className="text-right">Gain</span>
             </div>
-          )}
+            {globalSpins.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-4">Aucun tirage</p>
+            ) : (
+              <div className="max-h-72 overflow-y-auto divide-y divide-secondary">
+                {globalSpins.map((s) => (
+                    <div key={s.id} className="grid grid-cols-3 py-2.5 text-xs items-center">
+                      <span className="text-muted-foreground">
+                        {new Date(s.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}{" "}
+                        {new Date(s.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                      <span className="font-bold text-foreground">{s.masked_phone}</span>
+                      <span className="text-right font-bold text-primary">
+                        {s.prize_type === "vip" ? `VIP${s.vip_level || ""}` : `${Number(s.prize_value).toLocaleString("fr-FR")} FCFA`}
+                      </span>
+                    </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

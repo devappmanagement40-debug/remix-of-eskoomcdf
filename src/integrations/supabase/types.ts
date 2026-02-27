@@ -781,6 +781,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_recent_winners: {
+        Args: { lim?: number }
+        Returns: {
+          created_at: string
+          id: string
+          masked_phone: string
+          prize_label: string
+          prize_type: string
+          prize_value: number
+          vip_level: number
+        }[]
+      }
       get_team_profile_ids: { Args: { _user_id: string }; Returns: string[] }
       has_role: {
         Args: {
