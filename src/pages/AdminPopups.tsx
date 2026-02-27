@@ -4,7 +4,7 @@ import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import { Pencil, Save, X, Plus, Trash2 } from "lucide-react";
 
-type Tab = { label: string; content: string };
+type Tab = { label: string; content: string; url?: string };
 
 type PopupMsg = {
   id: string;
@@ -115,6 +115,12 @@ const AdminPopups = () => {
                             setForm({ ...form, tabs: newTabs });
                           }} rows={2} placeholder="Contenu"
                             className="w-full bg-secondary text-foreground rounded-lg px-3 py-2 text-sm outline-none resize-none" />
+                          <input value={tab.url || ""} onChange={(e) => {
+                            const newTabs = [...form.tabs!];
+                            newTabs[i] = { ...newTabs[i], url: e.target.value };
+                            setForm({ ...form, tabs: newTabs });
+                          }} placeholder="URL (ex: /service-chat, https://wa.me/..., https://t.me/...)"
+                            className="w-full bg-secondary text-foreground rounded-lg px-3 py-2 text-sm outline-none" />
                           <button onClick={() => {
                             const newTabs = form.tabs!.filter((_, idx) => idx !== i);
                             setForm({ ...form, tabs: newTabs });
@@ -123,7 +129,7 @@ const AdminPopups = () => {
                           </button>
                         </div>
                       ))}
-                      <button onClick={() => setForm({ ...form, tabs: [...(form.tabs || []), { label: "Nouveau", content: "" }] })}
+                      <button onClick={() => setForm({ ...form, tabs: [...(form.tabs || []), { label: "Nouveau", content: "", url: "" }] })}
                         className="text-primary text-xs flex items-center gap-1 mt-1">
                         <Plus size={12} /> Ajouter un onglet
                       </button>
