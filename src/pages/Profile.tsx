@@ -39,18 +39,34 @@ const Profile = () => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-      const { data } = await supabase.from("profiles").select("*").eq("user_id", user.id).single();
-      if (data) {
-        setPhone(data.phone || user.email || "Utilisateur");
-        setBalance(data.balance || 0);
-        // VIP logic placeholder — customize thresholds as needed
-        const bal = data.balance || 0;
-        if (bal >= 500000) { setVipIndex(5); setProgress(100); }
-        else if (bal >= 200000) { setVipIndex(4); setProgress(((bal - 200000) / 300000) * 100); }
-        else if (bal >= 100000) { setVipIndex(3); setProgress(((bal - 100000) / 100000) * 100); }
-        else if (bal >= 50000) { setVipIndex(2); setProgress(((bal - 50000) / 50000) * 100); }
-        else if (bal >= 10000) { setVipIndex(1); setProgress(((bal - 10000) / 40000) * 100); }
-        else { setVipIndex(0); setProgress((bal / 10000) * 100); }
+
+      // Fetch profile and VIP conditions in parallel
+      const [{ data: profileData }, { data: vipData }] = await Promise.all([
+        supabase.from("profiles").select("*").eq("user_id", user.id).single(),
+        supabase.from("vip_conditions").select("*").order("level"),
+      ]);
+
+      if (profileData) {
+        setPhone(profileData.phone || user.email || "Utilisateur");
+        setBalance(profileData.balance || 0);
+
+        const currentLevel = profileData.vip_level || 0;
+        setVipIndex(currentLevel);
+
+        // Calculate progress to next level using dynamic VIP conditions
+        if (vipData && vipData.length > 0) {
+          const nextCondition = vipData.find((v: any) => v.level === currentLevel + 1);
+          if (nextCondition && nextCondition.min_investment > 0) {
+            const currentCondition = vipData.find((v: any) => v.level === currentLevel);
+            const minThreshold = currentCondition?.min_investment || 0;
+            const maxThreshold = nextCondition.min_investment;
+            const bal = profileData.balance || 0;
+            const prog = Math.max(0, ((bal - minThreshold) / (maxThreshold - minThreshold)) * 100);
+            setProgress(Math.min(prog, 100));
+          } else {
+            setProgress(currentLevel >= 5 ? 100 : 0);
+          }
+        }
       }
     };
     fetchProfile();
