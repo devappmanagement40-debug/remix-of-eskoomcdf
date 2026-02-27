@@ -4,12 +4,13 @@ import { Input } from "@/components/ui/input";
 import EskomLogo from "@/components/EskomLogo";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useActionPopup } from "@/components/ActionPopupProvider";
 import CountryPicker from "@/components/CountryPicker";
 import PremiumModal from "@/components/PremiumModal";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { showError } = useActionPopup();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [countryCode, setCountryCode] = useState("+226");
@@ -19,16 +20,15 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone || !password) { toast.error("Veuillez remplir tous les champs"); return; }
+    if (!phone || !password) { showError("Erreur", "Veuillez remplir tous les champs"); return; }
 
     setLoading(true);
     const email = `${phone.replace(/\s/g, "")}@users.eskom.app`;
     const { error, data: authData } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      toast.error("Numéro ou mot de passe incorrect");
+      showError("Connexion échouée", "Numéro ou mot de passe incorrect");
     } else {
-      // Fetch profile name for welcome popup
       const { data: profile } = await supabase.from("profiles").select("full_name, phone").eq("user_id", authData.user.id).single();
       setUserName(profile?.full_name || profile?.phone || phone);
       setShowWelcome(true);

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import PremiumModal from "@/components/PremiumModal";
 
@@ -11,6 +11,7 @@ const DESTINATAIRE_COMPTE = "66610774";
 const RechargePaiement = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { showError, showCopy } = useActionPopup();
   const { amount, phone, countryCode } = (location.state as { amount: number; phone: string; countryCode: string }) || {};
   const [step, setStep] = useState<"info" | "ref">("info");
   const [transactionRef, setTransactionRef] = useState("");
@@ -23,18 +24,18 @@ const RechargePaiement = () => {
     return null;
   }
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    toast.success("Copié !");
+    showCopy(`${label} copié dans le presse-papiers`);
   };
 
   const handleValidate = async () => {
     if (!transactionRef.trim()) {
-      toast.error("Veuillez entrer la référence de la transaction");
+      showError("Erreur", "Veuillez entrer la référence de la transaction");
       return;
     }
     if (transactionRef.trim().length < 5) {
-      toast.error("La référence doit contenir au moins 5 caractères");
+      showError("Erreur", "La référence doit contenir au moins 5 caractères");
       return;
     }
 
@@ -42,7 +43,7 @@ const RechargePaiement = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error("Vous devez être connecté pour effectuer une recharge");
+        showError("Erreur", "Vous devez être connecté pour effectuer une recharge");
         navigate("/connexion");
         return;
       }
@@ -58,16 +59,16 @@ const RechargePaiement = () => {
 
       if (error) {
         if (error.message.includes("duplicate") || error.message.includes("unique")) {
-          toast.error("Cette référence de transaction a déjà été utilisée");
+          showError("Erreur", "Cette référence de transaction a déjà été utilisée");
         } else {
-          toast.error("Erreur lors de la soumission");
+          showError("Erreur", "Erreur lors de la soumission");
         }
         return;
       }
 
       setShowRechargeSuccess(true);
     } catch {
-      toast.error("Erreur de connexion");
+      showError("Erreur", "Erreur de connexion au serveur");
     } finally {
       setLoading(false);
     }
@@ -97,7 +98,6 @@ const RechargePaiement = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Green header */}
       <div className="bg-gradient-to-br from-success via-success/90 to-primary/70 pt-4 pb-16 px-4">
         <div className="flex items-center mb-6">
           <button onClick={() => navigate(-1)} className="text-success-foreground">
@@ -109,18 +109,15 @@ const RechargePaiement = () => {
         </div>
       </div>
 
-      {/* Content card overlapping header */}
       <div className="px-4 -mt-10">
         <div className="bg-card rounded-2xl border border-secondary p-5 space-y-5">
           {step === "info" ? (
             <>
-              {/* Amount display */}
               <div className="text-center py-4 bg-secondary/50 rounded-xl">
                 <span className="text-primary font-semibold text-sm mr-2">XOF</span>
                 <span className="text-3xl font-bold text-foreground">{amount.toLocaleString()}.00</span>
               </div>
 
-              {/* Phone */}
               <div>
                 <p className="text-sm text-foreground font-medium mb-2">Entrez votre numéro de téléphone</p>
                 <div className="bg-secondary/50 rounded-xl px-4 py-3 flex items-center gap-3">
@@ -129,7 +126,6 @@ const RechargePaiement = () => {
                 </div>
               </div>
 
-              {/* Payment mode */}
               <div>
                 <p className="text-sm text-foreground font-medium mb-2">Choisissez le mode de paiement</p>
                 <div className="bg-secondary/50 rounded-xl px-4 py-3 flex items-center gap-3">
@@ -147,13 +143,12 @@ const RechargePaiement = () => {
             </>
           ) : (
             <>
-              {/* Payment details with copy buttons */}
               <div className="space-y-4">
                 <div>
                   <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-1">MONTANT</p>
                   <div className="bg-secondary/50 rounded-xl px-4 py-3 flex items-center justify-between">
                     <span className="text-foreground font-medium">{amount.toLocaleString()}.00</span>
-                    <button onClick={() => copyToClipboard(String(amount))} className="text-primary font-semibold text-sm">Copier</button>
+                    <button onClick={() => copyToClipboard(String(amount), "Montant")} className="text-primary font-semibold text-sm">Copier</button>
                   </div>
                 </div>
 
@@ -161,7 +156,7 @@ const RechargePaiement = () => {
                   <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-1">NOM DU DESTINATAIRE</p>
                   <div className="bg-secondary/50 rounded-xl px-4 py-3 flex items-center justify-between">
                     <span className="text-foreground font-medium">{DESTINATAIRE_NOM}</span>
-                    <button onClick={() => copyToClipboard(DESTINATAIRE_NOM)} className="text-primary font-semibold text-sm">Copier</button>
+                    <button onClick={() => copyToClipboard(DESTINATAIRE_NOM, "Nom du destinataire")} className="text-primary font-semibold text-sm">Copier</button>
                   </div>
                 </div>
 
@@ -169,7 +164,7 @@ const RechargePaiement = () => {
                   <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-1">COMPTE DU DESTINATAIRE</p>
                   <div className="bg-secondary/50 rounded-xl px-4 py-3 flex items-center justify-between">
                     <span className="text-foreground font-medium">{DESTINATAIRE_COMPTE}</span>
-                    <button onClick={() => copyToClipboard(DESTINATAIRE_COMPTE)} className="text-primary font-semibold text-sm">Copier</button>
+                    <button onClick={() => copyToClipboard(DESTINATAIRE_COMPTE, "Compte du destinataire")} className="text-primary font-semibold text-sm">Copier</button>
                   </div>
                 </div>
 
@@ -182,7 +177,6 @@ const RechargePaiement = () => {
                 </div>
               </div>
 
-              {/* Pay now button */}
               <a
                 href={`tel:*144*${DESTINATAIRE_COMPTE}*${amount}#`}
                 className="w-full bg-success text-success-foreground font-bold py-4 rounded-xl text-base flex items-center justify-center gap-2"
@@ -190,7 +184,6 @@ const RechargePaiement = () => {
                 📞 Payez Maintenant
               </a>
 
-              {/* Transaction ref input */}
               <div>
                 <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-1">RÉFÉRENCE DE LA TRANSACTION</p>
                 <input

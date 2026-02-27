@@ -4,12 +4,13 @@ import { Input } from "@/components/ui/input";
 import EskomLogo from "@/components/EskomLogo";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useActionPopup } from "@/components/ActionPopupProvider";
 import CountryPicker from "@/components/CountryPicker";
 
 const Signup = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { showSuccess, showError } = useActionPopup();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -24,16 +25,15 @@ const Signup = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone || !password || !confirmPassword) { toast.error("Veuillez remplir tous les champs"); return; }
-    if (phone.length < 8) { toast.error("Numéro de téléphone invalide"); return; }
-    if (password.length < 6) { toast.error("Le mot de passe doit contenir au moins 6 caractères"); return; }
-    if (password !== confirmPassword) { toast.error("Les mots de passe ne correspondent pas"); return; }
+    if (!phone || !password || !confirmPassword) { showError("Erreur", "Veuillez remplir tous les champs"); return; }
+    if (phone.length < 8) { showError("Erreur", "Numéro de téléphone invalide"); return; }
+    if (password.length < 6) { showError("Erreur", "Le mot de passe doit contenir au moins 6 caractères"); return; }
+    if (password !== confirmPassword) { showError("Erreur", "Les mots de passe ne correspondent pas"); return; }
 
     setLoading(true);
     const cleanPhone = phone.replace(/\s/g, "");
     const email = `${cleanPhone}@users.eskom.app`;
 
-    // Lookup referrer profile by invite code
     let referrerId: string | null = null;
     if (inviteCode.trim()) {
       const { data: referrer } = await supabase
@@ -44,7 +44,7 @@ const Signup = () => {
       if (referrer) {
         referrerId = referrer.id;
       } else {
-        toast.error("Code d'invitation invalide");
+        showError("Erreur", "Code d'invitation invalide");
         setLoading(false);
         return;
       }
@@ -60,21 +60,20 @@ const Signup = () => {
 
     if (error) {
       if (error.message.includes("already registered")) {
-        toast.error("Ce numéro est déjà inscrit");
+        showError("Erreur", "Ce numéro est déjà inscrit");
       } else {
-        toast.error("Erreur lors de l'inscription");
+        showError("Erreur", "Erreur lors de l'inscription");
       }
     } else {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const updateData: Record<string, unknown> = { phone: cleanPhone, country_code: countryCode };
         if (referrerId) updateData.referred_by = referrerId;
-        // Generate referral code for new user
         updateData.referral_code = cleanPhone.slice(-4).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
         await supabase.from("profiles").update(updateData).eq("user_id", user.id);
       }
-      toast.success("Compte créé avec succès ✅");
-      navigate("/");
+      showSuccess("Inscription réussie", "Votre compte a été créé avec succès ✅");
+      setTimeout(() => navigate("/"), 1500);
     }
     setLoading(false);
   };

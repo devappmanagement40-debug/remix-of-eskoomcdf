@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useActionPopup } from "@/components/ActionPopupProvider";
 
 interface TeamMember {
   id: string;
@@ -21,6 +21,7 @@ interface LevelData {
 }
 
 const Team = () => {
+  const { showCopy } = useActionPopup();
   const [levels, setLevels] = useState<LevelData[]>([
     { label: "B", color: "from-cyan-400 to-teal-400", members: [], revenue: 0 },
     { label: "C", color: "from-pink-400 to-rose-400", members: [], revenue: 0 },
@@ -38,7 +39,6 @@ const Team = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Get my profile to find my id and referral code
     const { data: myProfile } = await supabase
       .from("profiles")
       .select("id, referral_code")
@@ -48,7 +48,6 @@ const Team = () => {
     if (!myProfile) return;
     setReferralCode(myProfile.referral_code || "");
 
-    // Level B: direct referrals (referred_by = my profile id)
     const { data: levelB } = await supabase
       .from("profiles")
       .select("id, full_name, phone, country_code, balance")
@@ -56,7 +55,6 @@ const Team = () => {
 
     const bMembers = levelB || [];
 
-    // Level C: referrals of my referrals
     const bIds = bMembers.map((m) => m.id);
     let cMembers: TeamMember[] = [];
     if (bIds.length > 0) {
@@ -67,7 +65,6 @@ const Team = () => {
       cMembers = levelC || [];
     }
 
-    // Level D: referrals of level C
     const cIds = cMembers.map((m) => m.id);
     let dMembers: TeamMember[] = [];
     if (cIds.length > 0) {
@@ -98,7 +95,7 @@ const Team = () => {
   const copyCode = () => {
     navigator.clipboard.writeText(referralCode);
     setCopied(true);
-    toast.success("Code copié !");
+    showCopy("Votre code de parrainage a été copié dans le presse-papiers");
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -107,7 +104,6 @@ const Team = () => {
       <PageHeader title="Mon équipe" showBack />
 
       <div className="px-4 pt-4 space-y-4">
-        {/* Referral Code */}
         {referralCode && (
           <button
             onClick={copyCode}
@@ -121,7 +117,6 @@ const Team = () => {
           </button>
         )}
 
-        {/* Summary Cards */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-card border border-border rounded-xl p-5 flex flex-col items-center">
             <div className="w-14 h-14 rounded-full bg-amber-500/20 flex items-center justify-center mb-3">
@@ -139,7 +134,6 @@ const Team = () => {
           </div>
         </div>
 
-        {/* Level Cards */}
         {levels.map((level) => (
           <div key={level.label} className="bg-card border border-border rounded-xl p-4">
             <div className="flex items-center gap-4">
@@ -162,7 +156,6 @@ const Team = () => {
               </div>
             </div>
 
-            {/* Members list */}
             {level.members.length > 0 && (
               <div className="mt-3 pt-3 border-t border-border space-y-2">
                 {level.members.map((member) => (

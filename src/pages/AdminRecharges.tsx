@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 
 type Recharge = {
@@ -18,6 +18,7 @@ type Recharge = {
 
 const AdminRecharges = () => {
   const navigate = useNavigate();
+  const { showSuccess, showError } = useActionPopup();
   const [recharges, setRecharges] = useState<Recharge[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
@@ -41,7 +42,7 @@ const AdminRecharges = () => {
 
     const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
     if (!data) {
-      toast.error("Accès refusé");
+      showError("Accès refusé", "Vous n'avez pas les droits d'administrateur");
       navigate("/");
       return;
     }
@@ -64,10 +65,9 @@ const AdminRecharges = () => {
       .update({ status })
       .eq("id", id);
 
-    if (error) { toast.error("Erreur lors de la mise à jour"); return; }
+    if (error) { showError("Erreur", "Erreur lors de la mise à jour"); return; }
 
     if (status === "approved") {
-      // Credit user balance
       const { data: profile } = await supabase
         .from("profiles")
         .select("balance")
@@ -82,7 +82,10 @@ const AdminRecharges = () => {
       }
     }
 
-    toast.success(status === "approved" ? "Recharge approuvée ✅" : "Recharge refusée ❌");
+    showSuccess(
+      status === "approved" ? "Recharge approuvée" : "Recharge refusée",
+      status === "approved" ? "La recharge a été validée et le solde crédité ✅" : "La recharge a été refusée ❌"
+    );
     loadRecharges();
   };
 
@@ -118,7 +121,6 @@ const AdminRecharges = () => {
     <div className="min-h-screen bg-background pb-10">
       <PageHeader title="Admin - Recharges" showBack />
 
-      {/* Filter tabs */}
       <div className="px-4 pt-4 flex gap-2 overflow-x-auto">
         {(["all", "pending", "approved", "rejected"] as const).map((f) => (
           <button

@@ -1,7 +1,7 @@
 import { X, Copy, Check } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useActionPopup } from "@/components/ActionPopupProvider";
 
 interface InviteModalProps {
   open: boolean;
@@ -11,6 +11,7 @@ interface InviteModalProps {
 const InviteModal = ({ open, onClose }: InviteModalProps) => {
   const [referralCode, setReferralCode] = useState("");
   const [copied, setCopied] = useState(false);
+  const { showCopy } = useActionPopup();
 
   useEffect(() => {
     if (open) {
@@ -31,7 +32,7 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
   const copyLink = () => {
     navigator.clipboard.writeText(inviteLink);
     setCopied(true);
-    toast.success("Lien copié !");
+    showCopy("Votre lien d'invitation a été copié dans le presse-papiers");
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -51,7 +52,6 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
         </div>
 
         <div className="px-5 pb-6 space-y-4">
-          {/* Link section */}
           <div>
             <p className="text-sm font-semibold text-primary mb-2 uppercase">Votre lien d'invitation</p>
             <div className="bg-secondary rounded-lg p-3">
@@ -59,7 +59,6 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
             </div>
           </div>
 
-          {/* Copy button */}
           <button
             onClick={copyLink}
             className="w-full gradient-button text-foreground font-bold py-3.5 rounded-xl text-sm uppercase tracking-wide transition-opacity hover:opacity-90 flex items-center justify-center gap-2"
@@ -68,7 +67,6 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
             {copied ? "Copié !" : "Copier lien"}
           </button>
 
-          {/* Commission info */}
           <div>
             <p className="text-sm font-semibold text-primary mb-3 uppercase">Gains d'invitation</p>
             <ul className="space-y-3">

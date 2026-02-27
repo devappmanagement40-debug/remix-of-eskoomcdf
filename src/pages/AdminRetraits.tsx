@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 
 type Withdrawal = {
@@ -20,6 +20,7 @@ type Withdrawal = {
 
 const AdminRetraits = () => {
   const navigate = useNavigate();
+  const { showSuccess, showError } = useActionPopup();
   const [items, setItems] = useState<Withdrawal[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
@@ -37,7 +38,7 @@ const AdminRetraits = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/connexion"); return; }
     const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
-    if (!data) { toast.error("Accès refusé"); navigate("/"); return; }
+    if (!data) { showError("Accès refusé", "Vous n'avez pas les droits d'administrateur"); navigate("/"); return; }
     loadData();
   };
 
@@ -49,10 +50,9 @@ const AdminRetraits = () => {
 
   const handleAction = async (item: Withdrawal, status: "approved" | "rejected") => {
     const { error } = await supabase.from("withdrawals").update({ status }).eq("id", item.id);
-    if (error) { toast.error("Erreur"); return; }
+    if (error) { showError("Erreur", "Erreur lors de la mise à jour"); return; }
 
     if (status === "approved") {
-      // Debit user balance
       const { data: profile } = await supabase.from("profiles").select("balance").eq("user_id", item.user_id).single();
       if (profile) {
         const newBal = Math.max(0, (profile.balance || 0) - item.amount);
@@ -60,7 +60,10 @@ const AdminRetraits = () => {
       }
     }
 
-    toast.success(status === "approved" ? "Retrait approuvé ✅" : "Retrait refusé ❌");
+    showSuccess(
+      status === "approved" ? "Retrait approuvé" : "Retrait refusé",
+      status === "approved" ? "Le retrait a été validé et le solde débité ✅" : "Le retrait a été refusé ❌"
+    );
     loadData();
   };
 
