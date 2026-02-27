@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Image, Paperclip, Smile, Check, CheckCheck, MoreVertical, Phone, Video } from "lucide-react";
+import { ArrowLeft, Send, Image, Paperclip, Smile, Check, CheckCheck, MoreVertical, Phone, Video, Bot } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import sarahAvatar from "@/assets/sarah-avatar.jpg";
 
 interface Message {
   id: number;
@@ -9,53 +11,46 @@ interface Message {
   sender: "user" | "support";
   time: string;
   status: "sent" | "delivered" | "read";
+  isAI?: boolean;
 }
-
-const initialMessages: Message[] = [
-  {
-    id: 1,
-    text: "Bonjour ! Bienvenue sur le support ESKOM. Comment pouvons-nous vous aider aujourd'hui ?",
-    sender: "support",
-    time: "09:00",
-    status: "read",
-  },
-  {
-    id: 2,
-    text: "Bonjour, j'ai une question concernant mon investissement TC 1000.",
-    sender: "user",
-    time: "09:02",
-    status: "read",
-  },
-  {
-    id: 3,
-    text: "Bien sûr ! Je suis là pour vous aider. Quelle est votre question concernant le TC 1000 ?",
-    sender: "support",
-    time: "09:03",
-    status: "read",
-  },
-  {
-    id: 4,
-    text: "Je voudrais savoir quand je recevrai mon prochain rendement.",
-    sender: "user",
-    time: "09:05",
-    status: "read",
-  },
-  {
-    id: 5,
-    text: "Votre prochain rendement sera crédité demain à 00h00 UTC. Vous recevrez 500,00 FCFA sur votre portefeuille. 💰",
-    sender: "support",
-    time: "09:06",
-    status: "read",
-  },
-];
 
 const ServiceChat = () => {
   const navigate = useNavigate();
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [sarahEnabled, setSarahEnabled] = useState(false);
+  const [loadingSettings, setLoadingSettings] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    checkSarahStatus();
+  }, []);
+
+  const checkSarahStatus = async () => {
+    const { data } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "sarah_enabled")
+      .single();
+    const enabled = data?.value === "true";
+    setSarahEnabled(enabled);
+    setLoadingSettings(false);
+
+    // Initial greeting
+    const greeting: Message = {
+      id: 1,
+      text: enabled
+        ? "Bonjour ! 👋 Je suis Sarah, votre assistante virtuelle ESKOM. Comment puis-je vous aider aujourd'hui ?\n\nSarah – Assistante virtuelle ESKOM"
+        : "Bonjour ! Bienvenue sur le support ESKOM. Comment pouvons-nous vous aider aujourd'hui ?",
+      sender: "support",
+      time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+      status: "read",
+      isAI: enabled,
+    };
+    setMessages([greeting]);
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -65,33 +60,73 @@ const ServiceChat = () => {
     scrollToBottom();
   }, [messages]);
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!input.trim()) return;
+    const userText = input.trim();
     const newMsg: Message = {
       id: Date.now(),
-      text: input,
+      text: userText,
       sender: "user",
       time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
       status: "sent",
     };
     setMessages((prev) => [...prev, newMsg]);
     setInput("");
-
-    // Simulate support typing
     setIsTyping(true);
-    setTimeout(() => {
-      setIsTyping(false);
-      const reply: Message = {
-        id: Date.now() + 1,
-        text: "Merci pour votre message ! Un agent va vous répondre sous peu. En attendant, n'hésitez pas à consulter notre FAQ dans la section Aide. 🙏",
-        sender: "support",
-        time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
-        status: "delivered" as const,
-      };
-      setMessages((prev) =>
-        prev.map((m): Message => (m.id === newMsg.id ? { ...m, status: "read" as const } : m)).concat(reply)
-      );
-    }, 2000);
+
+    if (sarahEnabled) {
+      try {
+        // Build history from last messages (keep last 10 for context)
+        const history = messages.slice(-10).map((m) => ({
+          sender: m.sender,
+          text: m.text,
+        }));
+
+        const { data, error } = await supabase.functions.invoke("sarah-chat", {
+          body: { message: userText, history },
+        });
+
+        setIsTyping(false);
+        const replyText = data?.reply || "Je suis désolée, une erreur est survenue. Veuillez réessayer.";
+        const reply: Message = {
+          id: Date.now() + 1,
+          text: replyText,
+          sender: "support",
+          time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+          status: "delivered",
+          isAI: true,
+        };
+        setMessages((prev) =>
+          prev.map((m): Message => (m.id === newMsg.id ? { ...m, status: "read" } : m)).concat(reply)
+        );
+      } catch (err) {
+        setIsTyping(false);
+        const reply: Message = {
+          id: Date.now() + 1,
+          text: "Une erreur est survenue. Un agent humain prendra le relais bientôt. 🙏\n\nSarah – Assistante virtuelle ESKOM",
+          sender: "support",
+          time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+          status: "delivered",
+          isAI: true,
+        };
+        setMessages((prev) => prev.concat(reply));
+      }
+    } else {
+      // Simulated human response
+      setTimeout(() => {
+        setIsTyping(false);
+        const reply: Message = {
+          id: Date.now() + 1,
+          text: "Merci pour votre message ! Un agent va vous répondre sous peu. En attendant, n'hésitez pas à consulter notre FAQ dans la section Aide. 🙏",
+          sender: "support",
+          time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+          status: "delivered",
+        };
+        setMessages((prev) =>
+          prev.map((m): Message => (m.id === newMsg.id ? { ...m, status: "read" } : m)).concat(reply)
+        );
+      }, 2000);
+    }
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -114,13 +149,16 @@ const ServiceChat = () => {
         setIsTyping(false);
         setMessages((prev) =>
           prev
-            .map((m): Message => (m.id === newMsg.id ? { ...m, status: "read" as const } : m))
+            .map((m): Message => (m.id === newMsg.id ? { ...m, status: "read" } : m))
             .concat({
               id: Date.now() + 1,
-              text: "Nous avons bien reçu votre image. Un agent l'examine maintenant. 📷",
-              sender: "support" as const,
+              text: sarahEnabled
+                ? "J'ai bien reçu votre image. Je vais l'examiner. Si besoin, je transmettrai à un agent humain pour un suivi personnalisé. 📷\n\nSarah – Assistante virtuelle ESKOM"
+                : "Nous avons bien reçu votre image. Un agent l'examine maintenant. 📷",
+              sender: "support",
               time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
-              status: "delivered" as const,
+              status: "delivered",
+              isAI: sarahEnabled,
             })
         );
       }, 2500);
@@ -142,14 +180,27 @@ const ServiceChat = () => {
           <ArrowLeft size={22} className="text-foreground" />
         </button>
         <div className="relative">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-bold text-sm">
-            ES
-          </div>
-          <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-card" style={{ background: "hsl(var(--success))" }} />
+          {sarahEnabled ? (
+            <img src={sarahAvatar} alt="Sarah" className="w-10 h-10 rounded-full object-cover border-2 border-primary" />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-bold text-sm">
+              ES
+            </div>
+          )}
+          <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-card bg-[#25D366]" />
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-sm font-bold text-foreground truncate">ESKOM Support</h1>
-          <p className="text-xs" style={{ color: "hsl(var(--success))" }}>En ligne</p>
+          <h1 className="text-sm font-bold text-foreground truncate flex items-center gap-1.5">
+            {sarahEnabled ? "Sarah" : "ESKOM Support"}
+            {sarahEnabled && (
+              <span className="inline-flex items-center gap-0.5 text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-semibold">
+                <Bot size={10} /> IA
+              </span>
+            )}
+          </h1>
+          <p className="text-xs text-[#25D366] font-medium">
+            {sarahEnabled ? "Assistante IA • En ligne" : "En ligne"}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <button className="p-2 rounded-full hover:bg-secondary transition-colors">
@@ -164,7 +215,7 @@ const ServiceChat = () => {
         </div>
       </header>
 
-      {/* Chat Background Pattern */}
+      {/* Chat Background */}
       <div
         className="flex-1 overflow-y-auto px-3 py-4 space-y-2"
         style={{
@@ -184,20 +235,29 @@ const ServiceChat = () => {
             key={msg.id}
             className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
           >
+            {msg.sender === "support" && sarahEnabled && (
+              <img src={sarahAvatar} alt="Sarah" className="w-7 h-7 rounded-full object-cover mr-1.5 mt-1 flex-shrink-0" />
+            )}
             <div
-              className={`max-w-[80%] rounded-2xl px-3 py-2 relative ${
+              className={`max-w-[75%] rounded-2xl px-3 py-2 relative ${
                 msg.sender === "user"
                   ? "bg-primary/20 border border-primary/30 rounded-br-md"
                   : "bg-card border border-secondary rounded-bl-md"
               }`}
             >
+              {msg.sender === "support" && msg.isAI && (
+                <div className="flex items-center gap-1 mb-1">
+                  <Bot size={10} className="text-primary" />
+                  <span className="text-[9px] text-primary font-semibold">Sarah IA</span>
+                </div>
+              )}
               {msg.image && (
                 <div className="mb-1.5 rounded-lg overflow-hidden">
                   <img src={msg.image} alt="Image envoyée" className="max-w-full max-h-60 object-contain rounded-lg" />
                 </div>
               )}
               {msg.text && (
-                <p className="text-sm text-foreground leading-relaxed">{msg.text}</p>
+                <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">{msg.text}</p>
               )}
               <div className={`flex items-center gap-1 mt-1 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
                 <span className="text-[10px] text-muted-foreground">{msg.time}</span>
@@ -209,7 +269,8 @@ const ServiceChat = () => {
 
         {/* Typing indicator */}
         {isTyping && (
-          <div className="flex justify-start">
+          <div className="flex justify-start items-end gap-1.5">
+            {sarahEnabled && <img src={sarahAvatar} alt="Sarah" className="w-7 h-7 rounded-full object-cover" />}
             <div className="bg-card border border-secondary rounded-2xl rounded-bl-md px-4 py-3">
               <div className="flex gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "0ms" }} />

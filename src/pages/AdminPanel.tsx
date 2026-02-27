@@ -832,7 +832,7 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
   };
 
   const groups: Record<string, { label: string; keys: { key: string; label: string }[] }> = {
-    general: { label: "Général", keys: [{ key: "site_name", label: "Nom du site" }, { key: "welcome_text", label: "Texte d'accueil" }, { key: "terms_url", label: "URL Conditions générales" }] },
+    general: { label: "Général", keys: [{ key: "site_name", label: "Nom du site" }, { key: "welcome_text", label: "Texte d'accueil" }, { key: "terms_url", label: "URL Conditions générales" }, { key: "sarah_enabled", label: "🤖 Sarah IA (true/false)" }] },
     finance: { label: "Finance", keys: [{ key: "withdrawal_fee_percent", label: "Frais de retrait (%)" }, { key: "min_withdrawal", label: "Retrait minimum (FCFA)" }] },
     vip: { label: "Seuils VIP", keys: [{ key: "vip_threshold_1", label: "VIP1 (FCFA)" }, { key: "vip_threshold_2", label: "VIP2 (FCFA)" }, { key: "vip_threshold_3", label: "VIP3 (FCFA)" }, { key: "vip_threshold_4", label: "VIP4 (FCFA)" }, { key: "vip_threshold_5", label: "VIP5 (FCFA)" }] },
   };
