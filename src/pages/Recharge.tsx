@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/PageHeader";
 import BottomNav from "@/components/BottomNav";
-import CountryPicker, { countries } from "@/components/CountryPicker";
+import CountryPicker from "@/components/CountryPicker";
 import { CreditCard, ChevronRight } from "lucide-react";
 import { usePhoneValidation } from "@/hooks/usePhoneValidation";
 

@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import { CreditCard, Trash2, Plus, Smartphone } from "lucide-react";
-import CountryPicker, { countries } from "@/components/CountryPicker";
+import CountryPicker from "@/components/CountryPicker";
 
 const networks = ["Orange Money", "Moov Money", "Wave", "MTN Money", "Free Money", "Airtel Money"];
 
@@ -25,13 +25,18 @@ const LierCarte = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showNetworkPicker, setShowNetworkPicker] = useState(false);
+  const [countries, setCountries] = useState<{code: string; flag: string; name: string}[]>([]);
 
   const [countryCode, setCountryCode] = useState("+226");
   const [phone, setPhone] = useState("");
   const [network, setNetwork] = useState("Orange Money");
   const [holderName, setHolderName] = useState("");
 
-  useEffect(() => { loadWallets(); }, []);
+  useEffect(() => {
+    loadWallets();
+    supabase.from("countries").select("country_code, flag_emoji, name").eq("is_active", true).order("sort_order")
+      .then(({ data }) => { if (data) setCountries(data.map(c => ({ code: c.country_code, flag: c.flag_emoji || "🏳️", name: c.name }))); });
+  }, []);
 
   const loadWallets = async () => {
     const { data: { user } } = await supabase.auth.getUser();
