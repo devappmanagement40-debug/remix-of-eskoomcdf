@@ -70,7 +70,7 @@ const Portefeuille = () => {
               <Wallet size={18} />
               Recharger
             </button>
-            <button className="bg-gradient-to-r from-muted to-secondary text-foreground font-semibold py-3 rounded-xl text-sm flex items-center justify-center gap-2 border border-secondary">
+            <button onClick={() => navigate("/retrait")} className="bg-gradient-to-r from-muted to-secondary text-foreground font-semibold py-3 rounded-xl text-sm flex items-center justify-center gap-2 border border-secondary">
               <Send size={18} />
               Retrait
             </button>
