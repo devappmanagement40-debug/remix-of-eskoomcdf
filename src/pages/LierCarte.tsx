@@ -28,6 +28,7 @@ const LierCarte = () => {
   const [countryCode, setCountryCode] = useState("+226");
   const [phone, setPhone] = useState("");
   const [network, setNetwork] = useState("Orange Money");
+  const [holderName, setHolderName] = useState("");
 
   useEffect(() => { loadWallets(); }, []);
 
@@ -40,6 +41,7 @@ const LierCarte = () => {
   };
 
   const handleSave = async () => {
+    if (!holderName.trim()) { toast.error("Veuillez entrer le nom du titulaire"); return; }
     if (!phone || phone.length < 8) { toast.error("Numéro de téléphone invalide"); return; }
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
@@ -48,9 +50,10 @@ const LierCarte = () => {
     const { error } = await supabase.from("user_wallets").insert({
       user_id: user.id, phone, country_code: countryCode, network,
       label: `${country?.flag || ""} ${network}`,
+      holder_name: holderName.trim(),
     });
     if (error) { toast.error("Erreur lors de l'enregistrement"); }
-    else { toast.success("Portefeuille ajouté ✅"); setPhone(""); setShowForm(false); loadWallets(); }
+    else { toast.success("Portefeuille ajouté ✅"); setPhone(""); setHolderName(""); setShowForm(false); loadWallets(); }
     setSaving(false);
   };
 
@@ -96,7 +99,8 @@ const LierCarte = () => {
                       </button>
                     </div>
                     <p className="text-lg font-bold text-black/80 tracking-[0.2em] mb-1">{w.country_code} **** {w.phone.slice(-4)}</p>
-                    <p className="text-sm text-black/60 font-medium">{country?.flag} {w.network}</p>
+                    <p className="text-sm text-black/60 font-medium">{(w as any).holder_name || "—"}</p>
+                    <p className="text-xs text-black/50 font-medium mt-0.5">{country?.flag} {w.network}</p>
                   </div>
                 </div>
               );
@@ -109,7 +113,16 @@ const LierCarte = () => {
           <div className="bg-card rounded-2xl border border-secondary p-5 mb-6 space-y-4">
             <h3 className="text-sm font-bold text-foreground mb-2">Ajouter un portefeuille</h3>
 
-            {/* Country */}
+            {/* Holder name */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-2 block">Nom du titulaire</label>
+              <div className="input-glow rounded-xl bg-secondary p-3">
+                <input type="text" value={holderName} onChange={(e) => setHolderName(e.target.value)}
+                  placeholder="Nom complet sur le compte"
+                  className="w-full bg-transparent text-foreground text-sm outline-none placeholder:text-muted-foreground" />
+              </div>
+            </div>
+
             <div>
               <label className="text-xs text-muted-foreground mb-2 block">Pays</label>
               <div className="input-glow rounded-xl bg-secondary p-3 flex items-center gap-3">
