@@ -6,8 +6,8 @@ import PremiumModal from "@/components/PremiumModal";
 import { supabase } from "@/integrations/supabase/client";
 
 const settingsItems = [
-  { label: "Changer Mot Passe", path: "#" },
-  { label: "Changer de langue", path: "#" },
+  { label: "Changer Mot Passe", path: "/changer-mot-de-passe" },
+  { label: "Changer de langue", path: "/changer-langue" },
   { label: "Déconnexion", action: "logout" },
 ];
 

@@ -1,1 +1,4 @@
 project_id = "vigdgbydpumkauibuxmn"
+
+[functions.daily-profits]
+verify_jwt = false

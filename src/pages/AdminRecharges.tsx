@@ -71,15 +71,63 @@ const AdminRecharges = () => {
     if (error) { showError("Erreur", "Erreur lors de la mise à jour"); return; }
 
     if (status === "approved") {
-      const { data: profile } = await supabase.from("profiles").select("balance").eq("user_id", userId).single();
+      const { data: profile } = await supabase.from("profiles")
+        .select("balance, deposit_balance, referral_balance, referred_by")
+        .eq("user_id", userId).single();
       if (profile) {
-        await supabase.from("profiles").update({ balance: (profile.balance || 0) + amount }).eq("user_id", userId);
+        // Credit both balance and deposit_balance
+        await supabase.from("profiles").update({
+          balance: (profile.balance || 0) + amount,
+          deposit_balance: (profile.deposit_balance || 0) + amount,
+        }).eq("user_id", userId);
+
+        // Auto referral bonus: 10% level B, 5% level C, 1% level D
+        if (profile.referred_by) {
+          const bonusB = Math.round(amount * 0.10);
+          const { data: parentB } = await supabase.from("profiles")
+            .select("id, user_id, balance, referral_balance, referred_by")
+            .eq("id", profile.referred_by).single();
+          if (parentB) {
+            await supabase.from("profiles").update({
+              balance: (parentB.balance || 0) + bonusB,
+              referral_balance: (parentB.referral_balance || 0) + bonusB,
+            }).eq("id", parentB.id);
+
+            // Level C: 5%
+            if (parentB.referred_by) {
+              const bonusC = Math.round(amount * 0.05);
+              const { data: parentC } = await supabase.from("profiles")
+                .select("id, balance, referral_balance, referred_by")
+                .eq("id", parentB.referred_by).single();
+              if (parentC) {
+                await supabase.from("profiles").update({
+                  balance: (parentC.balance || 0) + bonusC,
+                  referral_balance: (parentC.referral_balance || 0) + bonusC,
+                }).eq("id", parentC.id);
+
+                // Level D: 1%
+                if (parentC.referred_by) {
+                  const bonusD = Math.round(amount * 0.01);
+                  const { data: parentD } = await supabase.from("profiles")
+                    .select("id, balance, referral_balance")
+                    .eq("id", parentC.referred_by).single();
+                  if (parentD) {
+                    await supabase.from("profiles").update({
+                      balance: (parentD.balance || 0) + bonusD,
+                      referral_balance: (parentD.referral_balance || 0) + bonusD,
+                    }).eq("id", parentD.id);
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     }
 
     showSuccess(
       status === "approved" ? "Recharge approuvée" : "Recharge refusée",
-      status === "approved" ? "La recharge a été validée et le solde crédité ✅" : "La recharge a été refusée ❌"
+      status === "approved" ? "La recharge a été validée, le solde crédité et les bonus de parrainage distribués ✅" : "La recharge a été refusée ❌"
     );
     loadRecharges();
   };
