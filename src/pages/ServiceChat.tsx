@@ -164,26 +164,20 @@ const ServiceChat = () => {
         setIsTyping(false);
         const replyText = data?.reply || "Je suis désolée, une erreur est survenue. Veuillez réessayer.";
 
-        // Save AI reply to DB
-        const { data: replyInserted } = await supabase
-          .from("chat_messages")
-          .insert({ user_id: userId, sender: "support", message: replyText, is_ai: true })
-          .select()
-          .single();
-
-        if (replyInserted) {
-          setMessages((prev) => [
-            ...prev.map((m): Message => m.id === inserted?.id ? { ...m, status: "read" } : m),
-            {
-              id: replyInserted.id,
-              text: replyText,
-              sender: "support",
-              time: new Date(replyInserted.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
-              status: "delivered",
-              isAI: true,
-            },
-          ]);
-        }
+        // Reply is already saved server-side, just update UI
+        // Use savedReplyId from edge function or generate a temp one
+        const replyId = data?.savedReplyId || crypto.randomUUID();
+        setMessages((prev) => [
+          ...prev.map((m): Message => m.id === inserted?.id ? { ...m, status: "read" } : m),
+          {
+            id: replyId,
+            text: replyText,
+            sender: "support",
+            time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+            status: "delivered",
+            isAI: true,
+          },
+        ]);
       } catch {
         setIsTyping(false);
         const errText = "Une erreur est survenue. Un agent humain prendra le relais bientôt. 🙏\n\nSarah – Assistante virtuelle ESKOM";
