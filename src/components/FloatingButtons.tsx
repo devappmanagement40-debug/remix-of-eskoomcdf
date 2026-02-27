@@ -40,7 +40,7 @@ const FloatingButtons = () => {
   return (
     <div
       ref={containerRef}
-      className="fixed bottom-24 right-4 z-50 flex flex-col gap-3 touch-none select-none"
+      className="fixed bottom-24 right-4 z-50 flex flex-col gap-5 touch-none select-none"
       style={{ transform: `translate3d(${pos.x}px, ${pos.y}px, 0)` }}
       onMouseDown={onStart}
       onMouseMove={onMove}
@@ -53,14 +53,14 @@ const FloatingButtons = () => {
       {/* Fortune Wheel */}
       <button
         onClick={() => handleClick(() => navigate("/loterie"))}
-        className="group w-[62px] h-[62px] rounded-full flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 active:scale-95"
+        className="group w-[50px] h-[50px] rounded-full flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 active:scale-95"
         style={{
           background: "linear-gradient(135deg, hsl(35 90% 55%), hsl(25 95% 45%))",
           boxShadow: "0 4px 20px hsla(35, 90%, 50%, 0.4)",
         }}
         aria-label="Loterie"
       >
-        <svg viewBox="0 0 40 40" className="w-8 h-8 drop-shadow-md" fill="none">
+        <svg viewBox="0 0 40 40" className="w-6 h-6 drop-shadow-md" fill="none">
           <circle cx="20" cy="20" r="16" stroke="white" strokeWidth="2.5" opacity="0.9" />
           <circle cx="20" cy="20" r="4" fill="white" opacity="0.9" />
           {[0, 45, 90, 135].map((a) => (
@@ -72,15 +72,15 @@ const FloatingButtons = () => {
 
       {/* Customer Support */}
       <button
-        onClick={() => handleClick(() => window.open("https://wa.me/", "_blank"))}
-        className="group w-[62px] h-[62px] rounded-full flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 active:scale-95"
+        onClick={() => handleClick(() => navigate("/aide"))}
+        className="group w-[50px] h-[50px] rounded-full flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 active:scale-95"
         style={{
           background: "linear-gradient(135deg, hsl(210 80% 55%), hsl(230 70% 50%))",
           boxShadow: "0 4px 20px hsla(220, 80%, 50%, 0.4)",
         }}
         aria-label="Support"
       >
-        <svg viewBox="0 0 24 24" className="w-7 h-7 drop-shadow-md" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg viewBox="0 0 24 24" className="w-5 h-5 drop-shadow-md" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
           <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
         </svg>
