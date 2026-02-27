@@ -30,6 +30,7 @@ import Retrait from "./pages/Retrait";
 import AdminRetraits from "./pages/AdminRetraits";
 import AdminProduits from "./pages/AdminProduits";
 import AdminPopups from "./pages/AdminPopups";
+import EchangerCode from "./pages/EchangerCode";
 
 const queryClient = new QueryClient();
 
@@ -62,6 +63,7 @@ const App = () => (
           <Route path="/admin/retraits" element={<AdminRetraits />} />
           <Route path="/admin/produits" element={<AdminProduits />} />
           <Route path="/admin/popups" element={<AdminPopups />} />
+          <Route path="/echanger-code" element={<EchangerCode />} />
           <Route path="/profil" element={<Profile />} />
           <Route path="/parametres" element={<Settings />} />
           <Route path="/loterie" element={<Loterie />} />

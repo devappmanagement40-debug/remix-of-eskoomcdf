@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import EskomLogo from "@/components/EskomLogo";
 import PageHeader from "@/components/PageHeader";
@@ -9,12 +9,18 @@ import CountryPicker from "@/components/CountryPicker";
 
 const Signup = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [inviteCode, setInviteCode] = useState("");
   const [countryCode, setCountryCode] = useState("+226");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const code = searchParams.get("code");
+    if (code) setInviteCode(code);
+  }, [searchParams]);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
