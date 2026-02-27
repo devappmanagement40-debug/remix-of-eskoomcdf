@@ -292,7 +292,7 @@ const Products = () => {
             <AlertDialogCancel className="flex-1 rounded-xl font-bold">Annuler</AlertDialogCancel>
             <AlertDialogAction
               className="flex-1 gradient-button rounded-xl font-bold"
-              onClick={() => { if (confirmProduct) handlePurchase(confirmProduct); setConfirmProduct(null); }}
+              onClick={async () => { if (confirmProduct) { await handlePurchase(confirmProduct); } setConfirmProduct(null); }}
             >
               Confirmer l'achat
             </AlertDialogAction>
