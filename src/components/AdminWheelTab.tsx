@@ -335,49 +335,77 @@ const VipSpinsSection = ({ spins, reload, showSuccess, showError, logAction, adm
 
 // ========== IMAGES MANAGEMENT ==========
 const ImagesSection = ({ settings, reload, showSuccess }: any) => {
-  const [edits, setEdits] = useState<Record<string, string>>({});
+  const [uploading, setUploading] = useState<string | null>(null);
 
-  const getValue = (key: string) => edits[key] ?? settings.find((s: SiteSetting) => s.key === key)?.value ?? "";
-  const setVal = (key: string, val: string) => setEdits({ ...edits, [key]: val });
+  const getValue = (key: string) => settings.find((s: SiteSetting) => s.key === key)?.value ?? "";
 
-  const saveAll = async () => {
-    for (const [key, value] of Object.entries(edits)) {
-      await supabase.from("site_settings").update({ value }).eq("key", key);
-    }
-    showSuccess("Images sauvegardées ✅", "");
-    setEdits({});
+  const imageFields = [
+    { key: "wheel_banner_url", label: "Bannière promotionnelle", folder: "wheel" },
+    { key: "wheel_icon_url", label: "Icône flottante Roue", folder: "icons" },
+    { key: "support_icon_url", label: "Icône flottante Support", folder: "icons" },
+  ];
+
+  const handleUpload = async (key: string, folder: string, file: File) => {
+    setUploading(key);
+    const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+    const path = `${folder}/${key}.${ext}`;
+    const { error } = await supabase.storage.from("site-assets").upload(path, file, { upsert: true });
+    if (error) { showSuccess("Erreur upload", ""); setUploading(null); return; }
+    const { data: urlData } = supabase.storage.from("site-assets").getPublicUrl(path);
+    const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+    await supabase.from("site_settings").update({ value: publicUrl }).eq("key", key);
+    showSuccess("Image uploadée ✅", "");
+    setUploading(null);
     reload();
   };
 
-  const imageFields = [
-    { key: "wheel_banner_url", label: "Bannière promotionnelle (URL)" },
-    { key: "wheel_icon_url", label: "Icône flottante Roue (URL image)" },
-    { key: "support_icon_url", label: "Icône flottante Support (URL image)" },
-  ];
+  const handleRemove = async (key: string) => {
+    await supabase.from("site_settings").update({ value: "" }).eq("key", key);
+    showSuccess("Image supprimée", "");
+    reload();
+  };
 
   return (
     <div className="space-y-3">
-      <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
+      <div className="bg-card rounded-xl border border-secondary p-4 space-y-4">
         <h3 className="text-sm font-bold text-foreground">Images & Bannières</h3>
-        <p className="text-xs text-muted-foreground">Entrez les URLs des images. Laissez vide pour utiliser les icônes par défaut.</p>
-        {imageFields.map(f => (
-          <div key={f.key}>
-            <label className="text-xs text-muted-foreground">{f.label}</label>
-            <input value={getValue(f.key)} onChange={e => setVal(f.key, e.target.value)}
-              placeholder="https://..." className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
-            {getValue(f.key) && (
-              <div className="mt-2 rounded-lg overflow-hidden border border-secondary">
-                <img src={getValue(f.key)} alt="preview" className="w-full h-20 object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
-              </div>
-            )}
-          </div>
-        ))}
+        <p className="text-xs text-muted-foreground">Uploadez directement les images (PNG, JPG, SVG). Laissez vide pour les icônes par défaut.</p>
+        {imageFields.map(f => {
+          const currentUrl = getValue(f.key);
+          return (
+            <div key={f.key} className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">{f.label}</label>
+              {currentUrl ? (
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-xl border border-secondary overflow-hidden flex-shrink-0 bg-secondary/30">
+                    <img src={currentUrl} alt={f.label} className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  </div>
+                  <div className="flex-1 flex gap-2">
+                    <label className="flex-1 gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-pointer">
+                      <UploadIcon size={12} /> Remplacer
+                      <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" className="hidden"
+                        onChange={e => { if (e.target.files?.[0]) handleUpload(f.key, f.folder, e.target.files[0]); }} />
+                    </label>
+                    <button onClick={() => handleRemove(f.key)}
+                      className="px-3 py-2.5 rounded-xl text-xs font-bold border border-destructive text-destructive hover:bg-destructive/10">
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label className="w-full border-2 border-dashed border-secondary rounded-xl py-4 flex flex-col items-center justify-center gap-1.5 cursor-pointer hover:border-primary/50 transition-colors">
+                  <UploadIcon size={20} className="text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Cliquer pour uploader</span>
+                  <span className="text-[10px] text-muted-foreground/60">PNG, JPG, SVG</span>
+                  <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" className="hidden"
+                    onChange={e => { if (e.target.files?.[0]) handleUpload(f.key, f.folder, e.target.files[0]); }} />
+                </label>
+              )}
+              {uploading === f.key && <p className="text-xs text-primary animate-pulse">Upload en cours...</p>}
+            </div>
+          );
+        })}
       </div>
-      {Object.keys(edits).length > 0 && (
-        <button onClick={saveAll} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
-          <Save size={16} /> Sauvegarder
-        </button>
-      )}
     </div>
   );
 };

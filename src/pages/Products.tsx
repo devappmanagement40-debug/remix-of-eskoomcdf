@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import { ClipboardList, ShoppingCart, Package } from "lucide-react";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PremiumModal from "@/components/PremiumModal";
+import {
+  AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 
 type Series = { id: string; name: string; color: string | null; sort_order: number | null };
 type Product = {
@@ -44,6 +48,7 @@ const Products = () => {
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [purchasedName, setPurchasedName] = useState("");
+  const [confirmProduct, setConfirmProduct] = useState<Product | null>(null);
   const { showError } = useActionPopup();
 
   useEffect(() => {
@@ -233,7 +238,7 @@ const Products = () => {
                     <Button
                       className="gradient-button w-full h-8 text-xs font-semibold gap-1.5"
                       disabled={purchasing === product.id}
-                      onClick={() => handlePurchase(product)}
+                      onClick={() => setConfirmProduct(product)}
                     >
                       <ShoppingCart size={14} />
                       {purchasing === product.id ? "Achat..." : "Acheter"}
@@ -245,6 +250,55 @@ const Products = () => {
           </div>
         )}
       </div>
+
+      {/* Purchase Confirmation Dialog */}
+      <AlertDialog open={!!confirmProduct} onOpenChange={(open) => { if (!open) setConfirmProduct(null); }}>
+        <AlertDialogContent className="bg-card border-secondary rounded-2xl max-w-[90vw] sm:max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-foreground text-center">Confirmer l'achat</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 pt-2">
+                {confirmProduct?.image_url && (
+                  <div className="w-20 h-20 mx-auto rounded-xl overflow-hidden border border-secondary">
+                    <img src={confirmProduct.image_url} alt={confirmProduct.name} className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div className="text-center space-y-1">
+                  <p className="text-sm font-bold text-foreground">{confirmProduct?.name}</p>
+                  <p className="text-lg font-bold text-primary">{Number(confirmProduct?.price || 0).toLocaleString("fr-FR")} FCFA</p>
+                </div>
+                <div className="bg-secondary/50 rounded-xl p-3 grid grid-cols-2 gap-2 text-center">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Revenu quotidien</p>
+                    <p className="text-xs font-bold text-primary">{Number(confirmProduct?.daily_revenue || 0).toLocaleString("fr-FR")} F</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Cycles</p>
+                    <p className="text-xs font-bold text-primary">{confirmProduct?.cycles}j</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Rendement</p>
+                    <p className="text-xs font-bold text-success">{confirmProduct?.return_percent}%</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Total revenus</p>
+                    <p className="text-xs font-bold text-primary">{Number(confirmProduct?.total_revenue || 0).toLocaleString("fr-FR")} F</p>
+                  </div>
+                </div>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-row gap-3 sm:flex-row">
+            <AlertDialogCancel className="flex-1 rounded-xl font-bold">Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="flex-1 gradient-button rounded-xl font-bold"
+              onClick={() => { if (confirmProduct) handlePurchase(confirmProduct); setConfirmProduct(null); }}
+            >
+              Confirmer l'achat
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <PremiumModal
         triggerKey="purchase_success"

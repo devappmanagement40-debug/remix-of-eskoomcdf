@@ -90,7 +90,7 @@ const FloatingButtons = () => {
         }}
         aria-label="Loterie"
       >
-        {wheelIconUrl ? <img src={wheelIconUrl} alt="Roue" className="w-full h-full object-cover rounded-full" /> : defaultWheelIcon}
+        {wheelIconUrl ? <img src={wheelIconUrl} alt="Roue" className="w-full h-full object-contain rounded-full p-1" /> : defaultWheelIcon}
       </button>
 
       {/* Customer Support */}
@@ -103,7 +103,7 @@ const FloatingButtons = () => {
         }}
         aria-label="Support"
       >
-        {supportIconUrl ? <img src={supportIconUrl} alt="Support" className="w-full h-full object-cover rounded-full" /> : defaultSupportIcon}
+        {supportIconUrl ? <img src={supportIconUrl} alt="Support" className="w-full h-full object-contain rounded-full p-1" /> : defaultSupportIcon}
       </button>
     </div>
   );
