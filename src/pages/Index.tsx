@@ -19,7 +19,7 @@ const banners = [
 
 const circleActions = [
   { icon: ShoppingBag, label: "Mon produit", path: "/mes-produits" },
-  { icon: Clock, label: "Rechargeur", path: "/portefeuille" },
+  { icon: Clock, label: "Rechargeur", path: "/recharge" },
   { icon: Download, label: "Retrait", path: "/portefeuille" },
   { icon: Users, label: "Mon équipe", path: "/equipe" },
 ];

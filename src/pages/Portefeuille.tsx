@@ -66,7 +66,7 @@ const Portefeuille = () => {
 
           {/* Action Buttons */}
           <div className="grid grid-cols-2 gap-3 mt-5">
-            <button className="gradient-button text-foreground font-semibold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
+            <button onClick={() => navigate("/recharge")} className="gradient-button text-foreground font-semibold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
               <Wallet size={18} />
               Recharger
             </button>
