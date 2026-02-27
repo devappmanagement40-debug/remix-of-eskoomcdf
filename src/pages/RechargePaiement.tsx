@@ -1,41 +1,57 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import PremiumModal from "@/components/PremiumModal";
+import { Copy, ExternalLink, CheckCircle } from "lucide-react";
 
-const DESTINATAIRE_NOM = "SONGBO JIANGPAPIZ";
-const DESTINATAIRE_COMPTE = "66610774";
+type PaymentMethodInfo = {
+  id: string; name: string; phone: string | null; holder_name: string | null;
+  instructions: string | null; payment_type: string; external_url: string | null;
+};
 
 const RechargePaiement = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { showError, showCopy } = useActionPopup();
-  const { amount, phone, countryCode } = (location.state as { amount: number; phone: string; countryCode: string }) || {};
-  const [step, setStep] = useState<"info" | "ref">("info");
+  const { amount, phone, countryCode, method, isExternal } = (location.state as {
+    amount: number; phone: string; countryCode: string;
+    method: PaymentMethodInfo; isExternal?: boolean;
+  }) || {};
+
   const [transactionRef, setTransactionRef] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showAdvice, setShowAdvice] = useState(false);
   const [showRechargeSuccess, setShowRechargeSuccess] = useState(false);
+  const [redirected, setRedirected] = useState(false);
 
-  if (!amount) {
-    navigate("/recharge");
-    return null;
-  }
+  useEffect(() => {
+    if (!amount || !method) {
+      navigate("/recharge");
+    }
+  }, []);
+
+  if (!amount || !method) return null;
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    showCopy(`${label} copié dans le presse-papiers`);
+    showCopy(`${label} copie`);
+  };
+
+  const handleExternalRedirect = () => {
+    if (method.external_url) {
+      window.open(method.external_url, "_blank");
+      setRedirected(true);
+    }
   };
 
   const handleValidate = async () => {
     if (!transactionRef.trim()) {
-      showError("Erreur", "Veuillez entrer la référence de la transaction");
+      showError("Erreur", "Veuillez entrer la reference de la transaction");
       return;
     }
-    if (transactionRef.trim().length < 5) {
-      showError("Erreur", "La référence doit contenir au moins 5 caractères");
+    if (transactionRef.trim().length < 3) {
+      showError("Erreur", "La reference doit contenir au moins 3 caracteres");
       return;
     }
 
@@ -43,7 +59,7 @@ const RechargePaiement = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        showError("Erreur", "Vous devez être connecté pour effectuer une recharge");
+        showError("Erreur", "Vous devez etre connecte");
         navigate("/connexion");
         return;
       }
@@ -54,12 +70,12 @@ const RechargePaiement = () => {
         country_code: countryCode,
         amount,
         transaction_ref: transactionRef.trim(),
-        payment_method: "Orange Money",
+        payment_method: method.name,
       });
 
       if (error) {
         if (error.message.includes("duplicate") || error.message.includes("unique")) {
-          showError("Erreur", "Cette référence de transaction a déjà été utilisée");
+          showError("Erreur", "Cette reference de transaction a deja ete utilisee");
         } else {
           showError("Erreur", "Erreur lors de la soumission");
         }
@@ -74,143 +90,125 @@ const RechargePaiement = () => {
     }
   };
 
-  if (showAdvice) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-6">
-        <div className="bg-card rounded-2xl border border-secondary p-8 max-w-sm w-full text-center">
-          <h3 className="text-primary font-bold text-lg mb-4">Conseils</h3>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-            Cher client, si vous avez déjà effectué le paiement mais qu'il n'a pas été reçu, veuillez attendre 5-10 minutes avant de cliquer à nouveau. Si vous n'avez pas encore effectué le paiement, veuillez compléter le paiement d'abord, puis cliquer à nouveau.
-          </p>
-          <p className="text-sm text-foreground font-medium mb-6">
-            Merci pour votre compréhension et votre coopération!
-          </p>
-          <button
-            onClick={() => navigate("/portefeuille")}
-            className="w-full border border-primary text-primary font-semibold py-3 rounded-xl hover:bg-primary/10 transition-colors"
-          >
-            Je l'ai !
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-background">
-      <div className="bg-gradient-to-br from-success via-success/90 to-primary/70 pt-4 pb-16 px-4">
-        <div className="flex items-center mb-6">
-          <button onClick={() => navigate(-1)} className="text-success-foreground">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
-          </button>
-          <h1 className="text-lg font-bold text-success-foreground mx-auto pr-6">
-            {step === "info" ? "Paiement" : "Orange Money"}
-          </h1>
+    <div className="min-h-screen bg-background pb-10">
+      <PageHeader title="Confirmation" showBack />
+
+      <div className="px-4 pt-6 space-y-4">
+        {/* Amount Card */}
+        <div className="bg-card rounded-2xl border border-border/30 p-5 text-center">
+          <p className="text-xs text-muted-foreground mb-1">Montant a payer</p>
+          <p className="text-3xl font-bold text-foreground">{amount.toLocaleString()}<span className="text-sm font-normal text-muted-foreground ml-1">FCFA</span></p>
+          <p className="text-xs text-muted-foreground mt-2">via {method.name}</p>
         </div>
-      </div>
 
-      <div className="px-4 -mt-10">
-        <div className="bg-card rounded-2xl border border-secondary p-5 space-y-5">
-          {step === "info" ? (
-            <>
-              <div className="text-center py-4 bg-secondary/50 rounded-xl">
-                <span className="text-primary font-semibold text-sm mr-2">XOF</span>
-                <span className="text-3xl font-bold text-foreground">{amount.toLocaleString()}.00</span>
-              </div>
+        {/* Manual payment info */}
+        {method.payment_type !== "external" && (
+          <div className="bg-card rounded-2xl border border-border/30 p-4 space-y-3">
+            <p className="text-xs font-bold text-foreground">Informations de paiement</p>
 
-              <div>
-                <p className="text-sm text-foreground font-medium mb-2">Entrez votre numéro de téléphone</p>
-                <div className="bg-secondary/50 rounded-xl px-4 py-3 flex items-center gap-3">
-                  <span className="text-primary font-semibold">{countryCode}</span>
-                  <span className="text-foreground font-medium">{phone}</span>
+            {method.holder_name && (
+              <div className="bg-secondary/40 rounded-xl px-4 py-3 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Nom du beneficiaire</p>
+                  <p className="text-sm font-semibold text-foreground">{method.holder_name}</p>
                 </div>
+                <button onClick={() => copyToClipboard(method.holder_name!, "Nom")} className="p-2 rounded-lg bg-secondary hover:bg-secondary/80">
+                  <Copy size={14} className="text-primary" />
+                </button>
               </div>
+            )}
 
-              <div>
-                <p className="text-sm text-foreground font-medium mb-2">Choisissez le mode de paiement</p>
-                <div className="bg-secondary/50 rounded-xl px-4 py-3 flex items-center gap-3">
-                  <span className="bg-warning text-warning-foreground text-xs font-bold px-2 py-1 rounded">Max<span className="text-destructive">it</span></span>
-                  <span className="text-foreground font-medium">Orange Money</span>
+            {method.phone && (
+              <div className="bg-secondary/40 rounded-xl px-4 py-3 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] text-muted-foreground">Numero</p>
+                  <p className="text-sm font-semibold text-foreground">{method.phone}</p>
                 </div>
+                <button onClick={() => copyToClipboard(method.phone!, "Numero")} className="p-2 rounded-lg bg-secondary hover:bg-secondary/80">
+                  <Copy size={14} className="text-primary" />
+                </button>
               </div>
+            )}
 
-              <button
-                onClick={() => setStep("ref")}
-                className="w-full bg-success text-success-foreground font-bold py-4 rounded-xl text-base hover:opacity-90 transition-opacity"
-              >
-                Confirmer
+            <div className="bg-secondary/40 rounded-xl px-4 py-3 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] text-muted-foreground">Montant</p>
+                <p className="text-sm font-semibold text-foreground">{amount.toLocaleString()} FCFA</p>
+              </div>
+              <button onClick={() => copyToClipboard(String(amount), "Montant")} className="p-2 rounded-lg bg-secondary hover:bg-secondary/80">
+                <Copy size={14} className="text-primary" />
               </button>
-            </>
-          ) : (
-            <>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-1">MONTANT</p>
-                  <div className="bg-secondary/50 rounded-xl px-4 py-3 flex items-center justify-between">
-                    <span className="text-foreground font-medium">{amount.toLocaleString()}.00</span>
-                    <button onClick={() => copyToClipboard(String(amount), "Montant")} className="text-primary font-semibold text-sm">Copier</button>
-                  </div>
-                </div>
+            </div>
 
-                <div>
-                  <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-1">NOM DU DESTINATAIRE</p>
-                  <div className="bg-secondary/50 rounded-xl px-4 py-3 flex items-center justify-between">
-                    <span className="text-foreground font-medium">{DESTINATAIRE_NOM}</span>
-                    <button onClick={() => copyToClipboard(DESTINATAIRE_NOM, "Nom du destinataire")} className="text-primary font-semibold text-sm">Copier</button>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-1">COMPTE DU DESTINATAIRE</p>
-                  <div className="bg-secondary/50 rounded-xl px-4 py-3 flex items-center justify-between">
-                    <span className="text-foreground font-medium">{DESTINATAIRE_COMPTE}</span>
-                    <button onClick={() => copyToClipboard(DESTINATAIRE_COMPTE, "Compte du destinataire")} className="text-primary font-semibold text-sm">Copier</button>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-1">COMPTE DE L'EXPÉDITEUR</p>
-                  <div className="bg-secondary/50 rounded-xl px-4 py-3 flex items-center justify-between">
-                    <span className="text-foreground font-medium">{phone}</span>
-                    <span className="text-primary font-semibold text-sm">Modifier</span>
-                  </div>
-                </div>
+            {method.instructions && (
+              <div className="bg-secondary/20 rounded-xl px-4 py-3">
+                <p className="text-[10px] text-muted-foreground mb-1">Instructions</p>
+                <p className="text-xs text-foreground whitespace-pre-line">{method.instructions}</p>
               </div>
+            )}
+          </div>
+        )}
 
-              <a
-                href={`tel:*144*${DESTINATAIRE_COMPTE}*${amount}#`}
-                className="w-full bg-success text-success-foreground font-bold py-4 rounded-xl text-base flex items-center justify-center gap-2"
-              >
-                📞 Payez Maintenant
-              </a>
-
-              <div>
-                <p className="text-xs text-muted-foreground font-semibold uppercase tracking-wide mb-1">RÉFÉRENCE DE LA TRANSACTION</p>
-                <input
-                  type="text"
-                  placeholder="Entrez l'ID de transaction"
-                  value={transactionRef}
-                  onChange={(e) => setTransactionRef(e.target.value)}
-                  className="w-full bg-secondary/50 rounded-xl px-4 py-3 text-foreground outline-none placeholder:text-muted-foreground"
-                />
+        {/* External payment redirect */}
+        {method.payment_type === "external" && (
+          <div className="bg-card rounded-2xl border border-border/30 p-4 space-y-3">
+            <p className="text-xs font-bold text-foreground">Paiement en ligne</p>
+            <p className="text-xs text-muted-foreground">
+              Vous allez etre redirige vers la plateforme de paiement. Apres le paiement, revenez ici pour confirmer.
+            </p>
+            <button
+              onClick={handleExternalRedirect}
+              className="w-full gradient-button text-primary-foreground font-bold py-3.5 rounded-xl text-sm flex items-center justify-center gap-2"
+            >
+              <ExternalLink size={16} />
+              Payer maintenant
+            </button>
+            {redirected && (
+              <div className="flex items-center gap-2 bg-success/10 text-success rounded-xl px-4 py-2.5">
+                <CheckCircle size={14} />
+                <p className="text-xs font-medium">Paiement effectue ? Entrez la reference ci-dessous</p>
               </div>
+            )}
+          </div>
+        )}
 
-              <button
-                onClick={handleValidate}
-                disabled={loading}
-                className="w-full bg-success/80 text-success-foreground font-bold py-4 rounded-xl text-base hover:opacity-90 transition-opacity disabled:opacity-50"
-              >
-                {loading ? "Envoi en cours..." : "Vérifier effectuer le paiement"}
-              </button>
-            </>
-          )}
+        {/* Transaction confirmation */}
+        <div className="bg-card rounded-2xl border border-border/30 p-4 space-y-3">
+          <p className="text-xs font-bold text-foreground">Confirmation de transaction</p>
+
+          <div>
+            <label className="text-[10px] text-muted-foreground mb-1 block">ID de transaction</label>
+            <input
+              type="text"
+              placeholder="Entrez l'ID de la transaction"
+              value={transactionRef}
+              onChange={(e) => setTransactionRef(e.target.value)}
+              className="w-full bg-secondary/50 rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-primary"
+            />
+          </div>
+
+          <div>
+            <label className="text-[10px] text-muted-foreground mb-1 block">Numero utilise</label>
+            <div className="bg-secondary/40 rounded-xl px-4 py-3">
+              <p className="text-sm text-foreground">{countryCode} {phone}</p>
+            </div>
+          </div>
+
+          <button
+            onClick={handleValidate}
+            disabled={loading || !transactionRef.trim()}
+            className="w-full bg-success text-success-foreground font-bold py-3.5 rounded-xl text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {loading ? "Envoi en cours..." : "Confirmer le paiement"}
+          </button>
         </div>
       </div>
 
       <PremiumModal
         triggerKey="recharge_success"
         open={showRechargeSuccess}
-        onClose={() => { setShowRechargeSuccess(false); setShowAdvice(true); }}
+        onClose={() => { setShowRechargeSuccess(false); navigate("/portefeuille"); }}
       />
     </div>
   );
