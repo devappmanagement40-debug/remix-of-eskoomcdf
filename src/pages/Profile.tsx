@@ -150,18 +150,18 @@ const Profile = () => {
         </div>
 
         {/* Menu grid */}
-        <div className="bg-card rounded-xl border border-secondary p-5 mb-4">
-          <div className="grid grid-cols-4 gap-y-6">
+        <div className="bg-card rounded-xl border border-secondary p-4 mb-4">
+          <div className="grid grid-cols-4 gap-x-2 gap-y-5">
             {menuGrid.map((item) => (
               <button
                 key={item.label}
                 onClick={() => navigate(item.path)}
-                className="flex flex-col items-center gap-2"
+                className="flex flex-col items-center gap-1.5 min-w-0"
               >
                 <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
                   <item.icon size={22} className="text-muted-foreground" />
                 </div>
-                <span className="text-[11px] font-medium text-foreground text-center leading-tight">{item.label}</span>
+                <span className="text-[10px] font-medium text-foreground text-center leading-tight w-full px-0.5 line-clamp-2">{item.label}</span>
               </button>
             ))}
           </div>
