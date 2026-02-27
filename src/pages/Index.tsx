@@ -1,5 +1,6 @@
 import { Headphones, Mail, RefreshCw, ShoppingBag, Clock, Download, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
 import BottomNav from "@/components/BottomNav";
 import FloatingButtons from "@/components/FloatingButtons";
 import ProductCard from "@/components/ProductCard";
@@ -9,6 +10,12 @@ import productWind from "@/assets/product-wind.jpg";
 import bannerHome from "@/assets/banner-home.jpg";
 import newsAudit from "@/assets/news-audit.jpg";
 import newsCertificat from "@/assets/news-certificat.jpg";
+
+const banners = [
+  { image: bannerHome, path: "/loterie" },
+  { image: newsAudit, path: "/actualite/controle-fiscal" },
+  { image: newsCertificat, path: "/actualite/certificat-officiel" },
+];
 
 const circleActions = [
   { icon: ShoppingBag, label: "Mon produit" },
@@ -59,25 +66,62 @@ const products = [
 const newsItems = [
   {
     title: "Contrôle fiscal en cours..",
-    description: "Contrôle fiscal en cours..",
+    description: "Suite au récent contrôle de conformité financière et fiscale, ESKOM a reçu une notification officielle des autorités réglementaires...",
     image: newsAudit,
+    slug: "controle-fiscal",
   },
   {
     title: "ESKOM reçoit un certificat officiel",
-    description: "La DGI est une agence nationale relevant du ministère des Finances et de...",
+    description: "Nous avons le plaisir de vous annoncer qu'ESKOM Energy a officiellement reçu un certificat de conformité délivré par la Direction Générale des Impôts...",
     image: newsCertificat,
+    slug: "certificat-officiel",
   },
 ];
 
 const Index = () => {
   const navigate = useNavigate();
+  const [currentBanner, setCurrentBanner] = useState(0);
+
+  const nextBanner = useCallback(() => {
+    setCurrentBanner((prev) => (prev + 1) % banners.length);
+  }, []);
+
+  useEffect(() => {
+    const interval = setInterval(nextBanner, 4000);
+    return () => clearInterval(interval);
+  }, [nextBanner]);
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Banner */}
+      {/* Banner Carousel */}
       <section className="px-4 pt-4">
-        <div className="rounded-xl overflow-hidden cursor-pointer" onClick={() => navigate("/loterie")}>
-          <img src={bannerHome} alt="ESKOM Energy" className="w-full h-44 object-cover" />
+        <div className="relative rounded-xl overflow-hidden">
+          <div
+            className="flex transition-transform duration-500 ease-in-out"
+            style={{ transform: `translateX(-${currentBanner * 100}%)` }}
+          >
+            {banners.map((banner, index) => (
+              <img
+                key={index}
+                src={banner.image}
+                alt="ESKOM Energy"
+                className="w-full h-44 object-cover flex-shrink-0 cursor-pointer"
+                onClick={() => navigate(banner.path)}
+              />
+            ))}
+          </div>
+          {/* Dots */}
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+            {banners.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentBanner(index)}
+                className={`w-2 h-2 rounded-full transition-all ${
+                  index === currentBanner ? "bg-primary w-5" : "bg-foreground/30"
+                }`}
+              />
+            ))}
+          </div>
         </div>
       </section>
 
@@ -127,7 +171,8 @@ const Index = () => {
           {newsItems.map((item) => (
             <div
               key={item.title}
-              className="bg-card rounded-xl border border-secondary p-4 flex gap-4"
+              onClick={() => navigate(`/actualite/${item.slug}`)}
+              className="bg-card rounded-xl border border-secondary p-4 flex gap-4 cursor-pointer hover:border-primary transition-colors"
             >
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-bold text-foreground mb-1">{item.title}</h3>

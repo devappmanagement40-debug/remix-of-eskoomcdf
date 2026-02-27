@@ -16,6 +16,8 @@ import Settings from "./pages/Settings";
 import Loterie from "./pages/Loterie";
 import NotFound from "./pages/NotFound";
 import ServiceChat from "./pages/ServiceChat";
+import APropos from "./pages/APropos";
+import NewsDetail from "./pages/NewsDetail";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +36,8 @@ const App = () => (
           <Route path="/portefeuille" element={<Portefeuille />} />
           <Route path="/historique" element={<Historique />} />
           <Route path="/aide" element={<Aide />} />
+          <Route path="/a-propos" element={<APropos />} />
+          <Route path="/actualite/:slug" element={<NewsDetail />} />
           <Route path="/profil" element={<Profile />} />
           <Route path="/parametres" element={<Settings />} />
           <Route path="/loterie" element={<Loterie />} />

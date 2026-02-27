@@ -10,7 +10,7 @@ const actionButtons = [
 ];
 
 const menuGrid = [
-  { icon: MessageCircle, label: "À propos de nous", path: "/aide" },
+  { icon: MessageCircle, label: "À propos de nous", path: "/a-propos" },
   { icon: Headphones, label: "Service client", path: "/aide" },
   { icon: Clock, label: "Enregistrements", path: "/historique" },
   { icon: FileText, label: "Réglementation", path: "/aide" },
