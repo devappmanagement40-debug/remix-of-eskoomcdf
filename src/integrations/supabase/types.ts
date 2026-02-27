@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_logs: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string | null
+          details: string | null
+          id: string
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string | null
+          details?: string | null
+          id?: string
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string | null
+          details?: string | null
+          id?: string
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
+      payment_methods: {
+        Row: {
+          country: string
+          created_at: string | null
+          holder_name: string | null
+          id: string
+          instructions: string | null
+          is_active: boolean | null
+          name: string
+          phone: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          country?: string
+          created_at?: string | null
+          holder_name?: string | null
+          id?: string
+          instructions?: string | null
+          is_active?: boolean | null
+          name: string
+          phone?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          country?: string
+          created_at?: string | null
+          holder_name?: string | null
+          id?: string
+          instructions?: string | null
+          is_active?: boolean | null
+          name?: string
+          phone?: string | null
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       popup_messages: {
         Row: {
           button_cancel: string | null
@@ -146,6 +212,7 @@ export type Database = {
           created_at: string | null
           full_name: string | null
           id: string
+          is_suspended: boolean | null
           phone: string | null
           referral_code: string | null
           referred_by: string | null
@@ -158,6 +225,7 @@ export type Database = {
           created_at?: string | null
           full_name?: string | null
           id?: string
+          is_suspended?: boolean | null
           phone?: string | null
           referral_code?: string | null
           referred_by?: string | null
@@ -170,6 +238,7 @@ export type Database = {
           created_at?: string | null
           full_name?: string | null
           id?: string
+          is_suspended?: boolean | null
           phone?: string | null
           referral_code?: string | null
           referred_by?: string | null
@@ -225,6 +294,57 @@ export type Database = {
           transaction_ref?: string | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      site_settings: {
+        Row: {
+          category: string
+          id: string
+          key: string
+          updated_at: string | null
+          value: string | null
+        }
+        Insert: {
+          category?: string
+          id?: string
+          key: string
+          updated_at?: string | null
+          value?: string | null
+        }
+        Update: {
+          category?: string
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: string | null
+        }
+        Relationships: []
+      }
+      social_links: {
+        Row: {
+          id: string
+          is_active: boolean | null
+          key: string
+          label: string
+          updated_at: string | null
+          url: string | null
+        }
+        Insert: {
+          id?: string
+          is_active?: boolean | null
+          key: string
+          label: string
+          updated_at?: string | null
+          url?: string | null
+        }
+        Update: {
+          id?: string
+          is_active?: boolean | null
+          key?: string
+          label?: string
+          updated_at?: string | null
+          url?: string | null
         }
         Relationships: []
       }
