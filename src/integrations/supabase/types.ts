@@ -71,9 +71,40 @@ export type Database = {
         }
         Relationships: []
       }
+      countries: {
+        Row: {
+          country_code: string
+          created_at: string | null
+          flag_emoji: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          sort_order: number | null
+        }
+        Insert: {
+          country_code: string
+          created_at?: string | null
+          flag_emoji?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          sort_order?: number | null
+        }
+        Update: {
+          country_code?: string
+          created_at?: string | null
+          flag_emoji?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       payment_methods: {
         Row: {
           country: string
+          country_id: string | null
           created_at: string | null
           holder_name: string | null
           id: string
@@ -85,6 +116,7 @@ export type Database = {
         }
         Insert: {
           country?: string
+          country_id?: string | null
           created_at?: string | null
           holder_name?: string | null
           id?: string
@@ -96,6 +128,7 @@ export type Database = {
         }
         Update: {
           country?: string
+          country_id?: string | null
           created_at?: string | null
           holder_name?: string | null
           id?: string
@@ -105,7 +138,15 @@ export type Database = {
           phone?: string | null
           sort_order?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "payment_methods_country_id_fkey"
+            columns: ["country_id"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       popup_messages: {
         Row: {
@@ -182,6 +223,7 @@ export type Database = {
           image_url: string | null
           is_active: boolean | null
           is_new: boolean | null
+          max_purchases: number | null
           name: string
           price: number | null
           return_percent: number | null
@@ -198,6 +240,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean | null
           is_new?: boolean | null
+          max_purchases?: number | null
           name: string
           price?: number | null
           return_percent?: number | null
@@ -214,6 +257,7 @@ export type Database = {
           image_url?: string | null
           is_active?: boolean | null
           is_new?: boolean | null
+          max_purchases?: number | null
           name?: string
           price?: number | null
           return_percent?: number | null
@@ -245,6 +289,7 @@ export type Database = {
           referred_by: string | null
           updated_at: string | null
           user_id: string
+          vip_level: number | null
         }
         Insert: {
           balance?: number | null
@@ -258,6 +303,7 @@ export type Database = {
           referred_by?: string | null
           updated_at?: string | null
           user_id: string
+          vip_level?: number | null
         }
         Update: {
           balance?: number | null
@@ -271,6 +317,7 @@ export type Database = {
           referred_by?: string | null
           updated_at?: string | null
           user_id?: string
+          vip_level?: number | null
         }
         Relationships: [
           {
@@ -375,6 +422,41 @@ export type Database = {
         }
         Relationships: []
       }
+      user_products: {
+        Row: {
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          product_id: string
+          purchased_at: string | null
+          user_id: string
+        }
+        Insert: {
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          product_id: string
+          purchased_at?: string | null
+          user_id: string
+        }
+        Update: {
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          product_id?: string
+          purchased_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -423,6 +505,45 @@ export type Database = {
           network?: string
           phone?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      vip_conditions: {
+        Row: {
+          condition_logic: string | null
+          created_at: string | null
+          id: string
+          level: number
+          level_name: string
+          min_active_members: number | null
+          min_investment: number | null
+          min_products_bought: number | null
+          min_purchases: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          condition_logic?: string | null
+          created_at?: string | null
+          id?: string
+          level: number
+          level_name: string
+          min_active_members?: number | null
+          min_investment?: number | null
+          min_products_bought?: number | null
+          min_purchases?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          condition_logic?: string | null
+          created_at?: string | null
+          id?: string
+          level?: number
+          level_name?: string
+          min_active_members?: number | null
+          min_investment?: number | null
+          min_products_bought?: number | null
+          min_purchases?: number | null
+          updated_at?: string | null
         }
         Relationships: []
       }

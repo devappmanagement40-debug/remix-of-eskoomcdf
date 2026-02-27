@@ -15,7 +15,7 @@ import {
 type Profile = {
   id: string; user_id: string; full_name: string | null; phone: string | null;
   balance: number | null; country_code: string | null; referral_code: string | null;
-  is_suspended: boolean | null; created_at: string | null;
+  is_suspended: boolean | null; created_at: string | null; vip_level: number | null;
 };
 type Recharge = {
   id: string; phone: string; country_code: string; amount: number;
@@ -32,11 +32,12 @@ type Product = {
   id: string; series_id: string; name: string; image_url: string | null;
   return_percent: number | null; total_revenue: number | null; daily_revenue: number | null;
   cycles: number | null; price: number | null; is_new: boolean | null; is_active: boolean | null;
-  sort_order: number | null;
+  sort_order: number | null; max_purchases: number | null;
 };
 type PaymentMethod = {
   id: string; name: string; country: string; phone: string | null;
   holder_name: string | null; instructions: string | null; is_active: boolean; sort_order: number;
+  country_id: string | null;
 };
 type SocialLink = { id: string; key: string; label: string; url: string | null; is_active: boolean };
 type SiteSetting = { id: string; key: string; value: string | null; category: string };
@@ -45,6 +46,9 @@ type PopupMsg = {
   button_confirm: string; button_cancel: string | null; tabs: any; is_active: boolean;
 };
 type AdminLog = { id: string; admin_id: string; action: string; target_type: string | null; details: string | null; created_at: string | null };
+type Country = { id: string; name: string; country_code: string; flag_emoji: string; is_active: boolean; sort_order: number };
+type VipCondition = { id: string; level: number; level_name: string; min_investment: number; min_active_members: number; min_purchases: number; min_products_bought: number; condition_logic: string };
+type UserProduct = { id: string; user_id: string; product_id: string; purchased_at: string; is_active: boolean; expires_at: string | null };
 
 // ==================== TABS CONFIG ====================
 const tabs = [
@@ -53,9 +57,11 @@ const tabs = [
   { key: "deposits", icon: Download, label: "Dépôts" },
   { key: "withdrawals", icon: Upload, label: "Retraits" },
   { key: "products", icon: Package, label: "Produits" },
+  { key: "countries", icon: Globe, label: "Pays" },
   { key: "payments", icon: CreditCard, label: "Paiement" },
   { key: "links", icon: Link2, label: "Liens" },
   { key: "popups", icon: Bell, label: "Popups" },
+  { key: "vip", icon: TrendingUp, label: "Niveaux" },
   { key: "sarah", icon: Bot, label: "Sarah IA" },
   { key: "support", icon: MessageSquare, label: "Support" },
   { key: "settings", icon: Settings, label: "Site" },
@@ -89,6 +95,8 @@ const AdminPanel = () => {
   const [siteSettings, setSiteSettings] = useState<SiteSetting[]>([]);
   const [popups, setPopups] = useState<PopupMsg[]>([]);
   const [adminLogs, setAdminLogs] = useState<AdminLog[]>([]);
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [vipConditions, setVipConditions] = useState<VipCondition[]>([]);
 
   useEffect(() => {
     checkAdmin();
@@ -104,7 +112,7 @@ const AdminPanel = () => {
   };
 
   const loadAll = async () => {
-    const [p, r, w, s, pr, pm, sl, ss, pop, logs] = await Promise.all([
+    const [p, r, w, s, pr, pm, sl, ss, pop, logs, ctrs, vipc] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("recharges").select("*").order("created_at", { ascending: false }),
       supabase.from("withdrawals").select("*").order("created_at", { ascending: false }),
@@ -115,17 +123,21 @@ const AdminPanel = () => {
       supabase.from("site_settings").select("*"),
       supabase.from("popup_messages").select("*").order("sort_order"),
       supabase.from("admin_logs").select("*").order("created_at", { ascending: false }).limit(50),
+      supabase.from("countries").select("*").order("sort_order"),
+      supabase.from("vip_conditions").select("*").order("level"),
     ]);
     if (p.data) setProfiles(p.data as Profile[]);
     if (r.data) setRecharges(r.data);
     if (w.data) setWithdrawals(w.data);
     if (s.data) setSeries(s.data);
-    if (pr.data) setProducts(pr.data);
-    if (pm.data) setPaymentMethods(pm.data);
+    if (pr.data) setProducts(pr.data as Product[]);
+    if (pm.data) setPaymentMethods(pm.data as PaymentMethod[]);
     if (sl.data) setSocialLinks(sl.data);
     if (ss.data) setSiteSettings(ss.data);
     if (pop.data) setPopups(pop.data as unknown as PopupMsg[]);
     if (logs.data) setAdminLogs(logs.data);
+    if (ctrs.data) setCountries(ctrs.data as Country[]);
+    if (vipc.data) setVipConditions(vipc.data as VipCondition[]);
     setLoading(false);
   };
 
@@ -167,13 +179,15 @@ const AdminPanel = () => {
       {/* Tab content */}
       <div className="px-4 pt-4">
         {activeTab === "dashboard" && <DashboardTab profiles={profiles} recharges={recharges} withdrawals={withdrawals} products={products} />}
-        {activeTab === "users" && <UsersTab profiles={profiles} reload={loadAll} showSuccess={showSuccess} showError={showError} logAction={logAction} />}
+        {activeTab === "users" && <UsersTab profiles={profiles} products={products} reload={loadAll} showSuccess={showSuccess} showError={showError} logAction={logAction} />}
         {activeTab === "deposits" && <DepositsTab recharges={recharges} profiles={profiles} reload={loadAll} showSuccess={showSuccess} showError={showError} logAction={logAction} />}
         {activeTab === "withdrawals" && <WithdrawalsTab withdrawals={withdrawals} profiles={profiles} reload={loadAll} showSuccess={showSuccess} showError={showError} logAction={logAction} />}
         {activeTab === "products" && <ProductsTab series={series} products={products} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
-        {activeTab === "payments" && <PaymentsTab methods={paymentMethods} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
+        {activeTab === "countries" && <CountriesTab countries={countries} methods={paymentMethods} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
+        {activeTab === "payments" && <PaymentsTab methods={paymentMethods} countries={countries} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "links" && <LinksTab links={socialLinks} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "popups" && <PopupsTab popups={popups} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
+        {activeTab === "vip" && <VipTab conditions={vipConditions} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "sarah" && <SarahTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "support" && <SupportTab adminId={adminId} />}
         {activeTab === "settings" && <SettingsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
@@ -221,11 +235,16 @@ const DashboardTab = ({ profiles, recharges, withdrawals, products }: any) => {
 };
 
 // ==================== USERS ====================
-const UsersTab = ({ profiles, reload, showSuccess, showError, logAction }: any) => {
+const UsersTab = ({ profiles, products, reload, showSuccess, showError, logAction }: any) => {
   const [search, setSearch] = useState("");
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [editBalance, setEditBalance] = useState("");
   const [editName, setEditName] = useState("");
+  const [editVipLevel, setEditVipLevel] = useState("0");
+  const [detailUser, setDetailUser] = useState<Profile | null>(null);
+  const [userProducts, setUserProducts] = useState<any[]>([]);
+  const [teamMembers, setTeamMembers] = useState<{b: Profile[], c: Profile[], d: Profile[]}>({ b: [], c: [], d: [] });
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   const filtered = profiles.filter((p: Profile) => {
     if (!search.trim()) return true;
@@ -238,8 +257,9 @@ const UsersTab = ({ profiles, reload, showSuccess, showError, logAction }: any) 
     await supabase.from("profiles").update({
       full_name: editName,
       balance: Number(editBalance) || 0,
+      vip_level: Number(editVipLevel) || 0,
     }).eq("id", editingUser.id);
-    logAction("edit_user", "profile", editingUser.id, `Balance: ${editBalance}, Name: ${editName}`);
+    logAction("edit_user", "profile", editingUser.id, `Balance: ${editBalance}, VIP: ${editVipLevel}, Name: ${editName}`);
     showSuccess("Utilisateur modifié", "Modifications enregistrées ✅");
     setEditingUser(null);
     reload();
@@ -249,9 +269,128 @@ const UsersTab = ({ profiles, reload, showSuccess, showError, logAction }: any) 
     const newVal = !p.is_suspended;
     await supabase.from("profiles").update({ is_suspended: newVal }).eq("id", p.id);
     logAction(newVal ? "suspend_user" : "unsuspend_user", "profile", p.id);
-    showSuccess(newVal ? "Compte suspendu" : "Compte réactivé", newVal ? "L'utilisateur a été suspendu ⛔" : "Le compte est réactivé ✅");
+    showSuccess(newVal ? "Compte suspendu" : "Compte réactivé", "");
     reload();
   };
+
+  const deleteUser = async (p: Profile) => {
+    if (!confirm(`Supprimer définitivement ${p.full_name || p.phone} ?`)) return;
+    // Delete user products, then profile (cascade will handle some)
+    await supabase.from("user_products").delete().eq("user_id", p.user_id);
+    await supabase.from("chat_messages").delete().eq("user_id", p.user_id);
+    await supabase.from("profiles").delete().eq("id", p.id);
+    logAction("delete_user", "profile", p.id, p.full_name || p.phone || "");
+    showSuccess("Compte supprimé", "L'utilisateur a été supprimé définitivement");
+    reload();
+  };
+
+  const loadUserDetail = async (p: Profile) => {
+    setDetailUser(p);
+    setLoadingDetail(true);
+    // Load user's purchased products
+    const { data: up } = await supabase.from("user_products").select("*, products(name, price, daily_revenue, cycles)").eq("user_id", p.user_id);
+    setUserProducts(up || []);
+
+    // Load team members (3 levels)
+    const { data: levelB } = await supabase.from("profiles").select("*").eq("referred_by", p.id);
+    const bIds = (levelB || []).map((m: Profile) => m.id);
+    let levelC: Profile[] = [];
+    let levelD: Profile[] = [];
+    if (bIds.length > 0) {
+      const { data: lc } = await supabase.from("profiles").select("*").in("referred_by", bIds);
+      levelC = (lc || []) as Profile[];
+      const cIds = levelC.map(m => m.id);
+      if (cIds.length > 0) {
+        const { data: ld } = await supabase.from("profiles").select("*").in("referred_by", cIds);
+        levelD = (ld || []) as Profile[];
+      }
+    }
+    setTeamMembers({ b: (levelB || []) as Profile[], c: levelC, d: levelD });
+    setLoadingDetail(false);
+  };
+
+  const removeUserProduct = async (upId: string) => {
+    await supabase.from("user_products").delete().eq("id", upId);
+    if (detailUser) loadUserDetail(detailUser);
+    showSuccess("Produit retiré", "");
+  };
+
+  const addProductToUser = async (productId: string) => {
+    if (!detailUser) return;
+    await supabase.from("user_products").insert({ user_id: detailUser.user_id, product_id: productId, is_active: true });
+    loadUserDetail(detailUser);
+    showSuccess("Produit ajouté", "");
+  };
+
+  // Detail view
+  if (detailUser) {
+    return (
+      <div className="space-y-4">
+        <button onClick={() => setDetailUser(null)} className="flex items-center gap-2 text-sm text-primary font-semibold">
+          <ArrowLeft size={16} /> Retour
+        </button>
+        <div className="bg-card rounded-xl border border-secondary p-4">
+          <p className="text-sm font-bold text-foreground">{detailUser.full_name || "Sans nom"}</p>
+          <p className="text-xs text-muted-foreground">{detailUser.country_code} {detailUser.phone}</p>
+          <div className="grid grid-cols-3 gap-3 mt-3">
+            <div><p className="text-[10px] text-muted-foreground">Solde</p><p className="text-xs font-bold text-primary">{(detailUser.balance || 0).toLocaleString("fr-FR")} F</p></div>
+            <div><p className="text-[10px] text-muted-foreground">Niveau</p><p className="text-xs font-bold text-foreground">VIP{detailUser.vip_level || 0}</p></div>
+            <div><p className="text-[10px] text-muted-foreground">Code</p><p className="text-xs font-semibold text-foreground">{detailUser.referral_code || "—"}</p></div>
+          </div>
+        </div>
+
+        {loadingDetail ? <p className="text-xs text-muted-foreground text-center py-4">Chargement...</p> : (
+          <>
+            {/* User Products */}
+            <div className="bg-card rounded-xl border border-secondary p-4">
+              <h4 className="text-xs font-bold text-muted-foreground mb-3">PRODUITS ACTIFS ({userProducts.length})</h4>
+              {userProducts.length === 0 ? <p className="text-xs text-muted-foreground">Aucun produit</p> :
+                userProducts.map((up: any) => (
+                  <div key={up.id} className="flex items-center justify-between py-2 border-b border-secondary last:border-0">
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">{up.products?.name || "Produit"}</p>
+                      <p className="text-[10px] text-muted-foreground">{Number(up.products?.price || 0).toLocaleString()} F • {up.products?.daily_revenue} F/jour</p>
+                    </div>
+                    <button onClick={() => removeUserProduct(up.id)} className="w-7 h-7 rounded-lg bg-destructive/10 flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+                  </div>
+                ))}
+              {/* Add product */}
+              <div className="mt-3">
+                <select onChange={(e) => { if (e.target.value) addProductToUser(e.target.value); e.target.value = ""; }}
+                  className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-xs border border-secondary outline-none">
+                  <option value="">+ Ajouter un produit...</option>
+                  {products.filter((pr: Product) => pr.is_active).map((pr: Product) => (
+                    <option key={pr.id} value={pr.id}>{pr.name} — {Number(pr.price).toLocaleString()} F</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Team Members */}
+            <div className="bg-card rounded-xl border border-secondary p-4">
+              <h4 className="text-xs font-bold text-muted-foreground mb-3">ÉQUIPE</h4>
+              {[
+                { label: "Niveau B (directs)", members: teamMembers.b },
+                { label: "Niveau C", members: teamMembers.c },
+                { label: "Niveau D", members: teamMembers.d },
+              ].map(level => (
+                <div key={level.label} className="mb-3">
+                  <p className="text-xs font-semibold text-foreground mb-1">{level.label} ({level.members.length})</p>
+                  {level.members.length === 0 ? <p className="text-[10px] text-muted-foreground ml-2">Aucun</p> :
+                    level.members.map((m: Profile) => (
+                      <div key={m.id} className="flex items-center justify-between py-1.5 ml-2">
+                        <p className="text-xs text-foreground">{m.full_name || m.phone || "—"}</p>
+                        <p className="text-[10px] text-muted-foreground">{(m.balance || 0).toLocaleString()} F</p>
+                      </div>
+                    ))}
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -279,6 +418,13 @@ const UsersTab = ({ profiles, reload, showSuccess, showError, logAction }: any) 
             <input type="number" value={editBalance} onChange={e => setEditBalance(e.target.value)}
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
           </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Niveau VIP</label>
+            <select value={editVipLevel} onChange={e => setEditVipLevel(e.target.value)}
+              className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none">
+              {[0,1,2,3,4,5].map(v => <option key={v} value={v}>VIP{v}</option>)}
+            </select>
+          </div>
           <button onClick={saveUser} className="w-full gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2">
             <Save size={14} /> Sauvegarder
           </button>
@@ -293,7 +439,10 @@ const UsersTab = ({ profiles, reload, showSuccess, showError, logAction }: any) 
                 <p className="text-sm font-bold text-foreground">{p.full_name || "Sans nom"}</p>
                 <p className="text-xs text-muted-foreground">{p.country_code} {p.phone}</p>
               </div>
-              {p.is_suspended && <span className="text-[9px] bg-destructive/20 text-destructive px-2 py-0.5 rounded-full font-bold">SUSPENDU</span>}
+              <div className="flex items-center gap-1.5">
+                <span className="text-[9px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold">VIP{p.vip_level || 0}</span>
+                {p.is_suspended && <span className="text-[9px] bg-destructive/20 text-destructive px-2 py-0.5 rounded-full font-bold">SUSPENDU</span>}
+              </div>
             </div>
             <div className="border-t border-secondary my-2" />
             <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
@@ -311,15 +460,25 @@ const UsersTab = ({ profiles, reload, showSuccess, showError, logAction }: any) 
               </div>
             </div>
             <div className="flex gap-2 mt-3">
-              <button onClick={() => { setEditingUser(p); setEditBalance(String(p.balance || 0)); setEditName(p.full_name || ""); }}
+              <button onClick={() => loadUserDetail(p)}
+                className="flex-1 flex items-center justify-center gap-1.5 border border-secondary text-foreground font-semibold py-2 rounded-xl text-xs hover:bg-secondary transition-colors">
+                <Eye size={12} /> Détails
+              </button>
+              <button onClick={() => { setEditingUser(p); setEditBalance(String(p.balance || 0)); setEditName(p.full_name || ""); setEditVipLevel(String(p.vip_level || 0)); }}
                 className="flex-1 flex items-center justify-center gap-1.5 border border-primary text-primary font-semibold py-2 rounded-xl text-xs hover:bg-primary/10 transition-colors">
                 <Edit2 size={12} /> Modifier
               </button>
+            </div>
+            <div className="flex gap-2 mt-2">
               <button onClick={() => toggleSuspend(p)}
                 className={`flex-1 flex items-center justify-center gap-1.5 border font-semibold py-2 rounded-xl text-xs transition-colors ${
                   p.is_suspended ? "border-success text-success hover:bg-success/10" : "border-destructive text-destructive hover:bg-destructive/10"
                 }`}>
                 {p.is_suspended ? <><UserCheck size={12} /> Réactiver</> : <><Ban size={12} /> Suspendre</>}
+              </button>
+              <button onClick={() => deleteUser(p)}
+                className="flex-1 flex items-center justify-center gap-1.5 border border-destructive text-destructive font-semibold py-2 rounded-xl text-xs hover:bg-destructive/10 transition-colors">
+                <Trash2 size={12} /> Supprimer
               </button>
             </div>
           </div>
@@ -527,7 +686,7 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formSeriesId, setFormSeriesId] = useState("");
-  const [form, setForm] = useState({ name: "", image_url: "", return_percent: "", total_revenue: "", daily_revenue: "", cycles: "365", price: "", is_new: false });
+  const [form, setForm] = useState({ name: "", image_url: "", return_percent: "", total_revenue: "", daily_revenue: "", cycles: "365", price: "", is_new: false, max_purchases: "" });
   const [showSeriesForm, setShowSeriesForm] = useState(false);
   const [seriesName, setSeriesName] = useState("");
   const [seriesColor, setSeriesColor] = useState("primary");
@@ -539,10 +698,10 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
     setFormSeriesId(seriesId);
     if (p) {
       setEditingProduct(p);
-      setForm({ name: p.name, image_url: p.image_url || "", return_percent: String(p.return_percent || 0), total_revenue: String(p.total_revenue || 0), daily_revenue: String(p.daily_revenue || 0), cycles: String(p.cycles || 365), price: String(p.price || 0), is_new: p.is_new || false });
+      setForm({ name: p.name, image_url: p.image_url || "", return_percent: String(p.return_percent || 0), total_revenue: String(p.total_revenue || 0), daily_revenue: String(p.daily_revenue || 0), cycles: String(p.cycles || 365), price: String(p.price || 0), is_new: p.is_new || false, max_purchases: p.max_purchases ? String(p.max_purchases) : "" });
     } else {
       setEditingProduct(null);
-      setForm({ name: "", image_url: "", return_percent: "", total_revenue: "", daily_revenue: "", cycles: "365", price: "", is_new: false });
+      setForm({ name: "", image_url: "", return_percent: "", total_revenue: "", daily_revenue: "", cycles: "365", price: "", is_new: false, max_purchases: "" });
     }
     setShowForm(true);
     setShowSeriesForm(false);
@@ -563,11 +722,12 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
 
   const saveProduct = async () => {
     if (!form.name.trim()) { showError("Erreur", "Nom requis"); return; }
-    const payload = {
+    const payload: any = {
       series_id: formSeriesId, name: form.name, image_url: form.image_url || null,
       return_percent: Number(form.return_percent) || 0, total_revenue: Number(form.total_revenue) || 0,
       daily_revenue: Number(form.daily_revenue) || 0, cycles: Number(form.cycles) || 365,
       price: Number(form.price) || 0, is_new: form.is_new,
+      max_purchases: form.max_purchases ? Number(form.max_purchases) : null,
     };
     if (editingProduct) await supabase.from("products").update(payload).eq("id", editingProduct.id);
     else await supabase.from("products").insert({ ...payload, sort_order: products.filter((p: Product) => p.series_id === formSeriesId).length });
@@ -620,6 +780,7 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
             <div><label className="text-xs text-muted-foreground">Revenu total</label><input type="number" value={form.total_revenue} onChange={e => setForm({ ...form, total_revenue: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
             <div><label className="text-xs text-muted-foreground">Revenu quotidien</label><input type="number" value={form.daily_revenue} onChange={e => setForm({ ...form, daily_revenue: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
             <div><label className="text-xs text-muted-foreground">Cycles</label><input type="number" value={form.cycles} onChange={e => setForm({ ...form, cycles: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
+            <div><label className="text-xs text-muted-foreground">Achats max</label><input type="number" value={form.max_purchases} onChange={e => setForm({ ...form, max_purchases: e.target.value })} placeholder="Illimité" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
             <label className="flex items-center gap-2 self-end pb-1"><input type="checkbox" checked={form.is_new} onChange={e => setForm({ ...form, is_new: e.target.checked })} className="accent-primary" /><span className="text-xs">Nouveau</span></label>
           </div>
           <button onClick={saveProduct} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editingProduct ? "Modifier" : "Créer"}</button>
@@ -674,21 +835,22 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
 };
 
 // ==================== PAYMENTS ====================
-const PaymentsTab = ({ methods, reload, showSuccess, showError }: any) => {
+const PaymentsTab = ({ methods, countries, reload, showSuccess, showError }: any) => {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<PaymentMethod | null>(null);
-  const [form, setForm] = useState({ name: "", country: "Burkina Faso", phone: "", holder_name: "", instructions: "" });
+  const [form, setForm] = useState({ name: "", country: "Burkina Faso", phone: "", holder_name: "", instructions: "", country_id: "" });
 
   const openForm = (m?: PaymentMethod) => {
-    if (m) { setEditing(m); setForm({ name: m.name, country: m.country, phone: m.phone || "", holder_name: m.holder_name || "", instructions: m.instructions || "" }); }
-    else { setEditing(null); setForm({ name: "", country: "Burkina Faso", phone: "", holder_name: "", instructions: "" }); }
+    if (m) { setEditing(m); setForm({ name: m.name, country: m.country, phone: m.phone || "", holder_name: m.holder_name || "", instructions: m.instructions || "", country_id: m.country_id || "" }); }
+    else { setEditing(null); setForm({ name: "", country: "Burkina Faso", phone: "", holder_name: "", instructions: "", country_id: "" }); }
     setShowForm(true);
   };
 
   const save = async () => {
     if (!form.name.trim()) { showError("Erreur", "Nom requis"); return; }
-    if (editing) await supabase.from("payment_methods").update(form).eq("id", editing.id);
-    else await supabase.from("payment_methods").insert({ ...form, sort_order: methods.length });
+    const payload = { ...form, country_id: form.country_id || null };
+    if (editing) await supabase.from("payment_methods").update(payload).eq("id", editing.id);
+    else await supabase.from("payment_methods").insert({ ...payload, sort_order: methods.length });
     showSuccess(editing ? "Modifié ✅" : "Créé ✅", "");
     setShowForm(false); reload();
   };
@@ -701,7 +863,11 @@ const PaymentsTab = ({ methods, reload, showSuccess, showError }: any) => {
         <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
           <div className="flex justify-between"><h3 className="text-sm font-bold text-foreground">{editing ? "Modifier" : "Nouveau"}</h3><button onClick={() => setShowForm(false)}><X size={16} className="text-muted-foreground" /></button></div>
           <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nom (ex: Orange Money)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
-          <input value={form.country} onChange={e => setForm({ ...form, country: e.target.value })} placeholder="Pays" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+          <select value={form.country_id} onChange={e => { const c = countries.find((ct: Country) => ct.id === e.target.value); setForm({ ...form, country_id: e.target.value, country: c?.name || form.country }); }}
+            className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none">
+            <option value="">— Sélectionner un pays —</option>
+            {countries.filter((c: Country) => c.is_active).map((c: Country) => <option key={c.id} value={c.id}>{c.flag_emoji} {c.name}</option>)}
+          </select>
           <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="Numéro" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
           <input value={form.holder_name} onChange={e => setForm({ ...form, holder_name: e.target.value })} placeholder="Nom du bénéficiaire" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
           <textarea value={form.instructions} onChange={e => setForm({ ...form, instructions: e.target.value })} placeholder="Instructions de paiement" rows={3} className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none resize-none" />
@@ -1212,5 +1378,221 @@ const SecurityTab = ({ logs }: { logs: AdminLog[] }) => (
       ))}
   </div>
 );
+
+// ==================== COUNTRIES ====================
+const CountriesTab = ({ countries, methods, reload, showSuccess, showError }: any) => {
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<Country | null>(null);
+  const [form, setForm] = useState({ name: "", country_code: "", flag_emoji: "🏳️" });
+
+  const openForm = (c?: Country) => {
+    if (c) { setEditing(c); setForm({ name: c.name, country_code: c.country_code, flag_emoji: c.flag_emoji }); }
+    else { setEditing(null); setForm({ name: "", country_code: "+", flag_emoji: "🏳️" }); }
+    setShowForm(true);
+  };
+
+  const save = async () => {
+    if (!form.name.trim()) { showError("Erreur", "Nom requis"); return; }
+    if (editing) await supabase.from("countries").update(form).eq("id", editing.id);
+    else await supabase.from("countries").insert({ ...form, sort_order: countries.length });
+    showSuccess(editing ? "Pays modifié ✅" : "Pays ajouté ✅", "");
+    setShowForm(false); reload();
+  };
+
+  const toggleActive = async (c: Country) => {
+    await supabase.from("countries").update({ is_active: !c.is_active }).eq("id", c.id);
+    showSuccess(c.is_active ? "Pays désactivé" : "Pays activé ✅", "");
+    reload();
+  };
+
+  const deleteCountry = async (c: Country) => {
+    await supabase.from("countries").delete().eq("id", c.id);
+    showSuccess("Pays supprimé", "");
+    reload();
+  };
+
+  return (
+    <div className="space-y-3">
+      <button onClick={() => openForm()} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
+        <Plus size={16} /> Ajouter un pays
+      </button>
+
+      {showForm && (
+        <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
+          <div className="flex justify-between"><h3 className="text-sm font-bold text-foreground">{editing ? "Modifier le pays" : "Nouveau pays"}</h3><button onClick={() => setShowForm(false)}><X size={16} className="text-muted-foreground" /></button></div>
+          <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nom du pays" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground">Indicatif</label>
+              <input value={form.country_code} onChange={e => setForm({ ...form, country_code: e.target.value })} placeholder="+226" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Emoji drapeau</label>
+              <input value={form.flag_emoji} onChange={e => setForm({ ...form, flag_emoji: e.target.value })} placeholder="🇧🇫" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+            </div>
+          </div>
+          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editing ? "Modifier" : "Créer"}</button>
+        </div>
+      )}
+
+      {countries.map((c: Country) => {
+        const countryMethods = methods.filter((m: PaymentMethod) => m.country_id === c.id);
+        return (
+          <div key={c.id} className={`bg-card rounded-xl border overflow-hidden ${c.is_active ? "border-secondary" : "border-secondary opacity-60"}`}>
+            <div className="px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{c.flag_emoji}</span>
+                  <div>
+                    <p className="text-sm font-bold text-foreground">{c.name}</p>
+                    <p className="text-xs text-muted-foreground">{c.country_code}</p>
+                  </div>
+                </div>
+                <div className="flex gap-1.5">
+                  <button onClick={() => toggleActive(c)}
+                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${c.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{c.is_active ? "ON" : "OFF"}</button>
+                  <button onClick={() => openForm(c)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
+                  <button onClick={() => deleteCountry(c)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+                </div>
+              </div>
+              {/* Associated payment methods */}
+              {countryMethods.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-secondary">
+                  <p className="text-[10px] text-muted-foreground mb-1">Moyens de paiement :</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {countryMethods.map((m: PaymentMethod) => (
+                      <span key={m.id} className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${m.is_active ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>{m.name}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// ==================== VIP CONDITIONS ====================
+const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState({ min_investment: "", min_active_members: "", min_purchases: "", min_products_bought: "", condition_logic: "OR" });
+
+  const startEdit = (c: VipCondition) => {
+    setEditingId(c.id);
+    setForm({
+      min_investment: String(c.min_investment || 0),
+      min_active_members: String(c.min_active_members || 0),
+      min_purchases: String(c.min_purchases || 0),
+      min_products_bought: String(c.min_products_bought || 0),
+      condition_logic: c.condition_logic || "OR",
+    });
+  };
+
+  const save = async () => {
+    if (!editingId) return;
+    await supabase.from("vip_conditions").update({
+      min_investment: Number(form.min_investment) || 0,
+      min_active_members: Number(form.min_active_members) || 0,
+      min_purchases: Number(form.min_purchases) || 0,
+      min_products_bought: Number(form.min_products_bought) || 0,
+      condition_logic: form.condition_logic,
+    }).eq("id", editingId);
+    showSuccess("Conditions VIP mises à jour ✅", "");
+    setEditingId(null);
+    reload();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+        <p className="text-xs text-muted-foreground">
+          💡 Configurez les conditions pour chaque niveau VIP. Logique <b>OU</b> = une seule condition suffit. <b>ET</b> = toutes requises.
+        </p>
+      </div>
+
+      {conditions.map((c: VipCondition) => (
+        <div key={c.id} className="bg-card rounded-xl border border-secondary p-4">
+          {editingId === c.id ? (
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <h3 className="text-sm font-bold text-primary">{c.level_name}</h3>
+                <button onClick={() => setEditingId(null)}><X size={16} className="text-muted-foreground" /></button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground">Invest. min (FCFA)</label>
+                  <input type="number" value={form.min_investment} onChange={e => setForm({ ...form, min_investment: e.target.value })}
+                    className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Membres actifs min</label>
+                  <input type="number" value={form.min_active_members} onChange={e => setForm({ ...form, min_active_members: e.target.value })}
+                    className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Achats min</label>
+                  <input type="number" value={form.min_purchases} onChange={e => setForm({ ...form, min_purchases: e.target.value })}
+                    className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Produits achetés min</label>
+                  <input type="number" value={form.min_products_bought} onChange={e => setForm({ ...form, min_products_bought: e.target.value })}
+                    className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">Logique de condition</label>
+                <div className="flex gap-2 mt-1">
+                  <button onClick={() => setForm({ ...form, condition_logic: "OR" })}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors ${form.condition_logic === "OR" ? "gradient-button text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
+                    OU (une suffit)
+                  </button>
+                  <button onClick={() => setForm({ ...form, condition_logic: "AND" })}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors ${form.condition_logic === "AND" ? "gradient-button text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
+                    ET (toutes requises)
+                  </button>
+                </div>
+              </div>
+              <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
+                <Save size={14} /> Sauvegarder
+              </button>
+            </div>
+          ) : (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-primary">{c.level_name}</span>
+                  <span className="text-[9px] bg-secondary text-muted-foreground px-2 py-0.5 rounded-full">Niveau {c.level}</span>
+                </div>
+                <button onClick={() => startEdit(c)} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center"><Pencil size={12} className="text-primary" /></button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="bg-secondary/50 rounded-lg p-2">
+                  <p className="text-[10px] text-muted-foreground">Investissement</p>
+                  <p className="text-xs font-bold text-foreground">{Number(c.min_investment).toLocaleString()} F</p>
+                </div>
+                <div className="bg-secondary/50 rounded-lg p-2">
+                  <p className="text-[10px] text-muted-foreground">Membres actifs</p>
+                  <p className="text-xs font-bold text-foreground">{c.min_active_members}</p>
+                </div>
+                <div className="bg-secondary/50 rounded-lg p-2">
+                  <p className="text-[10px] text-muted-foreground">Achats min</p>
+                  <p className="text-xs font-bold text-foreground">{c.min_purchases}</p>
+                </div>
+                <div className="bg-secondary/50 rounded-lg p-2">
+                  <p className="text-[10px] text-muted-foreground">Produits achetés</p>
+                  <p className="text-xs font-bold text-foreground">{c.min_products_bought}</p>
+                </div>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2">Logique : <span className="font-bold text-primary">{c.condition_logic === "AND" ? "ET (toutes)" : "OU (une suffit)"}</span></p>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export default AdminPanel;
