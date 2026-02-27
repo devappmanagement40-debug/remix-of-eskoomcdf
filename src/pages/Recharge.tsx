@@ -3,24 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import BottomNav from "@/components/BottomNav";
+import CountryPicker, { countries } from "@/components/CountryPicker";
 
 const presetAmounts = [4000, 12000, 25000, 58000, 120000, 228000];
-
-const countries = [
-  { code: "+226", name: "Burkina Faso", flag: "🇧🇫" },
-  { code: "+225", name: "Côte d'Ivoire", flag: "🇨🇮" },
-  { code: "+223", name: "Mali", flag: "🇲🇱" },
-  { code: "+227", name: "Niger", flag: "🇳🇪" },
-  { code: "+228", name: "Togo", flag: "🇹🇬" },
-  { code: "+221", name: "Sénégal", flag: "🇸🇳" },
-];
 
 const Recharge = () => {
   const navigate = useNavigate();
   const [amount, setAmount] = useState("");
   const [phone, setPhone] = useState("");
   const [countryCode, setCountryCode] = useState("+226");
-  const [showCountryPicker, setShowCountryPicker] = useState(false);
 
   const selectedCountry = countries.find((c) => c.code === countryCode);
 
@@ -91,12 +82,7 @@ const Recharge = () => {
         <div>
           <p className="text-sm font-semibold text-foreground mb-2">📱 Numéro de téléphone</p>
           <div className="input-glow rounded-xl bg-card p-3 flex items-center gap-3">
-            <button
-              onClick={() => setShowCountryPicker(!showCountryPicker)}
-              className="flex items-center gap-1 text-primary font-semibold text-sm whitespace-nowrap"
-            >
-              {selectedCountry?.flag} {countryCode} ▼
-            </button>
+            <CountryPicker value={countryCode} onChange={setCountryCode} />
             <span className="text-muted-foreground">|</span>
             <input
               type="tel"
@@ -106,23 +92,6 @@ const Recharge = () => {
               className="bg-transparent text-foreground text-base w-full outline-none placeholder:text-muted-foreground"
             />
           </div>
-          {showCountryPicker && (
-            <div className="mt-2 bg-card border border-secondary rounded-xl overflow-hidden">
-              {countries.map((c) => (
-                <button
-                  key={c.code}
-                  onClick={() => { setCountryCode(c.code); setShowCountryPicker(false); }}
-                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-secondary transition-colors ${
-                    c.code === countryCode ? "bg-primary/10 text-primary" : "text-foreground"
-                  }`}
-                >
-                  <span>{c.flag}</span>
-                  <span>{c.name}</span>
-                  <span className="text-muted-foreground ml-auto">{c.code}</span>
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Payment method */}
@@ -140,18 +109,10 @@ const Recharge = () => {
         <div>
           <p className="text-sm font-semibold text-foreground mb-2">📋 Description des règles</p>
           <div className="bg-card rounded-xl border border-secondary p-4 space-y-2">
-            <p className="text-xs text-muted-foreground">
-              1. Recharge minimale <span className="text-primary font-semibold">4000 CFA</span>.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              2. Recharge maximale <span className="text-primary font-semibold">300000 CFA</span>.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              3. Après le paiement, veuillez saisir l'identifiant de la transaction sur la page de paiement, sinon votre compte sera affecté.
-            </p>
-            <p className="text-xs text-muted-foreground">
-              4. Si vous rencontrez des problèmes de paiement, veuillez contacter le service client.
-            </p>
+            <p className="text-xs text-muted-foreground">1. Recharge minimale <span className="text-primary font-semibold">4000 CFA</span>.</p>
+            <p className="text-xs text-muted-foreground">2. Recharge maximale <span className="text-primary font-semibold">300000 CFA</span>.</p>
+            <p className="text-xs text-muted-foreground">3. Après le paiement, veuillez saisir l'identifiant de la transaction sur la page de paiement, sinon votre compte sera affecté.</p>
+            <p className="text-xs text-muted-foreground">4. Si vous rencontrez des problèmes de paiement, veuillez contacter le service client.</p>
           </div>
         </div>
 

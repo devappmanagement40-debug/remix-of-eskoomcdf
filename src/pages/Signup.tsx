@@ -5,6 +5,7 @@ import EskomLogo from "@/components/EskomLogo";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import CountryPicker from "@/components/CountryPicker";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [inviteCode, setInviteCode] = useState("");
+  const [countryCode, setCountryCode] = useState("+226");
   const [loading, setLoading] = useState(false);
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -29,10 +31,7 @@ const Signup = () => {
       email,
       password,
       options: {
-        data: {
-          full_name: cleanPhone,
-          phone: cleanPhone,
-        },
+        data: { full_name: cleanPhone, phone: cleanPhone },
       },
     });
 
@@ -43,10 +42,9 @@ const Signup = () => {
         toast.error("Erreur lors de l'inscription");
       }
     } else {
-      // Update profile with phone info
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase.from("profiles").update({ phone: cleanPhone, country_code: "+226" }).eq("user_id", user.id);
+        await supabase.from("profiles").update({ phone: cleanPhone, country_code: countryCode }).eq("user_id", user.id);
       }
       toast.success("Compte créé avec succès ✅");
       navigate("/");
@@ -68,7 +66,9 @@ const Signup = () => {
         <form onSubmit={handleSignup} className="w-full max-w-sm space-y-4">
           <div className="input-glow rounded-lg bg-input">
             <div className="flex items-center">
-              <span className="pl-4 pr-2 text-muted-foreground text-sm font-medium whitespace-nowrap">+226 ▼</span>
+              <span className="pl-3 pr-1">
+                <CountryPicker value={countryCode} onChange={setCountryCode} />
+              </span>
               <span className="text-muted-foreground">|</span>
               <Input
                 type="tel"
@@ -81,50 +81,33 @@ const Signup = () => {
           </div>
 
           <div className="input-glow rounded-lg bg-input">
-            <Input
-              type="password"
-              placeholder="Veuillez entrer le mot de passe"
-              value={password}
+            <Input type="password" placeholder="Veuillez entrer le mot de passe" value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="border-0 bg-transparent focus-visible:ring-0 text-foreground placeholder:text-muted-foreground"
-            />
+              className="border-0 bg-transparent focus-visible:ring-0 text-foreground placeholder:text-muted-foreground" />
           </div>
 
           <div className="input-glow rounded-lg bg-input">
-            <Input
-              type="password"
-              placeholder="Veuillez entrer à nouveau le mot de passe"
-              value={confirmPassword}
+            <Input type="password" placeholder="Veuillez entrer à nouveau le mot de passe" value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="border-0 bg-transparent focus-visible:ring-0 text-foreground placeholder:text-muted-foreground"
-            />
+              className="border-0 bg-transparent focus-visible:ring-0 text-foreground placeholder:text-muted-foreground" />
           </div>
 
           <div className="input-glow rounded-lg bg-input">
-            <Input
-              type="text"
-              placeholder="Veuillez entrer le code d'invitation"
-              value={inviteCode}
+            <Input type="text" placeholder="Veuillez entrer le code d'invitation" value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value)}
-              className="border-0 bg-transparent focus-visible:ring-0 text-foreground placeholder:text-muted-foreground"
-            />
+              className="border-0 bg-transparent focus-visible:ring-0 text-foreground placeholder:text-muted-foreground" />
           </div>
 
           <div className="pt-6">
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full gradient-button text-foreground font-semibold py-3.5 rounded-xl text-base transition-opacity hover:opacity-90 disabled:opacity-50"
-            >
+            <button type="submit" disabled={loading}
+              className="w-full gradient-button text-foreground font-semibold py-3.5 rounded-xl text-base transition-opacity hover:opacity-90 disabled:opacity-50">
               {loading ? "Inscription..." : "Inscription"}
             </button>
           </div>
 
           <p className="text-center text-sm text-muted-foreground pt-2">
             Vous avez déjà un compte ? /{" "}
-            <button type="button" onClick={() => navigate("/connexion")} className="text-primary font-medium hover:underline">
-              Connexion
-            </button>
+            <button type="button" onClick={() => navigate("/connexion")} className="text-primary font-medium hover:underline">Connexion</button>
           </p>
         </form>
       </div>
