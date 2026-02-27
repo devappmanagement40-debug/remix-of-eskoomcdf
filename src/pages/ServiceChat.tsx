@@ -158,7 +158,7 @@ const ServiceChat = () => {
       try {
         const history = messages.slice(-10).map((m) => ({ sender: m.sender, text: m.text }));
         const { data } = await supabase.functions.invoke("sarah-chat", {
-          body: { message: userText, history },
+          body: { message: userText, history, userId },
         });
 
         setIsTyping(false);
