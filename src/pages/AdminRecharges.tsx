@@ -81,9 +81,20 @@ const AdminRecharges = () => {
           deposit_balance: (profile.deposit_balance || 0) + amount,
         }).eq("user_id", userId);
 
-        // Auto referral bonus: 10% level B, 5% level C, 1% level D
+        // Load referral bonus percentages from site_settings
+        const { data: settingsData } = await supabase.from("site_settings")
+          .select("key, value")
+          .in("key", ["referral_bonus_level_b", "referral_bonus_level_c", "referral_bonus_level_d"]);
+        const settingsMap: Record<string, string> = {};
+        (settingsData || []).forEach((s: any) => { if (s.value) settingsMap[s.key] = s.value; });
+        
+        const pctB = Number(settingsMap.referral_bonus_level_b || "10") / 100;
+        const pctC = Number(settingsMap.referral_bonus_level_c || "5") / 100;
+        const pctD = Number(settingsMap.referral_bonus_level_d || "1") / 100;
+
+        // Auto referral bonus
         if (profile.referred_by) {
-          const bonusB = Math.round(amount * 0.10);
+          const bonusB = Math.round(amount * pctB);
           const { data: parentB } = await supabase.from("profiles")
             .select("id, user_id, balance, referral_balance, referred_by")
             .eq("id", profile.referred_by).single();
@@ -93,9 +104,9 @@ const AdminRecharges = () => {
               referral_balance: (parentB.referral_balance || 0) + bonusB,
             }).eq("id", parentB.id);
 
-            // Level C: 5%
+            // Level C
             if (parentB.referred_by) {
-              const bonusC = Math.round(amount * 0.05);
+              const bonusC = Math.round(amount * pctC);
               const { data: parentC } = await supabase.from("profiles")
                 .select("id, balance, referral_balance, referred_by")
                 .eq("id", parentB.referred_by).single();
@@ -105,9 +116,9 @@ const AdminRecharges = () => {
                   referral_balance: (parentC.referral_balance || 0) + bonusC,
                 }).eq("id", parentC.id);
 
-                // Level D: 1%
+                // Level D
                 if (parentC.referred_by) {
-                  const bonusD = Math.round(amount * 0.01);
+                  const bonusD = Math.round(amount * pctD);
                   const { data: parentD } = await supabase.from("profiles")
                     .select("id, balance, referral_balance")
                     .eq("id", parentC.referred_by).single();
