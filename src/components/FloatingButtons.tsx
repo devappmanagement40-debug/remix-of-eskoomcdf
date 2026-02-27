@@ -72,7 +72,7 @@ const FloatingButtons = () => {
 
       {/* Customer Support */}
       <button
-        onClick={() => handleClick(() => navigate("/aide"))}
+        onClick={() => handleClick(() => navigate("/service-chat"))}
         className="group w-[50px] h-[50px] rounded-full flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 active:scale-95"
         style={{
           background: "linear-gradient(135deg, hsl(210 80% 55%), hsl(230 70% 50%))",
