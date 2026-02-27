@@ -21,6 +21,7 @@ import NewsDetail from "./pages/NewsDetail";
 import HistoriqueRetraits from "./pages/HistoriqueRetraits";
 import HistoriqueFonds from "./pages/HistoriqueFonds";
 import PointsCadeaux from "./pages/PointsCadeaux";
+import MesProduits from "./pages/MesProduits";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,7 @@ const App = () => (
           <Route path="/historique-retraits" element={<HistoriqueRetraits />} />
           <Route path="/historique-fonds" element={<HistoriqueFonds />} />
           <Route path="/points-cadeaux" element={<PointsCadeaux />} />
+          <Route path="/mes-produits" element={<MesProduits />} />
           <Route path="/profil" element={<Profile />} />
           <Route path="/parametres" element={<Settings />} />
           <Route path="/loterie" element={<Loterie />} />
