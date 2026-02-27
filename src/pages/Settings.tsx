@@ -1,15 +1,19 @@
 import { ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import PageHeader from "@/components/PageHeader";
+import PremiumModal from "@/components/PremiumModal";
+import { supabase } from "@/integrations/supabase/client";
 
 const settingsItems = [
-  { label: "Changeur Mot Passe", path: "#" },
+  { label: "Changer Mot Passe", path: "#" },
   { label: "Changer de langue", path: "#" },
-  { label: "Déconnexion", path: "/connexion" },
+  { label: "Déconnexion", action: "logout" },
 ];
 
 const Settings = () => {
   const navigate = useNavigate();
+  const [showLogout, setShowLogout] = useState(false);
 
   return (
     <div className="min-h-screen bg-background">
@@ -18,7 +22,10 @@ const Settings = () => {
         {settingsItems.map((item) => (
           <button
             key={item.label}
-            onClick={() => navigate(item.path)}
+            onClick={() => {
+              if (item.action === "logout") setShowLogout(true);
+              else if (item.path) navigate(item.path);
+            }}
             className="w-full bg-secondary rounded-xl p-4 flex items-center justify-between hover:bg-muted transition-colors"
           >
             <span className="text-sm font-medium text-foreground">{item.label}</span>
@@ -26,6 +33,17 @@ const Settings = () => {
           </button>
         ))}
       </div>
+
+      <PremiumModal
+        triggerKey="logout_confirm"
+        open={showLogout}
+        onClose={() => setShowLogout(false)}
+        onConfirm={async () => {
+          await supabase.auth.signOut();
+          navigate("/connexion");
+        }}
+        onCancel={() => setShowLogout(false)}
+      />
     </div>
   );
 };

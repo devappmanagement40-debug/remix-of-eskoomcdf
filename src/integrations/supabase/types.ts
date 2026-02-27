@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      popup_messages: {
+        Row: {
+          button_cancel: string | null
+          button_confirm: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          message: string
+          sort_order: number | null
+          tabs: Json | null
+          title: string
+          trigger_key: string
+          updated_at: string | null
+        }
+        Insert: {
+          button_cancel?: string | null
+          button_confirm?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          message: string
+          sort_order?: number | null
+          tabs?: Json | null
+          title: string
+          trigger_key: string
+          updated_at?: string | null
+        }
+        Update: {
+          button_cancel?: string | null
+          button_confirm?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          message?: string
+          sort_order?: number | null
+          tabs?: Json | null
+          title?: string
+          trigger_key?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       product_series: {
         Row: {
           color: string | null

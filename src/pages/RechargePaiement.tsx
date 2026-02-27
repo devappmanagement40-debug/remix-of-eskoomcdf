@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/PageHeader";
+import PremiumModal from "@/components/PremiumModal";
 
 const DESTINATAIRE_NOM = "SONGBO JIANGPAPIZ";
 const DESTINATAIRE_COMPTE = "66610774";
@@ -15,6 +16,7 @@ const RechargePaiement = () => {
   const [transactionRef, setTransactionRef] = useState("");
   const [loading, setLoading] = useState(false);
   const [showAdvice, setShowAdvice] = useState(false);
+  const [showRechargeSuccess, setShowRechargeSuccess] = useState(false);
 
   if (!amount) {
     navigate("/recharge");
@@ -63,7 +65,7 @@ const RechargePaiement = () => {
         return;
       }
 
-      setShowAdvice(true);
+      setShowRechargeSuccess(true);
     } catch {
       toast.error("Erreur de connexion");
     } finally {
@@ -211,6 +213,12 @@ const RechargePaiement = () => {
           )}
         </div>
       </div>
+
+      <PremiumModal
+        triggerKey="recharge_success"
+        open={showRechargeSuccess}
+        onClose={() => { setShowRechargeSuccess(false); setShowAdvice(true); }}
+      />
     </div>
   );
 };

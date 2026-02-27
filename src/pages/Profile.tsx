@@ -6,6 +6,7 @@ import PageHeader from "@/components/PageHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
+import PremiumModal from "@/components/PremiumModal";
 
 const vipLevels = ["VIP0", "VIP1", "VIP2", "VIP3", "VIP4", "VIP5"];
 
@@ -32,6 +33,7 @@ const Profile = () => {
   const [balance, setBalance] = useState(0);
   const [vipIndex, setVipIndex] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [showLogout, setShowLogout] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -165,18 +167,27 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Déconnexion - same style */}
+        {/* Déconnexion */}
         <button
-          onClick={async () => {
-            await supabase.auth.signOut();
-            navigate("/connexion");
-          }}
+          onClick={() => setShowLogout(true)}
           className="w-full bg-card rounded-xl border border-secondary p-4 flex items-center justify-center gap-3 hover:border-primary transition-colors"
         >
           <LogOut size={20} className="text-primary" />
           <span className="text-sm font-medium text-primary">Se déconnecter</span>
         </button>
       </div>
+
+      <PremiumModal
+        triggerKey="logout_confirm"
+        open={showLogout}
+        onClose={() => setShowLogout(false)}
+        onConfirm={async () => {
+          await supabase.auth.signOut();
+          navigate("/connexion");
+        }}
+        onCancel={() => setShowLogout(false)}
+      />
+
       <BottomNav />
     </div>
   );

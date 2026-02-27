@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import BottomNav from "@/components/BottomNav";
 import FloatingButtons from "@/components/FloatingButtons";
 import ProductCard from "@/components/ProductCard";
+import PremiumModal from "@/components/PremiumModal";
 import productServer from "@/assets/product-server.jpg";
 import productSolar from "@/assets/product-solar.jpg";
 import productWind from "@/assets/product-wind.jpg";
@@ -81,6 +82,7 @@ const newsItems = [
 const Index = () => {
   const navigate = useNavigate();
   const [currentBanner, setCurrentBanner] = useState(0);
+  const [showService, setShowService] = useState(false);
 
   const nextBanner = useCallback(() => {
     setCurrentBanner((prev) => (prev + 1) % banners.length);
@@ -145,6 +147,9 @@ const Index = () => {
           {quickActions.map((action) => (
             <button
               key={action.label}
+              onClick={() => {
+                if (action.label === "Service") setShowService(true);
+              }}
               className="flex flex-col items-center gap-2 bg-card rounded-xl py-4 px-2 border border-secondary hover:border-primary transition-colors"
             >
               <action.icon size={22} className="text-muted-foreground" />
@@ -185,6 +190,13 @@ const Index = () => {
           ))}
         </div>
       </section>
+
+      <PremiumModal
+        triggerKey="service_client"
+        open={showService}
+        onClose={() => setShowService(false)}
+        onConfirm={() => navigate("/service-chat")}
+      />
 
       <FloatingButtons />
       <BottomNav />
