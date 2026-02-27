@@ -3,7 +3,9 @@ import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
-import { ClipboardList } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ClipboardList, ShoppingCart } from "lucide-react";
+import { useActionPopup } from "@/components/ActionPopupProvider";
 
 type Series = { id: string; name: string; color: string | null; sort_order: number | null };
 type Product = {
@@ -35,6 +37,7 @@ const Products = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [activeSeries, setActiveSeries] = useState<string>("all");
   const [loading, setLoading] = useState(true);
+  const { showInfo } = useActionPopup();
 
   useEffect(() => {
     const load = async () => {
@@ -153,6 +156,15 @@ const Products = () => {
                         </div>
                       </div>
                     </div>
+                  </div>
+                  <div className="px-3 pb-3">
+                    <Button
+                      className="gradient-button w-full h-9 text-sm font-semibold gap-2"
+                      onClick={() => showInfo(`Achat de ${product.name} à ${Number(product.price).toLocaleString("fr-FR")} FCFA`, "Confirmer l'achat")}
+                    >
+                      <ShoppingCart size={16} />
+                      Acheter
+                    </Button>
                   </div>
                 </div>
               );
