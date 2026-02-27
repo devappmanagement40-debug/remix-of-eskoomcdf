@@ -5,11 +5,13 @@ import EskomLogo from "@/components/EskomLogo";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import CountryPicker from "@/components/CountryPicker";
 
 const Login = () => {
   const navigate = useNavigate();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [countryCode, setCountryCode] = useState("+226");
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -18,7 +20,6 @@ const Login = () => {
 
     setLoading(true);
     const email = `${phone.replace(/\s/g, "")}@users.eskom.app`;
-
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
@@ -44,7 +45,9 @@ const Login = () => {
         <form onSubmit={handleLogin} className="w-full max-w-sm space-y-4">
           <div className="input-glow rounded-lg bg-input">
             <div className="flex items-center">
-              <span className="pl-4 pr-2 text-muted-foreground text-sm font-medium whitespace-nowrap">+226 ▼</span>
+              <span className="pl-3 pr-1">
+                <CountryPicker value={countryCode} onChange={setCountryCode} />
+              </span>
               <span className="text-muted-foreground">|</span>
               <Input
                 type="tel"
@@ -57,30 +60,21 @@ const Login = () => {
           </div>
 
           <div className="input-glow rounded-lg bg-input">
-            <Input
-              type="password"
-              placeholder="Veuillez entrer le mot de passe"
-              value={password}
+            <Input type="password" placeholder="Veuillez entrer le mot de passe" value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="border-0 bg-transparent focus-visible:ring-0 text-foreground placeholder:text-muted-foreground"
-            />
+              className="border-0 bg-transparent focus-visible:ring-0 text-foreground placeholder:text-muted-foreground" />
           </div>
 
           <div className="pt-6">
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full gradient-button text-foreground font-semibold py-3.5 rounded-xl text-base transition-opacity hover:opacity-90 disabled:opacity-50"
-            >
+            <button type="submit" disabled={loading}
+              className="w-full gradient-button text-foreground font-semibold py-3.5 rounded-xl text-base transition-opacity hover:opacity-90 disabled:opacity-50">
               {loading ? "Connexion..." : "Connexion"}
             </button>
           </div>
 
           <p className="text-center text-sm text-muted-foreground pt-2">
             Vous n'avez pas de compte ? /{" "}
-            <button type="button" onClick={() => navigate("/inscription")} className="text-primary font-medium hover:underline">
-              S'inscrire
-            </button>
+            <button type="button" onClick={() => navigate("/inscription")} className="text-primary font-medium hover:underline">S'inscrire</button>
           </p>
         </form>
       </div>
