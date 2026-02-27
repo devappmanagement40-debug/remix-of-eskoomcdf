@@ -29,26 +29,23 @@ const Signup = () => {
     if (phone.length < 8) { showError("Erreur", "Numéro de téléphone invalide"); return; }
     if (password.length < 6) { showError("Erreur", "Le mot de passe doit contenir au moins 6 caractères"); return; }
     if (password !== confirmPassword) { showError("Erreur", "Les mots de passe ne correspondent pas"); return; }
+    if (!inviteCode.trim()) { showError("Erreur", "Le code d'invitation est obligatoire"); return; }
 
     setLoading(true);
     const cleanPhone = phone.replace(/\s/g, "");
     const email = `${cleanPhone}@users.eskom.app`;
 
-    let referrerId: string | null = null;
-    if (inviteCode.trim()) {
-      const { data: referrer } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("referral_code", inviteCode.trim().toUpperCase())
-        .single();
-      if (referrer) {
-        referrerId = referrer.id;
-      } else {
-        showError("Erreur", "Code d'invitation invalide");
-        setLoading(false);
-        return;
-      }
+    const { data: referrer } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("referral_code", inviteCode.trim().toUpperCase())
+      .single();
+    if (!referrer) {
+      showError("Erreur", "Code d'invitation invalide");
+      setLoading(false);
+      return;
     }
+    const referrerId = referrer.id;
 
     const { error } = await supabase.auth.signUp({
       email,

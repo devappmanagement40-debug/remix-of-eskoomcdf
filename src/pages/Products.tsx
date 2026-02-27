@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,12 +7,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ClipboardList, ShoppingCart, Package } from "lucide-react";
 import { useActionPopup } from "@/components/ActionPopupProvider";
+import PremiumModal from "@/components/PremiumModal";
 
 type Series = { id: string; name: string; color: string | null; sort_order: number | null };
 type Product = {
   id: string; series_id: string; name: string; image_url: string | null;
   return_percent: number | null; total_revenue: number | null; daily_revenue: number | null;
   cycles: number | null; price: number | null; is_new: boolean | null; is_active: boolean | null;
+  max_purchases: number | null;
 };
 
 const colorMap: Record<string, string> = {
@@ -33,11 +36,15 @@ const colorBorderMap: Record<string, string> = {
 };
 
 const Products = () => {
+  const navigate = useNavigate();
   const [series, setSeries] = useState<Series[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [activeSeries, setActiveSeries] = useState<string>("all");
   const [loading, setLoading] = useState(true);
-  const { showInfo } = useActionPopup();
+  const [purchasing, setPurchasing] = useState<string | null>(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [purchasedName, setPurchasedName] = useState("");
+  const { showError } = useActionPopup();
 
   useEffect(() => {
     const load = async () => {
@@ -46,11 +53,87 @@ const Products = () => {
         supabase.from("products").select("*").eq("is_active", true).order("sort_order"),
       ]);
       if (s.data) setSeries(s.data);
-      if (p.data) setProducts(p.data);
+      if (p.data) setProducts(p.data as Product[]);
       setLoading(false);
     };
     load();
   }, []);
+
+  const handlePurchase = async (product: Product) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { navigate("/connexion"); return; }
+
+    setPurchasing(product.id);
+
+    try {
+      // Get profile
+      const { data: profile } = await supabase.from("profiles")
+        .select("balance, deposit_balance, earnings_balance")
+        .eq("user_id", user.id).single();
+      if (!profile) { showError("Erreur", "Profil introuvable"); return; }
+
+      const price = Number(product.price) || 0;
+      const totalBalance = (profile.balance || 0);
+
+      // Check balance
+      if (totalBalance < price) {
+        showError("Solde insuffisant", `Votre solde (${totalBalance.toLocaleString("fr-FR")} FCFA) est insuffisant pour acheter ce produit (${price.toLocaleString("fr-FR")} FCFA). Veuillez recharger votre compte.`);
+        return;
+      }
+
+      // Check max purchases
+      if (product.max_purchases) {
+        const { count } = await supabase.from("user_products")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("product_id", product.id);
+        if ((count || 0) >= product.max_purchases) {
+          showError("Limite atteinte", `Vous avez déjà acheté ce produit ${count} fois (maximum: ${product.max_purchases})`);
+          return;
+        }
+      }
+
+      // Debit from deposit_balance first, then balance
+      const depositBal = profile.deposit_balance || 0;
+      let newDeposit = depositBal;
+      let newBalance = totalBalance;
+
+      if (depositBal >= price) {
+        newDeposit = depositBal - price;
+      } else {
+        newDeposit = 0;
+      }
+      newBalance = totalBalance - price;
+
+      // Create user_product
+      const cycles = product.cycles || 365;
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + cycles);
+
+      const { error: insertError } = await supabase.from("user_products").insert({
+        user_id: user.id,
+        product_id: product.id,
+        is_active: true,
+        expires_at: expiresAt.toISOString(),
+      });
+
+      if (insertError) {
+        showError("Erreur", "Erreur lors de l'achat");
+        return;
+      }
+
+      // Update balance
+      await supabase.from("profiles").update({
+        balance: newBalance,
+        deposit_balance: newDeposit,
+      }).eq("user_id", user.id);
+
+      setPurchasedName(product.name);
+      setShowSuccess(true);
+    } finally {
+      setPurchasing(null);
+    }
+  };
 
   const filtered = activeSeries === "all" ? products : products.filter(p => p.series_id === activeSeries);
 
@@ -85,21 +168,14 @@ const Products = () => {
           })}
         </div>
 
-        {/* Products */}
         {loading ? (
           <p className="text-center text-muted-foreground py-10">Chargement...</p>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center py-20">
             <div className="relative mb-6">
-              <div className="w-24 h-24 rounded-2xl bg-secondary/50 flex items-center justify-center relative">
+              <div className="w-24 h-24 rounded-2xl bg-secondary/50 flex items-center justify-center">
                 <ClipboardList size={40} className="text-muted-foreground/50" />
               </div>
-              {/* Decorative diamonds */}
-              <div className="absolute -top-3 -left-3 w-3 h-3 bg-muted-foreground/20 rotate-45" />
-              <div className="absolute -top-1 left-6 w-2 h-2 bg-muted-foreground/15 rotate-45" />
-              <div className="absolute top-2 -right-4 w-2.5 h-2.5 bg-muted-foreground/20 rotate-45" />
-              <div className="absolute -bottom-2 right-4 w-2 h-2 bg-muted-foreground/15 rotate-45" />
-              <div className="absolute -bottom-4 -left-1 w-2 h-2 bg-muted-foreground/10 rotate-45" />
             </div>
             <p className="text-sm text-muted-foreground">La liste des produits est vide</p>
           </div>
@@ -116,32 +192,22 @@ const Products = () => {
                       <div className="relative w-24 h-28 rounded-lg overflow-hidden flex-shrink-0">
                         <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                         {product.is_new && (
-                          <Badge className="absolute top-1.5 left-1.5 bg-success text-success-foreground text-[9px] px-1.5 py-0.5">
-                            nouveau
-                          </Badge>
+                          <Badge className="absolute top-1.5 left-1.5 bg-success text-success-foreground text-[9px] px-1.5 py-0.5">nouveau</Badge>
                         )}
                       </div>
                     ) : (
                       <div className="relative w-24 h-28 rounded-lg overflow-hidden flex-shrink-0 bg-secondary/30 flex items-center justify-center">
                         <Package size={28} className="text-muted-foreground/30" />
                         {product.is_new && (
-                          <Badge className="absolute top-1.5 left-1.5 bg-success text-success-foreground text-[9px] px-1.5 py-0.5">
-                            nouveau
-                          </Badge>
+                          <Badge className="absolute top-1.5 left-1.5 bg-success text-success-foreground text-[9px] px-1.5 py-0.5">nouveau</Badge>
                         )}
                       </div>
                     )}
                     <div className="flex flex-col gap-1 flex-1 min-w-0">
                       <div className="flex gap-1.5 items-center flex-wrap">
-                        <Badge variant="outline" className={`${colorBorderMap[seriesColor] || ""} text-[10px]`}>
-                          {product.name}
-                        </Badge>
-                        <Badge className="bg-success text-success-foreground text-[10px]">
-                          {product.return_percent}%
-                        </Badge>
-                        <Badge className="bg-primary/90 text-primary-foreground text-[9px]">
-                          Actuellement
-                        </Badge>
+                        <Badge variant="outline" className={`${colorBorderMap[seriesColor] || ""} text-[10px]`}>{product.name}</Badge>
+                        <Badge className="bg-success text-success-foreground text-[10px]">{product.return_percent}%</Badge>
+                        <Badge className="bg-primary/90 text-primary-foreground text-[9px]">Actuellement</Badge>
                       </div>
                       <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 mt-1">
                         <div>
@@ -166,10 +232,11 @@ const Products = () => {
                   <div className="px-3 pb-3">
                     <Button
                       className="gradient-button w-full h-8 text-xs font-semibold gap-1.5"
-                      onClick={() => showInfo(`Achat de ${product.name} à ${Number(product.price).toLocaleString("fr-FR")} FCFA`, "Confirmer l'achat")}
+                      disabled={purchasing === product.id}
+                      onClick={() => handlePurchase(product)}
                     >
                       <ShoppingCart size={14} />
-                      Acheter
+                      {purchasing === product.id ? "Achat..." : "Acheter"}
                     </Button>
                   </div>
                 </div>
@@ -178,6 +245,14 @@ const Products = () => {
           </div>
         )}
       </div>
+
+      <PremiumModal
+        triggerKey="purchase_success"
+        open={showSuccess}
+        onClose={() => setShowSuccess(false)}
+        replacements={{ product: purchasedName }}
+      />
+
       <BottomNav />
     </div>
   );

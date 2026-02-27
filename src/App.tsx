@@ -33,6 +33,8 @@ import AdminProduits from "./pages/AdminProduits";
 import AdminPopups from "./pages/AdminPopups";
 import AdminPanel from "./pages/AdminPanel";
 import EchangerCode from "./pages/EchangerCode";
+import ChangerMotDePasse from "./pages/ChangerMotDePasse";
+import ChangerLangue from "./pages/ChangerLangue";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +70,8 @@ const App = () => (
           <Route path="/admin/popups" element={<AdminPopups />} />
           <Route path="/admin" element={<AdminPanel />} />
           <Route path="/echanger-code" element={<EchangerCode />} />
+          <Route path="/changer-mot-de-passe" element={<ChangerMotDePasse />} />
+          <Route path="/changer-langue" element={<ChangerLangue />} />
           <Route path="/profil" element={<Profile />} />
           <Route path="/parametres" element={<Settings />} />
           <Route path="/loterie" element={<Loterie />} />
