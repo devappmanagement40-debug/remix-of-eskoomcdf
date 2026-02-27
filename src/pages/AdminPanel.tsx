@@ -1863,7 +1863,14 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
       { key: "max_withdrawals_per_day", label: "Nombre max de retraits par jour" },
       { key: "max_withdrawals_enabled", label: "Limite retraits activee (true/false)" },
     ]},
-    referral: { label: "Bonus Parrainage", keys: [{ key: "referral_bonus_level_b", label: "Niveau B - Parrain direct (%)" }, { key: "referral_bonus_level_c", label: "Niveau C - 2eme niveau (%)" }, { key: "referral_bonus_level_d", label: "Niveau D - 3eme niveau (%)" }] },
+    referral: { label: "Bonus Parrainage", keys: [
+      { key: "referral_bonus_level_b", label: "Niveau B - Parrain direct (%)" },
+      { key: "referral_bonus_level_c", label: "Niveau C - 2eme niveau (%)" },
+      { key: "referral_bonus_level_d", label: "Niveau D - 3eme niveau (%)" },
+      { key: "referral_title", label: "Titre modal invitation" },
+      { key: "referral_subtitle", label: "Sous-titre gains invitation" },
+      { key: "referral_rules", label: "Règles (JSON array de textes)" },
+    ] },
     vip: { label: "Seuils VIP", keys: [{ key: "vip_threshold_1", label: "VIP1 (FCFA)" }, { key: "vip_threshold_2", label: "VIP2 (FCFA)" }, { key: "vip_threshold_3", label: "VIP3 (FCFA)" }, { key: "vip_threshold_4", label: "VIP4 (FCFA)" }, { key: "vip_threshold_5", label: "VIP5 (FCFA)" }] },
   };
 

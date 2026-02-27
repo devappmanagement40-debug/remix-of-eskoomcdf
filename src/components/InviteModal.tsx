@@ -11,18 +11,40 @@ interface InviteModalProps {
 const InviteModal = ({ open, onClose }: InviteModalProps) => {
   const [referralCode, setReferralCode] = useState("");
   const [copied, setCopied] = useState(false);
+  const [rules, setRules] = useState<{ text: string }[]>([]);
+  const [title, setTitle] = useState("Inviter des amis");
+  const [subtitle, setSubtitle] = useState("Gains d'invitation");
   const { showCopy } = useActionPopup();
 
   useEffect(() => {
-    if (open) {
-      supabase.auth.getUser().then(({ data: { user } }) => {
-        if (user) {
-          supabase.from("profiles").select("referral_code").eq("user_id", user.id).single().then(({ data }) => {
-            if (data?.referral_code) setReferralCode(data.referral_code);
-          });
+    if (!open) return;
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        supabase.from("profiles").select("referral_code").eq("user_id", user.id).single().then(({ data }) => {
+          if (data?.referral_code) setReferralCode(data.referral_code);
+        });
+      }
+    });
+
+    // Fetch dynamic referral info from site_settings
+    supabase.from("site_settings").select("key, value").eq("category", "referral").then(({ data }) => {
+      if (data) {
+        const map: Record<string, string> = {};
+        data.forEach((s) => { map[s.key] = s.value || ""; });
+        if (map.referral_title) setTitle(map.referral_title);
+        if (map.referral_subtitle) setSubtitle(map.referral_subtitle);
+        if (map.referral_rules) {
+          try {
+            const parsed = JSON.parse(map.referral_rules);
+            if (Array.isArray(parsed)) setRules(parsed.map((r: string) => ({ text: r })));
+          } catch {
+            // fallback: split by newline
+            setRules(map.referral_rules.split("\n").filter(Boolean).map((t) => ({ text: t })));
+          }
         }
-      });
-    }
+      }
+    });
   }, [open]);
 
   if (!open) return null;
@@ -36,6 +58,15 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const defaultRules = [
+    "Partagez votre lien d'invitation avec des amis pour qu'ils rejoignent et obtiennent bonus d'invitation et gagnez une commission",
+    "Gagnez 10% de commission sur vos directs (niveau B)",
+    "Supplémentaire 5% de commission sur les parrainages de second niveau (niveau C)",
+    "Supplémentaire 1% de commission sur les parrainages de troisième niveau (niveau D)",
+  ];
+
+  const displayRules = rules.length > 0 ? rules.map((r) => r.text) : defaultRules;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
@@ -43,9 +74,8 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
         className="relative w-full max-w-sm bg-card border border-border rounded-2xl overflow-hidden animate-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
-          <h2 className="text-lg font-bold text-foreground uppercase tracking-wide">Inviter des amis</h2>
+          <h2 className="text-lg font-bold text-foreground uppercase tracking-wide">{title}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
             <X size={18} className="text-muted-foreground" />
           </button>
@@ -68,24 +98,14 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
           </button>
 
           <div>
-            <p className="text-sm font-semibold text-primary mb-3 uppercase">Gains d'invitation</p>
+            <p className="text-sm font-semibold text-primary mb-3 uppercase">{subtitle}</p>
             <ul className="space-y-3">
-              <li className="flex gap-2 text-sm text-muted-foreground">
-                <span className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />
-                <span>Partagez votre lien d'invitation avec des amis pour qu'ils rejoignent et obtiennent <span className="text-primary font-medium">bonus d'invitation</span> et gagnez une commission</span>
-              </li>
-              <li className="flex gap-2 text-sm text-muted-foreground">
-                <span className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />
-                <span>Gagnez <span className="text-primary font-medium">10% de commission</span> sur vos directs (niveau B)</span>
-              </li>
-              <li className="flex gap-2 text-sm text-muted-foreground">
-                <span className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />
-                <span>Supplémentaire <span className="text-primary font-medium">5% de commission</span> sur les parrainages de second niveau (niveau C)</span>
-              </li>
-              <li className="flex gap-2 text-sm text-muted-foreground">
-                <span className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />
-                <span>Supplémentaire <span className="text-primary font-medium">1% de commission</span> sur les parrainages de troisième niveau (niveau D)</span>
-              </li>
+              {displayRules.map((rule, i) => (
+                <li key={i} className="flex gap-2 text-sm text-muted-foreground">
+                  <span className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />
+                  <span>{rule}</span>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
