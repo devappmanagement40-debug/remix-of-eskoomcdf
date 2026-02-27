@@ -28,6 +28,7 @@ import AdminRecharges from "./pages/AdminRecharges";
 import LierCarte from "./pages/LierCarte";
 import Retrait from "./pages/Retrait";
 import AdminRetraits from "./pages/AdminRetraits";
+import AdminProduits from "./pages/AdminProduits";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ const App = () => (
           <Route path="/lier-carte" element={<LierCarte />} />
           <Route path="/retrait" element={<Retrait />} />
           <Route path="/admin/retraits" element={<AdminRetraits />} />
+          <Route path="/admin/produits" element={<AdminProduits />} />
           <Route path="/profil" element={<Profile />} />
           <Route path="/parametres" element={<Settings />} />
           <Route path="/loterie" element={<Loterie />} />
