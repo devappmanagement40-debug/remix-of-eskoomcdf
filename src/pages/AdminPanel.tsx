@@ -39,7 +39,7 @@ type Product = {
 type PaymentMethod = {
   id: string; name: string; country: string; phone: string | null;
   holder_name: string | null; instructions: string | null; is_active: boolean; sort_order: number;
-  country_id: string | null;
+  country_id: string | null; payment_type: string; external_url: string | null; logo_url: string | null;
 };
 type SocialLink = { id: string; key: string; label: string; url: string | null; is_active: boolean };
 type SiteSetting = { id: string; key: string; value: string | null; category: string };
@@ -959,20 +959,35 @@ const BannersTab = ({ banners, reload, showSuccess, showError }: any) => {
 const PaymentsTab = ({ methods, countries, reload, showSuccess, showError }: any) => {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<PaymentMethod | null>(null);
-  const [form, setForm] = useState({ name: "", country: "Burkina Faso", phone: "", holder_name: "", instructions: "", country_id: "" });
+  const [form, setForm] = useState({ name: "", country: "Burkina Faso", phone: "", holder_name: "", instructions: "", country_id: "", payment_type: "manual", external_url: "", logo_url: "" });
+  const [uploading, setUploading] = useState(false);
+  const logoRef = useRef<HTMLInputElement>(null);
 
   const openForm = (m?: PaymentMethod) => {
-    if (m) { setEditing(m); setForm({ name: m.name, country: m.country, phone: m.phone || "", holder_name: m.holder_name || "", instructions: m.instructions || "", country_id: m.country_id || "" }); }
-    else { setEditing(null); setForm({ name: "", country: "Burkina Faso", phone: "", holder_name: "", instructions: "", country_id: "" }); }
+    if (m) { setEditing(m); setForm({ name: m.name, country: m.country, phone: m.phone || "", holder_name: m.holder_name || "", instructions: m.instructions || "", country_id: m.country_id || "", payment_type: m.payment_type || "manual", external_url: m.external_url || "", logo_url: m.logo_url || "" }); }
+    else { setEditing(null); setForm({ name: "", country: "Burkina Faso", phone: "", holder_name: "", instructions: "", country_id: "", payment_type: "manual", external_url: "", logo_url: "" }); }
     setShowForm(true);
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const ext = file.name.split('.').pop();
+    const fileName = `payment-logo-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('site-assets').upload(fileName, file);
+    if (error) { showError("Erreur", "Upload impossible"); setUploading(false); return; }
+    const { data } = supabase.storage.from('site-assets').getPublicUrl(fileName);
+    setForm({ ...form, logo_url: data.publicUrl });
+    setUploading(false);
   };
 
   const save = async () => {
     if (!form.name.trim()) { showError("Erreur", "Nom requis"); return; }
-    const payload = { ...form, country_id: form.country_id || null };
+    const payload = { ...form, country_id: form.country_id || null, external_url: form.external_url || null, logo_url: form.logo_url || null };
     if (editing) await supabase.from("payment_methods").update(payload).eq("id", editing.id);
     else await supabase.from("payment_methods").insert({ ...payload, sort_order: methods.length });
-    showSuccess(editing ? "Modifié ✅" : "Créé ✅", "");
+    showSuccess(editing ? "Modifie" : "Cree", "");
     setShowForm(false); reload();
   };
 
@@ -984,31 +999,78 @@ const PaymentsTab = ({ methods, countries, reload, showSuccess, showError }: any
         <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
           <div className="flex justify-between"><h3 className="text-sm font-bold text-foreground">{editing ? "Modifier" : "Nouveau"}</h3><button onClick={() => setShowForm(false)}><X size={16} className="text-muted-foreground" /></button></div>
           <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nom (ex: Orange Money)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+
+          {/* Payment type */}
+          <div>
+            <label className="text-xs text-muted-foreground">Type de paiement</label>
+            <div className="flex gap-2 mt-1">
+              <button onClick={() => setForm({ ...form, payment_type: "manual" })}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors ${form.payment_type === "manual" ? "gradient-button text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
+                Manuel
+              </button>
+              <button onClick={() => setForm({ ...form, payment_type: "external" })}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors ${form.payment_type === "external" ? "gradient-button text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
+                Lien externe
+              </button>
+            </div>
+          </div>
+
+          {/* Logo upload */}
+          <div>
+            <label className="text-xs text-muted-foreground">Logo</label>
+            <input ref={logoRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+            {form.logo_url ? (
+              <div className="flex items-center gap-3 mt-1">
+                <img src={form.logo_url} className="w-10 h-10 rounded-lg object-cover" />
+                <button onClick={() => setForm({ ...form, logo_url: "" })} className="text-xs text-destructive">Supprimer</button>
+              </div>
+            ) : (
+              <button onClick={() => logoRef.current?.click()} disabled={uploading} className="mt-1 w-full h-12 rounded-xl border-2 border-dashed border-secondary hover:border-primary flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                {uploading ? "Upload..." : <><UploadIcon size={14} /> Ajouter logo</>}
+              </button>
+            )}
+          </div>
+
           <select value={form.country_id} onChange={e => { const c = countries.find((ct: Country) => ct.id === e.target.value); setForm({ ...form, country_id: e.target.value, country: c?.name || form.country }); }}
             className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none">
-            <option value="">— Sélectionner un pays —</option>
+            <option value="">-- Selectionner un pays --</option>
             {countries.filter((c: Country) => c.is_active).map((c: Country) => <option key={c.id} value={c.id}>{c.flag_emoji} {c.name}</option>)}
           </select>
-          <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="Numéro" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
-          <input value={form.holder_name} onChange={e => setForm({ ...form, holder_name: e.target.value })} placeholder="Nom du bénéficiaire" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
-          <textarea value={form.instructions} onChange={e => setForm({ ...form, instructions: e.target.value })} placeholder="Instructions de paiement" rows={3} className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none resize-none" />
-          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editing ? "Modifier" : "Créer"}</button>
+
+          {form.payment_type === "manual" ? (
+            <>
+              <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="Numero" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+              <input value={form.holder_name} onChange={e => setForm({ ...form, holder_name: e.target.value })} placeholder="Nom du beneficiaire" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+              <textarea value={form.instructions} onChange={e => setForm({ ...form, instructions: e.target.value })} placeholder="Instructions de paiement" rows={3} className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none resize-none" />
+            </>
+          ) : (
+            <input value={form.external_url} onChange={e => setForm({ ...form, external_url: e.target.value })} placeholder="URL de paiement externe (https://...)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+          )}
+
+          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editing ? "Modifier" : "Creer"}</button>
         </div>
       )}
 
       {methods.map((m: PaymentMethod) => (
         <div key={m.id} className="bg-card rounded-xl border border-secondary px-4 py-3">
           <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-bold text-foreground">{m.name}</p>
-              <p className="text-xs text-muted-foreground">{m.country} • {m.phone || "—"}</p>
-              {m.holder_name && <p className="text-xs text-muted-foreground">{m.holder_name}</p>}
+            <div className="flex items-center gap-3">
+              {m.logo_url ? (
+                <img src={m.logo_url} className="w-8 h-8 rounded-lg object-cover" />
+              ) : (
+                <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center"><CreditCard size={14} className="text-muted-foreground" /></div>
+              )}
+              <div>
+                <p className="text-sm font-bold text-foreground">{m.name}</p>
+                <p className="text-xs text-muted-foreground">{m.country} {m.payment_type === "external" ? "• Lien externe" : `• ${m.phone || "—"}`}</p>
+                {m.holder_name && <p className="text-xs text-muted-foreground">{m.holder_name}</p>}
+              </div>
             </div>
             <div className="flex gap-1.5">
               <button onClick={async () => { await supabase.from("payment_methods").update({ is_active: !m.is_active }).eq("id", m.id); reload(); }}
                 className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${m.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{m.is_active ? "ON" : "OFF"}</button>
               <button onClick={() => openForm(m)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
-              <button onClick={async () => { await supabase.from("payment_methods").delete().eq("id", m.id); showSuccess("Supprimé", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+              <button onClick={async () => { await supabase.from("payment_methods").delete().eq("id", m.id); showSuccess("Supprime", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
             </div>
           </div>
         </div>
@@ -1458,9 +1520,22 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
   };
 
   const groups: Record<string, { label: string; keys: { key: string; label: string }[] }> = {
-    general: { label: "Général", keys: [{ key: "site_name", label: "Nom du site" }, { key: "welcome_text", label: "Texte d'accueil" }, { key: "terms_url", label: "URL Conditions générales" }] },
-    finance: { label: "Finance", keys: [{ key: "withdrawal_fee_percent", label: "Frais de retrait (%)" }, { key: "min_withdrawal", label: "Retrait minimum (FCFA)" }] },
-    referral: { label: "Bonus Parrainage", keys: [{ key: "referral_bonus_level_b", label: "Niveau B - Parrain direct (%)" }, { key: "referral_bonus_level_c", label: "Niveau C - 2ème niveau (%)" }, { key: "referral_bonus_level_d", label: "Niveau D - 3ème niveau (%)" }] },
+    general: { label: "General", keys: [{ key: "site_name", label: "Nom du site" }, { key: "welcome_text", label: "Texte d'accueil" }, { key: "terms_url", label: "URL Conditions generales" }] },
+    deposit: { label: "Depot", keys: [
+      { key: "deposit_amounts", label: "Montants predéfinis (separes par virgules)" },
+      { key: "deposit_min", label: "Depot minimum (FCFA)" },
+      { key: "deposit_max", label: "Depot maximum (FCFA)" },
+      { key: "deposit_rules", label: "Regles (separees par |, {min} et {max} dynamiques)" },
+      { key: "require_screenshot", label: "Exiger capture (true/false)" },
+    ]},
+    withdrawal: { label: "Retrait", keys: [
+      { key: "withdrawal_amounts", label: "Montants predéfinis (separes par virgules)" },
+      { key: "withdrawal_min", label: "Retrait minimum (FCFA)" },
+      { key: "withdrawal_max", label: "Retrait maximum (FCFA)" },
+      { key: "withdrawal_fee_percent", label: "Frais de retrait (%)" },
+      { key: "withdrawal_rules", label: "Regles (separees par |, {min} {max} {fee} dynamiques)" },
+    ]},
+    referral: { label: "Bonus Parrainage", keys: [{ key: "referral_bonus_level_b", label: "Niveau B - Parrain direct (%)" }, { key: "referral_bonus_level_c", label: "Niveau C - 2eme niveau (%)" }, { key: "referral_bonus_level_d", label: "Niveau D - 3eme niveau (%)" }] },
     vip: { label: "Seuils VIP", keys: [{ key: "vip_threshold_1", label: "VIP1 (FCFA)" }, { key: "vip_threshold_2", label: "VIP2 (FCFA)" }, { key: "vip_threshold_3", label: "VIP3 (FCFA)" }, { key: "vip_threshold_4", label: "VIP4 (FCFA)" }, { key: "vip_threshold_5", label: "VIP5 (FCFA)" }] },
   };
 

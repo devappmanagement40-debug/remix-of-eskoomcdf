@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronRight, Wallet, Send, Zap, Gift } from "lucide-react";
+import { ChevronRight, Wallet, Send, ArrowUpRight, ArrowDownLeft, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
@@ -19,15 +19,20 @@ const Portefeuille = () => {
   const [earningsBalance, setEarningsBalance] = useState(0);
   const [referralBalance, setReferralBalance] = useState(0);
   const [depositNotWithdrawable, setDepositNotWithdrawable] = useState(true);
+  const [totalDeposits, setTotalDeposits] = useState(0);
+  const [totalWithdrawals, setTotalWithdrawals] = useState(0);
+  const [todayEarnings, setTodayEarnings] = useState(0);
 
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
-    const [profileRes, settingsRes] = await Promise.all([
+    const [profileRes, settingsRes, depositsRes, withdrawalsRes] = await Promise.all([
       supabase.from("profiles").select("balance, deposit_balance, earnings_balance, referral_balance").eq("user_id", user.id).single(),
       supabase.from("site_settings").select("value").eq("key", "deposit_not_withdrawable").single(),
+      supabase.from("recharges").select("amount").eq("user_id", user.id).eq("status", "approved"),
+      supabase.from("withdrawals").select("amount").eq("user_id", user.id).eq("status", "approved"),
     ]);
     if (profileRes.data) {
       setBalance(profileRes.data.balance || 0);
@@ -36,107 +41,98 @@ const Portefeuille = () => {
       setReferralBalance(profileRes.data.referral_balance || 0);
     }
     if (settingsRes.data) setDepositNotWithdrawable(settingsRes.data.value === "true");
+    if (depositsRes.data) setTotalDeposits(depositsRes.data.reduce((s, r) => s + r.amount, 0));
+    if (withdrawalsRes.data) setTotalWithdrawals(withdrawalsRes.data.reduce((s, w) => s + w.amount, 0));
   };
 
   const withdrawable = depositNotWithdrawable
     ? earningsBalance + referralBalance
     : balance;
 
-  const stats = [
-    { label: "Revenu D'aujourd'hui", value: "0.00" },
-    { label: "Revenu Total", value: earningsBalance.toLocaleString("fr-FR", { minimumFractionDigits: 2 }) },
-    { label: "Recharge Totale", value: depositBalance.toLocaleString("fr-FR", { minimumFractionDigits: 2 }) },
-    { label: "Total Retraits", value: "0.00" },
-  ];
+  const fmt = (n: number) => n.toLocaleString("fr-FR", { minimumFractionDigits: 2 });
 
   return (
     <div className="min-h-screen bg-background pb-20">
       <PageHeader title="Portefeuille" />
-      <div className="px-4 pt-6">
-        {/* Main Card */}
-        <div className="bg-card rounded-xl border border-secondary p-5 mb-6">
-          {/* Portefeuil Revenus */}
-          <div className="text-center mb-4">
-            <span className="inline-block bg-secondary text-muted-foreground text-xs px-4 py-1.5 rounded-full mb-3">
-              Portefeuil Revenus
-            </span>
-            <p className="text-4xl font-bold text-primary">{earningsBalance.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-base font-normal">FCFA</span></p>
-          </div>
+      <div className="px-4 pt-6 space-y-4">
+        {/* Main Balance Card */}
+        <div className="bg-card rounded-2xl border border-border/30 p-5">
+          <p className="text-xs text-muted-foreground text-center mb-1">Solde total</p>
+          <p className="text-3xl font-bold text-foreground text-center">{fmt(balance)} <span className="text-sm font-normal text-muted-foreground">FCFA</span></p>
 
           {/* Split balances */}
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            <div className="bg-secondary/50 rounded-lg p-2.5 text-center">
-              <p className="text-[10px] text-muted-foreground">Dépôt</p>
+          <div className="grid grid-cols-3 gap-2 mt-5">
+            <div className="bg-secondary/40 rounded-xl p-3 text-center">
+              <p className="text-[10px] text-muted-foreground mb-0.5">Depot</p>
               <p className="text-xs font-bold text-foreground">{depositBalance.toLocaleString("fr-FR")} F</p>
-              {depositNotWithdrawable && <p className="text-[8px] text-destructive">Non retirable</p>}
+              {depositNotWithdrawable && <p className="text-[8px] text-destructive mt-0.5">Non retirable</p>}
             </div>
-            <div className="bg-secondary/50 rounded-lg p-2.5 text-center">
-              <p className="text-[10px] text-muted-foreground">Gains</p>
+            <div className="bg-secondary/40 rounded-xl p-3 text-center">
+              <p className="text-[10px] text-muted-foreground mb-0.5">Gains</p>
               <p className="text-xs font-bold text-success">{earningsBalance.toLocaleString("fr-FR")} F</p>
-              <p className="text-[8px] text-success">Retirable</p>
+              <p className="text-[8px] text-success mt-0.5">Retirable</p>
             </div>
-            <div className="bg-secondary/50 rounded-lg p-2.5 text-center">
-              <p className="text-[10px] text-muted-foreground">Parrainage</p>
+            <div className="bg-secondary/40 rounded-xl p-3 text-center">
+              <p className="text-[10px] text-muted-foreground mb-0.5">Parrainage</p>
               <p className="text-xs font-bold text-primary">{referralBalance.toLocaleString("fr-FR")} F</p>
-              <p className="text-[8px] text-primary">Retirable</p>
+              <p className="text-[8px] text-primary mt-0.5">Retirable</p>
             </div>
           </div>
 
-          {/* Portefeuil Recharge */}
-          <div className="flex items-center justify-center mb-5">
-            <span className="inline-flex items-center gap-2 bg-secondary text-muted-foreground text-xs px-4 py-1.5 rounded-full">
-              Solde retirable <span className="text-primary font-semibold">{withdrawable.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} FCFA</span>
-            </span>
-          </div>
-
-          {/* Menu List */}
-          <div className="space-y-0">
-            {menuItems.map((item, idx) => (
-              <button
-                key={item.label}
-                onClick={() => item.path !== "#" && navigate(item.path)}
-                className={`w-full flex items-center justify-between py-3.5 ${
-                  idx < menuItems.length - 1 ? "border-b border-secondary" : ""
-                }`}
-              >
-                <span className="text-sm text-foreground">{item.label}</span>
-                <div className="flex items-center gap-1">
-                  {item.value && (
-                    <span className="text-sm font-semibold text-primary">{item.value}</span>
-                  )}
-                  {item.hasChevron && (
-                    <ChevronRight size={18} className="text-muted-foreground" />
-                  )}
-                </div>
-              </button>
-            ))}
+          {/* Withdrawable */}
+          <div className="mt-4 bg-secondary/30 rounded-xl px-4 py-2.5 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Solde retirable</span>
+            <span className="text-sm font-bold text-foreground">{fmt(withdrawable)} FCFA</span>
           </div>
 
           {/* Action Buttons */}
           <div className="grid grid-cols-2 gap-3 mt-5">
-            <button onClick={() => navigate("/recharge")} className="gradient-button text-foreground font-semibold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
-              <Wallet size={18} />
-              Recharger
+            <button onClick={() => navigate("/recharge")} className="gradient-button text-primary-foreground font-semibold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
+              <ArrowDownLeft size={16} />
+              Deposer
             </button>
-            <button onClick={() => navigate("/retrait")} className="bg-gradient-to-r from-muted to-secondary text-foreground font-semibold py-3 rounded-xl text-sm flex items-center justify-center gap-2 border border-secondary">
-              <Send size={18} />
+            <button onClick={() => navigate("/retrait")} className="bg-secondary text-foreground font-semibold py-3 rounded-xl text-sm flex items-center justify-center gap-2 border border-border/30">
+              <ArrowUpRight size={16} />
               Retrait
             </button>
           </div>
         </div>
 
-        {/* Statistiques */}
-        <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wide mb-3">Statistiques</h3>
-        <div className="grid grid-cols-2 gap-3">
-          {stats.map((stat) => (
-            <div
-              key={stat.label}
-              className="bg-card rounded-xl border border-secondary p-4 text-center"
+        {/* Menu List */}
+        <div className="bg-card rounded-2xl border border-border/30">
+          {menuItems.map((item, idx) => (
+            <button
+              key={item.label}
+              onClick={() => item.path !== "#" && navigate(item.path)}
+              className={`w-full flex items-center justify-between px-5 py-3.5 ${
+                idx < menuItems.length - 1 ? "border-b border-border/20" : ""
+              }`}
             >
-              <p className="text-xl font-bold text-primary">
-                {stat.value} <span className="text-xs font-normal text-muted-foreground">FCFA</span>
+              <span className="text-sm text-foreground">{item.label}</span>
+              <div className="flex items-center gap-1">
+                {item.value !== undefined && (
+                  <span className="text-sm font-semibold text-muted-foreground">{item.value}</span>
+                )}
+                {item.hasChevron && <ChevronRight size={16} className="text-muted-foreground" />}
+              </div>
+            </button>
+          ))}
+        </div>
+
+        {/* Statistics */}
+        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Statistiques</h3>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { label: "Revenu d'aujourd'hui", value: fmt(todayEarnings), icon: TrendingUp },
+            { label: "Revenu total", value: fmt(earningsBalance), icon: TrendingUp },
+            { label: "Recharge totale", value: fmt(totalDeposits), icon: ArrowDownLeft },
+            { label: "Total retraits", value: fmt(totalWithdrawals), icon: ArrowUpRight },
+          ].map((stat) => (
+            <div key={stat.label} className="bg-card rounded-2xl border border-border/30 p-4 text-center">
+              <p className="text-lg font-bold text-foreground">
+                {stat.value} <span className="text-[10px] font-normal text-muted-foreground">FCFA</span>
               </p>
-              <p className="text-xs text-muted-foreground mt-1">{stat.label}</p>
+              <p className="text-[10px] text-muted-foreground mt-1">{stat.label}</p>
             </div>
           ))}
         </div>

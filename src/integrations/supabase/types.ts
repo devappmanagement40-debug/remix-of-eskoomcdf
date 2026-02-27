@@ -133,11 +133,14 @@ export type Database = {
           country: string
           country_id: string | null
           created_at: string | null
+          external_url: string | null
           holder_name: string | null
           id: string
           instructions: string | null
           is_active: boolean | null
+          logo_url: string | null
           name: string
+          payment_type: string
           phone: string | null
           sort_order: number | null
         }
@@ -145,11 +148,14 @@ export type Database = {
           country?: string
           country_id?: string | null
           created_at?: string | null
+          external_url?: string | null
           holder_name?: string | null
           id?: string
           instructions?: string | null
           is_active?: boolean | null
+          logo_url?: string | null
           name: string
+          payment_type?: string
           phone?: string | null
           sort_order?: number | null
         }
@@ -157,11 +163,14 @@ export type Database = {
           country?: string
           country_id?: string | null
           created_at?: string | null
+          external_url?: string | null
           holder_name?: string | null
           id?: string
           instructions?: string | null
           is_active?: boolean | null
+          logo_url?: string | null
           name?: string
+          payment_type?: string
           phone?: string | null
           sort_order?: number | null
         }
