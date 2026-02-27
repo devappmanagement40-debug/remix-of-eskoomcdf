@@ -333,6 +333,10 @@ export type Database = {
           color: string | null
           created_at: string | null
           id: string
+          min_active_members: number | null
+          min_personal_investment: number | null
+          min_team_investment: number | null
+          min_vip_level: number | null
           name: string
           sort_order: number | null
         }
@@ -340,6 +344,10 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           id?: string
+          min_active_members?: number | null
+          min_personal_investment?: number | null
+          min_team_investment?: number | null
+          min_vip_level?: number | null
           name: string
           sort_order?: number | null
         }
@@ -347,6 +355,10 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           id?: string
+          min_active_members?: number | null
+          min_personal_investment?: number | null
+          min_team_investment?: number | null
+          min_vip_level?: number | null
           name?: string
           sort_order?: number | null
         }
@@ -682,6 +694,7 @@ export type Database = {
           min_investment: number | null
           min_products_bought: number | null
           min_purchases: number | null
+          min_team_investment: number | null
           updated_at: string | null
         }
         Insert: {
@@ -695,6 +708,7 @@ export type Database = {
           min_investment?: number | null
           min_products_bought?: number | null
           min_purchases?: number | null
+          min_team_investment?: number | null
           updated_at?: string | null
         }
         Update: {
@@ -708,6 +722,7 @@ export type Database = {
           min_investment?: number | null
           min_products_bought?: number | null
           min_purchases?: number | null
+          min_team_investment?: number | null
           updated_at?: string | null
         }
         Relationships: []

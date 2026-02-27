@@ -5,7 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ClipboardList, ShoppingCart, Package } from "lucide-react";
+import { ClipboardList, ShoppingCart, Package, Lock } from "lucide-react";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PremiumModal from "@/components/PremiumModal";
 import {
@@ -13,7 +13,11 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
 } from "@/components/ui/alert-dialog";
 
-type Series = { id: string; name: string; color: string | null; sort_order: number | null };
+type Series = {
+  id: string; name: string; color: string | null; sort_order: number | null;
+  min_vip_level: number | null; min_personal_investment: number | null;
+  min_team_investment: number | null; min_active_members: number | null;
+};
 type Product = {
   id: string; series_id: string; name: string; image_url: string | null;
   return_percent: number | null; total_revenue: number | null; daily_revenue: number | null;
@@ -39,6 +43,13 @@ const colorBorderMap: Record<string, string> = {
   blue: "border-blue-500 text-blue-400",
 };
 
+type UserAccessData = {
+  vipLevel: number;
+  personalInvestment: number;
+  activeMembers: number;
+  teamInvestment: number;
+};
+
 const Products = () => {
   const navigate = useNavigate();
   const [series, setSeries] = useState<Series[]>([]);
@@ -49,6 +60,7 @@ const Products = () => {
   const [showSuccess, setShowSuccess] = useState(false);
   const [purchasedName, setPurchasedName] = useState("");
   const [confirmProduct, setConfirmProduct] = useState<Product | null>(null);
+  const [userAccess, setUserAccess] = useState<UserAccessData | null>(null);
   const { showError } = useActionPopup();
 
   useEffect(() => {
@@ -57,12 +69,59 @@ const Products = () => {
         supabase.from("product_series").select("*").order("sort_order"),
         supabase.from("products").select("*").eq("is_active", true).order("sort_order"),
       ]);
-      if (s.data) setSeries(s.data);
+      if (s.data) setSeries(s.data as Series[]);
       if (p.data) setProducts(p.data as Product[]);
+
+      // Load user access data
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase.from("profiles").select("vip_level, deposit_balance, user_id").eq("user_id", user.id).single();
+        if (profile) {
+          const { data: teamIds } = await supabase.rpc("get_team_profile_ids", { _user_id: user.id });
+          let activeMembers = 0;
+          let teamInvestment = 0;
+          const ids = (teamIds || []) as string[];
+          if (ids.length > 0) {
+            const { data: memberProfiles } = await supabase.from("profiles").select("user_id, deposit_balance").in("id", ids);
+            if (memberProfiles) {
+              const memberUserIds = memberProfiles.map((m: any) => m.user_id);
+              if (memberUserIds.length > 0) {
+                const { data: teamProducts } = await supabase.from("user_products").select("user_id").in("user_id", memberUserIds);
+                activeMembers = new Set((teamProducts || []).map((tp: any) => tp.user_id)).size;
+              }
+              teamInvestment = memberProfiles.reduce((s: number, m: any) => s + (m.deposit_balance || 0), 0);
+            }
+          }
+          setUserAccess({
+            vipLevel: profile.vip_level || 0,
+            personalInvestment: profile.deposit_balance || 0,
+            activeMembers,
+            teamInvestment,
+          });
+        }
+      }
       setLoading(false);
     };
     load();
   }, []);
+
+  const checkSeriesAccess = (s: Series): string[] => {
+    if (!userAccess) return ["Connectez-vous pour acheter"];
+    const missing: string[] = [];
+    if ((s.min_vip_level || 0) > 0 && userAccess.vipLevel < (s.min_vip_level || 0)) {
+      missing.push(`VIP ${s.min_vip_level} minimum requis (vous êtes VIP ${userAccess.vipLevel})`);
+    }
+    if ((s.min_personal_investment || 0) > 0 && userAccess.personalInvestment < (s.min_personal_investment || 0)) {
+      missing.push(`Investissement personnel de ${Number(s.min_personal_investment).toLocaleString("fr-FR")} FCFA requis`);
+    }
+    if ((s.min_team_investment || 0) > 0 && userAccess.teamInvestment < (s.min_team_investment || 0)) {
+      missing.push(`Investissement équipe de ${Number(s.min_team_investment).toLocaleString("fr-FR")} FCFA requis`);
+    }
+    if ((s.min_active_members || 0) > 0 && userAccess.activeMembers < (s.min_active_members || 0)) {
+      missing.push(`${s.min_active_members} membres actifs requis (vous en avez ${userAccess.activeMembers})`);
+    }
+    return missing;
+  };
 
   const handlePurchase = async (product: Product) => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -71,7 +130,6 @@ const Products = () => {
     setPurchasing(product.id);
 
     try {
-      // Get profile
       const { data: profile } = await supabase.from("profiles")
         .select("balance, deposit_balance, earnings_balance")
         .eq("user_id", user.id).single();
@@ -80,13 +138,11 @@ const Products = () => {
       const price = Number(product.price) || 0;
       const totalBalance = (profile.balance || 0);
 
-      // Check balance
       if (totalBalance < price) {
         showError("Solde insuffisant", `Votre solde (${totalBalance.toLocaleString("fr-FR")} FCFA) est insuffisant pour acheter ce produit (${price.toLocaleString("fr-FR")} FCFA). Veuillez recharger votre compte.`);
         return;
       }
 
-      // Check max purchases
       if (product.max_purchases) {
         const { count } = await supabase.from("user_products")
           .select("*", { count: "exact", head: true })
@@ -98,7 +154,6 @@ const Products = () => {
         }
       }
 
-      // Debit from deposit_balance first, then balance
       const depositBal = profile.deposit_balance || 0;
       let newDeposit = depositBal;
       let newBalance = totalBalance;
@@ -110,7 +165,6 @@ const Products = () => {
       }
       newBalance = totalBalance - price;
 
-      // Create user_product
       const cycles = product.cycles || 365;
       const expiresAt = new Date();
       expiresAt.setDate(expiresAt.getDate() + cycles);
@@ -127,7 +181,6 @@ const Products = () => {
         return;
       }
 
-      // Update balance
       await supabase.from("profiles").update({
         balance: newBalance,
         deposit_balance: newDeposit,
@@ -189,9 +242,11 @@ const Products = () => {
             {filtered.map(product => {
               const productSeries = series.find(s => s.id === product.series_id);
               const seriesColor = productSeries?.color || "primary";
+              const missingConditions = productSeries ? checkSeriesAccess(productSeries) : [];
+              const isLocked = missingConditions.length > 0;
 
               return (
-                <div key={product.id} className="bg-card rounded-xl border border-secondary overflow-hidden">
+                <div key={product.id} className={`bg-card rounded-xl border border-secondary overflow-hidden ${isLocked ? "opacity-80" : ""}`}>
                   <div className="flex gap-3 p-3">
                     {product.image_url ? (
                       <div className="relative w-24 h-28 rounded-lg overflow-hidden flex-shrink-0">
@@ -235,14 +290,24 @@ const Products = () => {
                     </div>
                   </div>
                   <div className="px-3 pb-3">
-                    <Button
-                      className="gradient-button w-full h-8 text-xs font-semibold gap-1.5"
-                      disabled={purchasing === product.id}
-                      onClick={() => setConfirmProduct(product)}
-                    >
-                      <ShoppingCart size={14} />
-                      {purchasing === product.id ? "Achat..." : "Acheter"}
-                    </Button>
+                    {isLocked ? (
+                      <Button
+                        className="w-full h-8 text-xs font-semibold gap-1.5 bg-secondary text-muted-foreground hover:bg-secondary"
+                        onClick={() => showError("Conditions non remplies", missingConditions.join("\n• "))}
+                      >
+                        <Lock size={14} />
+                        Conditions requises
+                      </Button>
+                    ) : (
+                      <Button
+                        className="gradient-button w-full h-8 text-xs font-semibold gap-1.5"
+                        disabled={purchasing === product.id}
+                        onClick={() => setConfirmProduct(product)}
+                      >
+                        <ShoppingCart size={14} />
+                        {purchasing === product.id ? "Achat..." : "Acheter"}
+                      </Button>
+                    )}
                   </div>
                 </div>
               );
