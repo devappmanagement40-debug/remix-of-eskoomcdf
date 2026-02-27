@@ -8,8 +8,6 @@ import InviteModal from "@/components/InviteModal";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import bannerHome from "@/assets/banner-home.jpg";
-import newsAudit from "@/assets/news-audit.jpg";
-import newsCertificat from "@/assets/news-certificat.jpg";
 
 const circleActions = [
   { icon: ShoppingBag, label: "Mon produit", path: "/mes-produits" },
@@ -26,23 +24,6 @@ const quickActions = [
 
 const fallbackBanners = [
   { image_url: bannerHome, link_path: "/loterie" },
-  { image_url: newsAudit, link_path: "/actualite/controle-fiscal" },
-  { image_url: newsCertificat, link_path: "/actualite/certificat-officiel" },
-];
-
-const newsItems = [
-  {
-    title: "Contrôle fiscal en cours..",
-    description: "Suite au récent contrôle de conformité financière et fiscale, ESKOM a reçu une notification officielle des autorités réglementaires...",
-    image: newsAudit,
-    slug: "controle-fiscal",
-  },
-  {
-    title: "ESKOM reçoit un certificat officiel",
-    description: "Nous avons le plaisir de vous annoncer qu'ESKOM Energy a officiellement reçu un certificat de conformité délivré par la Direction Générale des Impôts...",
-    image: newsCertificat,
-    slug: "certificat-officiel",
-  },
 ];
 
 const Index = () => {
@@ -52,6 +33,7 @@ const Index = () => {
   const [showInvite, setShowInvite] = useState(false);
   const [banners, setBanners] = useState<{ image_url: string; link_path: string }[]>(fallbackBanners);
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
+  const [annonces, setAnnonces] = useState<any[]>([]);
 
   useEffect(() => {
     supabase.from("banners").select("image_url, link_path").eq("is_active", true).order("sort_order").then(({ data }) => {
@@ -59,6 +41,9 @@ const Index = () => {
     });
     supabase.from("products").select("*").eq("is_active", true).eq("is_featured", true).order("sort_order").then(({ data }) => {
       if (data) setFeaturedProducts(data);
+    });
+    supabase.from("info_items").select("*").eq("is_active", true).order("sort_order").then(({ data }) => {
+      if (data) setAnnonces(data);
     });
   }, []);
 
@@ -197,27 +182,23 @@ const Index = () => {
         </section>
       )}
 
-      {/* Information / News */}
-      <section className="mt-6 px-4">
-        <h2 className="text-lg font-bold text-foreground mb-4">Information</h2>
-        <div className="space-y-4">
-          {newsItems.map((item) => (
-            <div
-              key={item.title}
-              onClick={() => navigate(`/actualite/${item.slug}`)}
-              className="bg-card rounded-xl border border-secondary p-4 flex gap-4 cursor-pointer hover:border-primary transition-colors"
-            >
-              <div className="flex-1 min-w-0">
+      {/* Annonces */}
+      {annonces.length > 0 && (
+        <section className="mt-6 px-4">
+          <h2 className="text-lg font-bold text-foreground mb-4">Annonces</h2>
+          <div className="space-y-3">
+            {annonces.map((item) => (
+              <div
+                key={item.id}
+                className="bg-card rounded-xl border border-secondary p-4 cursor-pointer hover:border-primary transition-colors"
+              >
                 <h3 className="text-sm font-bold text-foreground mb-1">{item.title}</h3>
-                <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
+                <p className="text-xs text-muted-foreground line-clamp-3">{item.description}</p>
               </div>
-              <div className="w-24 h-20 rounded-lg overflow-hidden flex-shrink-0">
-                <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      )}
 
       <PremiumModal
         triggerKey="service_client"
