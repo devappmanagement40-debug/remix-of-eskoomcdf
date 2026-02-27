@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Zap, Trophy } from "lucide-react";
+import { Zap, Trophy, History, Gift, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/PageHeader";
 import BottomNav from "@/components/BottomNav";
@@ -10,6 +10,7 @@ type WheelPrize = {
 };
 
 type WheelSetting = { key: string; value: string | null };
+type SpinRecord = { id: string; prize_label: string; prize_value: number; prize_type: string; created_at: string; status: string; vip_level: number | null };
 
 const Loterie = () => {
   const [prizes, setPrizes] = useState<WheelPrize[]>([]);
@@ -19,6 +20,9 @@ const Loterie = () => {
   const [result, setResult] = useState<string | null>(null);
   const [resultType, setResultType] = useState<string>("cash");
   const [loading, setLoading] = useState(true);
+  const [spins, setSpins] = useState<SpinRecord[]>([]);
+  const [totalWon, setTotalWon] = useState(0);
+  const [spinsLeft, setSpinsLeft] = useState(0);
   const wheelRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => { loadData(); }, []);
@@ -32,6 +36,17 @@ const Loterie = () => {
     const settingsMap: Record<string, string> = {};
     (ss.data || []).forEach((s: WheelSetting) => { if (s.value) settingsMap[s.key] = s.value; });
     setSettings(settingsMap);
+
+    // Load user spins history
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: spinData } = await supabase.from("wheel_spins").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20);
+      if (spinData) {
+        setSpins(spinData as SpinRecord[]);
+        const total = spinData.filter(s => s.prize_type === "cash").reduce((sum, s) => sum + Number(s.prize_value), 0);
+        setTotalWon(total);
+      }
+    }
     setLoading(false);
   };
 
@@ -96,6 +111,8 @@ const Loterie = () => {
             }).eq("user_id", user.id);
           }
         }
+        // Reload history
+        loadData();
       }
     }, 4000);
   };
@@ -180,12 +197,12 @@ const Loterie = () => {
         {/* Stats */}
         <div className="bg-card rounded-xl border border-secondary p-4 flex">
           <div className="flex-1 text-center border-r border-secondary">
-            <p className="text-xl font-bold text-foreground">0 <span className="text-sm font-normal text-muted-foreground">FCFA</span></p>
+            <p className="text-xl font-bold text-foreground">{totalWon.toLocaleString("fr-FR")} <span className="text-sm font-normal text-muted-foreground">FCFA</span></p>
             <p className="text-xs text-muted-foreground mt-1">Montant gagné</p>
           </div>
           <div className="flex-1 text-center">
-            <p className="text-xl font-bold text-foreground">0</p>
-            <p className="text-xs text-muted-foreground mt-1">Tirages restants</p>
+            <p className="text-xl font-bold text-foreground">{spins.length}</p>
+            <p className="text-xs text-muted-foreground mt-1">Tirages effectués</p>
           </div>
         </div>
       </div>
@@ -228,13 +245,47 @@ const Loterie = () => {
           </div>
         )}
 
-        <button className="mt-4 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          Voir l'historique →
-        </button>
+      </div>
+
+      {/* Spin History */}
+      <div className="px-4 mt-6">
+        <div className="bg-card rounded-xl border border-secondary p-4">
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
+            <History size={16} className="text-primary" /> Historique des tirages
+          </h3>
+          {spins.length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-4">Aucun tirage effectué</p>
+          ) : (
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {spins.map((spin) => (
+                <div key={spin.id} className="flex items-center justify-between border-b border-secondary pb-2 last:border-0">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center ${spin.prize_type === "vip" ? "bg-warning/20" : "bg-primary/20"}`}>
+                      {spin.prize_type === "vip" ? <Trophy size={14} className="text-warning" /> : <Gift size={14} className="text-primary" />}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-foreground">{spin.prize_label}</p>
+                      <p className="text-[10px] text-muted-foreground flex items-center gap-1">
+                        <Clock size={10} />
+                        {new Date(spin.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-xs font-bold ${spin.prize_type === "vip" ? "text-warning" : "text-primary"}`}>
+                      {spin.prize_type === "vip" ? `VIP${spin.vip_level || ""}` : `${Number(spin.prize_value).toLocaleString("fr-FR")} FCFA`}
+                    </p>
+                    {spin.status === "pending_vip" && <span className="text-[10px] text-warning">⏳ En attente</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Rules */}
-      <div className="px-4 mt-6">
+      <div className="px-4 mt-4">
         <div className="bg-card rounded-xl border border-secondary p-5">
           <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
             🏛 {wheelInfoTitle}
