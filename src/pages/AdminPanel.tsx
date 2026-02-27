@@ -71,6 +71,7 @@ const tabs = [
   { key: "popups", icon: Bell, label: "Popups" },
   { key: "vip", icon: TrendingUp, label: "Niveaux" },
   { key: "sarah", icon: Bot, label: "Sarah IA" },
+  { key: "officialinfo", icon: Globe, label: "Infos Off." },
   { key: "support", icon: MessageSquare, label: "Support" },
   { key: "faq", icon: HelpCircle, label: "FAQ" },
   { key: "infos", icon: Info, label: "Infos" },
@@ -206,6 +207,7 @@ const AdminPanel = () => {
         {activeTab === "popups" && <PopupsTab popups={popups} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "vip" && <VipTab conditions={vipConditions} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "sarah" && <SarahTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
+        {activeTab === "officialinfo" && <OfficialInfoTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "support" && <SupportTab adminId={adminId} />}
         {activeTab === "faq" && <FaqTab showSuccess={showSuccess} showError={showError} />}
         {activeTab === "infos" && <InfoItemsTab showSuccess={showSuccess} showError={showError} />}
@@ -1926,6 +1928,83 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
       {Object.keys(edits).length > 0 && (
         <button onClick={saveAll} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
           <Save size={16} /> Sauvegarder les paramètres
+        </button>
+      )}
+    </div>
+  );
+};
+
+// ==================== OFFICIAL INFO ====================
+const OfficialInfoTab = ({ settings, reload, showSuccess }: { settings: SiteSetting[]; reload: () => void; showSuccess: (t: string, m: string) => void }) => {
+  const fields = [
+    { key: "official_service_phone", label: "Numéro du service client", placeholder: "+226 XX XX XX XX" },
+    { key: "official_whatsapp_link", label: "Lien WhatsApp", placeholder: "https://wa.me/226XXXXXXXX" },
+    { key: "official_telegram_link", label: "Lien Telegram", placeholder: "https://t.me/username" },
+    { key: "official_whatsapp_group", label: "Lien Groupe WhatsApp", placeholder: "https://chat.whatsapp.com/..." },
+    { key: "official_telegram_group", label: "Lien Groupe Telegram", placeholder: "https://t.me/groupname" },
+    { key: "official_private_group_msg", label: "Message Groupe Privé Investisseurs", placeholder: "Message affiché quand on demande le groupe privé...", multiline: true },
+    { key: "official_welcome_message", label: "Message automatique de bienvenue", placeholder: "Bienvenue sur ESKOM...", multiline: true },
+  ];
+
+  const [edits, setEdits] = useState<Record<string, string>>({});
+
+  const getValue = (key: string) => {
+    if (key in edits) return edits[key];
+    return settings.find(s => s.key === key)?.value || "";
+  };
+
+  const setVal = (key: string, val: string) => setEdits(prev => ({ ...prev, [key]: val }));
+
+  const saveAll = async () => {
+    for (const [key, value] of Object.entries(edits)) {
+      const existing = settings.find(s => s.key === key);
+      if (existing) {
+        await supabase.from("site_settings").update({ value }).eq("id", existing.id);
+      } else {
+        await supabase.from("site_settings").insert({ key, value, category: "official_info" });
+      }
+    }
+    showSuccess("Informations officielles sauvegardées", "Les modifications sont effectives immédiatement ✅");
+    setEdits({});
+    reload();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+        <h3 className="text-sm font-bold text-foreground mb-1">📋 Gestion des Informations Officielles</h3>
+        <p className="text-xs text-muted-foreground">
+          Ces informations sont utilisées par Sarah IA pour répondre aux questions des utilisateurs. Mettez-les à jour ici, elles seront prises en compte immédiatement.
+        </p>
+      </div>
+
+      <div className="bg-card rounded-xl border border-secondary p-4 space-y-4">
+        {fields.map(f => (
+          <div key={f.key}>
+            <label className="text-xs font-semibold text-muted-foreground mb-1 block">{f.label}</label>
+            {f.multiline ? (
+              <textarea
+                value={getValue(f.key)}
+                onChange={e => setVal(f.key, e.target.value)}
+                placeholder={f.placeholder}
+                rows={3}
+                className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none resize-none"
+              />
+            ) : (
+              <input
+                value={getValue(f.key)}
+                onChange={e => setVal(f.key, e.target.value)}
+                placeholder={f.placeholder}
+                className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none"
+              />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {Object.keys(edits).length > 0 && (
+        <button onClick={saveAll} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
+          <Save size={16} /> Sauvegarder les informations
         </button>
       )}
     </div>
