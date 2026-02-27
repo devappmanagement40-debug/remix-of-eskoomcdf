@@ -9,7 +9,7 @@ import {
   MessageSquare, Bell, Settings, Shield, Search, CheckCircle2, XCircle,
   Clock, ArrowDown, Edit2, Trash2, Plus, X, Save, ChevronDown, ChevronUp,
   Layers, Eye, EyeOff, Ban, UserCheck, Pencil, TrendingUp, Activity,
-  Globe, ImageIcon, UploadIcon, Bot, Power, ArrowLeft, Send
+  Globe, ImageIcon, UploadIcon, Bot, Power, ArrowLeft, Send, Star, Gift
 } from "lucide-react";
 
 // ==================== TYPES ====================
@@ -63,6 +63,7 @@ const tabs = [
   { key: "products", icon: Package, label: "Produits" },
   { key: "banners", icon: ImageIcon, label: "Bannières" },
   { key: "wheel", icon: Activity, label: "Roue" },
+  { key: "rewards", icon: Star, label: "Cadeaux" },
   { key: "countries", icon: Globe, label: "Pays" },
   { key: "payments", icon: CreditCard, label: "Paiement" },
   { key: "links", icon: Link2, label: "Liens" },
@@ -195,6 +196,7 @@ const AdminPanel = () => {
         {activeTab === "banners" && <BannersTab banners={banners} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "countries" && <CountriesTab countries={countries} methods={paymentMethods} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "wheel" && <AdminWheelTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} logAction={logAction} adminId={adminId} />}
+        {activeTab === "rewards" && <RewardsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "payments" && <PaymentsTab methods={paymentMethods} countries={countries} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "links" && <LinksTab links={socialLinks} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "popups" && <PopupsTab popups={popups} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
@@ -615,30 +617,10 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
     });
 
   const handleAction = async (w: Withdrawal, status: "approved" | "rejected") => {
+    // Trigger handles auto-debit on insert and refund on rejection
     await supabase.from("withdrawals").update({ status }).eq("id", w.id);
-    if (status === "approved") {
-      const p = profileMap[w.user_id];
-      if (p) {
-        // Debit from earnings first, then referral
-        let remaining = w.amount;
-        let newEarnings = p.earnings_balance || 0;
-        let newReferral = p.referral_balance || 0;
-        const debitEarnings = Math.min(newEarnings, remaining);
-        newEarnings -= debitEarnings;
-        remaining -= debitEarnings;
-        if (remaining > 0) {
-          const debitReferral = Math.min(newReferral, remaining);
-          newReferral -= debitReferral;
-        }
-        await supabase.from("profiles").update({
-          balance: Math.max(0, (p.balance || 0) - w.amount),
-          earnings_balance: Math.max(0, newEarnings),
-          referral_balance: Math.max(0, newReferral),
-        }).eq("user_id", w.user_id);
-      }
-    }
     logAction(`withdrawal_${status}`, "withdrawal", w.id, `${w.amount} FCFA`);
-    showSuccess(status === "approved" ? "Retrait approuvé ✅" : "Retrait refusé ❌", "");
+    showSuccess(status === "approved" ? "Retrait approuve" : "Retrait refuse — montant restitue", "");
     reload();
   };
 
@@ -1498,6 +1480,128 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
   );
 };
 
+// ==================== REWARDS (CADEAUX) ====================
+const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
+  const [rewards, setRewards] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<any>(null);
+  const [form, setForm] = useState({ name: "", points_required: "", image_url: "" });
+  const [edits, setEdits] = useState<Record<string, string>>({});
+
+  const getVal = (key: string) => edits[key] ?? settings.find((s: SiteSetting) => s.key === key)?.value ?? "";
+  const setVal = (key: string, val: string) => setEdits({ ...edits, [key]: val });
+
+  useEffect(() => { loadRewards(); }, []);
+  const loadRewards = async () => {
+    const { data } = await supabase.from("gift_rewards").select("*").order("sort_order");
+    if (data) setRewards(data);
+  };
+
+  const saveSettings = async () => {
+    for (const [key, value] of Object.entries(edits)) {
+      const existing = settings.find((s: SiteSetting) => s.key === key);
+      if (existing) await supabase.from("site_settings").update({ value }).eq("key", key);
+      else await supabase.from("site_settings").insert({ key, value, category: "points" });
+    }
+    showSuccess("Configuration points sauvegardee", "");
+    setEdits({});
+    reload();
+  };
+
+  const openForm = (r?: any) => {
+    if (r) { setEditing(r); setForm({ name: r.name, points_required: String(r.points_required), image_url: r.image_url || "" }); }
+    else { setEditing(null); setForm({ name: "", points_required: "", image_url: "" }); }
+    setShowForm(true);
+  };
+
+  const saveReward = async () => {
+    if (!form.name || !form.points_required) { showError("Erreur", "Remplissez tous les champs"); return; }
+    const payload = { name: form.name, points_required: Number(form.points_required), image_url: form.image_url || null };
+    if (editing) await supabase.from("gift_rewards").update(payload).eq("id", editing.id);
+    else await supabase.from("gift_rewards").insert({ ...payload, sort_order: rewards.length });
+    showSuccess(editing ? "Cadeau modifie" : "Cadeau ajoute", "");
+    setShowForm(false);
+    loadRewards();
+  };
+
+  const toggleReward = async (r: any) => {
+    await supabase.from("gift_rewards").update({ is_active: !r.is_active }).eq("id", r.id);
+    loadRewards();
+  };
+
+  const deleteReward = async (r: any) => {
+    await supabase.from("gift_rewards").delete().eq("id", r.id);
+    showSuccess("Cadeau supprime", "");
+    loadRewards();
+  };
+
+  const pointsKeys = [
+    { key: "points_per_active_member", label: "Points par membre actif" },
+    { key: "points_per_vip_level_per_day", label: "Points par niveau VIP / jour" },
+    { key: "points_per_deposit_type", label: "Type depot (fixed / percent)" },
+    { key: "points_per_deposit_value", label: "Valeur points depot" },
+    { key: "points_per_withdrawal", label: "Points par retrait" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {/* Points configuration */}
+      <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
+        <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Gift size={16} className="text-primary" /> Configuration des points</h3>
+        {pointsKeys.map(k => (
+          <div key={k.key}>
+            <label className="text-xs text-muted-foreground">{k.label}</label>
+            <input value={getVal(k.key)} onChange={e => setVal(k.key, e.target.value)}
+              className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
+          </div>
+        ))}
+        {Object.keys(edits).length > 0 && (
+          <button onClick={saveSettings} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
+            <Save size={14} /> Sauvegarder
+          </button>
+        )}
+      </div>
+
+      {/* Rewards catalog */}
+      <div className="bg-card rounded-xl border border-secondary p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold text-foreground">Catalogue des cadeaux</h3>
+          <button onClick={() => openForm()} className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center"><Plus size={16} className="text-primary" /></button>
+        </div>
+
+        {showForm && (
+          <div className="bg-secondary/30 rounded-xl p-4 mb-3 space-y-3">
+            <div className="flex justify-between"><span className="text-xs font-bold text-foreground">{editing ? "Modifier" : "Nouveau cadeau"}</span><button onClick={() => setShowForm(false)}><X size={14} className="text-muted-foreground" /></button></div>
+            <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nom du cadeau" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+            <input type="number" value={form.points_required} onChange={e => setForm({ ...form, points_required: e.target.value })} placeholder="Points requis" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+            <input value={form.image_url} onChange={e => setForm({ ...form, image_url: e.target.value })} placeholder="URL image (optionnel)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+            <button onClick={saveReward} className="w-full gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm">{editing ? "Modifier" : "Ajouter"}</button>
+          </div>
+        )}
+
+        {rewards.length === 0 ? <p className="text-xs text-muted-foreground text-center py-4">Aucun cadeau configure</p> :
+          rewards.map((r: any) => (
+            <div key={r.id} className={`flex items-center justify-between py-3 border-b border-secondary/50 last:border-0 ${!r.is_active ? "opacity-50" : ""}`}>
+              <div className="flex items-center gap-3">
+                {r.image_url ? <img src={r.image_url} className="w-10 h-10 rounded-lg object-cover" /> : <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Gift size={16} className="text-primary" /></div>}
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{r.name}</p>
+                  <p className="text-xs text-muted-foreground">{r.points_required} points</p>
+                </div>
+              </div>
+              <div className="flex gap-1.5">
+                <button onClick={() => toggleReward(r)} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${r.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{r.is_active ? "ON" : "OFF"}</button>
+                <button onClick={() => openForm(r)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
+                <button onClick={() => deleteReward(r)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  );
+};
+
 // ==================== SETTINGS ====================
 const SettingsTab = ({ settings, reload, showSuccess }: any) => {
   const [edits, setEdits] = useState<Record<string, string>>({});
@@ -1514,7 +1618,7 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
         await supabase.from("site_settings").insert({ key, value, category: "finance" });
       }
     }
-    showSuccess("Paramètres sauvegardés ✅", "");
+    showSuccess("Parametres sauvegardes", "");
     setEdits({});
     reload();
   };
@@ -1522,18 +1626,20 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
   const groups: Record<string, { label: string; keys: { key: string; label: string }[] }> = {
     general: { label: "General", keys: [{ key: "site_name", label: "Nom du site" }, { key: "welcome_text", label: "Texte d'accueil" }, { key: "terms_url", label: "URL Conditions generales" }] },
     deposit: { label: "Depot", keys: [
-      { key: "deposit_amounts", label: "Montants predéfinis (separes par virgules)" },
+      { key: "deposit_amounts", label: "Montants predefinis (separes par virgules)" },
       { key: "deposit_min", label: "Depot minimum (FCFA)" },
       { key: "deposit_max", label: "Depot maximum (FCFA)" },
       { key: "deposit_rules", label: "Regles (separees par |, {min} et {max} dynamiques)" },
       { key: "require_screenshot", label: "Exiger capture (true/false)" },
     ]},
     withdrawal: { label: "Retrait", keys: [
-      { key: "withdrawal_amounts", label: "Montants predéfinis (separes par virgules)" },
+      { key: "withdrawal_amounts", label: "Montants predefinis (separes par virgules)" },
       { key: "withdrawal_min", label: "Retrait minimum (FCFA)" },
       { key: "withdrawal_max", label: "Retrait maximum (FCFA)" },
       { key: "withdrawal_fee_percent", label: "Frais de retrait (%)" },
       { key: "withdrawal_rules", label: "Regles (separees par |, {min} {max} {fee} dynamiques)" },
+      { key: "max_withdrawals_per_day", label: "Nombre max de retraits par jour" },
+      { key: "max_withdrawals_enabled", label: "Limite retraits activee (true/false)" },
     ]},
     referral: { label: "Bonus Parrainage", keys: [{ key: "referral_bonus_level_b", label: "Niveau B - Parrain direct (%)" }, { key: "referral_bonus_level_c", label: "Niveau C - 2eme niveau (%)" }, { key: "referral_bonus_level_d", label: "Niveau D - 3eme niveau (%)" }] },
     vip: { label: "Seuils VIP", keys: [{ key: "vip_threshold_1", label: "VIP1 (FCFA)" }, { key: "vip_threshold_2", label: "VIP2 (FCFA)" }, { key: "vip_threshold_3", label: "VIP3 (FCFA)" }, { key: "vip_threshold_4", label: "VIP4 (FCFA)" }, { key: "vip_threshold_5", label: "VIP5 (FCFA)" }] },

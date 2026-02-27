@@ -28,6 +28,9 @@ const Retrait = () => {
   const [maxAmount, setMaxAmount] = useState(500000);
   const [feePercent, setFeePercent] = useState(10);
   const [rules, setRules] = useState<string[]>([]);
+  const [maxWithdrawalsPerDay, setMaxWithdrawalsPerDay] = useState(1);
+  const [maxWithdrawalsEnabled, setMaxWithdrawalsEnabled] = useState(true);
+  const [todayWithdrawals, setTodayWithdrawals] = useState(0);
 
   useEffect(() => { loadData(); }, []);
 
@@ -35,13 +38,18 @@ const Retrait = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/connexion"); return; }
 
-    const [walletsRes, profileRes, settingsRes] = await Promise.all([
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const [walletsRes, profileRes, settingsRes, todayRes] = await Promise.all([
       supabase.from("user_wallets").select("*").eq("user_id", user.id),
       supabase.from("profiles").select("balance, deposit_balance, earnings_balance, referral_balance").eq("user_id", user.id).single(),
       supabase.from("site_settings").select("key, value").in("key", [
         "deposit_not_withdrawable", "withdrawal_amounts", "withdrawal_min",
-        "withdrawal_max", "withdrawal_fee_percent", "withdrawal_rules"
+        "withdrawal_max", "withdrawal_fee_percent", "withdrawal_rules",
+        "max_withdrawals_per_day", "max_withdrawals_enabled"
       ]),
+      supabase.from("withdrawals").select("id").eq("user_id", user.id).gte("created_at", todayStart.toISOString()),
     ]);
 
     if (walletsRes.data) setWallets(walletsRes.data);
@@ -54,6 +62,8 @@ const Retrait = () => {
         if (s.key === "withdrawal_min" && s.value) setMinAmount(Number(s.value));
         if (s.key === "withdrawal_max" && s.value) setMaxAmount(Number(s.value));
         if (s.key === "withdrawal_fee_percent" && s.value) setFeePercent(Number(s.value));
+        if (s.key === "max_withdrawals_per_day" && s.value) setMaxWithdrawalsPerDay(Number(s.value));
+        if (s.key === "max_withdrawals_enabled") setMaxWithdrawalsEnabled(s.value !== "false");
         if (s.key === "withdrawal_rules" && s.value) {
           const parsed = s.value
             .replace("{min}", String(Number(settingsRes.data?.find(x => x.key === "withdrawal_min")?.value || 800).toLocaleString()))
@@ -64,6 +74,8 @@ const Retrait = () => {
       });
     }
     setDepositNotWithdrawable(dnw);
+
+    if (todayRes.data) setTodayWithdrawals(todayRes.data.length);
 
     if (profileRes.data) {
       const eb = profileRes.data.earnings_balance || 0;
@@ -81,6 +93,10 @@ const Retrait = () => {
 
   const handleSubmit = async () => {
     if (!selectedWallet) { showError("Erreur", "Selectionnez un portefeuille"); return; }
+    if (maxWithdrawalsEnabled && todayWithdrawals >= maxWithdrawalsPerDay) {
+      showError("Limite atteinte", "Vous avez atteint le nombre maximum de retraits autorises aujourd'hui.");
+      return;
+    }
     if (numAmount < minAmount) { showError("Erreur", `Montant minimum : ${minAmount} FCFA`); return; }
     if (numAmount > maxAmount) { showError("Erreur", `Montant maximum : ${maxAmount.toLocaleString()} FCFA`); return; }
     if (numAmount > withdrawableBalance) { showError("Erreur", "Solde retirable insuffisant"); return; }
@@ -92,6 +108,7 @@ const Retrait = () => {
     const wallet = wallets.find(w => w.id === selectedWallet);
     if (!wallet) return;
 
+    // Insert withdrawal - trigger auto-debits balance
     const { error } = await supabase.from("withdrawals").insert({
       user_id: user.id, wallet_id: wallet.id, amount: numAmount,
       fee_amount: feeAmount, net_amount: netAmount,
