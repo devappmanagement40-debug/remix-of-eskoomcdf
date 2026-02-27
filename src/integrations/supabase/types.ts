@@ -107,6 +107,92 @@ export type Database = {
         }
         Relationships: []
       }
+      user_wallets: {
+        Row: {
+          country_code: string
+          created_at: string | null
+          id: string
+          label: string | null
+          network: string
+          phone: string
+          user_id: string
+        }
+        Insert: {
+          country_code?: string
+          created_at?: string | null
+          id?: string
+          label?: string | null
+          network?: string
+          phone: string
+          user_id: string
+        }
+        Update: {
+          country_code?: string
+          created_at?: string | null
+          id?: string
+          label?: string | null
+          network?: string
+          phone?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      withdrawals: {
+        Row: {
+          admin_note: string | null
+          amount: number
+          country_code: string
+          created_at: string | null
+          fee_amount: number
+          id: string
+          net_amount: number
+          network: string
+          phone: string
+          status: string
+          updated_at: string | null
+          user_id: string
+          wallet_id: string | null
+        }
+        Insert: {
+          admin_note?: string | null
+          amount: number
+          country_code?: string
+          created_at?: string | null
+          fee_amount?: number
+          id?: string
+          net_amount?: number
+          network?: string
+          phone: string
+          status?: string
+          updated_at?: string | null
+          user_id: string
+          wallet_id?: string | null
+        }
+        Update: {
+          admin_note?: string | null
+          amount?: number
+          country_code?: string
+          created_at?: string | null
+          fee_amount?: number
+          id?: string
+          net_amount?: number
+          network?: string
+          phone?: string
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+          wallet_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawals_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "user_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

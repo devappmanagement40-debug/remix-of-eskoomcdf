@@ -11,7 +11,7 @@ const vipLevels = ["VIP0", "VIP1", "VIP2", "VIP3", "VIP4", "VIP5"];
 
 const actionButtons = [
   { icon: Wallet, label: "Recharger", path: "/portefeuille" },
-  { icon: Download, label: "Retirer", path: "/portefeuille" },
+  { icon: Download, label: "Retirer", path: "/retrait" },
   { icon: Clock, label: "Historique", path: "/historique" },
 ];
 
@@ -21,7 +21,7 @@ const menuGrid = [
   { icon: Clock, label: "Enregistrements", path: "/historique" },
   { icon: FileText, label: "Réglementation", path: "/aide" },
   { icon: Smartphone, label: "Télécharger APP", path: "#" },
-  { icon: CreditCard, label: "Lier carte bancaire", path: "#" },
+  { icon: CreditCard, label: "Lier carte bancaire", path: "/lier-carte" },
   { icon: Lock, label: "Changer mot de passe", path: "/parametres" },
   { icon: Gift, label: "Échanger cadeau", path: "#" },
 ];

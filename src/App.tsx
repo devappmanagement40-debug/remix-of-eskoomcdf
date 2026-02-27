@@ -25,6 +25,9 @@ import MesProduits from "./pages/MesProduits";
 import Recharge from "./pages/Recharge";
 import RechargePaiement from "./pages/RechargePaiement";
 import AdminRecharges from "./pages/AdminRecharges";
+import LierCarte from "./pages/LierCarte";
+import Retrait from "./pages/Retrait";
+import AdminRetraits from "./pages/AdminRetraits";
 
 const queryClient = new QueryClient();
 
@@ -52,6 +55,9 @@ const App = () => (
           <Route path="/recharge" element={<Recharge />} />
           <Route path="/recharge/paiement" element={<RechargePaiement />} />
           <Route path="/admin/recharges" element={<AdminRecharges />} />
+          <Route path="/lier-carte" element={<LierCarte />} />
+          <Route path="/retrait" element={<Retrait />} />
+          <Route path="/admin/retraits" element={<AdminRetraits />} />
           <Route path="/profil" element={<Profile />} />
           <Route path="/parametres" element={<Settings />} />
           <Route path="/loterie" element={<Loterie />} />
