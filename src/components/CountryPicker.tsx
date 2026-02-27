@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 export type Country = {
   code: string;
@@ -7,33 +8,40 @@ export type Country = {
   name: string;
 };
 
-export const countries: Country[] = [
-  { code: "+226", flag: "🇧🇫", name: "Burkina Faso" },
-  { code: "+225", flag: "🇨🇮", name: "Côte d'Ivoire" },
-  { code: "+223", flag: "🇲🇱", name: "Mali" },
-  { code: "+221", flag: "🇸🇳", name: "Sénégal" },
-  { code: "+228", flag: "🇹🇬", name: "Togo" },
-  { code: "+229", flag: "🇧🇯", name: "Bénin" },
-  { code: "+227", flag: "🇳🇪", name: "Niger" },
-  { code: "+224", flag: "🇬🇳", name: "Guinée" },
-  { code: "+237", flag: "🇨🇲", name: "Cameroun" },
-  { code: "+243", flag: "🇨🇩", name: "RD Congo" },
-];
-
 interface CountryPickerProps {
   value: string;
   onChange: (code: string) => void;
-  /** Compact trigger style for inline use */
   triggerClassName?: string;
 }
 
 const CountryPicker = ({ value, onChange, triggerClassName }: CountryPickerProps) => {
   const [open, setOpen] = useState(false);
-  const selected = countries.find((c) => c.code === value) || countries[0];
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase
+        .from("countries")
+        .select("country_code, flag_emoji, name")
+        .eq("is_active", true)
+        .order("sort_order");
+      if (data) {
+        setCountries(data.map(c => ({
+          code: c.country_code,
+          flag: c.flag_emoji || "🏳️",
+          name: c.name,
+        })));
+      }
+      setLoading(false);
+    };
+    load();
+  }, []);
+
+  const selected = countries.find((c) => c.code === value) || countries[0] || { code: value, flag: "🏳️", name: "" };
 
   return (
     <>
-      {/* Trigger */}
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -42,22 +50,17 @@ const CountryPicker = ({ value, onChange, triggerClassName }: CountryPickerProps
         {selected.flag} {selected.code} ▲
       </button>
 
-      {/* Backdrop + Bottom Sheet */}
       {open && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center">
-          {/* Overlay */}
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
-
-          {/* Sheet */}
           <div
             className="relative w-full max-w-lg rounded-t-2xl overflow-hidden animate-in slide-in-from-bottom duration-300"
             style={{
               background: "linear-gradient(135deg, hsl(174 72% 45%), hsl(220 25% 12%) 40%)",
             }}
           >
-            {/* Header */}
             <div className="flex items-center justify-between px-5 py-4">
-              <span className="text-sm font-bold text-foreground">Sélectionnez le code</span>
+              <span className="text-sm font-bold text-foreground">Selectionnez le code</span>
               <button
                 onClick={() => setOpen(false)}
                 className="w-8 h-8 rounded-full bg-secondary/50 flex items-center justify-center"
@@ -66,30 +69,33 @@ const CountryPicker = ({ value, onChange, triggerClassName }: CountryPickerProps
               </button>
             </div>
 
-            {/* Gradient divider */}
             <div className="h-[2px] w-full" style={{
               background: "linear-gradient(90deg, hsl(174 72% 50%), hsl(270 60% 55%))",
             }} />
 
-            {/* Country list */}
             <div className="max-h-[50vh] overflow-y-auto py-2">
-              {countries.map((c) => {
-                const isSelected = c.code === value;
-                return (
-                  <button
-                    key={c.code}
-                    onClick={() => { onChange(c.code); setOpen(false); }}
-                    className="w-full flex items-center justify-center py-4 transition-colors hover:bg-secondary/30"
-                  >
-                    <span className={`text-base font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>
-                      {c.code.replace("+", "")}
-                    </span>
-                  </button>
-                );
-              })}
+              {loading ? (
+                <p className="text-center text-sm text-muted-foreground py-8">Chargement...</p>
+              ) : countries.length === 0 ? (
+                <p className="text-center text-sm text-muted-foreground py-8">Aucun pays disponible</p>
+              ) : (
+                countries.map((c) => {
+                  const isSelected = c.code === value;
+                  return (
+                    <button
+                      key={c.code}
+                      onClick={() => { onChange(c.code); setOpen(false); }}
+                      className="w-full flex items-center justify-center gap-3 py-4 transition-colors hover:bg-secondary/30"
+                    >
+                      <span className="text-lg">{c.flag}</span>
+                      <span className={`text-base font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>
+                        {c.name} ({c.code})
+                      </span>
+                    </button>
+                  );
+                })
+              )}
             </div>
-
-            {/* Bottom safe area */}
             <div className="h-6" />
           </div>
         </div>

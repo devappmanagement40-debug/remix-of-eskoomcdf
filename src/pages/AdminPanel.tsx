@@ -9,7 +9,8 @@ import {
   MessageSquare, Bell, Settings, Shield, Search, CheckCircle2, XCircle,
   Clock, ArrowDown, Edit2, Trash2, Plus, X, Save, ChevronDown, ChevronUp,
   Layers, Eye, EyeOff, Ban, UserCheck, Pencil, TrendingUp, Activity,
-  Globe, ImageIcon, UploadIcon, Bot, Power, ArrowLeft, Send, Star, Gift
+  Globe, ImageIcon, UploadIcon, Bot, Power, ArrowLeft, Send, Star, Gift,
+  HelpCircle, Info, Smartphone
 } from "lucide-react";
 
 // ==================== TYPES ====================
@@ -71,6 +72,9 @@ const tabs = [
   { key: "vip", icon: TrendingUp, label: "Niveaux" },
   { key: "sarah", icon: Bot, label: "Sarah IA" },
   { key: "support", icon: MessageSquare, label: "Support" },
+  { key: "faq", icon: HelpCircle, label: "FAQ" },
+  { key: "infos", icon: Info, label: "Infos" },
+  { key: "app", icon: Smartphone, label: "App" },
   { key: "settings", icon: Settings, label: "Site" },
   { key: "security", icon: Shield, label: "Sécurité" },
 ];
@@ -203,6 +207,9 @@ const AdminPanel = () => {
         {activeTab === "vip" && <VipTab conditions={vipConditions} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "sarah" && <SarahTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "support" && <SupportTab adminId={adminId} />}
+        {activeTab === "faq" && <FaqTab showSuccess={showSuccess} showError={showError} />}
+        {activeTab === "infos" && <InfoItemsTab showSuccess={showSuccess} showError={showError} />}
+        {activeTab === "app" && <AppSettingsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "settings" && <SettingsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "security" && <SecurityTab logs={adminLogs} />}
       </div>
@@ -1598,6 +1605,221 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
           ))
         }
       </div>
+    </div>
+  );
+};
+
+// ==================== FAQ MANAGEMENT ====================
+const FaqTab = ({ showSuccess, showError }: any) => {
+  const [items, setItems] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<any>(null);
+  const [form, setForm] = useState({ question: "", answer: "" });
+
+  useEffect(() => { load(); }, []);
+  const load = async () => {
+    const { data } = await supabase.from("faq_items").select("*").order("sort_order");
+    if (data) setItems(data);
+  };
+
+  const openForm = (item?: any) => {
+    if (item) { setEditing(item); setForm({ question: item.question, answer: item.answer }); }
+    else { setEditing(null); setForm({ question: "", answer: "" }); }
+    setShowForm(true);
+  };
+
+  const save = async () => {
+    if (!form.question || !form.answer) { showError("Erreur", "Remplissez tous les champs"); return; }
+    if (editing) await supabase.from("faq_items").update(form).eq("id", editing.id);
+    else await supabase.from("faq_items").insert({ ...form, sort_order: items.length });
+    showSuccess(editing ? "Question modifiee" : "Question ajoutee", "");
+    setShowForm(false); load();
+  };
+
+  const toggle = async (item: any) => {
+    await supabase.from("faq_items").update({ is_active: !item.is_active }).eq("id", item.id);
+    load();
+  };
+
+  const remove = async (id: string) => {
+    await supabase.from("faq_items").delete().eq("id", id);
+    showSuccess("Question supprimee", ""); load();
+  };
+
+  return (
+    <div className="space-y-3">
+      <button onClick={() => openForm()} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
+        <Plus size={16} /> Ajouter une question
+      </button>
+
+      {showForm && (
+        <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
+          <div className="flex justify-between"><span className="text-xs font-bold text-foreground">{editing ? "Modifier" : "Nouvelle question"}</span><button onClick={() => setShowForm(false)}><X size={14} className="text-muted-foreground" /></button></div>
+          <input value={form.question} onChange={e => setForm({ ...form, question: e.target.value })} placeholder="Question" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+          <textarea value={form.answer} onChange={e => setForm({ ...form, answer: e.target.value })} placeholder="Reponse" rows={3} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none resize-none" />
+          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm">{editing ? "Modifier" : "Ajouter"}</button>
+        </div>
+      )}
+
+      {items.map((item: any) => (
+        <div key={item.id} className={`bg-card rounded-xl border border-secondary p-4 ${!item.is_active ? "opacity-50" : ""}`}>
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-foreground">{item.question}</p>
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.answer}</p>
+            </div>
+            <div className="flex gap-1.5 shrink-0">
+              <button onClick={() => toggle(item)} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${item.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{item.is_active ? "ON" : "OFF"}</button>
+              <button onClick={() => openForm(item)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
+              <button onClick={() => remove(item.id)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ==================== INFO ITEMS ====================
+const InfoItemsTab = ({ showSuccess, showError }: any) => {
+  const [items, setItems] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<any>(null);
+  const [form, setForm] = useState({ title: "", description: "" });
+
+  useEffect(() => { load(); }, []);
+  const load = async () => {
+    const { data } = await supabase.from("info_items").select("*").order("sort_order");
+    if (data) setItems(data);
+  };
+
+  const openForm = (item?: any) => {
+    if (item) { setEditing(item); setForm({ title: item.title, description: item.description }); }
+    else { setEditing(null); setForm({ title: "", description: "" }); }
+    setShowForm(true);
+  };
+
+  const save = async () => {
+    if (!form.title || !form.description) { showError("Erreur", "Remplissez tous les champs"); return; }
+    if (editing) await supabase.from("info_items").update(form).eq("id", editing.id);
+    else await supabase.from("info_items").insert({ ...form, sort_order: items.length });
+    showSuccess(editing ? "Info modifiee" : "Info ajoutee", "");
+    setShowForm(false); load();
+  };
+
+  const toggle = async (item: any) => {
+    await supabase.from("info_items").update({ is_active: !item.is_active }).eq("id", item.id);
+    load();
+  };
+
+  const remove = async (id: string) => {
+    await supabase.from("info_items").delete().eq("id", id);
+    showSuccess("Info supprimee", ""); load();
+  };
+
+  return (
+    <div className="space-y-3">
+      <button onClick={() => openForm()} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
+        <Plus size={16} /> Ajouter une information
+      </button>
+
+      {showForm && (
+        <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
+          <div className="flex justify-between"><span className="text-xs font-bold text-foreground">{editing ? "Modifier" : "Nouvelle info"}</span><button onClick={() => setShowForm(false)}><X size={14} className="text-muted-foreground" /></button></div>
+          <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Titre" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+          <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Description" rows={3} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none resize-none" />
+          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm">{editing ? "Modifier" : "Ajouter"}</button>
+        </div>
+      )}
+
+      {items.length === 0 ? <p className="text-xs text-muted-foreground text-center py-6">Aucune information</p> :
+        items.map((item: any) => (
+          <div key={item.id} className={`bg-card rounded-xl border border-secondary p-4 ${!item.is_active ? "opacity-50" : ""}`}>
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
+              </div>
+              <div className="flex gap-1.5 shrink-0">
+                <button onClick={() => toggle(item)} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${item.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{item.is_active ? "ON" : "OFF"}</button>
+                <button onClick={() => openForm(item)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
+                <button onClick={() => remove(item.id)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+              </div>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  );
+};
+
+// ==================== APP SETTINGS ====================
+const AppSettingsTab = ({ settings, reload, showSuccess }: any) => {
+  const [edits, setEdits] = useState<Record<string, string>>({});
+  const getVal = (key: string) => edits[key] ?? settings.find((s: SiteSetting) => s.key === key)?.value ?? "";
+  const setVal = (key: string, val: string) => setEdits({ ...edits, [key]: val });
+
+  const saveAll = async () => {
+    for (const [key, value] of Object.entries(edits)) {
+      const existing = settings.find((s: SiteSetting) => s.key === key);
+      if (existing) await supabase.from("site_settings").update({ value }).eq("key", key);
+      else await supabase.from("site_settings").insert({ key, value, category: "app" });
+    }
+    showSuccess("Parametres application sauvegardes", "");
+    setEdits({}); reload();
+  };
+
+  const appKeys = [
+    { key: "app_message_text", label: "Message application mobile" },
+    { key: "app_message_enabled", label: "Afficher le message (true/false)" },
+    { key: "app_estimated_date", label: "Date estimee de sortie" },
+    { key: "app_download_url", label: "URL de telechargement (vide = pas de bouton)" },
+  ];
+
+  const homescreenKeys = [
+    { key: "homescreen_instructions_enabled", label: "Afficher les instructions (true/false)" },
+    { key: "homescreen_instructions_text", label: "Instructions ecran d'accueil" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
+        <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Smartphone size={16} className="text-primary" /> Application mobile</h3>
+        {appKeys.map(k => (
+          <div key={k.key}>
+            <label className="text-xs text-muted-foreground">{k.label}</label>
+            {k.key === "app_message_text" ? (
+              <textarea value={getVal(k.key)} onChange={e => setVal(k.key, e.target.value)} rows={3}
+                className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none resize-none" />
+            ) : (
+              <input value={getVal(k.key)} onChange={e => setVal(k.key, e.target.value)}
+                className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
+        <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Globe size={16} className="text-primary" /> Instructions ecran d'accueil</h3>
+        {homescreenKeys.map(k => (
+          <div key={k.key}>
+            <label className="text-xs text-muted-foreground">{k.label}</label>
+            {k.key === "homescreen_instructions_text" ? (
+              <textarea value={getVal(k.key)} onChange={e => setVal(k.key, e.target.value)} rows={4}
+                className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none resize-none" />
+            ) : (
+              <input value={getVal(k.key)} onChange={e => setVal(k.key, e.target.value)}
+                className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
+            )}
+          </div>
+        ))}
+      </div>
+
+      {Object.keys(edits).length > 0 && (
+        <button onClick={saveAll} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
+          <Save size={16} /> Sauvegarder
+        </button>
+      )}
     </div>
   );
 };
