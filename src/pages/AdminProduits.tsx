@@ -46,6 +46,7 @@ const AdminProduits = () => {
   const [productCycles, setProductCycles] = useState("365");
   const [productPrice, setProductPrice] = useState("");
   const [productIsNew, setProductIsNew] = useState(false);
+  const [productIsFeatured, setProductIsFeatured] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -109,10 +110,11 @@ const AdminProduits = () => {
       setProductCycles(String(p.cycles || 365));
       setProductPrice(String(p.price || 0));
       setProductIsNew(p.is_new || false);
+      setProductIsFeatured((p as any).is_featured || false);
     } else {
       setEditingProduct(null);
       setProductName(""); setProductImageUrl(""); setProductReturnPercent(""); setProductTotalRevenue("");
-      setProductDailyRevenue(""); setProductCycles("365"); setProductPrice(""); setProductIsNew(false);
+      setProductDailyRevenue(""); setProductCycles("365"); setProductPrice(""); setProductIsNew(false); setProductIsFeatured(false);
     }
     setShowProductForm(true);
     setShowSeriesForm(false);
@@ -148,6 +150,7 @@ const AdminProduits = () => {
       cycles: Number(productCycles) || 365,
       price: Number(productPrice) || 0,
       is_new: productIsNew,
+      is_featured: productIsFeatured,
     };
     if (editingProduct) {
       await supabase.from("products").update(payload).eq("id", editingProduct.id);
@@ -278,6 +281,13 @@ const AdminProduits = () => {
                   <span className="text-xs text-foreground">Nouveau</span>
                 </label>
               </div>
+              <div className="flex items-end gap-2 pb-1">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" checked={productIsFeatured} onChange={e => setProductIsFeatured(e.target.checked)}
+                    className="w-4 h-4 accent-primary" />
+                  <span className="text-xs text-foreground">Populaire</span>
+                </label>
+              </div>
             </div>
             <button onClick={saveProduct} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">
               {editingProduct ? "Modifier" : "Créer"}
@@ -327,6 +337,7 @@ const AdminProduits = () => {
                               <div className="flex items-center gap-2">
                                 <span className="text-sm font-semibold text-foreground">{p.name}</span>
                                 {p.is_new && <span className="text-[9px] bg-success/20 text-success px-1.5 py-0.5 rounded-full font-bold">NEW</span>}
+                                {(p as any).is_featured && <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold">POP</span>}
                               </div>
                               <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} FCFA • {p.return_percent}% • {p.cycles}j</span>
                             </div>

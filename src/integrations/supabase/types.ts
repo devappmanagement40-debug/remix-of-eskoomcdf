@@ -259,6 +259,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean | null
+          is_featured: boolean | null
           is_new: boolean | null
           max_purchases: number | null
           name: string
@@ -277,6 +278,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          is_featured?: boolean | null
           is_new?: boolean | null
           max_purchases?: number | null
           name: string
@@ -295,6 +297,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          is_featured?: boolean | null
           is_new?: boolean | null
           max_purchases?: number | null
           name?: string
