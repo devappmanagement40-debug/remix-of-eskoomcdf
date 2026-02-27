@@ -6,6 +6,7 @@ import PageHeader from "@/components/PageHeader";
 import BottomNav from "@/components/BottomNav";
 import CountryPicker, { countries } from "@/components/CountryPicker";
 import { CreditCard, ChevronRight } from "lucide-react";
+import { usePhoneValidation } from "@/hooks/usePhoneValidation";
 
 type PaymentMethod = {
   id: string; name: string; phone: string | null; holder_name: string | null;
@@ -16,6 +17,7 @@ type PaymentMethod = {
 
 const Recharge = () => {
   const navigate = useNavigate();
+  const { validatePhone } = usePhoneValidation();
   const [amount, setAmount] = useState("");
   const [phone, setPhone] = useState("");
   const [countryCode, setCountryCode] = useState("+226");
@@ -60,8 +62,9 @@ const Recharge = () => {
 
   const handleConfirm = () => {
     const parsedAmount = parseFloat(amount);
-    if (!phone || phone.length < 8) {
-      toast.error("Veuillez entrer un numero de telephone valide");
+    const phoneCheck = validatePhone(phone, countryCode);
+    if (!phoneCheck.valid) {
+      toast.error(phoneCheck.message);
       return;
     }
     if (!parsedAmount || parsedAmount < minAmount) {

@@ -1585,19 +1585,20 @@ const SecurityTab = ({ logs }: { logs: AdminLog[] }) => (
 const CountriesTab = ({ countries, methods, reload, showSuccess, showError }: any) => {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Country | null>(null);
-  const [form, setForm] = useState({ name: "", country_code: "", flag_emoji: "🏳️" });
+  const [form, setForm] = useState({ name: "", country_code: "", flag_emoji: "🏳️", phone_digits: "8", validation_enabled: true });
 
   const openForm = (c?: Country) => {
-    if (c) { setEditing(c); setForm({ name: c.name, country_code: c.country_code, flag_emoji: c.flag_emoji }); }
-    else { setEditing(null); setForm({ name: "", country_code: "+", flag_emoji: "🏳️" }); }
+    if (c) { setEditing(c); setForm({ name: c.name, country_code: c.country_code, flag_emoji: c.flag_emoji, phone_digits: String((c as any).phone_digits || 8), validation_enabled: (c as any).validation_enabled !== false }); }
+    else { setEditing(null); setForm({ name: "", country_code: "+", flag_emoji: "🏳️", phone_digits: "8", validation_enabled: true }); }
     setShowForm(true);
   };
 
   const save = async () => {
     if (!form.name.trim()) { showError("Erreur", "Nom requis"); return; }
-    if (editing) await supabase.from("countries").update(form).eq("id", editing.id);
-    else await supabase.from("countries").insert({ ...form, sort_order: countries.length });
-    showSuccess(editing ? "Pays modifié ✅" : "Pays ajouté ✅", "");
+    const payload = { name: form.name, country_code: form.country_code, flag_emoji: form.flag_emoji, phone_digits: Number(form.phone_digits) || 8, validation_enabled: form.validation_enabled };
+    if (editing) await supabase.from("countries").update(payload).eq("id", editing.id);
+    else await supabase.from("countries").insert({ ...payload, sort_order: countries.length });
+    showSuccess(editing ? "Pays modifié" : "Pays ajouté", "");
     setShowForm(false); reload();
   };
 
@@ -1633,6 +1634,19 @@ const CountriesTab = ({ countries, methods, reload, showSuccess, showError }: an
               <input value={form.flag_emoji} onChange={e => setForm({ ...form, flag_emoji: e.target.value })} placeholder="🇧🇫" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
             </div>
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-muted-foreground">Chiffres requis</label>
+              <input type="number" value={form.phone_digits} onChange={e => setForm({ ...form, phone_digits: e.target.value })} placeholder="8" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Validation</label>
+              <button type="button" onClick={() => setForm({ ...form, validation_enabled: !form.validation_enabled })}
+                className={`w-full rounded-xl px-4 py-2.5 text-sm font-semibold ${form.validation_enabled ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>
+                {form.validation_enabled ? "Activee" : "Desactivee"}
+              </button>
+            </div>
+          </div>
           <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editing ? "Modifier" : "Créer"}</button>
         </div>
       )}
@@ -1647,7 +1661,7 @@ const CountriesTab = ({ countries, methods, reload, showSuccess, showError }: an
                   <span className="text-lg">{c.flag_emoji}</span>
                   <div>
                     <p className="text-sm font-bold text-foreground">{c.name}</p>
-                    <p className="text-xs text-muted-foreground">{c.country_code}</p>
+                    <p className="text-xs text-muted-foreground">{c.country_code} · {(c as any).phone_digits || 8} chiffres {(c as any).validation_enabled !== false ? "" : "(non validé)"}</p>
                   </div>
                 </div>
                 <div className="flex gap-1.5">

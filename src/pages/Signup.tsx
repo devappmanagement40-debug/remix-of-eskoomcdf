@@ -6,11 +6,13 @@ import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import CountryPicker from "@/components/CountryPicker";
+import { usePhoneValidation } from "@/hooks/usePhoneValidation";
 
 const Signup = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { showSuccess, showError } = useActionPopup();
+  const { validatePhone } = usePhoneValidation();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -26,7 +28,8 @@ const Signup = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone || !password || !confirmPassword) { showError("Erreur", "Veuillez remplir tous les champs"); return; }
-    if (phone.length < 8) { showError("Erreur", "Numéro de téléphone invalide"); return; }
+    const phoneCheck = validatePhone(phone, countryCode);
+    if (!phoneCheck.valid) { showError("Numero invalide", phoneCheck.message); return; }
     if (password.length < 6) { showError("Erreur", "Le mot de passe doit contenir au moins 6 caractères"); return; }
     if (password !== confirmPassword) { showError("Erreur", "Les mots de passe ne correspondent pas"); return; }
     if (!inviteCode.trim()) { showError("Erreur", "Le code d'invitation est obligatoire"); return; }

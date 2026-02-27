@@ -106,7 +106,9 @@ export type Database = {
           id: string
           is_active: boolean | null
           name: string
+          phone_digits: number | null
           sort_order: number | null
+          validation_enabled: boolean | null
         }
         Insert: {
           country_code: string
@@ -115,7 +117,9 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name: string
+          phone_digits?: number | null
           sort_order?: number | null
+          validation_enabled?: boolean | null
         }
         Update: {
           country_code?: string
@@ -124,7 +128,9 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           name?: string
+          phone_digits?: number | null
           sort_order?: number | null
+          validation_enabled?: boolean | null
         }
         Relationships: []
       }
