@@ -44,6 +44,33 @@ export type Database = {
         }
         Relationships: []
       }
+      banners: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_url: string
+          is_active: boolean | null
+          link_path: string | null
+          sort_order: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          image_url: string
+          is_active?: boolean | null
+          link_path?: string | null
+          sort_order?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_url?: string
+          is_active?: boolean | null
+          link_path?: string | null
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
       chat_messages: {
         Row: {
           created_at: string
@@ -219,6 +246,7 @@ export type Database = {
           created_at: string | null
           cycles: number | null
           daily_revenue: number | null
+          description: string | null
           id: string
           image_url: string | null
           is_active: boolean | null
@@ -236,6 +264,7 @@ export type Database = {
           created_at?: string | null
           cycles?: number | null
           daily_revenue?: number | null
+          description?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
@@ -253,6 +282,7 @@ export type Database = {
           created_at?: string | null
           cycles?: number | null
           daily_revenue?: number | null
+          description?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
@@ -436,24 +466,30 @@ export type Database = {
           expires_at: string | null
           id: string
           is_active: boolean | null
+          last_collected_at: string | null
           product_id: string
           purchased_at: string | null
+          total_collected: number | null
           user_id: string
         }
         Insert: {
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
+          last_collected_at?: string | null
           product_id: string
           purchased_at?: string | null
+          total_collected?: number | null
           user_id: string
         }
         Update: {
           expires_at?: string | null
           id?: string
           is_active?: boolean | null
+          last_collected_at?: string | null
           product_id?: string
           purchased_at?: string | null
+          total_collected?: number | null
           user_id?: string
         }
         Relationships: [

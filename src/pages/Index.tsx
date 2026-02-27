@@ -3,21 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
 import BottomNav from "@/components/BottomNav";
 import FloatingButtons from "@/components/FloatingButtons";
-import ProductCard from "@/components/ProductCard";
 import PremiumModal from "@/components/PremiumModal";
 import InviteModal from "@/components/InviteModal";
-import productServer from "@/assets/product-server.jpg";
-import productSolar from "@/assets/product-solar.jpg";
-import productWind from "@/assets/product-wind.jpg";
+import { supabase } from "@/integrations/supabase/client";
 import bannerHome from "@/assets/banner-home.jpg";
 import newsAudit from "@/assets/news-audit.jpg";
 import newsCertificat from "@/assets/news-certificat.jpg";
-
-const banners = [
-  { image: bannerHome, path: "/loterie" },
-  { image: newsAudit, path: "/actualite/controle-fiscal" },
-  { image: newsCertificat, path: "/actualite/certificat-officiel" },
-];
 
 const circleActions = [
   { icon: ShoppingBag, label: "Mon produit", path: "/mes-produits" },
@@ -32,37 +23,10 @@ const quickActions = [
   { icon: RefreshCw, label: "Échangeur" },
 ];
 
-const products = [
-  {
-    image: productServer,
-    name: "TC 500",
-    returnPercent: "1560.0%",
-    totalRevenue: "78 000,00",
-    dailyRevenue: "200,00",
-    cycles: 365,
-    price: "5 000,00",
-    isNew: true,
-  },
-  {
-    image: productSolar,
-    name: "TC 1000",
-    returnPercent: "1820.0%",
-    totalRevenue: "182 000,00",
-    dailyRevenue: "500,00",
-    cycles: 365,
-    price: "10 000,00",
-    isNew: false,
-  },
-  {
-    image: productWind,
-    name: "TC 2500",
-    returnPercent: "2100.0%",
-    totalRevenue: "525 000,00",
-    dailyRevenue: "1 438,00",
-    cycles: 365,
-    price: "25 000,00",
-    isNew: true,
-  },
+const fallbackBanners = [
+  { image_url: bannerHome, link_path: "/loterie" },
+  { image_url: newsAudit, link_path: "/actualite/controle-fiscal" },
+  { image_url: newsCertificat, link_path: "/actualite/certificat-officiel" },
 ];
 
 const newsItems = [
@@ -85,10 +49,17 @@ const Index = () => {
   const [currentBanner, setCurrentBanner] = useState(0);
   const [showService, setShowService] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
+  const [banners, setBanners] = useState<{ image_url: string; link_path: string }[]>(fallbackBanners);
+
+  useEffect(() => {
+    supabase.from("banners").select("image_url, link_path").eq("is_active", true).order("sort_order").then(({ data }) => {
+      if (data && data.length > 0) setBanners(data);
+    });
+  }, []);
 
   const nextBanner = useCallback(() => {
     setCurrentBanner((prev) => (prev + 1) % banners.length);
-  }, []);
+  }, [banners.length]);
 
   useEffect(() => {
     const interval = setInterval(nextBanner, 4000);
@@ -107,14 +78,13 @@ const Index = () => {
             {banners.map((banner, index) => (
               <img
                 key={index}
-                src={banner.image}
+                src={banner.image_url}
                 alt="ESKOM Energy"
                 className="w-full h-44 object-cover flex-shrink-0 cursor-pointer"
-                onClick={() => navigate(banner.path)}
+                onClick={() => navigate(banner.link_path)}
               />
             ))}
           </div>
-          {/* Dots */}
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
             {banners.map((_, index) => (
               <button
@@ -159,16 +129,6 @@ const Index = () => {
               <action.icon size={22} className="text-muted-foreground" />
               <span className="text-[11px] font-medium text-foreground">{action.label}</span>
             </button>
-          ))}
-        </div>
-      </section>
-
-      {/* Products */}
-      <section className="mt-6 px-4">
-        <h2 className="text-lg font-bold text-foreground mb-4">Produits Populaires</h2>
-        <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 -mx-4 px-4 scrollbar-hide">
-          {products.map((product) => (
-            <ProductCard key={product.name} {...product} />
           ))}
         </div>
       </section>

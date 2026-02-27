@@ -53,12 +53,15 @@ type VipCondition = { id: string; level: number; level_name: string; min_investm
 type UserProduct = { id: string; user_id: string; product_id: string; purchased_at: string; is_active: boolean; expires_at: string | null };
 
 // ==================== TABS CONFIG ====================
+type Banner = { id: string; image_url: string; link_path: string; sort_order: number; is_active: boolean };
+
 const tabs = [
   { key: "dashboard", icon: BarChart3, label: "Stats" },
   { key: "users", icon: Users, label: "Clients" },
   { key: "deposits", icon: Download, label: "Dépôts" },
   { key: "withdrawals", icon: Upload, label: "Retraits" },
   { key: "products", icon: Package, label: "Produits" },
+  { key: "banners", icon: ImageIcon, label: "Bannières" },
   { key: "wheel", icon: Activity, label: "Roue" },
   { key: "countries", icon: Globe, label: "Pays" },
   { key: "payments", icon: CreditCard, label: "Paiement" },
@@ -100,6 +103,7 @@ const AdminPanel = () => {
   const [adminLogs, setAdminLogs] = useState<AdminLog[]>([]);
   const [countries, setCountries] = useState<Country[]>([]);
   const [vipConditions, setVipConditions] = useState<VipCondition[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
 
   useEffect(() => {
     checkAdmin();
@@ -115,7 +119,7 @@ const AdminPanel = () => {
   };
 
   const loadAll = async () => {
-    const [p, r, w, s, pr, pm, sl, ss, pop, logs, ctrs, vipc] = await Promise.all([
+    const [p, r, w, s, pr, pm, sl, ss, pop, logs, ctrs, vipc, bn] = await Promise.all([
       supabase.from("profiles").select("*").order("created_at", { ascending: false }),
       supabase.from("recharges").select("*").order("created_at", { ascending: false }),
       supabase.from("withdrawals").select("*").order("created_at", { ascending: false }),
@@ -128,6 +132,7 @@ const AdminPanel = () => {
       supabase.from("admin_logs").select("*").order("created_at", { ascending: false }).limit(50),
       supabase.from("countries").select("*").order("sort_order"),
       supabase.from("vip_conditions").select("*").order("level"),
+      supabase.from("banners").select("*").order("sort_order"),
     ]);
     if (p.data) setProfiles(p.data as Profile[]);
     if (r.data) setRecharges(r.data);
@@ -141,6 +146,7 @@ const AdminPanel = () => {
     if (logs.data) setAdminLogs(logs.data);
     if (ctrs.data) setCountries(ctrs.data as Country[]);
     if (vipc.data) setVipConditions(vipc.data as VipCondition[]);
+    if (bn.data) setBanners(bn.data as Banner[]);
     setLoading(false);
   };
 
@@ -186,6 +192,7 @@ const AdminPanel = () => {
         {activeTab === "deposits" && <DepositsTab recharges={recharges} profiles={profiles} reload={loadAll} showSuccess={showSuccess} showError={showError} logAction={logAction} />}
         {activeTab === "withdrawals" && <WithdrawalsTab withdrawals={withdrawals} profiles={profiles} reload={loadAll} showSuccess={showSuccess} showError={showError} logAction={logAction} />}
         {activeTab === "products" && <ProductsTab series={series} products={products} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
+        {activeTab === "banners" && <BannersTab banners={banners} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "countries" && <CountriesTab countries={countries} methods={paymentMethods} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "wheel" && <AdminWheelTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} logAction={logAction} adminId={adminId} />}
         {activeTab === "payments" && <PaymentsTab methods={paymentMethods} countries={countries} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
@@ -713,7 +720,7 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formSeriesId, setFormSeriesId] = useState("");
-  const [form, setForm] = useState({ name: "", image_url: "", return_percent: "", total_revenue: "", daily_revenue: "", cycles: "365", price: "", is_new: false, max_purchases: "" });
+  const [form, setForm] = useState({ name: "", image_url: "", return_percent: "", total_revenue: "", daily_revenue: "", cycles: "365", price: "", is_new: false, max_purchases: "", description: "" });
   const [showSeriesForm, setShowSeriesForm] = useState(false);
   const [seriesName, setSeriesName] = useState("");
   const [seriesColor, setSeriesColor] = useState("primary");
@@ -725,10 +732,10 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
     setFormSeriesId(seriesId);
     if (p) {
       setEditingProduct(p);
-      setForm({ name: p.name, image_url: p.image_url || "", return_percent: String(p.return_percent || 0), total_revenue: String(p.total_revenue || 0), daily_revenue: String(p.daily_revenue || 0), cycles: String(p.cycles || 365), price: String(p.price || 0), is_new: p.is_new || false, max_purchases: p.max_purchases ? String(p.max_purchases) : "" });
+      setForm({ name: p.name, image_url: p.image_url || "", return_percent: String(p.return_percent || 0), total_revenue: String(p.total_revenue || 0), daily_revenue: String(p.daily_revenue || 0), cycles: String(p.cycles || 365), price: String(p.price || 0), is_new: p.is_new || false, max_purchases: p.max_purchases ? String(p.max_purchases) : "", description: (p as any).description || "" });
     } else {
       setEditingProduct(null);
-      setForm({ name: "", image_url: "", return_percent: "", total_revenue: "", daily_revenue: "", cycles: "365", price: "", is_new: false, max_purchases: "" });
+      setForm({ name: "", image_url: "", return_percent: "", total_revenue: "", daily_revenue: "", cycles: "365", price: "", is_new: false, max_purchases: "", description: "" });
     }
     setShowForm(true);
     setShowSeriesForm(false);
@@ -755,6 +762,7 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
       daily_revenue: Number(form.daily_revenue) || 0, cycles: Number(form.cycles) || 365,
       price: Number(form.price) || 0, is_new: form.is_new,
       max_purchases: form.max_purchases ? Number(form.max_purchases) : null,
+      description: form.description || null,
     };
     if (editingProduct) await supabase.from("products").update(payload).eq("id", editingProduct.id);
     else await supabase.from("products").insert({ ...payload, sort_order: products.filter((p: Product) => p.series_id === formSeriesId).length });
@@ -810,6 +818,11 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
             <div><label className="text-xs text-muted-foreground">Achats max</label><input type="number" value={form.max_purchases} onChange={e => setForm({ ...form, max_purchases: e.target.value })} placeholder="Illimité" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
             <label className="flex items-center gap-2 self-end pb-1"><input type="checkbox" checked={form.is_new} onChange={e => setForm({ ...form, is_new: e.target.checked })} className="accent-primary" /><span className="text-xs">Nouveau</span></label>
           </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Description du produit</label>
+            <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Informations détaillées sur le produit..." rows={3}
+              className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none resize-none mt-1" />
+          </div>
           <button onClick={saveProduct} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editingProduct ? "Modifier" : "Créer"}</button>
         </div>
       )}
@@ -857,6 +870,87 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
           </div>
         );
       })}
+    </div>
+  );
+};
+
+// ==================== BANNERS ====================
+const BannersTab = ({ banners, reload, showSuccess, showError }: any) => {
+  const [uploading, setUploading] = useState(false);
+  const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
+  const [linkPath, setLinkPath] = useState("/");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const ext = file.name.split('.').pop();
+    const fileName = `banner-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('site-assets').upload(fileName, file);
+    if (error) { showError("Erreur", "Upload impossible"); setUploading(false); return; }
+    const { data } = supabase.storage.from('site-assets').getPublicUrl(fileName);
+    await supabase.from("banners").insert({ image_url: data.publicUrl, link_path: "/", sort_order: banners.length });
+    showSuccess("Bannière ajoutée ✅", "");
+    setUploading(false);
+    reload();
+  };
+
+  const deleteBanner = async (id: string) => {
+    await supabase.from("banners").delete().eq("id", id);
+    showSuccess("Bannière supprimée", "");
+    reload();
+  };
+
+  const toggleBanner = async (b: Banner) => {
+    await supabase.from("banners").update({ is_active: !b.is_active }).eq("id", b.id);
+    reload();
+  };
+
+  const updateLink = async (id: string) => {
+    await supabase.from("banners").update({ link_path: linkPath }).eq("id", id);
+    showSuccess("Lien mis à jour ✅", "");
+    setEditingBanner(null);
+    reload();
+  };
+
+  return (
+    <div className="space-y-3">
+      <input ref={fileRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
+      <button onClick={() => fileRef.current?.click()} disabled={uploading}
+        className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
+        <UploadIcon size={16} /> {uploading ? "Upload en cours..." : "Ajouter une bannière"}
+      </button>
+
+      {banners.length === 0 ? (
+        <p className="text-xs text-muted-foreground text-center py-10">Aucune bannière</p>
+      ) : banners.map((b: Banner) => (
+        <div key={b.id} className={`bg-card rounded-xl border overflow-hidden ${b.is_active ? "border-secondary" : "border-secondary opacity-60"}`}>
+          <img src={b.image_url} alt="Bannière" className="w-full h-32 object-cover" />
+          <div className="px-3 py-2">
+            {editingBanner?.id === b.id ? (
+              <div className="space-y-2">
+                <input value={linkPath} onChange={e => setLinkPath(e.target.value)} placeholder="Lien (ex: /loterie)"
+                  className="w-full bg-secondary text-foreground rounded-xl px-3 py-2 text-sm border border-secondary outline-none" />
+                <div className="flex gap-2">
+                  <button onClick={() => updateLink(b.id)} className="flex-1 gradient-button text-primary-foreground text-xs font-bold py-2 rounded-xl">Sauver</button>
+                  <button onClick={() => setEditingBanner(null)} className="flex-1 bg-secondary text-foreground text-xs font-bold py-2 rounded-xl">Annuler</button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">Lien: {b.link_path}</p>
+                <div className="flex gap-1.5">
+                  <button onClick={() => toggleBanner(b)}
+                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${b.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{b.is_active ? "ON" : "OFF"}</button>
+                  <button onClick={() => { setEditingBanner(b); setLinkPath(b.link_path); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
+                  <button onClick={() => deleteBanner(b.id)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
     </div>
   );
 };
@@ -1351,7 +1445,12 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
 
   const saveAll = async () => {
     for (const [key, value] of Object.entries(edits)) {
-      await supabase.from("site_settings").update({ value }).eq("key", key);
+      const existing = settings.find((s: SiteSetting) => s.key === key);
+      if (existing) {
+        await supabase.from("site_settings").update({ value }).eq("key", key);
+      } else {
+        await supabase.from("site_settings").insert({ key, value, category: "finance" });
+      }
     }
     showSuccess("Paramètres sauvegardés ✅", "");
     setEdits({});
@@ -1361,6 +1460,7 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
   const groups: Record<string, { label: string; keys: { key: string; label: string }[] }> = {
     general: { label: "Général", keys: [{ key: "site_name", label: "Nom du site" }, { key: "welcome_text", label: "Texte d'accueil" }, { key: "terms_url", label: "URL Conditions générales" }] },
     finance: { label: "Finance", keys: [{ key: "withdrawal_fee_percent", label: "Frais de retrait (%)" }, { key: "min_withdrawal", label: "Retrait minimum (FCFA)" }] },
+    referral: { label: "Bonus Parrainage", keys: [{ key: "referral_bonus_level_b", label: "Niveau B - Parrain direct (%)" }, { key: "referral_bonus_level_c", label: "Niveau C - 2ème niveau (%)" }, { key: "referral_bonus_level_d", label: "Niveau D - 3ème niveau (%)" }] },
     vip: { label: "Seuils VIP", keys: [{ key: "vip_threshold_1", label: "VIP1 (FCFA)" }, { key: "vip_threshold_2", label: "VIP2 (FCFA)" }, { key: "vip_threshold_3", label: "VIP3 (FCFA)" }, { key: "vip_threshold_4", label: "VIP4 (FCFA)" }, { key: "vip_threshold_5", label: "VIP5 (FCFA)" }] },
   };
 
