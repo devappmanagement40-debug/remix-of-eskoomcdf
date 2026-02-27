@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { ChevronRight, Wallet, Send, ArrowUpRight, ArrowDownLeft, TrendingUp } from "lucide-react";
+import { ChevronRight, ArrowUpRight, ArrowDownLeft, TrendingUp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeProfile } from "@/hooks/useRealtimeProfile";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 
@@ -14,40 +15,40 @@ const menuItems = [
 
 const Portefeuille = () => {
   const navigate = useNavigate();
-  const [balance, setBalance] = useState(0);
-  const [depositBalance, setDepositBalance] = useState(0);
-  const [earningsBalance, setEarningsBalance] = useState(0);
-  const [referralBalance, setReferralBalance] = useState(0);
+  const { profile, loading } = useRealtimeProfile();
   const [depositNotWithdrawable, setDepositNotWithdrawable] = useState(true);
   const [totalDeposits, setTotalDeposits] = useState(0);
   const [totalWithdrawals, setTotalWithdrawals] = useState(0);
   const [todayEarnings, setTodayEarnings] = useState(0);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    const loadExtra = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const [settingsRes, depositsRes, withdrawalsRes] = await Promise.all([
+        supabase.from("site_settings").select("value").eq("key", "deposit_not_withdrawable").single(),
+        supabase.from("recharges").select("amount").eq("user_id", user.id).eq("status", "approved"),
+        supabase.from("withdrawals").select("amount").eq("user_id", user.id).eq("status", "approved"),
+      ]);
+      if (settingsRes.data) setDepositNotWithdrawable(settingsRes.data.value === "true");
+      if (depositsRes.data) setTotalDeposits(depositsRes.data.reduce((s, r) => s + r.amount, 0));
+      if (withdrawalsRes.data) setTotalWithdrawals(withdrawalsRes.data.reduce((s, w) => s + w.amount, 0));
+    };
+    loadExtra();
 
-  const loadData = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const [profileRes, settingsRes, depositsRes, withdrawalsRes] = await Promise.all([
-      supabase.from("profiles").select("balance, deposit_balance, earnings_balance, referral_balance").eq("user_id", user.id).single(),
-      supabase.from("site_settings").select("value").eq("key", "deposit_not_withdrawable").single(),
-      supabase.from("recharges").select("amount").eq("user_id", user.id).eq("status", "approved"),
-      supabase.from("withdrawals").select("amount").eq("user_id", user.id).eq("status", "approved"),
-    ]);
-    if (profileRes.data) {
-      setBalance(profileRes.data.balance || 0);
-      setDepositBalance(profileRes.data.deposit_balance || 0);
-      setEarningsBalance(profileRes.data.earnings_balance || 0);
-      setReferralBalance(profileRes.data.referral_balance || 0);
-    }
-    if (settingsRes.data) setDepositNotWithdrawable(settingsRes.data.value === "true");
-    if (depositsRes.data) setTotalDeposits(depositsRes.data.reduce((s, r) => s + r.amount, 0));
-    if (withdrawalsRes.data) setTotalWithdrawals(withdrawalsRes.data.reduce((s, w) => s + w.amount, 0));
-  };
+    // Realtime for deposits/withdrawals totals
+    const channel = supabase
+      .channel("wallet-totals")
+      .on("postgres_changes", { event: "*", schema: "public", table: "recharges" }, () => loadExtra())
+      .on("postgres_changes", { event: "*", schema: "public", table: "withdrawals" }, () => loadExtra())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   const withdrawable = depositNotWithdrawable
-    ? earningsBalance + referralBalance
-    : balance;
+    ? profile.earnings_balance + profile.referral_balance
+    : profile.balance;
 
   const fmt = (n: number) => n.toLocaleString("fr-FR", { minimumFractionDigits: 2 });
 
@@ -58,23 +59,23 @@ const Portefeuille = () => {
         {/* Main Balance Card */}
         <div className="bg-card rounded-2xl border border-border/30 p-5">
           <p className="text-xs text-muted-foreground text-center mb-1">Solde total</p>
-          <p className="text-3xl font-bold text-foreground text-center">{fmt(balance)} <span className="text-sm font-normal text-muted-foreground">FCFA</span></p>
+          <p className="text-3xl font-bold text-foreground text-center">{fmt(profile.balance)} <span className="text-sm font-normal text-muted-foreground">FCFA</span></p>
 
           {/* Split balances */}
           <div className="grid grid-cols-3 gap-2 mt-5">
             <div className="bg-secondary/40 rounded-xl p-3 text-center">
               <p className="text-[10px] text-muted-foreground mb-0.5">Depot</p>
-              <p className="text-xs font-bold text-foreground">{depositBalance.toLocaleString("fr-FR")} F</p>
+              <p className="text-xs font-bold text-foreground">{profile.deposit_balance.toLocaleString("fr-FR")} F</p>
               {depositNotWithdrawable && <p className="text-[8px] text-destructive mt-0.5">Non retirable</p>}
             </div>
             <div className="bg-secondary/40 rounded-xl p-3 text-center">
               <p className="text-[10px] text-muted-foreground mb-0.5">Gains</p>
-              <p className="text-xs font-bold text-success">{earningsBalance.toLocaleString("fr-FR")} F</p>
+              <p className="text-xs font-bold text-success">{profile.earnings_balance.toLocaleString("fr-FR")} F</p>
               <p className="text-[8px] text-success mt-0.5">Retirable</p>
             </div>
             <div className="bg-secondary/40 rounded-xl p-3 text-center">
               <p className="text-[10px] text-muted-foreground mb-0.5">Parrainage</p>
-              <p className="text-xs font-bold text-primary">{referralBalance.toLocaleString("fr-FR")} F</p>
+              <p className="text-xs font-bold text-primary">{profile.referral_balance.toLocaleString("fr-FR")} F</p>
               <p className="text-[8px] text-primary mt-0.5">Retirable</p>
             </div>
           </div>
@@ -124,7 +125,7 @@ const Portefeuille = () => {
         <div className="grid grid-cols-2 gap-3">
           {[
             { label: "Revenu d'aujourd'hui", value: fmt(todayEarnings), icon: TrendingUp },
-            { label: "Revenu total", value: fmt(earningsBalance), icon: TrendingUp },
+            { label: "Revenu total", value: fmt(profile.earnings_balance), icon: TrendingUp },
             { label: "Recharge totale", value: fmt(totalDeposits), icon: ArrowDownLeft },
             { label: "Total retraits", value: fmt(totalWithdrawals), icon: ArrowUpRight },
           ].map((stat) => (
