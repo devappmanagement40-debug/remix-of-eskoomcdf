@@ -23,26 +23,36 @@ const Retrait = () => {
   const [wallets, setWallets] = useState<WalletItem[]>([]);
   const [selectedWallet, setSelectedWallet] = useState("");
   const [amount, setAmount] = useState("");
-  const [balance, setBalance] = useState(0);
+  const [withdrawableBalance, setWithdrawableBalance] = useState(0);
+  const [earningsBalance, setEarningsBalance] = useState(0);
+  const [referralBalance, setReferralBalance] = useState(0);
+  const [depositNotWithdrawable, setDepositNotWithdrawable] = useState(true);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/connexion"); return; }
 
-    const [walletsRes, profileRes] = await Promise.all([
+    const [walletsRes, profileRes, settingsRes] = await Promise.all([
       supabase.from("user_wallets").select("*").eq("user_id", user.id),
-      supabase.from("profiles").select("balance").eq("user_id", user.id).single(),
+      supabase.from("profiles").select("balance, deposit_balance, earnings_balance, referral_balance").eq("user_id", user.id).single(),
+      supabase.from("site_settings").select("value").eq("key", "deposit_not_withdrawable").single(),
     ]);
 
     if (walletsRes.data) setWallets(walletsRes.data);
-    if (profileRes.data) setBalance(profileRes.data.balance || 0);
+    const dnw = settingsRes.data?.value === "true";
+    setDepositNotWithdrawable(dnw);
+    if (profileRes.data) {
+      const eb = profileRes.data.earnings_balance || 0;
+      const rb = profileRes.data.referral_balance || 0;
+      setEarningsBalance(eb);
+      setReferralBalance(rb);
+      setWithdrawableBalance(dnw ? eb + rb : profileRes.data.balance || 0);
+    }
     setLoading(false);
   };
 
@@ -53,7 +63,7 @@ const Retrait = () => {
   const handleSubmit = async () => {
     if (!selectedWallet) { showError("Erreur", "Sélectionnez un portefeuille"); return; }
     if (numAmount < MIN_AMOUNT) { showError("Erreur", `Montant minimum : ${MIN_AMOUNT} FCFA`); return; }
-    if (numAmount > balance) { showError("Erreur", "Solde insuffisant"); return; }
+    if (numAmount > withdrawableBalance) { showError("Erreur", "Solde retirable insuffisant"); return; }
 
     setSubmitting(true);
     const { data: { user } } = await supabase.auth.getUser();
@@ -96,8 +106,14 @@ const Retrait = () => {
       <div className="px-4 pt-6 space-y-4">
         {/* Balance */}
         <div className="bg-card rounded-xl border border-secondary p-4 text-center">
-          <p className="text-xs text-muted-foreground mb-1">Solde disponible</p>
-          <p className="text-2xl font-bold text-primary">{balance.toLocaleString("fr-FR")} <span className="text-sm font-normal text-muted-foreground">FCFA</span></p>
+          <p className="text-xs text-muted-foreground mb-1">Solde retirable</p>
+          <p className="text-2xl font-bold text-primary">{withdrawableBalance.toLocaleString("fr-FR")} <span className="text-sm font-normal text-muted-foreground">FCFA</span></p>
+          {depositNotWithdrawable && (
+            <div className="flex justify-center gap-3 mt-2">
+              <span className="text-[10px] bg-success/10 text-success px-2 py-0.5 rounded-full">Gains: {earningsBalance.toLocaleString("fr-FR")} F</span>
+              <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full">Parrainage: {referralBalance.toLocaleString("fr-FR")} F</span>
+            </div>
+          )}
         </div>
 
         {/* Info card */}
@@ -113,6 +129,7 @@ const Retrait = () => {
               { icon: "⏱️", text: "Délai de traitement : 1 à 24 heures" },
               { icon: "📱", text: "Le retrait est envoyé sur votre portefeuille mobile" },
               { icon: "🔒", text: "Les retraits sont vérifiés par l'administration" },
+              ...(depositNotWithdrawable ? [{ icon: "⚠️", text: "Seuls les gains et bonus de parrainage sont retirables" }] : []),
             ].map((info, i) => (
               <div key={i} className="flex items-start gap-2">
                 <span className="text-sm">{info.icon}</span>
@@ -181,16 +198,16 @@ const Retrait = () => {
           )}
         </div>
 
-        {numAmount > balance && (
+        {numAmount > withdrawableBalance && (
           <div className="flex items-center gap-2 bg-destructive/10 text-destructive rounded-xl px-4 py-3">
             <AlertTriangle size={16} />
-            <p className="text-xs font-medium">Solde insuffisant pour ce retrait</p>
+            <p className="text-xs font-medium">Solde retirable insuffisant</p>
           </div>
         )}
 
         <button
           onClick={handleSubmit}
-          disabled={submitting || wallets.length === 0 || numAmount < MIN_AMOUNT || numAmount > balance}
+          disabled={submitting || wallets.length === 0 || numAmount < MIN_AMOUNT || numAmount > withdrawableBalance}
           className="w-full gradient-button text-primary-foreground font-bold py-4 rounded-xl text-sm disabled:opacity-50 flex items-center justify-center gap-2"
         >
           <Wallet size={18} />

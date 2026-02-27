@@ -281,10 +281,13 @@ export type Database = {
           balance: number | null
           country_code: string | null
           created_at: string | null
+          deposit_balance: number | null
+          earnings_balance: number | null
           full_name: string | null
           id: string
           is_suspended: boolean | null
           phone: string | null
+          referral_balance: number | null
           referral_code: string | null
           referred_by: string | null
           updated_at: string | null
@@ -295,10 +298,13 @@ export type Database = {
           balance?: number | null
           country_code?: string | null
           created_at?: string | null
+          deposit_balance?: number | null
+          earnings_balance?: number | null
           full_name?: string | null
           id?: string
           is_suspended?: boolean | null
           phone?: string | null
+          referral_balance?: number | null
           referral_code?: string | null
           referred_by?: string | null
           updated_at?: string | null
@@ -309,10 +315,13 @@ export type Database = {
           balance?: number | null
           country_code?: string | null
           created_at?: string | null
+          deposit_balance?: number | null
+          earnings_balance?: number | null
           full_name?: string | null
           id?: string
           is_suspended?: boolean | null
           phone?: string | null
+          referral_balance?: number | null
           referral_code?: string | null
           referred_by?: string | null
           updated_at?: string | null
@@ -546,6 +555,122 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: []
+      }
+      vip_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string | null
+          id: string
+          new_level: number
+          old_level: number
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string | null
+          id?: string
+          new_level?: number
+          old_level?: number
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string | null
+          id?: string
+          new_level?: number
+          old_level?: number
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wheel_prizes: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean
+          label: string
+          prize_type: string
+          probability: number
+          sort_order: number
+          updated_at: string | null
+          value: number
+          vip_level: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          prize_type?: string
+          probability?: number
+          sort_order?: number
+          updated_at?: string | null
+          value?: number
+          vip_level?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          prize_type?: string
+          probability?: number
+          sort_order?: number
+          updated_at?: string | null
+          value?: number
+          vip_level?: number | null
+        }
+        Relationships: []
+      }
+      wheel_spins: {
+        Row: {
+          created_at: string | null
+          id: string
+          prize_id: string | null
+          prize_label: string
+          prize_type: string
+          prize_value: number
+          status: string
+          updated_at: string | null
+          user_id: string
+          vip_level: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          prize_id?: string | null
+          prize_label: string
+          prize_type?: string
+          prize_value?: number
+          status?: string
+          updated_at?: string | null
+          user_id: string
+          vip_level?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          prize_id?: string | null
+          prize_label?: string
+          prize_type?: string
+          prize_value?: number
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+          vip_level?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wheel_spins_prize_id_fkey"
+            columns: ["prize_id"]
+            isOneToOne: false
+            referencedRelation: "wheel_prizes"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       withdrawals: {
         Row: {
