@@ -7,10 +7,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import CountryPicker from "@/components/CountryPicker";
 import PremiumModal from "@/components/PremiumModal";
+import { usePhoneValidation } from "@/hooks/usePhoneValidation";
 
 const Login = () => {
   const navigate = useNavigate();
   const { showError } = useActionPopup();
+  const { validatePhone } = usePhoneValidation();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [countryCode, setCountryCode] = useState("+226");
@@ -21,6 +23,8 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone || !password) { showError("Erreur", "Veuillez remplir tous les champs"); return; }
+    const phoneCheck = validatePhone(phone, countryCode);
+    if (!phoneCheck.valid) { showError("Numero invalide", phoneCheck.message); return; }
 
     setLoading(true);
     const email = `${phone.replace(/\s/g, "")}@users.eskom.app`;
