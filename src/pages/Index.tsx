@@ -18,10 +18,10 @@ const banners = [
 ];
 
 const circleActions = [
-  { icon: ShoppingBag, label: "Mon produit" },
-  { icon: Clock, label: "Rechargeur" },
-  { icon: Download, label: "Retrait" },
-  { icon: Users, label: "Mon équipe" },
+  { icon: ShoppingBag, label: "Mon produit", path: "/mes-produits" },
+  { icon: Clock, label: "Rechargeur", path: "/portefeuille" },
+  { icon: Download, label: "Retrait", path: "/portefeuille" },
+  { icon: Users, label: "Mon équipe", path: "/equipe" },
 ];
 
 const quickActions = [
@@ -129,7 +129,7 @@ const Index = () => {
       <section className="px-4 mt-6">
         <div className="grid grid-cols-4 gap-4">
           {circleActions.map((action) => (
-            <button key={action.label} className="flex flex-col items-center gap-2">
+            <button key={action.label} onClick={() => navigate(action.path)} className="flex flex-col items-center gap-2">
               <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center border border-muted hover:border-primary transition-colors">
                 <action.icon size={22} className="text-muted-foreground" />
               </div>
