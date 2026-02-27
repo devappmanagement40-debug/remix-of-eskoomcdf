@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import BottomNav from "@/components/BottomNav";
 import CountryPicker from "@/components/CountryPicker";
@@ -17,6 +17,7 @@ type PaymentMethod = {
 
 const Recharge = () => {
   const navigate = useNavigate();
+  const { showError } = useActionPopup();
   const { validatePhone } = usePhoneValidation();
   const [amount, setAmount] = useState("");
   const [phone, setPhone] = useState("");
@@ -64,19 +65,19 @@ const Recharge = () => {
     const parsedAmount = parseFloat(amount);
     const phoneCheck = validatePhone(phone, countryCode);
     if (!phoneCheck.valid) {
-      toast.error(phoneCheck.message);
+      showError("Erreur", phoneCheck.message);
       return;
     }
     if (!parsedAmount || parsedAmount < minAmount) {
-      toast.error(`Le montant minimum est de ${minAmount.toLocaleString()} FCFA`);
+      showError("Erreur", `Le montant minimum est de ${minAmount.toLocaleString()} FCFA`);
       return;
     }
     if (parsedAmount > maxAmount) {
-      toast.error(`Le montant maximum est de ${maxAmount.toLocaleString()} FCFA`);
+      showError("Erreur", `Le montant maximum est de ${maxAmount.toLocaleString()} FCFA`);
       return;
     }
     if (!selectedMethod) {
-      toast.error("Veuillez selectionner un moyen de paiement");
+      showError("Erreur", "Veuillez selectionner un moyen de paiement");
       return;
     }
 
