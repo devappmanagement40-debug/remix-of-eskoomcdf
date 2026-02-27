@@ -202,6 +202,7 @@ export type Database = {
           created_at: string | null
           description: string
           id: string
+          image_url: string | null
           is_active: boolean | null
           sort_order: number | null
           title: string
@@ -211,6 +212,7 @@ export type Database = {
           created_at?: string | null
           description: string
           id?: string
+          image_url?: string | null
           is_active?: boolean | null
           sort_order?: number | null
           title: string
@@ -220,6 +222,7 @@ export type Database = {
           created_at?: string | null
           description?: string
           id?: string
+          image_url?: string | null
           is_active?: boolean | null
           sort_order?: number | null
           title?: string
@@ -672,6 +675,7 @@ export type Database = {
           condition_logic: string | null
           created_at: string | null
           id: string
+          image_url: string | null
           level: number
           level_name: string
           min_active_members: number | null
@@ -684,6 +688,7 @@ export type Database = {
           condition_logic?: string | null
           created_at?: string | null
           id?: string
+          image_url?: string | null
           level: number
           level_name: string
           min_active_members?: number | null
@@ -696,6 +701,7 @@ export type Database = {
           condition_logic?: string | null
           created_at?: string | null
           id?: string
+          image_url?: string | null
           level?: number
           level_name?: string
           min_active_members?: number | null

@@ -50,7 +50,7 @@ type PopupMsg = {
 };
 type AdminLog = { id: string; admin_id: string; action: string; target_type: string | null; details: string | null; created_at: string | null };
 type Country = { id: string; name: string; country_code: string; flag_emoji: string; is_active: boolean; sort_order: number };
-type VipCondition = { id: string; level: number; level_name: string; min_investment: number; min_active_members: number; min_purchases: number; min_products_bought: number; condition_logic: string };
+type VipCondition = { id: string; level: number; level_name: string; min_investment: number; min_active_members: number; min_purchases: number; min_products_bought: number; condition_logic: string; image_url: string | null };
 type UserProduct = { id: string; user_id: string; product_id: string; purchased_at: string; is_active: boolean; expires_at: string | null };
 
 // ==================== TABS CONFIG ====================
@@ -1680,12 +1680,13 @@ const FaqTab = ({ showSuccess, showError }: any) => {
   );
 };
 
-// ==================== INFO ITEMS ====================
+// ==================== INFO ITEMS (ANNONCES) ====================
 const InfoItemsTab = ({ showSuccess, showError }: any) => {
   const [items, setItems] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState({ title: "", description: "" });
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => { load(); }, []);
   const load = async () => {
@@ -1703,7 +1704,7 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
     if (!form.title || !form.description) { showError("Erreur", "Remplissez tous les champs"); return; }
     if (editing) await supabase.from("info_items").update(form).eq("id", editing.id);
     else await supabase.from("info_items").insert({ ...form, sort_order: items.length });
-    showSuccess(editing ? "Info modifiee" : "Info ajoutee", "");
+    showSuccess(editing ? "Annonce modifiée" : "Annonce ajoutée", "");
     setShowForm(false); load();
   };
 
@@ -1714,33 +1715,66 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
 
   const remove = async (id: string) => {
     await supabase.from("info_items").delete().eq("id", id);
-    showSuccess("Info supprimee", ""); load();
+    showSuccess("Annonce supprimée", ""); load();
+  };
+
+  const uploadImage = async (itemId: string, file: File) => {
+    setUploading(true);
+    const ext = file.name.split(".").pop();
+    const path = `annonces/${itemId}.${ext}`;
+    const { error: upErr } = await supabase.storage.from("site-assets").upload(path, file, { upsert: true });
+    if (upErr) { showError("Erreur", "Upload échoué"); setUploading(false); return; }
+    const { data: urlData } = supabase.storage.from("site-assets").getPublicUrl(path);
+    await supabase.from("info_items").update({ image_url: urlData.publicUrl }).eq("id", itemId);
+    showSuccess("Image ajoutée", "");
+    setUploading(false);
+    load();
+  };
+
+  const removeImage = async (itemId: string) => {
+    await supabase.from("info_items").update({ image_url: null }).eq("id", itemId);
+    showSuccess("Image supprimée", "");
+    load();
   };
 
   return (
     <div className="space-y-3">
       <button onClick={() => openForm()} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
-        <Plus size={16} /> Ajouter une information
+        <Plus size={16} /> Ajouter une annonce
       </button>
 
       {showForm && (
         <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
-          <div className="flex justify-between"><span className="text-xs font-bold text-foreground">{editing ? "Modifier" : "Nouvelle info"}</span><button onClick={() => setShowForm(false)}><X size={14} className="text-muted-foreground" /></button></div>
+          <div className="flex justify-between"><span className="text-xs font-bold text-foreground">{editing ? "Modifier" : "Nouvelle annonce"}</span><button onClick={() => setShowForm(false)}><X size={14} className="text-muted-foreground" /></button></div>
           <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Titre" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
           <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Description" rows={3} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none resize-none" />
           <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm">{editing ? "Modifier" : "Ajouter"}</button>
         </div>
       )}
 
-      {items.length === 0 ? <p className="text-xs text-muted-foreground text-center py-6">Aucune information</p> :
+      {items.length === 0 ? <p className="text-xs text-muted-foreground text-center py-6">Aucune annonce</p> :
         items.map((item: any) => (
           <div key={item.id} className={`bg-card rounded-xl border border-secondary p-4 ${!item.is_active ? "opacity-50" : ""}`}>
             <div className="flex items-start justify-between gap-2">
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-foreground">{item.title}</p>
-                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
+              <div className="flex gap-3 flex-1 min-w-0">
+                {item.image_url && (
+                  <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 relative group">
+                    <img src={item.image_url} alt="" className="w-full h-full object-cover" />
+                    <button onClick={() => removeImage(item.id)} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Trash2 size={14} className="text-white" />
+                    </button>
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
+                </div>
               </div>
               <div className="flex gap-1.5 shrink-0">
+                <label className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center cursor-pointer">
+                  <ImageIcon size={10} className="text-primary" />
+                  <input type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) uploadImage(item.id, e.target.files[0]); }} />
+                </label>
                 <button onClick={() => toggle(item)} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${item.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{item.is_active ? "ON" : "OFF"}</button>
                 <button onClick={() => openForm(item)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
                 <button onClick={() => remove(item.id)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
@@ -1749,6 +1783,7 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
           </div>
         ))
       }
+      {uploading && <p className="text-xs text-center text-muted-foreground animate-pulse">Upload en cours...</p>}
     </div>
   );
 };
@@ -2029,6 +2064,7 @@ const CountriesTab = ({ countries, methods, reload, showSuccess, showError }: an
 const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ min_investment: "", min_active_members: "", min_purchases: "", min_products_bought: "", condition_logic: "OR" });
+  const [uploading, setUploading] = useState(false);
 
   const startEdit = (c: VipCondition) => {
     setEditingId(c.id);
@@ -2050,8 +2086,27 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
       min_products_bought: Number(form.min_products_bought) || 0,
       condition_logic: form.condition_logic,
     }).eq("id", editingId);
-    showSuccess("Conditions VIP mises à jour ✅", "");
+    showSuccess("Conditions VIP mises à jour", "");
     setEditingId(null);
+    reload();
+  };
+
+  const uploadImage = async (condId: string, level: number, file: File) => {
+    setUploading(true);
+    const ext = file.name.split(".").pop();
+    const path = `vip/level-${level}.${ext}`;
+    const { error: upErr } = await supabase.storage.from("site-assets").upload(path, file, { upsert: true });
+    if (upErr) { showError("Erreur", "Upload échoué"); setUploading(false); return; }
+    const { data: urlData } = supabase.storage.from("site-assets").getPublicUrl(path);
+    await supabase.from("vip_conditions").update({ image_url: urlData.publicUrl }).eq("id", condId);
+    showSuccess("Image VIP ajoutée", "");
+    setUploading(false);
+    reload();
+  };
+
+  const removeImage = async (condId: string) => {
+    await supabase.from("vip_conditions").update({ image_url: null }).eq("id", condId);
+    showSuccess("Image supprimée", "");
     reload();
   };
 
@@ -2059,7 +2114,7 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
     <div className="space-y-4">
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
         <p className="text-xs text-muted-foreground">
-          💡 Configurez les conditions pour chaque niveau VIP. Logique <b>OU</b> = une seule condition suffit. <b>ET</b> = toutes requises.
+          Configurez les conditions pour chaque niveau VIP. Logique <b>OU</b> = une seule condition suffit. <b>ET</b> = toutes requises.
         </p>
       </div>
 
@@ -2114,10 +2169,24 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
+                  {c.image_url && (
+                    <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 relative group">
+                      <img src={c.image_url} alt="" className="w-full h-full object-cover" />
+                      <button onClick={() => removeImage(c.id)} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Trash2 size={10} className="text-white" />
+                      </button>
+                    </div>
+                  )}
                   <span className="text-sm font-bold text-primary">{c.level_name}</span>
                   <span className="text-[9px] bg-secondary text-muted-foreground px-2 py-0.5 rounded-full">Niveau {c.level}</span>
                 </div>
-                <button onClick={() => startEdit(c)} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center"><Pencil size={12} className="text-primary" /></button>
+                <div className="flex gap-1.5">
+                  <label className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center cursor-pointer">
+                    <ImageIcon size={12} className="text-primary" />
+                    <input type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) uploadImage(c.id, c.level, e.target.files[0]); }} />
+                  </label>
+                  <button onClick={() => startEdit(c)} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center"><Pencil size={12} className="text-primary" /></button>
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-secondary/50 rounded-lg p-2">
@@ -2142,6 +2211,7 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
           )}
         </div>
       ))}
+      {uploading && <p className="text-xs text-center text-muted-foreground animate-pulse">Upload en cours...</p>}
     </div>
   );
 };
