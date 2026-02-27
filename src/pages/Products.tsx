@@ -4,7 +4,7 @@ import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ClipboardList, ShoppingCart } from "lucide-react";
+import { ClipboardList, ShoppingCart, Package } from "lucide-react";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 
 type Series = { id: string; name: string; color: string | null; sort_order: number | null };
@@ -104,65 +104,73 @@ const Products = () => {
             <p className="text-sm text-muted-foreground">La liste des produits est vide</p>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
             {filtered.map(product => {
               const productSeries = series.find(s => s.id === product.series_id);
               const seriesColor = productSeries?.color || "primary";
 
               return (
-                <div key={product.id} className="bg-card rounded-xl border border-secondary overflow-hidden">
-                  <div className="flex gap-3 p-3">
-                    {product.image_url && (
-                      <div className="relative w-28 h-32 rounded-lg overflow-hidden flex-shrink-0">
-                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
-                        {product.is_new && (
-                          <Badge className="absolute top-2 left-2 bg-success text-success-foreground text-[10px] px-2 py-0.5">
-                            nouveau
-                          </Badge>
-                        )}
+                <div key={product.id} className="bg-card rounded-2xl border border-secondary overflow-hidden flex flex-col">
+                  {/* Image */}
+                  <div className="relative aspect-square bg-secondary/30 overflow-hidden">
+                    {product.image_url ? (
+                      <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Package size={40} className="text-muted-foreground/30" />
                       </div>
                     )}
-                    <div className="flex flex-col gap-1.5 flex-1 min-w-0">
-                      <div className="flex gap-2 items-center flex-wrap">
-                        <Badge variant="outline" className={`${colorBorderMap[seriesColor] || ""} text-xs`}>
-                          {product.name}
+                    {/* Badges overlay */}
+                    <div className="absolute top-2 left-2 flex flex-col gap-1">
+                      {product.is_new && (
+                        <Badge className="bg-success text-success-foreground text-[9px] px-2 py-0.5 shadow-md">
+                          Nouveau
                         </Badge>
-                        <Badge className="bg-success text-success-foreground text-xs">
-                          {product.return_percent}%
-                        </Badge>
-                        {!product.image_url && product.is_new && (
-                          <Badge className="bg-warning text-warning-foreground text-[10px]">NEW</Badge>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-2 gap-x-3 gap-y-1 mt-1">
-                        <div>
-                          <p className="text-[10px] text-muted-foreground">Total des revenus</p>
-                          <p className="text-sm font-bold text-primary">{Number(product.total_revenue).toLocaleString("fr-FR")}</p>
-                          <p className="text-[10px] text-muted-foreground">FCFA</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-muted-foreground">Revenu Quotidien</p>
-                          <p className="text-sm font-bold text-primary">{Number(product.daily_revenue).toLocaleString("fr-FR")}</p>
-                          <p className="text-[10px] text-muted-foreground">FCFA</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-muted-foreground">Cycles</p>
-                          <p className="text-sm font-bold text-primary">{product.cycles}</p>
-                        </div>
-                        <div>
-                          <p className="text-[10px] text-muted-foreground">Prix</p>
-                          <p className="text-sm font-bold text-primary">{Number(product.price).toLocaleString("fr-FR")}</p>
-                          <p className="text-[10px] text-muted-foreground">FCFA</p>
-                        </div>
-                      </div>
+                      )}
+                      <Badge className="bg-primary/90 text-primary-foreground text-[9px] px-2 py-0.5 shadow-md backdrop-blur-sm">
+                        Actuellement
+                      </Badge>
+                    </div>
+                    <div className="absolute top-2 right-2">
+                      <Badge className={`${colorMap[seriesColor] || colorMap.primary} text-[9px] px-2 py-0.5 shadow-md`}>
+                        {product.return_percent}%
+                      </Badge>
                     </div>
                   </div>
-                  <div className="px-3 pb-3">
+
+                  {/* Content */}
+                  <div className="p-3 flex flex-col gap-2 flex-1">
+                    <h3 className="text-sm font-bold text-foreground truncate">{product.name}</h3>
+                    {productSeries && (
+                      <Badge variant="outline" className={`${colorBorderMap[seriesColor] || ""} text-[10px] w-fit`}>
+                        {productSeries.name}
+                      </Badge>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-x-2 gap-y-1.5 mt-1">
+                      <div>
+                        <p className="text-[9px] text-muted-foreground">Revenu total</p>
+                        <p className="text-xs font-bold text-primary">{Number(product.total_revenue).toLocaleString("fr-FR")}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] text-muted-foreground">Quotidien</p>
+                        <p className="text-xs font-bold text-primary">{Number(product.daily_revenue).toLocaleString("fr-FR")}</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] text-muted-foreground">Cycles</p>
+                        <p className="text-xs font-bold text-foreground">{product.cycles}j</p>
+                      </div>
+                      <div>
+                        <p className="text-[9px] text-muted-foreground">Prix</p>
+                        <p className="text-xs font-bold text-primary">{Number(product.price).toLocaleString("fr-FR")}</p>
+                      </div>
+                    </div>
+
                     <Button
-                      className="gradient-button w-full h-9 text-sm font-semibold gap-2"
+                      className="gradient-button w-full h-8 text-xs font-semibold gap-1.5 mt-auto"
                       onClick={() => showInfo(`Achat de ${product.name} à ${Number(product.price).toLocaleString("fr-FR")} FCFA`, "Confirmer l'achat")}
                     >
-                      <ShoppingCart size={16} />
+                      <ShoppingCart size={14} />
                       Acheter
                     </Button>
                   </div>

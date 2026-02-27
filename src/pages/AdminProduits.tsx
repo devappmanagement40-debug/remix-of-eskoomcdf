@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
-import { Plus, Edit2, Trash2, Package, Layers, ChevronDown, ChevronUp, X } from "lucide-react";
+import { Plus, Edit2, Trash2, Package, Layers, ChevronDown, ChevronUp, X, Upload, ImageIcon } from "lucide-react";
 
 type Series = { id: string; name: string; color: string | null; sort_order: number | null; created_at: string | null };
 type Product = {
@@ -46,6 +46,8 @@ const AdminProduits = () => {
   const [productCycles, setProductCycles] = useState("365");
   const [productPrice, setProductPrice] = useState("");
   const [productIsNew, setProductIsNew] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     checkAdminAndLoad();
@@ -114,6 +116,24 @@ const AdminProduits = () => {
     }
     setShowProductForm(true);
     setShowSeriesForm(false);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const ext = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await supabase.storage.from('product-images').upload(fileName, file);
+    if (error) {
+      showError("Erreur", "Impossible d'uploader l'image");
+      setUploading(false);
+      return;
+    }
+    const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
+    setProductImageUrl(urlData.publicUrl);
+    setUploading(false);
+    showSuccess("Image uploadée", "L'image a été ajoutée avec succès ✅");
   };
 
   const saveProduct = async () => {
@@ -196,8 +216,35 @@ const AdminProduits = () => {
             </div>
             <input value={productName} onChange={e => setProductName(e.target.value)} placeholder="Nom du produit"
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary focus:border-primary outline-none" />
-            <input value={productImageUrl} onChange={e => setProductImageUrl(e.target.value)} placeholder="URL de l'image (optionnel)"
-              className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary focus:border-primary outline-none" />
+            
+            {/* Image upload */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-2 block">Image du produit</label>
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+              {productImageUrl ? (
+                <div className="relative w-full h-32 rounded-xl overflow-hidden border border-secondary">
+                  <img src={productImageUrl} alt="Preview" className="w-full h-full object-cover" />
+                  <button onClick={() => setProductImageUrl("")} className="absolute top-2 right-2 w-6 h-6 rounded-full bg-background/80 flex items-center justify-center">
+                    <X size={12} className="text-foreground" />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="w-full h-24 rounded-xl border-2 border-dashed border-secondary hover:border-primary flex flex-col items-center justify-center gap-2 transition-colors"
+                >
+                  {uploading ? (
+                    <span className="text-xs text-muted-foreground">Upload en cours...</span>
+                  ) : (
+                    <>
+                      <Upload size={20} className="text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Cliquez pour ajouter une image</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground">Prix (FCFA)</label>
