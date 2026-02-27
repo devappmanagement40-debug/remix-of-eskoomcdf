@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import PageHeader from "@/components/PageHeader";
 import { AlertTriangle, Clock, Wallet, Info } from "lucide-react";
+import PremiumModal from "@/components/PremiumModal";
 
 type WalletItem = {
   id: string;
@@ -24,6 +25,7 @@ const Retrait = () => {
   const [balance, setBalance] = useState(0);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -73,8 +75,7 @@ const Retrait = () => {
     if (error) {
       toast.error("Erreur lors de la demande");
     } else {
-      toast.success("Demande de retrait envoyée ✅");
-      navigate("/portefeuille");
+      setShowSuccess(true);
     }
     setSubmitting(false);
   };
@@ -196,6 +197,12 @@ const Retrait = () => {
           <Wallet size={18} />
           {submitting ? "Envoi en cours..." : "Lancer le retrait"}
         </button>
+
+        <PremiumModal
+          triggerKey="withdrawal_sent"
+          open={showSuccess}
+          onClose={() => { setShowSuccess(false); navigate("/portefeuille"); }}
+        />
       </div>
     </div>
   );

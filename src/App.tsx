@@ -29,6 +29,7 @@ import LierCarte from "./pages/LierCarte";
 import Retrait from "./pages/Retrait";
 import AdminRetraits from "./pages/AdminRetraits";
 import AdminProduits from "./pages/AdminProduits";
+import AdminPopups from "./pages/AdminPopups";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,7 @@ const App = () => (
           <Route path="/retrait" element={<Retrait />} />
           <Route path="/admin/retraits" element={<AdminRetraits />} />
           <Route path="/admin/produits" element={<AdminProduits />} />
+          <Route path="/admin/popups" element={<AdminPopups />} />
           <Route path="/profil" element={<Profile />} />
           <Route path="/parametres" element={<Settings />} />
           <Route path="/loterie" element={<Loterie />} />
