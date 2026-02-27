@@ -190,10 +190,17 @@ const Index = () => {
             {annonces.map((item) => (
               <div
                 key={item.id}
-                className="bg-card rounded-xl border border-secondary p-4 cursor-pointer hover:border-primary transition-colors"
+                className="bg-card rounded-xl border border-secondary p-4 flex gap-4 cursor-pointer hover:border-primary transition-colors"
               >
-                <h3 className="text-sm font-bold text-foreground mb-1">{item.title}</h3>
-                <p className="text-xs text-muted-foreground line-clamp-3">{item.description}</p>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-sm font-bold text-foreground mb-1">{item.title}</h3>
+                  <p className="text-xs text-muted-foreground line-clamp-3">{item.description}</p>
+                </div>
+                {item.image_url && (
+                  <div className="w-24 h-20 rounded-lg overflow-hidden flex-shrink-0">
+                    <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
+                  </div>
+                )}
               </div>
             ))}
           </div>
