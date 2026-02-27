@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import EskomLogo from "@/components/EskomLogo";
 import PageHeader from "@/components/PageHeader";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -10,10 +12,46 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [inviteCode, setInviteCode] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/");
+    if (!phone || !password || !confirmPassword) { toast.error("Veuillez remplir tous les champs"); return; }
+    if (phone.length < 8) { toast.error("Numéro de téléphone invalide"); return; }
+    if (password.length < 6) { toast.error("Le mot de passe doit contenir au moins 6 caractères"); return; }
+    if (password !== confirmPassword) { toast.error("Les mots de passe ne correspondent pas"); return; }
+
+    setLoading(true);
+    const cleanPhone = phone.replace(/\s/g, "");
+    const email = `${cleanPhone}@users.eskom.app`;
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: cleanPhone,
+          phone: cleanPhone,
+        },
+      },
+    });
+
+    if (error) {
+      if (error.message.includes("already registered")) {
+        toast.error("Ce numéro est déjà inscrit");
+      } else {
+        toast.error("Erreur lors de l'inscription");
+      }
+    } else {
+      // Update profile with phone info
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await supabase.from("profiles").update({ phone: cleanPhone, country_code: "+226" }).eq("user_id", user.id);
+      }
+      toast.success("Compte créé avec succès ✅");
+      navigate("/");
+    }
+    setLoading(false);
   };
 
   return (
@@ -36,7 +74,7 @@ const Signup = () => {
                 type="tel"
                 placeholder="Numéro Téléphone"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                 className="border-0 bg-transparent focus-visible:ring-0 text-foreground placeholder:text-muted-foreground"
               />
             </div>
@@ -75,19 +113,16 @@ const Signup = () => {
           <div className="pt-6">
             <button
               type="submit"
-              className="w-full gradient-button text-foreground font-semibold py-3.5 rounded-xl text-base transition-opacity hover:opacity-90"
+              disabled={loading}
+              className="w-full gradient-button text-foreground font-semibold py-3.5 rounded-xl text-base transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              Inscription
+              {loading ? "Inscription..." : "Inscription"}
             </button>
           </div>
 
           <p className="text-center text-sm text-muted-foreground pt-2">
             Vous avez déjà un compte ? /{" "}
-            <button
-              type="button"
-              onClick={() => navigate("/connexion")}
-              className="text-primary font-medium hover:underline"
-            >
+            <button type="button" onClick={() => navigate("/connexion")} className="text-primary font-medium hover:underline">
               Connexion
             </button>
           </p>

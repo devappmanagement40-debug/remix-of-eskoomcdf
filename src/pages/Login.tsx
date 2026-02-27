@@ -3,15 +3,31 @@ import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import EskomLogo from "@/components/EskomLogo";
 import PageHeader from "@/components/PageHeader";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const Login = () => {
   const navigate = useNavigate();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate("/");
+    if (!phone || !password) { toast.error("Veuillez remplir tous les champs"); return; }
+
+    setLoading(true);
+    const email = `${phone.replace(/\s/g, "")}@users.eskom.app`;
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+    if (error) {
+      toast.error("Numéro ou mot de passe incorrect");
+    } else {
+      toast.success("Connexion réussie ✅");
+      navigate("/");
+    }
+    setLoading(false);
   };
 
   return (
@@ -34,7 +50,7 @@ const Login = () => {
                 type="tel"
                 placeholder="Numéro Téléphone"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                 className="border-0 bg-transparent focus-visible:ring-0 text-foreground placeholder:text-muted-foreground"
               />
             </div>
@@ -53,19 +69,16 @@ const Login = () => {
           <div className="pt-6">
             <button
               type="submit"
-              className="w-full gradient-button text-foreground font-semibold py-3.5 rounded-xl text-base transition-opacity hover:opacity-90"
+              disabled={loading}
+              className="w-full gradient-button text-foreground font-semibold py-3.5 rounded-xl text-base transition-opacity hover:opacity-90 disabled:opacity-50"
             >
-              Connexion
+              {loading ? "Connexion..." : "Connexion"}
             </button>
           </div>
 
           <p className="text-center text-sm text-muted-foreground pt-2">
             Vous n'avez pas de compte ? /{" "}
-            <button
-              type="button"
-              onClick={() => navigate("/inscription")}
-              className="text-primary font-medium hover:underline"
-            >
+            <button type="button" onClick={() => navigate("/inscription")} className="text-primary font-medium hover:underline">
               S'inscrire
             </button>
           </p>

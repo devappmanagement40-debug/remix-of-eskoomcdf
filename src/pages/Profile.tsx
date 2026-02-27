@@ -167,7 +167,10 @@ const Profile = () => {
 
         {/* Déconnexion - same style */}
         <button
-          onClick={() => navigate("/connexion")}
+          onClick={async () => {
+            await supabase.auth.signOut();
+            navigate("/connexion");
+          }}
           className="w-full bg-card rounded-xl border border-secondary p-4 flex items-center justify-center gap-3 hover:border-primary transition-colors"
         >
           <LogOut size={20} className="text-primary" />
