@@ -1,14 +1,13 @@
 import { Wallet, Download, Clock, MessageCircle, Headphones, FileText, Smartphone, CreditCard, Lock, Gift, LogOut, Crown, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeProfile } from "@/hooks/useRealtimeProfile";
+import { useVipProgress } from "@/hooks/useVipProgress";
 import PremiumModal from "@/components/PremiumModal";
-
-const vipLevels = ["VIP0", "VIP1", "VIP2", "VIP3", "VIP4", "VIP5"];
 
 const actionButtons = [
   { icon: Wallet, label: "Recharger", path: "/portefeuille" },
@@ -29,35 +28,11 @@ const menuGrid = [
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { profile, loading } = useRealtimeProfile();
-  const [progress, setProgress] = useState(0);
+  const { profile, userId, loading } = useRealtimeProfile();
+  const { vipProgress } = useVipProgress(userId, profile.vip_level, profile.balance);
   const [showLogout, setShowLogout] = useState(false);
 
-  const vipIndex = profile.vip_level || 0;
   const phone = profile.phone || "...";
-
-  useEffect(() => {
-    const fetchVip = async () => {
-      const { data: vipData } = await supabase.from("vip_conditions").select("*").order("level");
-      if (vipData && vipData.length > 0) {
-        const nextCondition = vipData.find((v: any) => v.level === vipIndex + 1);
-        if (nextCondition && nextCondition.min_investment > 0) {
-          const currentCondition = vipData.find((v: any) => v.level === vipIndex);
-          const minThreshold = currentCondition?.min_investment || 0;
-          const maxThreshold = nextCondition.min_investment;
-          const prog = Math.max(0, ((profile.balance - minThreshold) / (maxThreshold - minThreshold)) * 100);
-          setProgress(Math.min(prog, 100));
-        } else {
-          setProgress(vipIndex >= 5 ? 100 : 0);
-        }
-      }
-    };
-    if (!loading) fetchVip();
-  }, [loading, profile.balance, vipIndex]);
-
-  const currentVip = vipLevels[vipIndex];
-  const nextVip = vipIndex < vipLevels.length - 1 ? vipLevels[vipIndex + 1] : null;
-  const progressClamped = Math.min(Math.round(progress), 100);
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -83,32 +58,50 @@ const Profile = () => {
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full gradient-button text-xs font-bold text-primary-foreground shadow-[0_0_15px_hsl(174_72%_50%/0.4)]">
                 <Crown size={12} />
-                {currentVip}
+                {vipProgress.currentLevelName}
               </span>
             </div>
-            {nextVip && (
+            {vipProgress.nextLevelName && (
               <p className="text-xs text-primary font-medium">
-                Suivant VIP : <span className="font-bold">{nextVip}</span>
+                Suivant VIP : <span className="font-bold">{vipProgress.nextLevelName}</span>
               </p>
             )}
-            {nextVip && (
+            {vipProgress.nextLevelName && (
               <div className="w-full mt-2 bg-secondary/50 rounded-xl p-4 border border-secondary">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-muted-foreground">Progression vers {nextVip}</span>
-                  <span className="text-xs font-bold text-primary">{progressClamped}%</span>
+                  <span className="text-xs text-muted-foreground">Progression vers {vipProgress.nextLevelName}</span>
+                  <span className="text-xs font-bold text-primary">{vipProgress.overallProgress}%</span>
                 </div>
                 <div className="relative h-3 w-full rounded-full bg-muted overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-1000 ease-out"
                     style={{
-                      width: `${progressClamped}%`,
+                      width: `${vipProgress.overallProgress}%`,
                       background: 'linear-gradient(90deg, hsl(174 72% 50%), hsl(174 72% 65%), hsl(200 80% 55%))',
                       boxShadow: '0 0 10px hsl(174 72% 50% / 0.5)',
                     }}
                   />
                 </div>
+                {/* Criteria breakdown */}
+                {vipProgress.criteria.length > 0 && (
+                  <div className="mt-3 space-y-1.5">
+                    {vipProgress.criteria.map((c, i) => (
+                      <div key={i} className="flex items-center justify-between text-[10px]">
+                        <span className={c.met ? "text-success font-medium" : "text-muted-foreground"}>
+                          {c.met ? "✅" : "⬜"} {c.label}
+                        </span>
+                        <span className={c.met ? "text-success font-bold" : "text-muted-foreground"}>
+                          {typeof c.current === 'number' && c.current > 100
+                            ? `${c.current.toLocaleString('fr-FR')} / ${c.required.toLocaleString('fr-FR')}`
+                            : `${c.current} / ${c.required}`
+                          }
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <p className="text-[10px] text-muted-foreground mt-2 text-center">
-                  {progressClamped < 100 ? `Encore ${100 - progressClamped}% pour passer au niveau supérieur` : "Félicitations ! Niveau atteint 🎉"}
+                  {vipProgress.allMet ? "Félicitations ! Conditions remplies 🎉" : `Encore ${100 - vipProgress.overallProgress}% pour passer au niveau supérieur`}
                 </p>
               </div>
             )}

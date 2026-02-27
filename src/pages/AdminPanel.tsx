@@ -30,7 +30,7 @@ type Withdrawal = {
   net_amount: number; phone: string; country_code: string; network: string;
   status: string; created_at: string | null;
 };
-type Series = { id: string; name: string; color: string | null; sort_order: number | null };
+type Series = { id: string; name: string; color: string | null; sort_order: number | null; min_vip_level: number | null; min_personal_investment: number | null; min_team_investment: number | null; min_active_members: number | null };
 type Product = {
   id: string; series_id: string; name: string; image_url: string | null;
   return_percent: number | null; total_revenue: number | null; daily_revenue: number | null;
@@ -50,7 +50,7 @@ type PopupMsg = {
 };
 type AdminLog = { id: string; admin_id: string; action: string; target_type: string | null; details: string | null; created_at: string | null };
 type Country = { id: string; name: string; country_code: string; flag_emoji: string; is_active: boolean; sort_order: number };
-type VipCondition = { id: string; level: number; level_name: string; min_investment: number; min_active_members: number; min_purchases: number; min_products_bought: number; condition_logic: string; image_url: string | null };
+type VipCondition = { id: string; level: number; level_name: string; min_investment: number; min_active_members: number; min_purchases: number; min_products_bought: number; min_team_investment: number; condition_logic: string; image_url: string | null };
 type UserProduct = { id: string; user_id: string; product_id: string; purchased_at: string; is_active: boolean; expires_at: string | null };
 
 // ==================== TABS CONFIG ====================
@@ -715,6 +715,7 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
   const [showSeriesForm, setShowSeriesForm] = useState(false);
   const [seriesName, setSeriesName] = useState("");
   const [seriesColor, setSeriesColor] = useState("primary");
+  const [seriesConditions, setSeriesConditions] = useState({ min_vip_level: "", min_personal_investment: "", min_team_investment: "", min_active_members: "" });
   const [editingSeries, setEditingSeries] = useState<Series | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -763,15 +764,22 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
 
   const saveSeries = async () => {
     if (!seriesName.trim()) return;
-    if (editingSeries) await supabase.from("product_series").update({ name: seriesName, color: seriesColor }).eq("id", editingSeries.id);
-    else await supabase.from("product_series").insert({ name: seriesName, color: seriesColor, sort_order: series.length });
+    const payload: any = {
+      name: seriesName, color: seriesColor,
+      min_vip_level: Number(seriesConditions.min_vip_level) || 0,
+      min_personal_investment: Number(seriesConditions.min_personal_investment) || 0,
+      min_team_investment: Number(seriesConditions.min_team_investment) || 0,
+      min_active_members: Number(seriesConditions.min_active_members) || 0,
+    };
+    if (editingSeries) await supabase.from("product_series").update(payload).eq("id", editingSeries.id);
+    else await supabase.from("product_series").insert({ ...payload, sort_order: series.length });
     showSuccess(editingSeries ? "Série modifiée ✅" : "Série créée ✅", "");
     setShowSeriesForm(false); reload();
   };
 
   return (
     <div className="space-y-3">
-      <button onClick={() => { setEditingSeries(null); setSeriesName(""); setSeriesColor("primary"); setShowSeriesForm(true); setShowForm(false); }}
+      <button onClick={() => { setEditingSeries(null); setSeriesName(""); setSeriesColor("primary"); setSeriesConditions({ min_vip_level: "", min_personal_investment: "", min_team_investment: "", min_active_members: "" }); setShowSeriesForm(true); setShowForm(false); }}
         className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
         <Layers size={16} /> Ajouter une série
       </button>
@@ -781,6 +789,31 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
           <div className="flex justify-between"><h3 className="text-sm font-bold text-foreground">{editingSeries ? "Modifier série" : "Nouvelle série"}</h3><button onClick={() => setShowSeriesForm(false)}><X size={16} className="text-muted-foreground" /></button></div>
           <input value={seriesName} onChange={e => setSeriesName(e.target.value)} placeholder="Nom" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary focus:border-primary outline-none" />
           <div className="flex gap-2">{colorOptions.map(c => (<button key={c.value} onClick={() => setSeriesColor(c.value)} className={`w-8 h-8 rounded-full ${c.css} border-2 ${seriesColor === c.value ? "border-foreground scale-110" : "border-transparent"}`} />))}</div>
+          <div className="border-t border-secondary pt-3 mt-2">
+            <p className="text-xs font-bold text-foreground mb-2">Conditions d'accès à cette série</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] text-muted-foreground">VIP minimum</label>
+                <input type="number" value={seriesConditions.min_vip_level} onChange={e => setSeriesConditions({ ...seriesConditions, min_vip_level: e.target.value })} placeholder="0"
+                  className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+              </div>
+              <div>
+                <label className="text-[10px] text-muted-foreground">Invest. perso min (FCFA)</label>
+                <input type="number" value={seriesConditions.min_personal_investment} onChange={e => setSeriesConditions({ ...seriesConditions, min_personal_investment: e.target.value })} placeholder="0"
+                  className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+              </div>
+              <div>
+                <label className="text-[10px] text-muted-foreground">Invest. équipe min (FCFA)</label>
+                <input type="number" value={seriesConditions.min_team_investment} onChange={e => setSeriesConditions({ ...seriesConditions, min_team_investment: e.target.value })} placeholder="0"
+                  className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+              </div>
+              <div>
+                <label className="text-[10px] text-muted-foreground">Membres actifs min</label>
+                <input type="number" value={seriesConditions.min_active_members} onChange={e => setSeriesConditions({ ...seriesConditions, min_active_members: e.target.value })} placeholder="0"
+                  className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+              </div>
+            </div>
+          </div>
           <button onClick={saveSeries} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editingSeries ? "Modifier" : "Créer"}</button>
         </div>
       )}
@@ -832,7 +865,7 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
                 {isExpanded ? <ChevronUp size={14} className="text-muted-foreground" /> : <ChevronDown size={14} className="text-muted-foreground" />}
               </button>
               <div className="flex gap-1.5">
-                <button onClick={() => { setEditingSeries(s); setSeriesName(s.name); setSeriesColor(s.color || "primary"); setShowSeriesForm(true); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
+                <button onClick={() => { setEditingSeries(s); setSeriesName(s.name); setSeriesColor(s.color || "primary"); setSeriesConditions({ min_vip_level: String(s.min_vip_level || 0), min_personal_investment: String(s.min_personal_investment || 0), min_team_investment: String(s.min_team_investment || 0), min_active_members: String(s.min_active_members || 0) }); setShowSeriesForm(true); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
                 <button onClick={async () => { await supabase.from("product_series").delete().eq("id", s.id); showSuccess("Supprimé", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
               </div>
             </div>
@@ -2142,7 +2175,7 @@ const CountriesTab = ({ countries, methods, reload, showSuccess, showError }: an
 // ==================== VIP CONDITIONS ====================
 const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ min_investment: "", min_active_members: "", min_purchases: "", min_products_bought: "", condition_logic: "OR" });
+  const [form, setForm] = useState({ min_investment: "", min_active_members: "", min_purchases: "", min_products_bought: "", min_team_investment: "", condition_logic: "OR" });
   const [uploading, setUploading] = useState(false);
 
   const startEdit = (c: VipCondition) => {
@@ -2152,6 +2185,7 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
       min_active_members: String(c.min_active_members || 0),
       min_purchases: String(c.min_purchases || 0),
       min_products_bought: String(c.min_products_bought || 0),
+      min_team_investment: String(c.min_team_investment || 0),
       condition_logic: c.condition_logic || "OR",
     });
   };
@@ -2163,6 +2197,7 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
       min_active_members: Number(form.min_active_members) || 0,
       min_purchases: Number(form.min_purchases) || 0,
       min_products_bought: Number(form.min_products_bought) || 0,
+      min_team_investment: Number(form.min_team_investment) || 0,
       condition_logic: form.condition_logic,
     }).eq("id", editingId);
     showSuccess("Conditions VIP mises à jour", "");
@@ -2207,8 +2242,13 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-muted-foreground">Invest. min (FCFA)</label>
+                  <label className="text-xs text-muted-foreground">Invest. perso min (FCFA)</label>
                   <input type="number" value={form.min_investment} onChange={e => setForm({ ...form, min_investment: e.target.value })}
+                    className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Invest. équipe min (FCFA)</label>
+                  <input type="number" value={form.min_team_investment} onChange={e => setForm({ ...form, min_team_investment: e.target.value })}
                     className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
                 </div>
                 <div>
@@ -2269,8 +2309,12 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-secondary/50 rounded-lg p-2">
-                  <p className="text-[10px] text-muted-foreground">Investissement</p>
+                  <p className="text-[10px] text-muted-foreground">Invest. perso</p>
                   <p className="text-xs font-bold text-foreground">{Number(c.min_investment).toLocaleString()} F</p>
+                </div>
+                <div className="bg-secondary/50 rounded-lg p-2">
+                  <p className="text-[10px] text-muted-foreground">Invest. équipe</p>
+                  <p className="text-xs font-bold text-foreground">{Number(c.min_team_investment || 0).toLocaleString()} F</p>
                 </div>
                 <div className="bg-secondary/50 rounded-lg p-2">
                   <p className="text-[10px] text-muted-foreground">Membres actifs</p>
