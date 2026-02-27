@@ -8,7 +8,7 @@ import {
   MessageSquare, Bell, Settings, Shield, Search, CheckCircle2, XCircle,
   Clock, ArrowDown, Edit2, Trash2, Plus, X, Save, ChevronDown, ChevronUp,
   Layers, Eye, EyeOff, Ban, UserCheck, Pencil, TrendingUp, Activity,
-  Globe, ImageIcon, UploadIcon
+  Globe, ImageIcon, UploadIcon, Bot, Power
 } from "lucide-react";
 
 // ==================== TYPES ====================
@@ -56,6 +56,7 @@ const tabs = [
   { key: "payments", icon: CreditCard, label: "Paiement" },
   { key: "links", icon: Link2, label: "Liens" },
   { key: "popups", icon: Bell, label: "Popups" },
+  { key: "sarah", icon: Bot, label: "Sarah IA" },
   { key: "settings", icon: Settings, label: "Site" },
   { key: "security", icon: Shield, label: "Sécurité" },
 ];
@@ -172,6 +173,7 @@ const AdminPanel = () => {
         {activeTab === "payments" && <PaymentsTab methods={paymentMethods} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "links" && <LinksTab links={socialLinks} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "popups" && <PopupsTab popups={popups} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
+        {activeTab === "sarah" && <SarahTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "settings" && <SettingsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "security" && <SecurityTab logs={adminLogs} />}
       </div>
@@ -815,6 +817,96 @@ const PopupsTab = ({ popups, reload, showSuccess, showError }: any) => {
   );
 };
 
+// ==================== SARAH IA ====================
+const SarahTab = ({ settings, reload, showSuccess }: any) => {
+  const sarahSetting = settings.find((s: SiteSetting) => s.key === "sarah_enabled");
+  const isEnabled = sarahSetting?.value === "true";
+
+  const toggle = async () => {
+    const newVal = isEnabled ? "false" : "true";
+    await supabase.from("site_settings").update({ value: newVal }).eq("key", "sarah_enabled");
+    showSuccess(
+      newVal === "true" ? "Sarah activée ✅" : "Sarah désactivée",
+      newVal === "true" ? "L'IA prend le contrôle du chat" : "Le support humain est actif"
+    );
+    reload();
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Toggle principal */}
+      <div className="bg-card rounded-xl border border-secondary p-5">
+        <div className="flex items-center gap-4">
+          <div className={`w-14 h-14 rounded-full flex items-center justify-center ${isEnabled ? "bg-success/20" : "bg-secondary"}`}>
+            <Bot size={28} className={isEnabled ? "text-success" : "text-muted-foreground"} />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-bold text-foreground">Assistante Sarah</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {isEnabled ? "Sarah répond aux messages des utilisateurs" : "Le support est géré manuellement"}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={toggle}
+          className={`w-full mt-4 flex items-center justify-center gap-2 font-bold py-3 rounded-xl text-sm transition-all ${
+            isEnabled
+              ? "bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20"
+              : "gradient-button text-primary-foreground"
+          }`}
+        >
+          <Power size={16} />
+          {isEnabled ? "Désactiver Sarah" : "Activer Sarah"}
+        </button>
+      </div>
+
+      {/* Statut */}
+      <div className="bg-card rounded-xl border border-secondary p-4">
+        <h4 className="text-xs font-bold text-muted-foreground mb-3">STATUT</h4>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-foreground">État actuel</span>
+            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${isEnabled ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>
+              {isEnabled ? "🟢 En ligne" : "⚫ Hors ligne"}
+            </span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-foreground">Mode support</span>
+            <span className="text-xs text-muted-foreground">{isEnabled ? "Automatique (IA)" : "Manuel (Humain)"}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Capacités */}
+      <div className="bg-card rounded-xl border border-secondary p-4">
+        <h4 className="text-xs font-bold text-muted-foreground mb-3">CAPACITÉS DE SARAH</h4>
+        <div className="space-y-2">
+          {[
+            "Répond aux questions sur les produits",
+            "Explique le système VIP",
+            "Informe sur les frais et délais",
+            "Rassure les utilisateurs en attente",
+            "Utilise les données du site en temps réel",
+            "Transfère à l'humain si nécessaire",
+          ].map((cap, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <CheckCircle2 size={14} className="text-success shrink-0" />
+              <span className="text-xs text-foreground">{cap}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Info */}
+      <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+        <p className="text-xs text-muted-foreground">
+          💡 Quand Sarah est activée, elle utilise automatiquement les paramètres du site (frais, seuils VIP, produits) pour répondre aux utilisateurs dans le chat support.
+        </p>
+      </div>
+    </div>
+  );
+};
+
 // ==================== SETTINGS ====================
 const SettingsTab = ({ settings, reload, showSuccess }: any) => {
   const [edits, setEdits] = useState<Record<string, string>>({});
@@ -832,7 +924,7 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
   };
 
   const groups: Record<string, { label: string; keys: { key: string; label: string }[] }> = {
-    general: { label: "Général", keys: [{ key: "site_name", label: "Nom du site" }, { key: "welcome_text", label: "Texte d'accueil" }, { key: "terms_url", label: "URL Conditions générales" }, { key: "sarah_enabled", label: "🤖 Sarah IA (true/false)" }] },
+    general: { label: "Général", keys: [{ key: "site_name", label: "Nom du site" }, { key: "welcome_text", label: "Texte d'accueil" }, { key: "terms_url", label: "URL Conditions générales" }] },
     finance: { label: "Finance", keys: [{ key: "withdrawal_fee_percent", label: "Frais de retrait (%)" }, { key: "min_withdrawal", label: "Retrait minimum (FCFA)" }] },
     vip: { label: "Seuils VIP", keys: [{ key: "vip_threshold_1", label: "VIP1 (FCFA)" }, { key: "vip_threshold_2", label: "VIP2 (FCFA)" }, { key: "vip_threshold_3", label: "VIP3 (FCFA)" }, { key: "vip_threshold_4", label: "VIP4 (FCFA)" }, { key: "vip_threshold_5", label: "VIP5 (FCFA)" }] },
   };
