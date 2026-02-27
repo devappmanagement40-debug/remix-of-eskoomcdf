@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import { AlertTriangle, Clock, Wallet, Info } from "lucide-react";
 import PremiumModal from "@/components/PremiumModal";
@@ -19,6 +19,7 @@ const MIN_AMOUNT = 800;
 
 const Retrait = () => {
   const navigate = useNavigate();
+  const { showError } = useActionPopup();
   const [wallets, setWallets] = useState<WalletItem[]>([]);
   const [selectedWallet, setSelectedWallet] = useState("");
   const [amount, setAmount] = useState("");
@@ -50,9 +51,9 @@ const Retrait = () => {
   const netAmount = numAmount - feeAmount;
 
   const handleSubmit = async () => {
-    if (!selectedWallet) { toast.error("Sélectionnez un portefeuille"); return; }
-    if (numAmount < MIN_AMOUNT) { toast.error(`Montant minimum : ${MIN_AMOUNT} FCFA`); return; }
-    if (numAmount > balance) { toast.error("Solde insuffisant"); return; }
+    if (!selectedWallet) { showError("Erreur", "Sélectionnez un portefeuille"); return; }
+    if (numAmount < MIN_AMOUNT) { showError("Erreur", `Montant minimum : ${MIN_AMOUNT} FCFA`); return; }
+    if (numAmount > balance) { showError("Erreur", "Solde insuffisant"); return; }
 
     setSubmitting(true);
     const { data: { user } } = await supabase.auth.getUser();
@@ -73,7 +74,7 @@ const Retrait = () => {
     });
 
     if (error) {
-      toast.error("Erreur lors de la demande");
+      showError("Erreur", "Erreur lors de la demande de retrait");
     } else {
       setShowSuccess(true);
     }
@@ -180,7 +181,6 @@ const Retrait = () => {
           )}
         </div>
 
-        {/* Warning */}
         {numAmount > balance && (
           <div className="flex items-center gap-2 bg-destructive/10 text-destructive rounded-xl px-4 py-3">
             <AlertTriangle size={16} />
@@ -188,7 +188,6 @@ const Retrait = () => {
           </div>
         )}
 
-        {/* Submit */}
         <button
           onClick={handleSubmit}
           disabled={submitting || wallets.length === 0 || numAmount < MIN_AMOUNT || numAmount > balance}

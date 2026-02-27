@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import { Pencil, Save, X, Plus, Trash2 } from "lucide-react";
 
@@ -18,6 +18,7 @@ type PopupMsg = {
 };
 
 const AdminPopups = () => {
+  const { showSuccess, showError } = useActionPopup();
   const [messages, setMessages] = useState<PopupMsg[]>([]);
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<PopupMsg>>({});
@@ -49,8 +50,8 @@ const AdminPopups = () => {
       is_active: form.is_active,
     }).eq("id", editing);
 
-    if (error) toast.error("Erreur lors de la sauvegarde");
-    else { toast.success("Message mis à jour ✅"); cancelEdit(); load(); }
+    if (error) showError("Erreur", "Erreur lors de la sauvegarde");
+    else { showSuccess("Sauvegardé", "Message mis à jour avec succès ✅"); cancelEdit(); load(); }
   };
 
   const toggleActive = async (msg: PopupMsg) => {

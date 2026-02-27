@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import { CreditCard, Trash2, Plus, Smartphone } from "lucide-react";
 import CountryPicker, { countries } from "@/components/CountryPicker";
@@ -19,6 +19,7 @@ type Wallet = {
 
 const LierCarte = () => {
   const navigate = useNavigate();
+  const { showSuccess, showError } = useActionPopup();
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -41,8 +42,8 @@ const LierCarte = () => {
   };
 
   const handleSave = async () => {
-    if (!holderName.trim()) { toast.error("Veuillez entrer le nom du titulaire"); return; }
-    if (!phone || phone.length < 8) { toast.error("Numéro de téléphone invalide"); return; }
+    if (!holderName.trim()) { showError("Erreur", "Veuillez entrer le nom du titulaire"); return; }
+    if (!phone || phone.length < 8) { showError("Erreur", "Numéro de téléphone invalide"); return; }
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/connexion"); return; }
@@ -52,14 +53,14 @@ const LierCarte = () => {
       label: `${country?.flag || ""} ${network}`,
       holder_name: holderName.trim(),
     });
-    if (error) { toast.error("Erreur lors de l'enregistrement"); }
-    else { toast.success("Portefeuille ajouté ✅"); setPhone(""); setHolderName(""); setShowForm(false); loadWallets(); }
+    if (error) { showError("Erreur", "Erreur lors de l'enregistrement"); }
+    else { showSuccess("Portefeuille ajouté", "Votre portefeuille a été enregistré avec succès ✅"); setPhone(""); setHolderName(""); setShowForm(false); loadWallets(); }
     setSaving(false);
   };
 
   const handleDelete = async (id: string) => {
     const { error } = await supabase.from("user_wallets").delete().eq("id", id);
-    if (!error) { toast.success("Portefeuille supprimé"); loadWallets(); }
+    if (!error) { showSuccess("Supprimé", "Le portefeuille a été supprimé"); loadWallets(); }
   };
 
   const selectedCountry = countries.find(c => c.code === countryCode);
@@ -108,12 +109,10 @@ const LierCarte = () => {
           </div>
         )}
 
-        {/* Add form */}
         {showForm && (
           <div className="bg-card rounded-2xl border border-secondary p-5 mb-6 space-y-4">
             <h3 className="text-sm font-bold text-foreground mb-2">Ajouter un portefeuille</h3>
 
-            {/* Holder name */}
             <div>
               <label className="text-xs text-muted-foreground mb-2 block">Nom du titulaire</label>
               <div className="input-glow rounded-xl bg-secondary p-3">
@@ -132,7 +131,6 @@ const LierCarte = () => {
               </div>
             </div>
 
-            {/* Network - bottom sheet style */}
             <div>
               <label className="text-xs text-muted-foreground mb-2 block">Réseau</label>
               <button
@@ -170,7 +168,6 @@ const LierCarte = () => {
               )}
             </div>
 
-            {/* Phone */}
             <div>
               <label className="text-xs text-muted-foreground mb-2 block">Numéro de téléphone</label>
               <div className="input-glow rounded-xl bg-secondary p-3 flex items-center gap-3">

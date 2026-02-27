@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import { Plus, Edit2, Trash2, Package, Layers, ChevronDown, ChevronUp, X } from "lucide-react";
 
@@ -24,18 +24,17 @@ const colorOptions = [
 
 const AdminProduits = () => {
   const navigate = useNavigate();
+  const { showSuccess, showError } = useActionPopup();
   const [series, setSeries] = useState<Series[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedSeries, setExpandedSeries] = useState<string | null>(null);
 
-  // Series form
   const [showSeriesForm, setShowSeriesForm] = useState(false);
   const [editingSeries, setEditingSeries] = useState<Series | null>(null);
   const [seriesName, setSeriesName] = useState("");
   const [seriesColor, setSeriesColor] = useState("primary");
 
-  // Product form
   const [showProductForm, setShowProductForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [productSeriesId, setProductSeriesId] = useState("");
@@ -56,7 +55,7 @@ const AdminProduits = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/connexion"); return; }
     const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
-    if (!data) { toast.error("Accès refusé"); navigate("/"); return; }
+    if (!data) { showError("Accès refusé", "Vous n'avez pas les droits d'administrateur"); navigate("/"); return; }
     loadAll();
   };
 
@@ -70,7 +69,6 @@ const AdminProduits = () => {
     setLoading(false);
   };
 
-  // === SERIES CRUD ===
   const openSeriesForm = (s?: Series) => {
     if (s) { setEditingSeries(s); setSeriesName(s.name); setSeriesColor(s.color || "primary"); }
     else { setEditingSeries(null); setSeriesName(""); setSeriesColor("primary"); }
@@ -79,13 +77,13 @@ const AdminProduits = () => {
   };
 
   const saveSeries = async () => {
-    if (!seriesName.trim()) { toast.error("Nom requis"); return; }
+    if (!seriesName.trim()) { showError("Erreur", "Nom requis"); return; }
     if (editingSeries) {
       await supabase.from("product_series").update({ name: seriesName, color: seriesColor }).eq("id", editingSeries.id);
-      toast.success("Série modifiée ✅");
+      showSuccess("Série modifiée", "La série a été mise à jour avec succès ✅");
     } else {
       await supabase.from("product_series").insert({ name: seriesName, color: seriesColor, sort_order: series.length });
-      toast.success("Série créée ✅");
+      showSuccess("Série créée", "La nouvelle série a été créée avec succès ✅");
     }
     setShowSeriesForm(false);
     loadAll();
@@ -93,11 +91,10 @@ const AdminProduits = () => {
 
   const deleteSeries = async (id: string) => {
     await supabase.from("product_series").delete().eq("id", id);
-    toast.success("Série supprimée");
+    showSuccess("Supprimé", "La série a été supprimée");
     loadAll();
   };
 
-  // === PRODUCT CRUD ===
   const openProductForm = (seriesId: string, p?: Product) => {
     setProductSeriesId(seriesId);
     if (p) {
@@ -120,7 +117,7 @@ const AdminProduits = () => {
   };
 
   const saveProduct = async () => {
-    if (!productName.trim()) { toast.error("Nom requis"); return; }
+    if (!productName.trim()) { showError("Erreur", "Nom requis"); return; }
     const payload = {
       series_id: productSeriesId,
       name: productName,
@@ -134,11 +131,11 @@ const AdminProduits = () => {
     };
     if (editingProduct) {
       await supabase.from("products").update(payload).eq("id", editingProduct.id);
-      toast.success("Produit modifié ✅");
+      showSuccess("Produit modifié", "Le produit a été mis à jour avec succès ✅");
     } else {
       const seriesProducts = products.filter(p => p.series_id === productSeriesId);
       await supabase.from("products").insert({ ...payload, sort_order: seriesProducts.length });
-      toast.success("Produit créé ✅");
+      showSuccess("Produit créé", "Le nouveau produit a été créé avec succès ✅");
     }
     setShowProductForm(false);
     loadAll();
@@ -146,12 +143,13 @@ const AdminProduits = () => {
 
   const deleteProduct = async (id: string) => {
     await supabase.from("products").delete().eq("id", id);
-    toast.success("Produit supprimé");
+    showSuccess("Supprimé", "Le produit a été supprimé");
     loadAll();
   };
 
   const toggleActive = async (p: Product) => {
     await supabase.from("products").update({ is_active: !p.is_active }).eq("id", p.id);
+    showSuccess("Mis à jour", p.is_active ? "Produit désactivé" : "Produit activé ✅");
     loadAll();
   };
 
@@ -162,12 +160,10 @@ const AdminProduits = () => {
       <PageHeader title="Admin - Produits" showBack />
 
       <div className="px-4 pt-4">
-        {/* Add series button */}
         <button onClick={() => openSeriesForm()} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2 mb-4">
           <Layers size={16} /> Ajouter une série
         </button>
 
-        {/* Series form modal */}
         {showSeriesForm && (
           <div className="bg-card rounded-xl border border-secondary p-4 mb-4 space-y-3">
             <div className="flex justify-between items-center">
@@ -192,7 +188,6 @@ const AdminProduits = () => {
           </div>
         )}
 
-        {/* Product form modal */}
         {showProductForm && (
           <div className="bg-card rounded-xl border border-secondary p-4 mb-4 space-y-3">
             <div className="flex justify-between items-center">
@@ -243,7 +238,6 @@ const AdminProduits = () => {
           </div>
         )}
 
-        {/* Series list with products */}
         {series.length === 0 ? (
           <div className="text-center py-16">
             <Layers size={40} className="text-muted-foreground mx-auto mb-3" />
@@ -258,7 +252,6 @@ const AdminProduits = () => {
 
               return (
                 <div key={s.id} className="bg-card rounded-xl border border-secondary overflow-hidden">
-                  {/* Series header */}
                   <div className="flex items-center justify-between px-4 py-3">
                     <button onClick={() => setExpandedSeries(isExpanded ? null : s.id)} className="flex items-center gap-3 flex-1">
                       <div className={`w-4 h-4 rounded-full ${colorClass}`} />
@@ -276,7 +269,6 @@ const AdminProduits = () => {
                     </div>
                   </div>
 
-                  {/* Expanded products */}
                   {isExpanded && (
                     <div className="border-t border-secondary">
                       <div className="px-4 py-3 space-y-2">
