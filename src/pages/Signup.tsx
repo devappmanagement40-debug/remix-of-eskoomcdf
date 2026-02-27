@@ -27,6 +27,23 @@ const Signup = () => {
     const cleanPhone = phone.replace(/\s/g, "");
     const email = `${cleanPhone}@users.eskom.app`;
 
+    // Lookup referrer profile by invite code
+    let referrerId: string | null = null;
+    if (inviteCode.trim()) {
+      const { data: referrer } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("referral_code", inviteCode.trim().toUpperCase())
+        .single();
+      if (referrer) {
+        referrerId = referrer.id;
+      } else {
+        toast.error("Code d'invitation invalide");
+        setLoading(false);
+        return;
+      }
+    }
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -44,7 +61,11 @@ const Signup = () => {
     } else {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        await supabase.from("profiles").update({ phone: cleanPhone, country_code: countryCode }).eq("user_id", user.id);
+        const updateData: Record<string, unknown> = { phone: cleanPhone, country_code: countryCode };
+        if (referrerId) updateData.referred_by = referrerId;
+        // Generate referral code for new user
+        updateData.referral_code = cleanPhone.slice(-4).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
+        await supabase.from("profiles").update(updateData).eq("user_id", user.id);
       }
       toast.success("Compte créé avec succès ✅");
       navigate("/");
