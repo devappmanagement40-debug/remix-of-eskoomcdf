@@ -8,7 +8,7 @@ import {
   MessageSquare, Bell, Settings, Shield, Search, CheckCircle2, XCircle,
   Clock, ArrowDown, Edit2, Trash2, Plus, X, Save, ChevronDown, ChevronUp,
   Layers, Eye, EyeOff, Ban, UserCheck, Pencil, TrendingUp, Activity,
-  Globe, ImageIcon, UploadIcon, Bot, Power
+  Globe, ImageIcon, UploadIcon, Bot, Power, ArrowLeft, Send
 } from "lucide-react";
 
 // ==================== TYPES ====================
@@ -57,6 +57,7 @@ const tabs = [
   { key: "links", icon: Link2, label: "Liens" },
   { key: "popups", icon: Bell, label: "Popups" },
   { key: "sarah", icon: Bot, label: "Sarah IA" },
+  { key: "support", icon: MessageSquare, label: "Support" },
   { key: "settings", icon: Settings, label: "Site" },
   { key: "security", icon: Shield, label: "Sécurité" },
 ];
@@ -174,6 +175,7 @@ const AdminPanel = () => {
         {activeTab === "links" && <LinksTab links={socialLinks} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "popups" && <PopupsTab popups={popups} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "sarah" && <SarahTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
+        {activeTab === "support" && <SupportTab adminId={adminId} />}
         {activeTab === "settings" && <SettingsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "security" && <SecurityTab logs={adminLogs} />}
       </div>
@@ -813,6 +815,246 @@ const PopupsTab = ({ popups, reload, showSuccess, showError }: any) => {
           )}
         </div>
       ))}
+    </div>
+  );
+};
+
+// ==================== SUPPORT CHAT ====================
+type ChatConversation = {
+  user_id: string;
+  full_name: string | null;
+  phone: string | null;
+  last_message: string;
+  last_time: string;
+  unread_count: number;
+};
+
+type ChatMsg = {
+  id: string;
+  user_id: string;
+  sender: string;
+  message: string;
+  is_ai: boolean;
+  created_at: string;
+};
+
+const SupportTab = ({ adminId }: { adminId: string }) => {
+  const [conversations, setConversations] = useState<ChatConversation[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMsg[]>([]);
+  const [replyText, setReplyText] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    loadConversations();
+  }, []);
+
+  useEffect(() => {
+    if (selectedUserId) loadMessages(selectedUserId);
+  }, [selectedUserId]);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages]);
+
+  // Realtime subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-chat")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "chat_messages" },
+        (payload) => {
+          const msg = payload.new as ChatMsg;
+          // Refresh conversations list
+          loadConversations();
+          // If viewing this user's chat, add message
+          if (msg.user_id === selectedUserId && msg.sender === "user") {
+            setChatMessages((prev) => {
+              if (prev.find((m) => m.id === msg.id)) return prev;
+              return [...prev, msg];
+            });
+          }
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [selectedUserId]);
+
+  const loadConversations = async () => {
+    // Get all chat messages grouped by user
+    const { data: msgs } = await supabase
+      .from("chat_messages")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!msgs) { setLoading(false); return; }
+
+    // Group by user_id
+    const userMap: Record<string, ChatMsg[]> = {};
+    msgs.forEach((m: any) => {
+      if (!userMap[m.user_id]) userMap[m.user_id] = [];
+      userMap[m.user_id].push(m);
+    });
+
+    // Get profiles for these users
+    const userIds = Object.keys(userMap);
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("user_id, full_name, phone")
+      .in("user_id", userIds);
+
+    const profileMap: Record<string, any> = {};
+    (profiles || []).forEach((p: any) => { profileMap[p.user_id] = p; });
+
+    const convos: ChatConversation[] = userIds.map((uid) => {
+      const userMsgs = userMap[uid];
+      const lastMsg = userMsgs[0]; // already sorted desc
+      const profile = profileMap[uid];
+      const unread = userMsgs.filter((m) => m.sender === "user").length; // simplified
+      return {
+        user_id: uid,
+        full_name: profile?.full_name || "Utilisateur",
+        phone: profile?.phone || "",
+        last_message: lastMsg.message,
+        last_time: lastMsg.created_at,
+        unread_count: unread,
+      };
+    }).sort((a, b) => new Date(b.last_time).getTime() - new Date(a.last_time).getTime());
+
+    setConversations(convos);
+    setLoading(false);
+  };
+
+  const loadMessages = async (uid: string) => {
+    const { data } = await supabase
+      .from("chat_messages")
+      .select("*")
+      .eq("user_id", uid)
+      .order("created_at", { ascending: true });
+    setChatMessages(data || []);
+  };
+
+  const sendReply = async () => {
+    if (!replyText.trim() || !selectedUserId) return;
+    setSending(true);
+    const { data: inserted } = await supabase
+      .from("chat_messages")
+      .insert({
+        user_id: selectedUserId,
+        sender: "support",
+        message: replyText.trim(),
+        is_ai: false,
+      })
+      .select()
+      .single();
+
+    if (inserted) {
+      setChatMessages((prev) => [...prev, inserted as ChatMsg]);
+      setReplyText("");
+      loadConversations();
+    }
+    setSending(false);
+  };
+
+  const formatTime = (d: string) => {
+    const date = new Date(d);
+    const now = new Date();
+    if (date.toDateString() === now.toDateString()) {
+      return date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    }
+    return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  };
+
+  if (loading) return <p className="text-xs text-muted-foreground text-center py-10">Chargement...</p>;
+
+  // Chat view
+  if (selectedUserId) {
+    const convo = conversations.find((c) => c.user_id === selectedUserId);
+    return (
+      <div className="space-y-3">
+        <button onClick={() => setSelectedUserId(null)} className="flex items-center gap-2 text-sm text-primary font-semibold">
+          <ArrowLeft size={16} /> Retour aux conversations
+        </button>
+
+        <div className="bg-card rounded-xl border border-secondary p-3">
+          <p className="text-sm font-bold text-foreground">{convo?.full_name || "Utilisateur"}</p>
+          <p className="text-xs text-muted-foreground">{convo?.phone}</p>
+        </div>
+
+        {/* Messages */}
+        <div className="bg-secondary/30 rounded-xl border border-secondary p-3 max-h-[400px] overflow-y-auto space-y-2">
+          {chatMessages.map((m) => (
+            <div key={m.id} className={`flex ${m.sender === "user" ? "justify-start" : "justify-end"}`}>
+              <div className={`max-w-[80%] rounded-2xl px-3 py-2 ${
+                m.sender === "user"
+                  ? "bg-card border border-secondary rounded-bl-md"
+                  : m.is_ai
+                    ? "bg-primary/10 border border-primary/30 rounded-br-md"
+                    : "bg-primary/20 border border-primary/40 rounded-br-md"
+              }`}>
+                {m.sender === "support" && (
+                  <div className="flex items-center gap-1 mb-0.5">
+                    {m.is_ai ? <Bot size={10} className="text-primary" /> : <Shield size={10} className="text-primary" />}
+                    <span className="text-[9px] font-semibold text-primary">{m.is_ai ? "Sarah IA" : "Admin"}</span>
+                  </div>
+                )}
+                <p className="text-xs text-foreground whitespace-pre-line">{m.message}</p>
+                <p className="text-[9px] text-muted-foreground mt-1">{formatTime(m.created_at)}</p>
+              </div>
+            </div>
+          ))}
+          <div ref={chatEndRef} />
+        </div>
+
+        {/* Reply input */}
+        <div className="flex gap-2">
+          <input
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendReply(); } }}
+            placeholder="Répondre au client..."
+            className="flex-1 bg-card border border-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary"
+          />
+          <button
+            onClick={sendReply}
+            disabled={sending || !replyText.trim()}
+            className="gradient-button text-primary-foreground font-bold px-4 py-3 rounded-xl text-sm flex items-center gap-1.5 disabled:opacity-50"
+          >
+            <Send size={14} /> Envoyer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Conversations list
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-bold text-foreground">Conversations ({conversations.length})</h3>
+      </div>
+
+      {conversations.length === 0 ? (
+        <p className="text-xs text-muted-foreground text-center py-10">Aucune conversation</p>
+      ) : (
+        conversations.map((c) => (
+          <button
+            key={c.user_id}
+            onClick={() => setSelectedUserId(c.user_id)}
+            className="w-full bg-card rounded-xl border border-secondary p-4 text-left hover:border-primary/50 transition-colors"
+          >
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-sm font-bold text-foreground">{c.full_name}</p>
+              <span className="text-[10px] text-muted-foreground">{formatTime(c.last_time)}</span>
+            </div>
+            <p className="text-xs text-muted-foreground">{c.phone}</p>
+            <p className="text-xs text-muted-foreground mt-1 truncate">{c.last_message}</p>
+          </button>
+        ))
+      )}
     </div>
   );
 };
