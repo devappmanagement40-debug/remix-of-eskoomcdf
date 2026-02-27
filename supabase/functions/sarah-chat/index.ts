@@ -18,7 +18,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { message, history, userId } = await req.json();
+    const { message, history, userId, saveReply } = await req.json();
 
     // Check if Sarah is enabled
     const { data: sarahSetting } = await supabase
@@ -235,7 +235,18 @@ RÈGLES DE RÉPONSE
     const data = await response.json();
     const reply = data.choices?.[0]?.message?.content || "Je suis désolée, je n'ai pas pu traiter votre demande. Veuillez réessayer.";
 
-    return new Response(JSON.stringify({ reply }), {
+    // Save AI reply to DB server-side (bypasses RLS with service role key)
+    let savedReplyId = null;
+    if (userId) {
+      const { data: savedReply } = await supabase
+        .from("chat_messages")
+        .insert({ user_id: userId, sender: "support", message: reply, is_ai: true })
+        .select("id, created_at")
+        .single();
+      savedReplyId = savedReply?.id;
+    }
+
+    return new Response(JSON.stringify({ reply, savedReplyId }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
