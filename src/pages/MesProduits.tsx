@@ -56,7 +56,14 @@ const MesProduits = () => {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [navigate]);
+  useEffect(() => {
+    load();
+    const channel = supabase
+      .channel("mes-produits-realtime")
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_products" }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [navigate]);
 
   const now = new Date();
 

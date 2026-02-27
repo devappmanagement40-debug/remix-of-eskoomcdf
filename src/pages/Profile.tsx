@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
+import { useRealtimeProfile } from "@/hooks/useRealtimeProfile";
 import PremiumModal from "@/components/PremiumModal";
 
 const vipLevels = ["VIP0", "VIP1", "VIP2", "VIP3", "VIP4", "VIP5"];
@@ -29,48 +29,31 @@ const menuGrid = [
 
 const Profile = () => {
   const navigate = useNavigate();
-  const [phone, setPhone] = useState("...");
-  const [balance, setBalance] = useState(0);
-  const [vipIndex, setVipIndex] = useState(0);
+  const { profile, loading } = useRealtimeProfile();
   const [progress, setProgress] = useState(0);
   const [showLogout, setShowLogout] = useState(false);
 
+  const vipIndex = profile.vip_level || 0;
+  const phone = profile.phone || "...";
+
   useEffect(() => {
-    const fetchProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      // Fetch profile and VIP conditions in parallel
-      const [{ data: profileData }, { data: vipData }] = await Promise.all([
-        supabase.from("profiles").select("*").eq("user_id", user.id).single(),
-        supabase.from("vip_conditions").select("*").order("level"),
-      ]);
-
-      if (profileData) {
-        setPhone(profileData.phone || user.email || "Utilisateur");
-        setBalance(profileData.balance || 0);
-
-        const currentLevel = profileData.vip_level || 0;
-        setVipIndex(currentLevel);
-
-        // Calculate progress to next level using dynamic VIP conditions
-        if (vipData && vipData.length > 0) {
-          const nextCondition = vipData.find((v: any) => v.level === currentLevel + 1);
-          if (nextCondition && nextCondition.min_investment > 0) {
-            const currentCondition = vipData.find((v: any) => v.level === currentLevel);
-            const minThreshold = currentCondition?.min_investment || 0;
-            const maxThreshold = nextCondition.min_investment;
-            const bal = profileData.balance || 0;
-            const prog = Math.max(0, ((bal - minThreshold) / (maxThreshold - minThreshold)) * 100);
-            setProgress(Math.min(prog, 100));
-          } else {
-            setProgress(currentLevel >= 5 ? 100 : 0);
-          }
+    const fetchVip = async () => {
+      const { data: vipData } = await supabase.from("vip_conditions").select("*").order("level");
+      if (vipData && vipData.length > 0) {
+        const nextCondition = vipData.find((v: any) => v.level === vipIndex + 1);
+        if (nextCondition && nextCondition.min_investment > 0) {
+          const currentCondition = vipData.find((v: any) => v.level === vipIndex);
+          const minThreshold = currentCondition?.min_investment || 0;
+          const maxThreshold = nextCondition.min_investment;
+          const prog = Math.max(0, ((profile.balance - minThreshold) / (maxThreshold - minThreshold)) * 100);
+          setProgress(Math.min(prog, 100));
+        } else {
+          setProgress(vipIndex >= 5 ? 100 : 0);
         }
       }
     };
-    fetchProfile();
-  }, []);
+    if (!loading) fetchVip();
+  }, [loading, profile.balance, vipIndex]);
 
   const currentVip = vipLevels[vipIndex];
   const nextVip = vipIndex < vipLevels.length - 1 ? vipLevels[vipIndex + 1] : null;
@@ -80,15 +63,11 @@ const Profile = () => {
     <div className="min-h-screen bg-background pb-20">
       <PageHeader title="Mon Compte" />
       <div className="px-4 pt-6">
-
-        {/* ===== VIP Header ===== */}
+        {/* VIP Header */}
         <div className="relative bg-card rounded-2xl border border-secondary p-6 mb-4 overflow-hidden">
-          {/* Glow effect */}
           <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-primary/10 blur-3xl pointer-events-none" />
           <div className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full bg-primary/5 blur-2xl pointer-events-none" />
-
           <div className="relative flex flex-col items-center gap-3">
-            {/* Avatar */}
             <div className="relative">
               <Avatar className="w-20 h-20 border-2 border-primary shadow-[0_0_20px_hsl(174_72%_50%/0.3)]">
                 <AvatarImage src="" />
@@ -100,25 +79,18 @@ const Profile = () => {
                 <Crown size={14} className="text-primary-foreground" />
               </div>
             </div>
-
-            {/* Phone */}
             <p className="text-lg font-bold text-foreground tracking-wide">{phone}</p>
-
-            {/* VIP Badge */}
             <div className="flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full gradient-button text-xs font-bold text-primary-foreground shadow-[0_0_15px_hsl(174_72%_50%/0.4)]">
                 <Crown size={12} />
                 {currentVip}
               </span>
             </div>
-
             {nextVip && (
               <p className="text-xs text-primary font-medium">
                 Suivant VIP : <span className="font-bold">{nextVip}</span>
               </p>
             )}
-
-            {/* Progress Section */}
             {nextVip && (
               <div className="w-full mt-2 bg-secondary/50 rounded-xl p-4 border border-secondary">
                 <div className="flex items-center justify-between mb-2">
@@ -136,29 +108,23 @@ const Profile = () => {
                   />
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-2 text-center">
-                  {progressClamped < 100
-                    ? `Encore ${100 - progressClamped}% pour passer au niveau supérieur`
-                    : "Félicitations ! Niveau atteint 🎉"}
+                  {progressClamped < 100 ? `Encore ${100 - progressClamped}% pour passer au niveau supérieur` : "Félicitations ! Niveau atteint 🎉"}
                 </p>
               </div>
             )}
           </div>
         </div>
 
-        {/* ===== Balance ===== */}
+        {/* Balance */}
         <div className="bg-card rounded-xl border border-secondary p-5 mb-4">
           <p className="text-xs text-muted-foreground mb-1">Solde disponible</p>
-          <p className="text-2xl font-bold text-primary">{balance.toLocaleString('fr-FR')} FCFA</p>
+          <p className="text-2xl font-bold text-primary">{profile.balance.toLocaleString('fr-FR')} FCFA</p>
         </div>
 
         {/* Action buttons */}
         <div className="bg-card rounded-xl border border-secondary p-5 mb-4 flex items-center justify-around">
           {actionButtons.map((item) => (
-            <button
-              key={item.label}
-              onClick={() => navigate(item.path)}
-              className="flex flex-col items-center gap-2"
-            >
+            <button key={item.label} onClick={() => navigate(item.path)} className="flex flex-col items-center gap-2">
               <item.icon size={24} className="text-foreground" />
               <span className="text-xs font-medium text-foreground">{item.label}</span>
             </button>
@@ -169,11 +135,7 @@ const Profile = () => {
         <div className="bg-card rounded-xl border border-secondary p-4 mb-4">
           <div className="grid grid-cols-4 gap-x-2 gap-y-5">
             {menuGrid.map((item) => (
-              <button
-                key={item.label}
-                onClick={() => navigate(item.path)}
-                className="flex flex-col items-center gap-1.5 min-w-0"
-              >
+              <button key={item.label} onClick={() => navigate(item.path)} className="flex flex-col items-center gap-1.5 min-w-0">
                 <div className="w-12 h-12 rounded-xl bg-secondary flex items-center justify-center">
                   <item.icon size={22} className="text-muted-foreground" />
                 </div>
@@ -184,10 +146,7 @@ const Profile = () => {
         </div>
 
         {/* Déconnexion */}
-        <button
-          onClick={() => setShowLogout(true)}
-          className="w-full bg-card rounded-xl border border-secondary p-4 flex items-center justify-center gap-3 hover:border-primary transition-colors"
-        >
+        <button onClick={() => setShowLogout(true)} className="w-full bg-card rounded-xl border border-secondary p-4 flex items-center justify-center gap-3 hover:border-primary transition-colors">
           <LogOut size={20} className="text-primary" />
           <span className="text-sm font-medium text-primary">Se déconnecter</span>
         </button>
@@ -197,13 +156,9 @@ const Profile = () => {
         triggerKey="logout_confirm"
         open={showLogout}
         onClose={() => setShowLogout(false)}
-        onConfirm={async () => {
-          await supabase.auth.signOut();
-          navigate("/connexion");
-        }}
+        onConfirm={async () => { await supabase.auth.signOut(); navigate("/connexion"); }}
         onCancel={() => setShowLogout(false)}
       />
-
       <BottomNav />
     </div>
   );
