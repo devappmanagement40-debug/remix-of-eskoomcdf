@@ -47,7 +47,7 @@ const CountryPicker = ({ value, onChange, triggerClassName }: CountryPickerProps
         onClick={() => setOpen(true)}
         className={triggerClassName || "flex items-center gap-1 text-primary font-semibold text-sm whitespace-nowrap"}
       >
-        {selected.flag} {selected.code} ▲
+        {selected.code} ▼
       </button>
 
       {open && (
@@ -87,13 +87,13 @@ const CountryPicker = ({ value, onChange, triggerClassName }: CountryPickerProps
                       onClick={() => { onChange(c.code); setOpen(false); }}
                       className="w-full flex items-center justify-center gap-3 py-4 transition-colors hover:bg-secondary/30"
                     >
-                      <span className="text-lg">{c.flag}</span>
                       <span className={`text-base font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>
-                        {c.name} ({c.code})
+                        {c.code}
                       </span>
                     </button>
                   );
                 })
+
               )}
             </div>
             <div className="h-6" />

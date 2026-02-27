@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
-type Tab = { label: string; content: string };
+type Tab = { label: string; content: string; url?: string };
 
 type PopupMessage = {
   id: string;
@@ -25,6 +26,7 @@ interface PremiumModalProps {
 }
 
 const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacements }: PremiumModalProps) => {
+  const navigate = useNavigate();
   const [data, setData] = useState<PopupMessage | null>(null);
   const [activeTab, setActiveTab] = useState(0);
   const [visible, setVisible] = useState(false);
@@ -65,6 +67,16 @@ const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacem
   const tabs: Tab[] = data.tabs ? (Array.isArray(data.tabs) ? data.tabs : []) : [];
 
   const handleConfirm = () => {
+    // Check if active tab has a URL
+    const currentTab = tabs.length > 0 ? tabs[activeTab] : null;
+    const tabUrl = currentTab?.url;
+    if (tabUrl) {
+      if (tabUrl.startsWith("http")) {
+        window.open(tabUrl, "_blank");
+      } else {
+        navigate(tabUrl);
+      }
+    }
     onConfirm?.();
     onClose();
   };
