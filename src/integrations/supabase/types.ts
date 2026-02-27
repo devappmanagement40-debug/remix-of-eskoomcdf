@@ -134,6 +134,39 @@ export type Database = {
         }
         Relationships: []
       }
+      gift_rewards: {
+        Row: {
+          created_at: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          name: string
+          points_required: number
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name: string
+          points_required?: number
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          name?: string
+          points_required?: number
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       payment_methods: {
         Row: {
           country: string
@@ -332,6 +365,7 @@ export type Database = {
           deposit_balance: number | null
           earnings_balance: number | null
           full_name: string | null
+          gift_points: number | null
           id: string
           is_suspended: boolean | null
           phone: string | null
@@ -349,6 +383,7 @@ export type Database = {
           deposit_balance?: number | null
           earnings_balance?: number | null
           full_name?: string | null
+          gift_points?: number | null
           id?: string
           is_suspended?: boolean | null
           phone?: string | null
@@ -366,6 +401,7 @@ export type Database = {
           deposit_balance?: number | null
           earnings_balance?: number | null
           full_name?: string | null
+          gift_points?: number | null
           id?: string
           is_suspended?: boolean | null
           phone?: string | null
