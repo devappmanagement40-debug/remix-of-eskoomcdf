@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
-import { AlertTriangle, Wallet, ArrowUpRight } from "lucide-react";
+import { AlertTriangle, Wallet, ArrowUpRight, Clock } from "lucide-react";
 import PremiumModal from "@/components/PremiumModal";
 
 type WalletItem = {
@@ -31,6 +31,12 @@ const Retrait = () => {
   const [maxWithdrawalsPerDay, setMaxWithdrawalsPerDay] = useState(1);
   const [maxWithdrawalsEnabled, setMaxWithdrawalsEnabled] = useState(true);
   const [todayWithdrawals, setTodayWithdrawals] = useState(0);
+  const [withdrawalEnabled, setWithdrawalEnabled] = useState(true);
+  const [withdrawalDays, setWithdrawalDays] = useState<number[]>([1,2,3,4,5,6,7]);
+  const [withdrawalHourStart, setWithdrawalHourStart] = useState(0);
+  const [withdrawalHourEnd, setWithdrawalHourEnd] = useState(24);
+  const [isWithinSchedule, setIsWithinSchedule] = useState(true);
+  const [scheduleMessage, setScheduleMessage] = useState("");
 
   useEffect(() => { loadData(); }, []);
 
@@ -47,7 +53,8 @@ const Retrait = () => {
       supabase.from("site_settings").select("key, value").in("key", [
         "deposit_not_withdrawable", "withdrawal_amounts", "withdrawal_min",
         "withdrawal_max", "withdrawal_fee_percent", "withdrawal_rules",
-        "max_withdrawals_per_day", "max_withdrawals_enabled"
+        "max_withdrawals_per_day", "max_withdrawals_enabled",
+        "withdrawal_enabled", "withdrawal_days", "withdrawal_hour_start", "withdrawal_hour_end"
       ]),
       supabase.from("withdrawals").select("id").eq("user_id", user.id).gte("created_at", todayStart.toISOString()),
     ]);
@@ -55,6 +62,10 @@ const Retrait = () => {
     if (walletsRes.data) setWallets(walletsRes.data);
 
     let dnw = true;
+    let wEnabled = true;
+    let wDays = [1,2,3,4,5,6,7];
+    let wHourStart = 0;
+    let wHourEnd = 24;
     if (settingsRes.data) {
       settingsRes.data.forEach(s => {
         if (s.key === "deposit_not_withdrawable") dnw = s.value === "true";
@@ -64,6 +75,10 @@ const Retrait = () => {
         if (s.key === "withdrawal_fee_percent" && s.value) setFeePercent(Number(s.value));
         if (s.key === "max_withdrawals_per_day" && s.value) setMaxWithdrawalsPerDay(Number(s.value));
         if (s.key === "max_withdrawals_enabled") setMaxWithdrawalsEnabled(s.value !== "false");
+        if (s.key === "withdrawal_enabled") wEnabled = s.value !== "false";
+        if (s.key === "withdrawal_days" && s.value) wDays = s.value.split(",").map(Number).filter(Boolean);
+        if (s.key === "withdrawal_hour_start" && s.value) wHourStart = Number(s.value);
+        if (s.key === "withdrawal_hour_end" && s.value) wHourEnd = Number(s.value);
         if (s.key === "withdrawal_rules" && s.value) {
           const parsed = s.value
             .replace("{min}", String(Number(settingsRes.data?.find(x => x.key === "withdrawal_min")?.value || 800).toLocaleString()))
@@ -74,6 +89,31 @@ const Retrait = () => {
       });
     }
     setDepositNotWithdrawable(dnw);
+    setWithdrawalEnabled(wEnabled);
+    setWithdrawalDays(wDays);
+    setWithdrawalHourStart(wHourStart);
+    setWithdrawalHourEnd(wHourEnd);
+
+    // Check schedule
+    const now = new Date();
+    const dayOfWeek = now.getDay() === 0 ? 7 : now.getDay(); // 1=Monday...7=Sunday
+    const currentHour = now.getHours();
+    const dayNames = ["", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+
+    if (!wEnabled) {
+      setIsWithinSchedule(false);
+      setScheduleMessage("Les retraits sont temporairement désactivés.");
+    } else if (!wDays.includes(dayOfWeek)) {
+      setIsWithinSchedule(false);
+      const allowedDayNames = wDays.map(d => dayNames[d]).join(", ");
+      setScheduleMessage(`Les retraits sont disponibles uniquement les jours suivants : ${allowedDayNames}.`);
+    } else if (currentHour < wHourStart || currentHour >= wHourEnd) {
+      setIsWithinSchedule(false);
+      setScheduleMessage(`Les retraits sont disponibles uniquement de ${wHourStart}h00 à ${wHourEnd}h00.`);
+    } else {
+      setIsWithinSchedule(true);
+      setScheduleMessage("");
+    }
 
     if (todayRes.data) setTodayWithdrawals(todayRes.data.length);
 
@@ -92,6 +132,7 @@ const Retrait = () => {
   const netAmount = numAmount - feeAmount;
 
   const handleSubmit = async () => {
+    if (!isWithinSchedule) { showError("Retraits fermés", scheduleMessage); return; }
     if (!selectedWallet) { showError("Erreur", "Selectionnez un portefeuille"); return; }
     if (maxWithdrawalsEnabled && todayWithdrawals >= maxWithdrawalsPerDay) {
       showError("Limite atteinte", "Vous avez atteint le nombre maximum de retraits autorises aujourd'hui.");
@@ -144,6 +185,30 @@ const Retrait = () => {
             <div className="flex justify-center gap-3 mt-3">
               <span className="text-[10px] bg-success/10 text-success px-2.5 py-1 rounded-full">Gains: {earningsBalance.toLocaleString("fr-FR")} F</span>
               <span className="text-[10px] bg-primary/10 text-primary px-2.5 py-1 rounded-full">Parrainage: {referralBalance.toLocaleString("fr-FR")} F</span>
+            </div>
+          )}
+        </div>
+
+        {/* Schedule info */}
+        <div className="bg-card rounded-2xl border border-border/30 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Clock size={14} className="text-primary" />
+            <label className="text-xs font-semibold text-foreground">Horaires de retrait</label>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs text-muted-foreground">
+              Heures : <span className="font-semibold text-foreground">{withdrawalHourStart}h00 – {withdrawalHourEnd}h00</span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Jours : <span className="font-semibold text-foreground">
+                {withdrawalDays.length === 7 ? "Lundi à Dimanche" : withdrawalDays.map(d => ["", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"][d]).join(", ")}
+              </span>
+            </p>
+          </div>
+          {!isWithinSchedule && (
+            <div className="flex items-center gap-2 bg-destructive/10 text-destructive rounded-xl px-3 py-2.5 mt-3">
+              <AlertTriangle size={14} />
+              <p className="text-xs font-medium">{scheduleMessage}</p>
             </div>
           )}
         </div>
@@ -244,11 +309,11 @@ const Retrait = () => {
 
         <button
           onClick={handleSubmit}
-          disabled={submitting || wallets.length === 0 || numAmount < minAmount || numAmount > withdrawableBalance}
+          disabled={submitting || wallets.length === 0 || numAmount < minAmount || numAmount > withdrawableBalance || !isWithinSchedule}
           className="w-full gradient-button text-primary-foreground font-bold py-4 rounded-xl text-sm disabled:opacity-50 flex items-center justify-center gap-2"
         >
           <ArrowUpRight size={16} />
-          {submitting ? "Envoi en cours..." : "Lancer le retrait"}
+          {submitting ? "Envoi en cours..." : !isWithinSchedule ? "Retraits fermés" : "Lancer le retrait"}
         </button>
 
         <PremiumModal
