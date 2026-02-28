@@ -1,46 +1,67 @@
+import { lazy, Suspense } from "react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ActionPopupProvider } from "@/components/ActionPopupProvider";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+// Eager load core pages
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Products from "./pages/Products";
-import Team from "./pages/Team";
-import Portefeuille from "./pages/Portefeuille";
-import Historique from "./pages/Historique";
-import Aide from "./pages/Aide";
 import Profile from "./pages/Profile";
-import Settings from "./pages/Settings";
-import Loterie from "./pages/Loterie";
+import Portefeuille from "./pages/Portefeuille";
 import NotFound from "./pages/NotFound";
-import ServiceChat from "./pages/ServiceChat";
-import APropos from "./pages/APropos";
-import NewsDetail from "./pages/NewsDetail";
-import HistoriqueRetraits from "./pages/HistoriqueRetraits";
-import HistoriqueFonds from "./pages/HistoriqueFonds";
-import PointsCadeaux from "./pages/PointsCadeaux";
-import MesProduits from "./pages/MesProduits";
-import Recharge from "./pages/Recharge";
-import RechargePaiement from "./pages/RechargePaiement";
-import AdminRecharges from "./pages/AdminRecharges";
-import LierCarte from "./pages/LierCarte";
-import Retrait from "./pages/Retrait";
-import AdminRetraits from "./pages/AdminRetraits";
-import AdminProduits from "./pages/AdminProduits";
-import AdminPopups from "./pages/AdminPopups";
-import AdminPanel from "./pages/AdminPanel";
-import EchangerCode from "./pages/EchangerCode";
-import ChangerMotDePasse from "./pages/ChangerMotDePasse";
-import ChangerLangue from "./pages/ChangerLangue";
 
-const queryClient = new QueryClient();
+// Lazy load secondary pages
+const Team = lazy(() => import("./pages/Team"));
+const Historique = lazy(() => import("./pages/Historique"));
+const Aide = lazy(() => import("./pages/Aide"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Loterie = lazy(() => import("./pages/Loterie"));
+const ServiceChat = lazy(() => import("./pages/ServiceChat"));
+const APropos = lazy(() => import("./pages/APropos"));
+const NewsDetail = lazy(() => import("./pages/NewsDetail"));
+const HistoriqueRetraits = lazy(() => import("./pages/HistoriqueRetraits"));
+const HistoriqueFonds = lazy(() => import("./pages/HistoriqueFonds"));
+const PointsCadeaux = lazy(() => import("./pages/PointsCadeaux"));
+const MesProduits = lazy(() => import("./pages/MesProduits"));
+const Recharge = lazy(() => import("./pages/Recharge"));
+const RechargePaiement = lazy(() => import("./pages/RechargePaiement"));
+const AdminRecharges = lazy(() => import("./pages/AdminRecharges"));
+const LierCarte = lazy(() => import("./pages/LierCarte"));
+const Retrait = lazy(() => import("./pages/Retrait"));
+const AdminRetraits = lazy(() => import("./pages/AdminRetraits"));
+const AdminProduits = lazy(() => import("./pages/AdminProduits"));
+const AdminPopups = lazy(() => import("./pages/AdminPopups"));
+const AdminPanel = lazy(() => import("./pages/AdminPanel"));
+const EchangerCode = lazy(() => import("./pages/EchangerCode"));
+const ChangerMotDePasse = lazy(() => import("./pages/ChangerMotDePasse"));
+const ChangerLangue = lazy(() => import("./pages/ChangerLangue"));
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 2, // 2 min cache
+      gcTime: 1000 * 60 * 5,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+const Loading = () => (
+  <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+  </div>
+);
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <ActionPopupProvider>
       <BrowserRouter>
+        <Suspense fallback={<Loading />}>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/connexion" element={<Login />} />
@@ -74,6 +95,7 @@ const App = () => (
           <Route path="/service-chat" element={<ServiceChat />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
       </BrowserRouter>
       </ActionPopupProvider>
     </TooltipProvider>
