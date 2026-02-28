@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type Country = {
   code: string;
-  flag: string;
   name: string;
 };
 
@@ -23,13 +22,12 @@ const CountryPicker = ({ value, onChange, triggerClassName }: CountryPickerProps
     const load = async () => {
       const { data } = await supabase
         .from("countries")
-        .select("country_code, flag_emoji, name")
+        .select("country_code, name")
         .eq("is_active", true)
         .order("sort_order");
       if (data) {
         setCountries(data.map(c => ({
           code: c.country_code,
-          flag: c.flag_emoji || "🏳️",
           name: c.name,
         })));
       }
@@ -38,8 +36,6 @@ const CountryPicker = ({ value, onChange, triggerClassName }: CountryPickerProps
     load();
   }, []);
 
-  const selected = countries.find((c) => c.code === value) || countries[0] || { code: value, flag: "🏳️", name: "" };
-
   return (
     <>
       <button
@@ -47,7 +43,7 @@ const CountryPicker = ({ value, onChange, triggerClassName }: CountryPickerProps
         onClick={() => setOpen(true)}
         className={triggerClassName || "flex items-center gap-1 text-primary font-semibold text-sm whitespace-nowrap"}
       >
-        {selected.flag} {selected.code} ▼
+        {value} ▼
       </button>
 
       {open && (
@@ -87,7 +83,6 @@ const CountryPicker = ({ value, onChange, triggerClassName }: CountryPickerProps
                       onClick={() => { onChange(c.code); setOpen(false); }}
                       className="w-full flex items-center gap-3 px-5 py-4 transition-colors hover:bg-secondary/30"
                     >
-                      <span className="text-xl">{c.flag}</span>
                       <span className={`text-sm flex-1 text-left ${isSelected ? "text-primary font-bold" : "text-foreground"}`}>
                         {c.name}
                       </span>
@@ -97,7 +92,6 @@ const CountryPicker = ({ value, onChange, triggerClassName }: CountryPickerProps
                     </button>
                   );
                 })
-
               )}
             </div>
             <div className="h-6" />

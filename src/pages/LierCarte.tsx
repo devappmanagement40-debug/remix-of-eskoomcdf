@@ -25,7 +25,7 @@ const LierCarte = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showNetworkPicker, setShowNetworkPicker] = useState(false);
-  const [countries, setCountries] = useState<{code: string; flag: string; name: string}[]>([]);
+  const [countries, setCountries] = useState<{code: string; name: string}[]>([]);
 
   const [countryCode, setCountryCode] = useState("+226");
   const [phone, setPhone] = useState("");
@@ -34,8 +34,8 @@ const LierCarte = () => {
 
   useEffect(() => {
     loadWallets();
-    supabase.from("countries").select("country_code, flag_emoji, name").eq("is_active", true).order("sort_order")
-      .then(({ data }) => { if (data) setCountries(data.map(c => ({ code: c.country_code, flag: c.flag_emoji || "🏳️", name: c.name }))); });
+    supabase.from("countries").select("country_code, name").eq("is_active", true).order("sort_order")
+      .then(({ data }) => { if (data) setCountries(data.map(c => ({ code: c.country_code, name: c.name }))); });
   }, []);
 
   const loadWallets = async () => {
@@ -55,7 +55,7 @@ const LierCarte = () => {
     const country = countries.find(c => c.code === countryCode);
     const { error } = await supabase.from("user_wallets").insert({
       user_id: user.id, phone, country_code: countryCode, network,
-      label: `${country?.flag || ""} ${network}`,
+      label: `${network}`,
       holder_name: holderName.trim(),
     });
     if (error) { showError("Erreur", "Erreur lors de l'enregistrement"); }
@@ -106,7 +106,7 @@ const LierCarte = () => {
                     </div>
                     <p className="text-lg font-bold text-black/80 tracking-[0.2em] mb-1">{w.country_code} **** {w.phone.slice(-4)}</p>
                     <p className="text-sm text-black/60 font-medium">{(w as any).holder_name || "—"}</p>
-                    <p className="text-xs text-black/50 font-medium mt-0.5">{country?.flag} {w.network}</p>
+                    <p className="text-xs text-black/50 font-medium mt-0.5">{w.network}</p>
                   </div>
                 </div>
               );
@@ -176,7 +176,7 @@ const LierCarte = () => {
             <div>
               <label className="text-xs text-muted-foreground mb-2 block">Numéro de téléphone</label>
               <div className="input-glow rounded-xl bg-secondary p-3 flex items-center gap-3">
-                <span className="text-sm text-primary font-semibold whitespace-nowrap">{selectedCountry?.flag} {countryCode}</span>
+                <span className="text-sm text-primary font-semibold whitespace-nowrap">{countryCode}</span>
                 <span className="text-muted-foreground">|</span>
                 <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                   placeholder="XX XX XX XX" maxLength={15}
