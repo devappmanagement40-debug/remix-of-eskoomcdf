@@ -22,7 +22,7 @@ const Signup = () => {
 
   useEffect(() => {
     const code = searchParams.get("code");
-    if (code) setInviteCode(code);
+    if (code) setInviteCode(decodeURIComponent(code).trim());
   }, [searchParams]);
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -38,10 +38,11 @@ const Signup = () => {
     const cleanPhone = phone.replace(/\s/g, "");
     const email = `${cleanPhone}@users.eskom.app`;
 
+    const codeToCheck = inviteCode.trim().toUpperCase();
     const { data: referrer } = await supabase
       .from("profiles")
       .select("id")
-      .eq("referral_code", inviteCode.trim().toUpperCase())
+      .ilike("referral_code", codeToCheck)
       .single();
     if (!referrer) {
       showError("Erreur", "Code d'invitation invalide");
