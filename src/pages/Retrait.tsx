@@ -159,6 +159,19 @@ const Retrait = () => {
     if (error) {
       showError("Erreur", "Erreur lors de la demande de retrait");
     } else {
+      // Grant points for withdrawal
+      const { data: pointSetting } = await supabase.from("site_settings")
+        .select("value").eq("key", "points_per_withdrawal").single();
+      const withdrawalPoints = Number(pointSetting?.value) || 0;
+      if (withdrawalPoints > 0) {
+        const { data: freshProfile } = await supabase.from("profiles")
+          .select("gift_points").eq("user_id", user.id).single();
+        if (freshProfile) {
+          await supabase.from("profiles").update({
+            gift_points: ((freshProfile as any).gift_points || 0) + withdrawalPoints,
+          }).eq("user_id", user.id);
+        }
+      }
       setShowSuccess(true);
     }
     setSubmitting(false);
