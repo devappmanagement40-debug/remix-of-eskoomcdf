@@ -806,6 +806,7 @@ export type Database = {
           created_at: string | null
           id: string
           is_active: boolean
+          is_winnable: boolean
           label: string
           prize_type: string
           probability: number
@@ -818,6 +819,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean
+          is_winnable?: boolean
           label: string
           prize_type?: string
           probability?: number
@@ -830,6 +832,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean
+          is_winnable?: boolean
           label?: string
           prize_type?: string
           probability?: number
