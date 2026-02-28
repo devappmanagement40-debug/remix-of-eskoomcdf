@@ -7,7 +7,7 @@ import {
 
 type WheelPrize = {
   id: string; label: string; value: number; prize_type: string;
-  vip_level: number | null; probability: number; is_active: boolean; sort_order: number;
+  vip_level: number | null; probability: number; is_active: boolean; is_winnable: boolean; sort_order: number;
 };
 
 type WheelSpin = {
@@ -171,6 +171,8 @@ const PrizesSection = ({ prizes, reload, showSuccess, showError }: any) => {
             <div className="flex gap-1.5">
               <button onClick={async () => { await supabase.from("wheel_prizes").update({ is_active: !p.is_active }).eq("id", p.id); reload(); }}
                 className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{p.is_active ? "ON" : "OFF"}</button>
+              <button onClick={async () => { await supabase.from("wheel_prizes").update({ is_winnable: !(p as any).is_winnable }).eq("id", p.id); reload(); }}
+                className={`h-7 px-1.5 rounded-lg flex items-center justify-center text-[9px] font-bold ${(p as any).is_winnable !== false ? "bg-warning/20 text-warning" : "bg-destructive/20 text-destructive"}`}>{(p as any).is_winnable !== false ? "WIN" : "NO WIN"}</button>
               <button onClick={() => openForm(p)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
               <button onClick={async () => { await supabase.from("wheel_prizes").delete().eq("id", p.id); showSuccess("Supprimé", ""); reload(); }}
                 className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
