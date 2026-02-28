@@ -14,6 +14,9 @@ interface TeamMember {
   balance: number | null;
   created_at: string | null;
   is_suspended: boolean | null;
+  user_id: string;
+  hasInvested: boolean;
+  bonusEarned: number;
 }
 
 interface LevelData {
@@ -24,7 +27,7 @@ interface LevelData {
 }
 
 const WHATSAPP_MESSAGE = encodeURIComponent(
-  `Bonjour à vous 👋\n\nVous vous êtes inscrit(e) avec mon lien sur la plateforme SCOM.\nJe suis votre parrain et je me permets de vous contacter pour vous accompagner si besoin.\n\nN'hésitez pas à me poser vos questions.\n\nCordialement.`
+  `Bonjour à vous 👋\n\nVous vous êtes inscrit(e) avec mon lien sur la plateforme ESKOM.\nJe suis votre parrain et je me permets de vous contacter pour vous accompagner si besoin.\n\nN'hésitez pas à me poser vos questions.\n\nCordialement.`
 );
 
 const Team = () => {
@@ -56,36 +59,90 @@ const Team = () => {
     if (!myProfile) return;
     setReferralCode(myProfile.referral_code || "");
 
+    // Fetch level B members
     const { data: levelB } = await supabase
       .from("profiles")
-      .select("id, full_name, phone, country_code, balance, created_at, is_suspended")
+      .select("id, full_name, phone, country_code, balance, created_at, is_suspended, user_id")
       .eq("referred_by", myProfile.id);
-    const bMembers = levelB || [];
+    const bRaw = levelB || [];
 
-    const bIds = bMembers.map((m) => m.id);
-    let cMembers: TeamMember[] = [];
+    const bIds = bRaw.map((m) => m.id);
+    let cRaw: any[] = [];
     if (bIds.length > 0) {
       const { data: levelC } = await supabase
         .from("profiles")
-        .select("id, full_name, phone, country_code, balance, created_at, is_suspended")
+        .select("id, full_name, phone, country_code, balance, created_at, is_suspended, user_id")
         .in("referred_by", bIds);
-      cMembers = levelC || [];
+      cRaw = levelC || [];
     }
 
-    const cIds = cMembers.map((m) => m.id);
-    let dMembers: TeamMember[] = [];
+    const cIds = cRaw.map((m) => m.id);
+    let dRaw: any[] = [];
     if (cIds.length > 0) {
       const { data: levelD } = await supabase
         .from("profiles")
-        .select("id, full_name, phone, country_code, balance, created_at, is_suspended")
+        .select("id, full_name, phone, country_code, balance, created_at, is_suspended, user_id")
         .in("referred_by", cIds);
-      dMembers = levelD || [];
+      dRaw = levelD || [];
     }
 
+    // Get all member user_ids to check investments
+    const allMembers = [...bRaw, ...cRaw, ...dRaw];
+    const allUserIds = allMembers.map((m) => m.user_id).filter(Boolean);
+
+    // Check who has invested (has user_products)
+    let investedUserIds = new Set<string>();
+    if (allUserIds.length > 0) {
+      const { data: products } = await supabase
+        .from("user_products")
+        .select("user_id")
+        .in("user_id", allUserIds);
+      investedUserIds = new Set((products || []).map((p: any) => p.user_id));
+    }
+
+    // Get referral bonuses received by the current user from recharges
+    // Commission rates: B=10%, C=5%, D=1%
+    const enrichMembers = (members: any[], rate: number): TeamMember[] =>
+      members.map((m) => ({
+        ...m,
+        hasInvested: investedUserIds.has(m.user_id),
+        bonusEarned: 0, // Will be calculated below
+      }));
+
+    // Fetch all approved recharges for team members to calculate bonuses
+    let bonusMap = new Map<string, number>();
+    if (allUserIds.length > 0) {
+      const { data: recharges } = await supabase
+        .from("recharges")
+        .select("user_id, amount")
+        .in("user_id", allUserIds)
+        .eq("status", "approved");
+      if (recharges) {
+        const bUserIds = new Set(bRaw.map(m => m.user_id));
+        const cUserIds = new Set(cRaw.map(m => m.user_id));
+        const dUserIds = new Set(dRaw.map(m => m.user_id));
+        for (const r of recharges) {
+          const rate = bUserIds.has(r.user_id) ? 0.10 : cUserIds.has(r.user_id) ? 0.05 : dUserIds.has(r.user_id) ? 0.01 : 0;
+          bonusMap.set(r.user_id, (bonusMap.get(r.user_id) || 0) + r.amount * rate);
+        }
+      }
+    }
+
+    const buildMembers = (members: any[]): TeamMember[] =>
+      members.map((m) => ({
+        ...m,
+        hasInvested: investedUserIds.has(m.user_id),
+        bonusEarned: bonusMap.get(m.user_id) || 0,
+      }));
+
+    const bMembers = buildMembers(bRaw);
+    const cMembers = buildMembers(cRaw);
+    const dMembers = buildMembers(dRaw);
+
     setLevels([
-      { label: "B", color: "from-cyan-400 to-teal-400", members: bMembers, revenue: 0 },
-      { label: "C", color: "from-pink-400 to-rose-400", members: cMembers, revenue: 0 },
-      { label: "D", color: "from-purple-400 to-violet-400", members: dMembers, revenue: 0 },
+      { label: "B", color: "from-cyan-400 to-teal-400", members: bMembers, revenue: bMembers.reduce((s, m) => s + m.bonusEarned, 0) },
+      { label: "C", color: "from-pink-400 to-rose-400", members: cMembers, revenue: cMembers.reduce((s, m) => s + m.bonusEarned, 0) },
+      { label: "D", color: "from-purple-400 to-violet-400", members: dMembers, revenue: dMembers.reduce((s, m) => s + m.bonusEarned, 0) },
     ]);
     setLoading(false);
   };
@@ -135,7 +192,7 @@ const Team = () => {
             <p className="text-center text-muted-foreground py-12 text-sm">Aucun membre à ce niveau.</p>
           ) : (
             level.members.map((member) => {
-              const isActive = !member.is_suspended;
+              const isActive = member.hasInvested;
               return (
                 <div key={member.id} className="bg-card border border-border rounded-xl p-4 space-y-3">
                   <div className="flex items-center justify-between">
@@ -158,7 +215,9 @@ const Team = () => {
 
                   <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-2">
                     <span className="flex items-center gap-1"><Calendar size={12} /> {formatDate(member.created_at)}</span>
-                    <span className="font-mono text-foreground">{member.id.slice(0, 8).toUpperCase()}</span>
+                    <span className="flex items-center gap-1 font-semibold text-primary">
+                      <DollarSign size={12} /> Bonus: {member.bonusEarned.toLocaleString()} FCFA
+                    </span>
                   </div>
 
                   <button
@@ -205,7 +264,7 @@ const Team = () => {
               <DollarSign size={28} className="text-amber-400" />
             </div>
             <span className="text-xs text-muted-foreground mb-1">Revenu Total</span>
-            <span className="text-lg font-bold text-primary">{totalRevenue.toFixed(2)} <span className="text-xs font-normal text-muted-foreground">FCFA</span></span>
+            <span className="text-lg font-bold text-primary">{totalRevenue.toLocaleString()} <span className="text-xs font-normal text-muted-foreground">FCFA</span></span>
           </div>
           <div className="bg-card border border-border rounded-xl p-5 flex flex-col items-center">
             <div className="w-14 h-14 rounded-full bg-cyan-500/20 flex items-center justify-center mb-3">
@@ -238,7 +297,7 @@ const Team = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Revenu</span>
-                  <span className="text-sm text-foreground">{level.revenue} FCFA</span>
+                  <span className="text-sm text-foreground">{level.revenue.toLocaleString()} FCFA</span>
                 </div>
               </div>
             </div>
