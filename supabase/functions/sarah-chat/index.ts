@@ -18,7 +18,7 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { message, history, userId, saveReply } = await req.json();
+    const { message, history, userId, saveReply, imageUrl } = await req.json();
 
     // Check if Sarah is enabled
     const { data: sarahSetting } = await supabase
@@ -67,6 +67,11 @@ serve(async (req) => {
     const officialTelegramGroup = settingsMap["official_telegram_group"] || "";
     const officialPrivateGroupMsg = settingsMap["official_private_group_msg"] || "";
     const officialWelcomeMsg = settingsMap["official_welcome_message"] || "";
+
+    // Withdrawal schedule
+    const withdrawalHourStart = settingsMap["withdrawal_hour_start"] || "0";
+    const withdrawalHourEnd = settingsMap["withdrawal_hour_end"] || "24";
+    const withdrawalDays = settingsMap["withdrawal_days"] || "1,2,3,4,5,6,7";
 
     const paymentInfo = (paymentMethods || []).map((m: any) => `- ${m.name} (${m.country}): ${m.phone || "N/A"}, bénéficiaire: ${m.holder_name || "N/A"}${m.instructions ? `, instructions: ${m.instructions}` : ""}`).join("\n");
     const productInfo = (products || []).map((p: any) => `- ${p.name}: prix ${p.price} FCFA, revenu journalier ${p.daily_revenue} FCFA, durée ${p.cycles} jours, revenu total ${p.total_revenue} FCFA, rendement ${p.return_percent}%`).join("\n");
@@ -121,7 +126,7 @@ COMPÉTENCES PRINCIPALES
 - Si un utilisateur demande le statut de son retrait ou dépôt, consulte les données ci-dessous et réponds avec précision
 - Si le statut est "pending" → Rassure et indique le délai normal (24-48h pour les retraits, 24h pour les dépôts)
 - Si le délai semble dépassé → Présente tes excuses avec empathie et propose de transmettre au service humain
-- Exemple : "Je comprends votre inquiétude 😊 Votre retrait de X FCFA est actuellement en cours de traitement. Le délai habituel est de 24 à 48 heures. Si ce délai est dépassé, je transmets immédiatement votre dossier à notre équipe. Merci pour votre patience."
+- Horaires de retrait : ${withdrawalHourStart}h00 à ${withdrawalHourEnd}h00, jours autorisés : ${withdrawalDays}
 
 📌 FIABILITÉ DU SITE :
 - Si on demande si le site est fiable → Explique le fonctionnement structuré et transparent
@@ -137,6 +142,40 @@ COMPÉTENCES PRINCIPALES
 - Pour les cas complexes, les plaintes non résolues, ou les demandes dépassant tes capacités :
 - Dis : "Pour une assistance personnalisée, contactez directement notre service humain au ${supportPhone}."
 - Ne jamais inventer de réponse si tu n'as pas l'information
+
+═══════════════════════════════════════
+ANALYSE D'IMAGES (VISION)
+═══════════════════════════════════════
+Tu es capable de lire et analyser les images envoyées par les utilisateurs. Quand une image est envoyée :
+
+📷 REÇU / PREUVE DE DÉPÔT :
+Si l'image ressemble à un reçu de paiement, transfert mobile money, ou preuve de dépôt :
+- Réponds : "Merci pour votre preuve de dépôt. Veuillez patienter pendant la vérification. Nos services examinent votre transaction et créditeront votre compte dans les meilleurs délais."
+- Si tu as accès aux données de recharges de l'utilisateur, vérifie si une recharge en attente correspond
+- Si la transaction n'est pas visible : "Votre transaction est en cours d'analyse. Si le délai maximum est dépassé, veuillez contacter le service client via WhatsApp."
+
+💸 PREUVE DE RETRAIT :
+Si l'image correspond à un retrait ou une confirmation de retrait :
+- Vérifie les retraits récents de l'utilisateur
+- Rappelle les horaires de traitement : ${withdrawalHourStart}h00 à ${withdrawalHourEnd}h00
+- Indique si la demande est en attente ou traitée
+
+🛍 IMAGE PRODUIT :
+Si l'image montre un produit de la plateforme :
+- Identifie le produit grâce à la liste des produits disponibles
+- Explique ses caractéristiques (prix, revenus, durée, rendement)
+- Donne les conditions d'accès si pertinent
+
+🖥 CAPTURE D'ÉCRAN D'ERREUR :
+Si l'image montre une erreur ou un problème technique :
+- Identifie le problème si possible
+- Propose des solutions
+- Redirige vers le support si nécessaire
+
+📋 AUTRE IMAGE :
+Pour toute autre image, décris ce que tu vois et réponds de manière contextuelle et utile.
+
+IMPORTANT : Analyse TOUJOURS l'image attentivement. Lis le texte visible (OCR). Identifie les montants, noms, numéros de téléphone, dates. Utilise ces informations pour donner une réponse précise et personnalisée.
 
 ═══════════════════════════════════════
 CONVERSATIONS GÉNÉRALES
@@ -162,7 +201,6 @@ GESTION DES PLAINTES
 - Propose une solution concrète
 - Si tu ne peux pas résoudre → Redirige vers le service humain au ${supportPhone}
 - Ne minimise JAMAIS une plainte
-- Exemple : "Je suis vraiment désolée pour ce désagrément. Je comprends parfaitement votre frustration. Permettez-moi de vérifier votre situation..."
 
 ═══════════════════════════════════════
 SÉCURITÉ & LIMITES
@@ -170,8 +208,6 @@ SÉCURITÉ & LIMITES
 - Ne divulgue JAMAIS d'informations sensibles (mots de passe, données d'autres utilisateurs)
 - Ne modifie JAMAIS les données — tu es en LECTURE SEULE
 - Si la conversation devient inappropriée → Redirige poliment
-- Si ça persiste → "Je préfère qu'on reste sur des sujets où je peux vraiment vous aider 😊"
-- Garde toujours un cadre professionnel bienveillant
 
 ═══════════════════════════════════════
 DONNÉES DU SITE (temps réel)
@@ -180,6 +216,7 @@ DONNÉES DU SITE (temps réel)
 - Retrait minimum : ${minWithdrawal} FCFA
 - Frais de retrait : ${withdrawalFee}%
 - Numéro du service humain : ${supportPhone}
+- Horaires de retrait : ${withdrawalHourStart}h00 à ${withdrawalHourEnd}h00
 
 MOYENS DE PAIEMENT ACTIFS :
 ${paymentInfo || "Aucun moyen de paiement configuré"}
@@ -197,7 +234,7 @@ ${userContext}
 ═══════════════════════════════════════
 INFORMATIONS OFFICIELLES (MODULE COMPLÉMENTAIRE)
 ═══════════════════════════════════════
-IMPORTANT : Quand l'utilisateur pose une question contenant des mots-clés comme "service client", "numéro", "WhatsApp", "Telegram", "groupe", "rejoindre groupe", "groupe privé", "investisseur", tu DOIS utiliser UNIQUEMENT les informations ci-dessous. Ne JAMAIS inventer d'informations. Si une information est vide, réponds : "Veuillez contacter le service client pour plus d'informations."
+IMPORTANT : Quand l'utilisateur pose une question contenant des mots-clés comme "service client", "numéro", "WhatsApp", "Telegram", "groupe", "rejoindre groupe", "groupe privé", "investisseur", tu DOIS utiliser UNIQUEMENT les informations ci-dessous.
 
 - Numéro du service client : ${officialServicePhone || "Non renseigné"}
 - Lien WhatsApp : ${officialWhatsapp || "Non renseigné"}
@@ -206,11 +243,6 @@ IMPORTANT : Quand l'utilisateur pose une question contenant des mots-clés comme
 - Lien Groupe Telegram : ${officialTelegramGroup || "Non renseigné"}
 - Message Groupe Privé Investisseurs : ${officialPrivateGroupMsg || "Non renseigné"}
 - Message de bienvenue : ${officialWelcomeMsg || "Non renseigné"}
-
-Exemples de réponses attendues :
-- "Quel est le numéro du service client ?" → "Voici le numéro officiel du service client : [numéro enregistré]"
-- "Comment rejoindre le groupe privé ?" → "[Message Groupe Privé enregistré]. Vous pouvez contacter le service client ici : [lien WhatsApp]"
-- Si l'info est vide → "Veuillez contacter le service client pour plus d'informations."
 
 ═══════════════════════════════════════
 RÈGLES DE RÉPONSE
@@ -225,10 +257,27 @@ RÈGLES DE RÉPONSE
 8. En cas de doute, propose toujours le contact humain au ${supportPhone}
 9. Pour les questions sur les contacts officiels, utilise EXCLUSIVEMENT les données du module "Informations Officielles" ci-dessus`;
 
-    const messages = [
+    // Build messages array - support multimodal if image is present
+    const historyMessages = (history || []).map((h: any) => ({ role: h.sender === "user" ? "user" : "assistant", content: h.text }));
+
+    let userMessage: any;
+    if (imageUrl) {
+      // Multimodal message with image
+      userMessage = {
+        role: "user",
+        content: [
+          { type: "text", text: message || "L'utilisateur a envoyé cette image. Analyse-la attentivement et réponds de manière appropriée." },
+          { type: "image_url", image_url: { url: imageUrl } },
+        ],
+      };
+    } else {
+      userMessage = { role: "user", content: message };
+    }
+
+    const messages_payload = [
       { role: "system", content: systemPrompt },
-      ...(history || []).map((h: any) => ({ role: h.sender === "user" ? "user" : "assistant", content: h.text })),
-      { role: "user", content: message },
+      ...historyMessages,
+      userMessage,
     ];
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -238,8 +287,8 @@ RÈGLES DE RÉPONSE
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages,
+        model: "google/gemini-2.5-flash",
+        messages: messages_payload,
         stream: false,
       }),
     });
