@@ -186,6 +186,28 @@ const Products = () => {
         deposit_balance: newDeposit,
       }).eq("user_id", user.id);
 
+      // Grant 1 spin to buyer
+      const { data: buyerProfile } = await supabase.from("profiles")
+        .select("spins_balance, referred_by")
+        .eq("user_id", user.id).single();
+      if (buyerProfile) {
+        await supabase.from("profiles").update({
+          spins_balance: (buyerProfile.spins_balance || 0) + 1,
+        }).eq("user_id", user.id);
+
+        // Grant 1 spin to referrer if exists
+        if (buyerProfile.referred_by) {
+          const { data: referrerProfile } = await supabase.from("profiles")
+            .select("user_id, spins_balance")
+            .eq("id", buyerProfile.referred_by).single();
+          if (referrerProfile) {
+            await supabase.from("profiles").update({
+              spins_balance: (referrerProfile.spins_balance || 0) + 1,
+            }).eq("id", buyerProfile.referred_by);
+          }
+        }
+      }
+
       setPurchasedName(product.name);
       setShowSuccess(true);
     } finally {

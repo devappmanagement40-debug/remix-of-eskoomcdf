@@ -190,11 +190,13 @@ const Index = () => {
             {annonces.map((item) => (
               <div
                 key={item.id}
+                onClick={() => navigate(`/actualite/${item.id}`)}
                 className="bg-card rounded-xl border border-secondary p-4 flex gap-4 cursor-pointer hover:border-primary transition-colors"
               >
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-bold text-foreground mb-1">{item.title}</h3>
                   <p className="text-xs text-muted-foreground line-clamp-3">{item.description}</p>
+                  <span className="text-[10px] text-primary font-semibold mt-2 inline-block">Lire la suite →</span>
                 </div>
                 {item.image_url && (
                   <div className="w-24 h-20 rounded-lg overflow-hidden flex-shrink-0">
