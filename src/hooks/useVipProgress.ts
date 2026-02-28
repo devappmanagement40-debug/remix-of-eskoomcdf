@@ -23,6 +23,7 @@ type CriterionProgress = {
 export type VipProgressData = {
   currentLevel: number;
   currentLevelName: string;
+  currentLevelImage: string | null;
   nextLevel: number | null;
   nextLevelName: string | null;
   overallProgress: number;
@@ -33,6 +34,7 @@ export type VipProgressData = {
 const defaults: VipProgressData = {
   currentLevel: 0,
   currentLevelName: "VIP0",
+  currentLevelImage: null,
   nextLevel: null,
   nextLevelName: null,
   overallProgress: 0,
@@ -61,6 +63,7 @@ export const useVipProgress = (userId: string | null, vipLevel: number, balance:
         setData({
           currentLevel: vipLevel,
           currentLevelName: current?.level_name || `VIP${vipLevel}`,
+          currentLevelImage: current?.image_url || null,
           nextLevel: null,
           nextLevelName: null,
           overallProgress: 100,
@@ -189,6 +192,7 @@ export const useVipProgress = (userId: string | null, vipLevel: number, balance:
       setData({
         currentLevel: vipLevel,
         currentLevelName: current?.level_name || `VIP${vipLevel}`,
+        currentLevelImage: current?.image_url || null,
         nextLevel: nc.level,
         nextLevelName: nc.level_name,
         overallProgress: Math.min(Math.round(overallProgress), 100),
