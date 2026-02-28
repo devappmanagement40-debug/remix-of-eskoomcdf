@@ -189,30 +189,71 @@ const ServiceChat = () => {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !userId) return;
-    const reader = new FileReader();
-    reader.onload = async () => {
-      const imgMsg = "📷 [Image envoyée]";
-      const { data: inserted } = await supabase
-        .from("chat_messages")
-        .insert({ user_id: userId, sender: "user", message: imgMsg, is_ai: false })
-        .select()
-        .single();
 
-      if (inserted) {
-        setMessages((prev) => [...prev, {
-          id: inserted.id,
-          text: "",
-          image: reader.result as string,
-          sender: "user",
-          time: new Date(inserted.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
-          status: "sent",
-        }]);
+    setIsTyping(true);
+
+    // Upload to storage
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${userId}/${Date.now()}.${ext}`;
+    const { error: uploadErr } = await supabase.storage.from("chat-images").upload(path, file, { upsert: true });
+    if (uploadErr) {
+      console.error("Upload error:", uploadErr);
+      setIsTyping(false);
+      return;
+    }
+    const { data: urlData } = supabase.storage.from("chat-images").getPublicUrl(path);
+    const imageUrl = urlData.publicUrl;
+
+    // Save user message with image URL
+    const imgMsg = `📷 [Image envoyée]`;
+    const { data: inserted } = await supabase
+      .from("chat_messages")
+      .insert({ user_id: userId, sender: "user", message: imgMsg, is_ai: false })
+      .select()
+      .single();
+
+    if (inserted) {
+      setMessages((prev) => [...prev, {
+        id: inserted.id,
+        text: "",
+        image: imageUrl,
+        sender: "user",
+        time: new Date(inserted.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+        status: "sent",
+      }]);
+    }
+
+    // Send image to Sarah for analysis if enabled
+    if (sarahEnabled) {
+      try {
+        const history = messages.slice(-10).map((m) => ({ sender: m.sender, text: m.text }));
+        const { data } = await supabase.functions.invoke("sarah-chat", {
+          body: { message: "L'utilisateur a envoyé une image.", history, userId, imageUrl },
+        });
+
+        setIsTyping(false);
+        const replyText = data?.reply || "Je suis désolée, une erreur est survenue. Veuillez réessayer.";
+        const replyId = data?.savedReplyId || crypto.randomUUID();
+        setMessages((prev) => [
+          ...prev.map((m): Message => m.id === inserted?.id ? { ...m, status: "read" } : m),
+          {
+            id: replyId,
+            text: replyText,
+            sender: "support",
+            time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+            status: "delivered",
+            isAI: true,
+          },
+        ]);
+      } catch {
+        setIsTyping(false);
       }
-    };
-    reader.readAsDataURL(file);
+    } else {
+      setIsTyping(false);
+    }
   };
 
   const StatusIcon = ({ status }: { status: string }) => {
