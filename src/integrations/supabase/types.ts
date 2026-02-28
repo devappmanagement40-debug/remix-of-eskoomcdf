@@ -447,6 +447,7 @@ export type Database = {
           referral_balance: number | null
           referral_code: string | null
           referred_by: string | null
+          spins_balance: number
           updated_at: string | null
           user_id: string
           vip_level: number | null
@@ -465,6 +466,7 @@ export type Database = {
           referral_balance?: number | null
           referral_code?: string | null
           referred_by?: string | null
+          spins_balance?: number
           updated_at?: string | null
           user_id: string
           vip_level?: number | null
@@ -483,6 +485,7 @@ export type Database = {
           referral_balance?: number | null
           referral_code?: string | null
           referred_by?: string | null
+          spins_balance?: number
           updated_at?: string | null
           user_id?: string
           vip_level?: number | null

@@ -51,7 +51,7 @@ const App = () => (
           <Route path="/historique" element={<Historique />} />
           <Route path="/aide" element={<Aide />} />
           <Route path="/a-propos" element={<APropos />} />
-          <Route path="/actualite/:slug" element={<NewsDetail />} />
+          <Route path="/actualite/:id" element={<NewsDetail />} />
           <Route path="/historique-retraits" element={<HistoriqueRetraits />} />
           <Route path="/historique-fonds" element={<HistoriqueFonds />} />
           <Route path="/points-cadeaux" element={<PointsCadeaux />} />

@@ -10,7 +10,7 @@ type Product = {
   id: string; series_id: string; name: string; image_url: string | null;
   return_percent: number | null; total_revenue: number | null; daily_revenue: number | null;
   cycles: number | null; price: number | null; is_new: boolean | null; is_active: boolean | null;
-  sort_order: number | null;
+  sort_order: number | null; max_purchases: number | null; is_featured: boolean | null;
 };
 
 const colorOptions = [
@@ -110,7 +110,7 @@ const AdminProduits = () => {
       setProductCycles(String(p.cycles || 365));
       setProductPrice(String(p.price || 0));
       setProductIsNew(p.is_new || false);
-      setProductIsFeatured((p as any).is_featured || false);
+      setProductIsFeatured(p.is_featured || false);
     } else {
       setEditingProduct(null);
       setProductName(""); setProductImageUrl(""); setProductReturnPercent(""); setProductTotalRevenue("");
@@ -337,7 +337,7 @@ const AdminProduits = () => {
                               <div className="flex items-center gap-2">
                                 <span className="text-sm font-semibold text-foreground">{p.name}</span>
                                 {p.is_new && <span className="text-[9px] bg-success/20 text-success px-1.5 py-0.5 rounded-full font-bold">NEW</span>}
-                                {(p as any).is_featured && <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold">POP</span>}
+                                {p.is_featured && <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold">POP</span>}
                               </div>
                               <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} FCFA • {p.return_percent}% • {p.cycles}j</span>
                             </div>

@@ -17,6 +17,7 @@ type Withdrawal = {
   status: string;
   admin_note: string | null;
   created_at: string | null;
+  wallet_id: string | null;
 };
 
 type ProfileInfo = {
@@ -25,11 +26,18 @@ type ProfileInfo = {
   balance: number | null;
 };
 
+type WalletInfo = {
+  holder_name: string | null;
+  phone: string;
+  network: string;
+};
+
 const AdminRetraits = () => {
   const navigate = useNavigate();
   const { showSuccess, showError } = useActionPopup();
   const [items, setItems] = useState<Withdrawal[]>([]);
   const [profiles, setProfiles] = useState<Record<string, ProfileInfo>>({});
+  const [wallets, setWallets] = useState<Record<string, WalletInfo>>({});
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
   const [search, setSearch] = useState("");
@@ -55,14 +63,23 @@ const AdminRetraits = () => {
     const { data } = await supabase.from("withdrawals").select("*").order("created_at", { ascending: false });
     if (data) {
       setItems(data);
-      // Load profiles for all unique user_ids
       const userIds = [...new Set(data.map(d => d.user_id))];
+      const walletIds = data.map(d => d.wallet_id).filter(Boolean) as string[];
+
       if (userIds.length > 0) {
         const { data: profilesData } = await supabase.from("profiles").select("user_id, full_name, phone, balance").in("user_id", userIds);
         if (profilesData) {
           const map: Record<string, ProfileInfo> = {};
           profilesData.forEach(p => { map[p.user_id] = p; });
           setProfiles(map);
+        }
+      }
+      if (walletIds.length > 0) {
+        const { data: walletsData } = await supabase.from("user_wallets").select("id, holder_name, phone, network").in("id", walletIds);
+        if (walletsData) {
+          const wmap: Record<string, WalletInfo> = {};
+          walletsData.forEach(w => { wmap[w.id] = w; });
+          setWallets(wmap);
         }
       }
     }
@@ -163,6 +180,7 @@ const AdminRetraits = () => {
           <div className="text-center py-16"><p className="text-sm text-muted-foreground">Aucun retrait</p></div>
         ) : filtered.map(r => {
           const profile = profiles[r.user_id];
+          const wallet = r.wallet_id ? wallets[r.wallet_id] : null;
           const feePercent = r.amount > 0 ? Math.round((r.fee_amount / r.amount) * 100) : 0;
 
           return (
@@ -202,19 +220,27 @@ const AdminRetraits = () => {
                 {/* Details grid */}
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-3">
                   <div>
-                    <p className="text-[10px] text-muted-foreground">Client :</p>
+                    <p className="text-[10px] text-muted-foreground">Nom du titulaire :</p>
+                    <p className="text-xs font-semibold text-foreground">{wallet?.holder_name || profile?.full_name || "—"}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Numéro de retrait :</p>
                     <p className="text-xs font-semibold text-foreground">{r.country_code} {r.phone}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Moyen de paiement :</p>
+                    <p className="text-xs font-semibold text-foreground">{r.network}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Montant demandé :</p>
+                    <p className="text-xs font-semibold text-foreground">{r.amount.toLocaleString("fr-FR")} FCFA</p>
                   </div>
                   <div>
                     <p className="text-[10px] text-muted-foreground">Solde actuel :</p>
                     <p className="text-xs font-semibold text-foreground">{profile ? `${(profile.balance || 0).toLocaleString("fr-FR")} FCFA` : "—"}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-muted-foreground">Nom compte :</p>
-                    <p className="text-xs font-semibold text-foreground">{profile?.full_name || "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Date :</p>
+                    <p className="text-[10px] text-muted-foreground">Date & heure :</p>
                     <p className="text-xs font-semibold text-foreground">{formatDate(r.created_at)}</p>
                   </div>
                 </div>

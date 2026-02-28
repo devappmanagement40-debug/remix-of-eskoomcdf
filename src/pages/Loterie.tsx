@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Zap, Trophy, History, Gift, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import BottomNav from "@/components/BottomNav";
 
@@ -24,6 +25,7 @@ const Loterie = () => {
   const [globalSpins, setGlobalSpins] = useState<any[]>([]);
   const [totalWon, setTotalWon] = useState(0);
   const [spinsLeft, setSpinsLeft] = useState(0);
+  const { showError } = useActionPopup();
   const wheelRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => { loadData(); }, []);
@@ -38,18 +40,20 @@ const Loterie = () => {
     (ss.data || []).forEach((s: WheelSetting) => { if (s.value) settingsMap[s.key] = s.value; });
     setSettings(settingsMap);
 
-    // Load user spins history
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      const { data: spinData } = await supabase.from("wheel_spins").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20);
-      if (spinData) {
-        setSpins(spinData as SpinRecord[]);
-        const total = spinData.filter(s => s.prize_type === "cash").reduce((sum, s) => sum + Number(s.prize_value), 0);
+      const [spinRes, profileRes] = await Promise.all([
+        supabase.from("wheel_spins").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
+        supabase.from("profiles").select("spins_balance").eq("user_id", user.id).single(),
+      ]);
+      if (spinRes.data) {
+        setSpins(spinRes.data as SpinRecord[]);
+        const total = spinRes.data.filter(s => s.prize_type === "cash").reduce((sum, s) => sum + Number(s.prize_value), 0);
         setTotalWon(total);
       }
+      setSpinsLeft((profileRes.data as any)?.spins_balance || 0);
     }
 
-    // Load global recent winners via RPC
     const { data: globalData } = await supabase.rpc("get_recent_winners", { lim: 30 });
     if (globalData) setGlobalSpins(globalData);
 
@@ -60,7 +64,6 @@ const Loterie = () => {
   const SEGMENT_COUNT = segments.length;
   const SEGMENT_ANGLE = 360 / SEGMENT_COUNT;
 
-  // Weighted random selection based on probability
   const selectPrize = () => {
     const totalProb = segments.reduce((s, p) => s + p.probability, 0);
     let rand = Math.random() * totalProb;
@@ -73,8 +76,27 @@ const Loterie = () => {
 
   const spin = async () => {
     if (spinning || segments.length === 0) return;
+
+    // Check spins balance
+    if (spinsLeft <= 0) {
+      showError(
+        "Aucun tour disponible",
+        "Vous n'avez pas de tour disponible. Achetez un produit ou invitez un ami qui achète un produit pour obtenir un tour gratuit."
+      );
+      return;
+    }
+
     setSpinning(true);
     setResult(null);
+
+    // Deduct spin immediately
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from("profiles").update({
+        spins_balance: Math.max(0, spinsLeft - 1),
+      }).eq("user_id", user.id);
+      setSpinsLeft(prev => Math.max(0, prev - 1));
+    }
 
     const winIndex = selectPrize();
     const extraSpins = 5 * 360;
@@ -93,8 +115,6 @@ const Loterie = () => {
         setResult(`${Number(prize.value).toLocaleString("fr-FR")} FCFA`);
       }
 
-      // Save spin to DB
-      const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const spinData: any = {
           user_id: user.id,
@@ -107,7 +127,6 @@ const Loterie = () => {
         };
         await supabase.from("wheel_spins").insert(spinData);
 
-        // If cash prize, credit earnings_balance
         if (prize.prize_type === "cash" && prize.value > 0) {
           const { data: profile } = await supabase.from("profiles").select("balance, earnings_balance").eq("user_id", user.id).single();
           if (profile) {
@@ -117,7 +136,6 @@ const Loterie = () => {
             }).eq("user_id", user.id);
           }
         }
-        // Reload history
         loadData();
       }
     }, 4000);
@@ -182,14 +200,12 @@ const Loterie = () => {
     <div className="min-h-screen bg-background pb-20">
       <PageHeader title="⚡ LOTERIE ESKOM" showBack />
 
-      {/* Banner */}
       {wheelBanner && (
         <div className="px-4 pt-4">
           <img src={wheelBanner} alt="Bannière" className="w-full rounded-xl object-cover max-h-32" />
         </div>
       )}
 
-      {/* Header section */}
       <div className="bg-gradient-to-b from-[hsl(250,50%,30%)] to-background px-4 pt-6 pb-8">
         <div className="text-center mb-4">
           <h1 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">
@@ -200,20 +216,22 @@ const Loterie = () => {
           </div>
         </div>
 
-        {/* Stats */}
         <div className="bg-card rounded-xl border border-secondary p-4 flex">
           <div className="flex-1 text-center border-r border-secondary">
             <p className="text-xl font-bold text-foreground">{totalWon.toLocaleString("fr-FR")} <span className="text-sm font-normal text-muted-foreground">FCFA</span></p>
             <p className="text-xs text-muted-foreground mt-1">Montant gagné</p>
           </div>
-          <div className="flex-1 text-center">
+          <div className="flex-1 text-center border-r border-secondary">
             <p className="text-xl font-bold text-foreground">{spins.length}</p>
             <p className="text-xs text-muted-foreground mt-1">Tirages effectués</p>
+          </div>
+          <div className="flex-1 text-center">
+            <p className="text-xl font-bold text-primary">{spinsLeft}</p>
+            <p className="text-xs text-muted-foreground mt-1">Tours restants</p>
           </div>
         </div>
       </div>
 
-      {/* Wheel */}
       <div className="flex flex-col items-center px-4 -mt-2">
         <div className="relative w-[300px] h-[300px]">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1 z-10">
@@ -237,8 +255,10 @@ const Loterie = () => {
         </div>
 
         <button onClick={spin} disabled={spinning}
-          className="mt-4 gradient-button text-primary-foreground font-bold py-3 px-10 rounded-xl text-lg disabled:opacity-50 transition-opacity">
-          {spinning ? "En cours..." : "TOURNER"}
+          className={`mt-4 font-bold py-3 px-10 rounded-xl text-lg transition-opacity ${
+            spinsLeft > 0 ? "gradient-button text-primary-foreground" : "bg-secondary text-muted-foreground cursor-not-allowed"
+          } disabled:opacity-50`}>
+          {spinning ? "En cours..." : spinsLeft > 0 ? "TOURNER" : "Aucun tour"}
         </button>
 
         {result && (
@@ -250,14 +270,6 @@ const Loterie = () => {
             )}
           </div>
         )}
-
-      </div>
-
-      {/* Spin History link */}
-      <div className="px-4 mt-4">
-        <button onClick={() => {/* could navigate to full history */}} className="text-sm text-primary font-semibold w-full text-center">
-          Voir l'historique →
-        </button>
       </div>
 
       {/* Rules */}
@@ -283,7 +295,6 @@ const Loterie = () => {
             <Trophy size={16} className="text-primary" /> Derniers gagnants
           </h3>
           <div className="border-t border-secondary">
-            {/* Table header */}
             <div className="grid grid-cols-3 py-2.5 text-xs text-muted-foreground font-semibold">
               <span>Heure</span>
               <span>Utilisateur</span>
@@ -307,22 +318,6 @@ const Loterie = () => {
                 ))}
               </div>
             )}
-          </div>
-        </div>
-      </div>
-
-      {/* Rules */}
-      <div className="px-4 mt-4">
-        <div className="bg-card rounded-xl border border-secondary p-5">
-          <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
-            🏛 {wheelInfoTitle}
-          </h3>
-          <div className="border-t border-secondary pt-3 space-y-3">
-            {wheelRules.split("\n").filter(Boolean).map((rule: string, i: number) => (
-              <p key={i} className="text-sm text-muted-foreground">
-                <span className="text-primary font-semibold">{rule.split(":")[0]}:</span>{rule.includes(":") ? rule.substring(rule.indexOf(":") + 1) : ""}
-              </p>
-            ))}
           </div>
         </div>
       </div>
