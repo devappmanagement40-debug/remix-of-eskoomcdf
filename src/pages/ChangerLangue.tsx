@@ -5,8 +5,8 @@ import PageHeader from "@/components/PageHeader";
 import { Check } from "lucide-react";
 
 const languages = [
-  { code: "fr", label: "Français", flag: "🇫🇷" },
-  { code: "en", label: "English", flag: "🇬🇧" },
+  { code: "fr", label: "Français" },
+  { code: "en", label: "English" },
 ];
 
 const ChangerLangue = () => {
@@ -34,7 +34,6 @@ const ChangerLangue = () => {
             }`}
           >
             <div className="flex items-center gap-3">
-              <span className="text-2xl">{lang.flag}</span>
               <span className="text-sm font-medium text-foreground">{lang.label}</span>
             </div>
             {selected === lang.code && <Check size={20} className="text-primary" />}
