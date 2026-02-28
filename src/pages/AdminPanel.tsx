@@ -539,10 +539,27 @@ const DepositsTab = ({ recharges, profiles, reload, showSuccess, showError, logA
     await supabase.from("recharges").update({ status }).eq("id", r.id);
     if (status === "approved") {
       const p = profileMap[r.user_id];
-      if (p) await supabase.from("profiles").update({
-        balance: (p.balance || 0) + r.amount,
-        deposit_balance: (p.deposit_balance || 0) + r.amount,
-      }).eq("user_id", r.user_id);
+      if (p) {
+        // Load point settings for deposit
+        const { data: pointSettings } = await supabase.from("site_settings")
+          .select("key, value").in("key", ["points_per_deposit_type", "points_per_deposit_value"]);
+        const getPS = (k: string) => pointSettings?.find((s: any) => s.key === k)?.value || "0";
+        const depositPointType = getPS("points_per_deposit_type")?.trim().toLowerCase();
+        const depositPointValue = Number(getPS("points_per_deposit_value")) || 0;
+        let earnedPoints = 0;
+        if (depositPointValue > 0) {
+          earnedPoints = depositPointType === "percent" ? Math.floor(r.amount * depositPointValue / 100) : depositPointValue;
+        }
+
+        const { data: freshProfile } = await supabase.from("profiles")
+          .select("gift_points").eq("user_id", r.user_id).single();
+
+        await supabase.from("profiles").update({
+          balance: (p.balance || 0) + r.amount,
+          deposit_balance: (p.deposit_balance || 0) + r.amount,
+          ...(earnedPoints > 0 ? { gift_points: ((freshProfile as any)?.gift_points || 0) + earnedPoints } : {}),
+        }).eq("user_id", r.user_id);
+      }
     }
     logAction(`deposit_${status}`, "recharge", r.id, `${r.amount} FCFA`);
     showSuccess(status === "approved" ? "Dépôt approuvé ✅" : "Dépôt refusé ❌", "");
@@ -1527,7 +1544,7 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
   const [rewards, setRewards] = useState<any[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ name: "", points_required: "", image_url: "" });
+  const [form, setForm] = useState({ name: "", points_required: "", image_url: "", money_value: "" });
   const [edits, setEdits] = useState<Record<string, string>>({});
 
   const getVal = (key: string) => edits[key] ?? settings.find((s: SiteSetting) => s.key === key)?.value ?? "";
@@ -1551,14 +1568,14 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
   };
 
   const openForm = (r?: any) => {
-    if (r) { setEditing(r); setForm({ name: r.name, points_required: String(r.points_required), image_url: r.image_url || "" }); }
-    else { setEditing(null); setForm({ name: "", points_required: "", image_url: "" }); }
+    if (r) { setEditing(r); setForm({ name: r.name, points_required: String(r.points_required), image_url: r.image_url || "", money_value: String(r.money_value || 0) }); }
+    else { setEditing(null); setForm({ name: "", points_required: "", image_url: "", money_value: "" }); }
     setShowForm(true);
   };
 
   const saveReward = async () => {
-    if (!form.name || !form.points_required) { showError("Erreur", "Remplissez tous les champs"); return; }
-    const payload = { name: form.name, points_required: Number(form.points_required), image_url: form.image_url || null };
+    if (!form.name || !form.points_required || !form.money_value) { showError("Erreur", "Remplissez tous les champs obligatoires"); return; }
+    const payload = { name: form.name, points_required: Number(form.points_required), money_value: Number(form.money_value), image_url: form.image_url || null };
     if (editing) await supabase.from("gift_rewards").update(payload).eq("id", editing.id);
     else await supabase.from("gift_rewards").insert({ ...payload, sort_order: rewards.length });
     showSuccess(editing ? "Cadeau modifie" : "Cadeau ajoute", "");
@@ -1616,6 +1633,7 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
             <div className="flex justify-between"><span className="text-xs font-bold text-foreground">{editing ? "Modifier" : "Nouveau cadeau"}</span><button onClick={() => setShowForm(false)}><X size={14} className="text-muted-foreground" /></button></div>
             <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nom du cadeau" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
             <input type="number" value={form.points_required} onChange={e => setForm({ ...form, points_required: e.target.value })} placeholder="Points requis" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+            <input type="number" value={form.money_value} onChange={e => setForm({ ...form, money_value: e.target.value })} placeholder="Montant en FCFA" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
             <input value={form.image_url} onChange={e => setForm({ ...form, image_url: e.target.value })} placeholder="URL image (optionnel)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
             <button onClick={saveReward} className="w-full gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm">{editing ? "Modifier" : "Ajouter"}</button>
           </div>
@@ -1628,7 +1646,7 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
                 {r.image_url ? <img src={r.image_url} className="w-10 h-10 rounded-lg object-cover" /> : <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Gift size={16} className="text-primary" /></div>}
                 <div>
                   <p className="text-sm font-semibold text-foreground">{r.name}</p>
-                  <p className="text-xs text-muted-foreground">{r.points_required} points</p>
+                  <p className="text-xs text-muted-foreground">{r.points_required} pts → {Number(r.money_value || 0).toLocaleString("fr-FR")} FCFA</p>
                 </div>
               </div>
               <div className="flex gap-1.5">

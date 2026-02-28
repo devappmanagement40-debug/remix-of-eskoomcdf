@@ -170,6 +170,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean | null
+          money_value: number
           name: string
           points_required: number
           sort_order: number | null
@@ -180,6 +181,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          money_value?: number
           name: string
           points_required?: number
           sort_order?: number | null
@@ -190,6 +192,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean | null
+          money_value?: number
           name?: string
           points_required?: number
           sort_order?: number | null
@@ -282,6 +285,44 @@ export type Database = {
             columns: ["country_id"]
             isOneToOne: false
             referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      point_exchanges: {
+        Row: {
+          created_at: string
+          id: string
+          money_credited: number
+          points_spent: number
+          reward_id: string | null
+          reward_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          money_credited: number
+          points_spent: number
+          reward_id?: string | null
+          reward_name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          money_credited?: number
+          points_spent?: number
+          reward_id?: string | null
+          reward_name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "point_exchanges_reward_id_fkey"
+            columns: ["reward_id"]
+            isOneToOne: false
+            referencedRelation: "gift_rewards"
             referencedColumns: ["id"]
           },
         ]

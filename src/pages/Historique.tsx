@@ -4,7 +4,7 @@ import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 
-type TabKey = "tous" | "depots" | "retraits" | "achats" | "gains";
+type TabKey = "tous" | "depots" | "retraits" | "achats" | "gains" | "points";
 
 const tabs: { key: TabKey; label: string }[] = [
   { key: "tous", label: "Tous" },
@@ -12,6 +12,7 @@ const tabs: { key: TabKey; label: string }[] = [
   { key: "retraits", label: "Retraits" },
   { key: "achats", label: "Achats" },
   { key: "gains", label: "Gains" },
+  { key: "points", label: "Points" },
 ];
 
 type Operation = {
@@ -49,10 +50,11 @@ const Historique = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [depositsRes, withdrawalsRes, purchasesRes] = await Promise.all([
+      const [depositsRes, withdrawalsRes, purchasesRes, exchangesRes] = await Promise.all([
         supabase.from("recharges").select("id, amount, status, created_at, payment_method").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("withdrawals").select("id, amount, net_amount, fee_amount, status, created_at, network").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("user_products").select("id, purchased_at, total_collected, products(name, price, daily_revenue)").eq("user_id", user.id).order("purchased_at", { ascending: false }),
+        supabase.from("point_exchanges").select("id, points_spent, money_credited, reward_name, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
       ]);
 
       const ops: Operation[] = [];
@@ -111,6 +113,20 @@ const Historique = () => {
             color: "text-success",
           });
         }
+      });
+
+      // Point exchanges
+      (exchangesRes.data || []).forEach((ex: any) => {
+        ops.push({
+          id: `pts-${ex.id}`,
+          type: "points",
+          amount: ex.money_credited,
+          date: ex.created_at,
+          status: "completed",
+          description: `Conversion : ${ex.reward_name} (${ex.points_spent} pts)`,
+          icon: Gift,
+          color: "text-primary",
+        });
       });
 
       ops.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());

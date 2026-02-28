@@ -72,13 +72,25 @@ const AdminRecharges = () => {
 
     if (status === "approved") {
       const { data: profile } = await supabase.from("profiles")
-        .select("balance, deposit_balance, referral_balance, referred_by")
+        .select("balance, deposit_balance, referral_balance, referred_by, gift_points")
         .eq("user_id", userId).single();
       if (profile) {
-        // Credit both balance and deposit_balance
+        // Load point settings
+        const { data: pointSettings } = await supabase.from("site_settings")
+          .select("key, value").in("key", ["points_per_deposit_type", "points_per_deposit_value"]);
+        const getPS = (k: string) => pointSettings?.find((s: any) => s.key === k)?.value || "0";
+        const depositPointType = getPS("points_per_deposit_type")?.trim().toLowerCase();
+        const depositPointValue = Number(getPS("points_per_deposit_value")) || 0;
+        let earnedPoints = 0;
+        if (depositPointValue > 0) {
+          earnedPoints = depositPointType === "percent" ? Math.floor(amount * depositPointValue / 100) : depositPointValue;
+        }
+
+        // Credit both balance, deposit_balance and gift_points
         await supabase.from("profiles").update({
           balance: (profile.balance || 0) + amount,
           deposit_balance: (profile.deposit_balance || 0) + amount,
+          ...(earnedPoints > 0 ? { gift_points: (profile.gift_points || 0) + earnedPoints } : {}),
         }).eq("user_id", userId);
 
         // Load referral bonus percentages from site_settings

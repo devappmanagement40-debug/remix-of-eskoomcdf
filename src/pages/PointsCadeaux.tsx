@@ -10,8 +10,17 @@ type Reward = {
   id: string;
   name: string;
   points_required: number;
+  money_value: number;
   image_url: string | null;
   is_active: boolean;
+};
+
+type Exchange = {
+  id: string;
+  points_spent: number;
+  money_credited: number;
+  reward_name: string;
+  created_at: string;
 };
 
 const PointsCadeaux = () => {
@@ -20,29 +29,32 @@ const PointsCadeaux = () => {
   const [points, setPoints] = useState(0);
   const [fullName, setFullName] = useState("");
   const [rewards, setRewards] = useState<Reward[]>([]);
+  const [exchanges, setExchanges] = useState<Exchange[]>([]);
   const [howToEarn, setHowToEarn] = useState<string[]>([]);
+  const [exchanging, setExchanging] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const [profileRes, rewardsRes, settingsRes] = await Promise.all([
+      const [profileRes, rewardsRes, settingsRes, exchangesRes] = await Promise.all([
         supabase.from("profiles").select("full_name, gift_points").eq("user_id", user.id).single(),
         supabase.from("gift_rewards").select("*").eq("is_active", true).order("sort_order"),
         supabase.from("site_settings").select("key, value").in("key", [
           "points_per_active_member", "points_per_vip_level_per_day",
           "points_per_deposit_value", "points_per_withdrawal"
         ]),
+        supabase.from("point_exchanges").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(10),
       ]);
 
       if (profileRes.data) {
         setFullName(profileRes.data.full_name || "");
         setPoints((profileRes.data as any).gift_points || 0);
       }
-      if (rewardsRes.data) setRewards(rewardsRes.data as Reward[]);
+      if (rewardsRes.data) setRewards(rewardsRes.data as unknown as Reward[]);
+      if (exchangesRes.data) setExchanges(exchangesRes.data as unknown as Exchange[]);
 
-      // Build dynamic "how to earn" list
       if (settingsRes.data) {
         const tips: string[] = [];
         const get = (k: string) => settingsRes.data?.find(s => s.key === k)?.value;
@@ -52,10 +64,10 @@ const PointsCadeaux = () => {
         const pw = get("points_per_withdrawal");
         if (pam && Number(pam) > 0) tips.push(`Chaque membre actif vous rapporte ${pam} points`);
         if (pvip && Number(pvip) > 0) tips.push(`Gagnez ${pvip} points par niveau VIP chaque jour`);
-        if (pdep && Number(pdep) > 0) tips.push(`Chaque depot vous rapporte ${pdep} points`);
+        if (pdep && Number(pdep) > 0) tips.push(`Chaque dépôt vous rapporte ${pdep} points`);
         if (pw && Number(pw) > 0) tips.push(`Chaque retrait vous rapporte ${pw} points`);
         tips.push("Invitez des amis et gagnez des points bonus par niveau");
-        tips.push("Utilisez un code d'echange pour obtenir des points gratuits");
+        tips.push("Utilisez un code d'échange pour obtenir des points gratuits");
         setHowToEarn(tips);
       }
     };
@@ -64,19 +76,70 @@ const PointsCadeaux = () => {
 
   const handleExchange = async (reward: Reward) => {
     if (points < reward.points_required) {
-      showError("Points insuffisants", `Il vous faut ${reward.points_required} points pour echanger ce cadeau.`);
+      showError("Points insuffisants", `Il vous faut ${reward.points_required} points pour échanger ce cadeau.`);
       return;
     }
+    if (reward.money_value <= 0) {
+      showError("Erreur", "Ce cadeau n'a pas de valeur monétaire configurée.");
+      return;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Deduct points
-    const newPoints = points - reward.points_required;
-    const { error } = await supabase.from("profiles").update({ gift_points: newPoints } as any).eq("user_id", user.id);
-    if (error) { showError("Erreur", "Une erreur est survenue"); return; }
-    setPoints(newPoints);
-    showSuccess("Cadeau echange", `Vous avez echange "${reward.name}" avec succes.`);
+    setExchanging(reward.id);
+    try {
+      // Get fresh profile
+      const { data: profile } = await supabase.from("profiles")
+        .select("gift_points, balance, earnings_balance")
+        .eq("user_id", user.id).single();
+      if (!profile) { showError("Erreur", "Profil introuvable"); return; }
+
+      const currentPoints = (profile as any).gift_points || 0;
+      if (currentPoints < reward.points_required) {
+        showError("Points insuffisants", "Vos points ont changé. Veuillez réessayer.");
+        setPoints(currentPoints);
+        return;
+      }
+
+      const newPoints = currentPoints - reward.points_required;
+      const newBalance = (profile.balance || 0) + reward.money_value;
+      const newEarnings = (profile.earnings_balance || 0) + reward.money_value;
+
+      // Update profile: deduct points, credit balance
+      const { error: updateError } = await supabase.from("profiles").update({
+        gift_points: newPoints,
+        balance: newBalance,
+        earnings_balance: newEarnings,
+      } as any).eq("user_id", user.id);
+
+      if (updateError) { showError("Erreur", "Une erreur est survenue"); return; }
+
+      // Log the exchange
+      await supabase.from("point_exchanges").insert({
+        user_id: user.id,
+        reward_id: reward.id,
+        points_spent: reward.points_required,
+        money_credited: reward.money_value,
+        reward_name: reward.name,
+      } as any);
+
+      setPoints(newPoints);
+      setExchanges(prev => [{
+        id: crypto.randomUUID(),
+        points_spent: reward.points_required,
+        money_credited: reward.money_value,
+        reward_name: reward.name,
+        created_at: new Date().toISOString(),
+      }, ...prev]);
+
+      showSuccess("Conversion réussie ✅", `${reward.points_required} points convertis en ${reward.money_value.toLocaleString("fr-FR")} FCFA. Le montant a été crédité sur votre compte.`);
+    } finally {
+      setExchanging(null);
+    }
   };
+
+  const fmtDate = (d: string) => new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -107,7 +170,7 @@ const PointsCadeaux = () => {
             className="bg-card rounded-xl border border-secondary p-4 flex flex-col items-center gap-2 hover:border-primary transition-colors"
           >
             <ArrowRightLeft size={20} className="text-primary" />
-            <span className="text-[11px] font-medium text-foreground">Echanger code</span>
+            <span className="text-[11px] font-medium text-foreground">Échanger code</span>
           </button>
           <button
             onClick={() => navigate("/historique")}
@@ -140,9 +203,9 @@ const PointsCadeaux = () => {
 
         {/* Rewards catalog */}
         <div>
-          <h2 className="text-sm font-bold text-foreground mb-3">Recompenses disponibles</h2>
+          <h2 className="text-sm font-bold text-foreground mb-3">Convertir vos points en argent</h2>
           {rewards.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-6">Aucune recompense disponible pour le moment</p>
+            <p className="text-xs text-muted-foreground text-center py-6">Aucune récompense disponible pour le moment</p>
           ) : (
             <div className="space-y-3">
               {rewards.map((item) => (
@@ -160,21 +223,42 @@ const PointsCadeaux = () => {
                     )}
                     <div>
                       <p className="text-sm font-medium text-foreground">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">{item.points_required} points requis</p>
+                      <p className="text-xs text-muted-foreground">{item.points_required} pts → <span className="text-success font-semibold">{item.money_value.toLocaleString("fr-FR")} FCFA</span></p>
                     </div>
                   </div>
                   <button
                     onClick={() => handleExchange(item)}
-                    disabled={points < item.points_required}
+                    disabled={points < item.points_required || exchanging === item.id}
                     className="px-4 py-1.5 rounded-lg text-xs font-semibold gradient-button text-primary-foreground disabled:opacity-40"
                   >
-                    Echanger
+                    {exchanging === item.id ? "..." : "Convertir"}
                   </button>
                 </div>
               ))}
             </div>
           )}
         </div>
+
+        {/* Recent exchanges */}
+        {exchanges.length > 0 && (
+          <div>
+            <h2 className="text-sm font-bold text-foreground mb-3">Historique des conversions</h2>
+            <div className="space-y-2">
+              {exchanges.map((ex) => (
+                <div key={ex.id} className="bg-card rounded-xl border border-border/30 p-3 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-semibold text-foreground">{ex.reward_name}</p>
+                    <p className="text-[10px] text-muted-foreground">{fmtDate(ex.created_at)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs font-bold text-success">+{ex.money_credited.toLocaleString("fr-FR")} F</p>
+                    <p className="text-[10px] text-muted-foreground">-{ex.points_spent} pts</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
       <BottomNav />
     </div>

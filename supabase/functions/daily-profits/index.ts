@@ -15,6 +15,21 @@ Deno.serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
+    // Load point settings
+    const { data: settingsData } = await supabase
+      .from("site_settings")
+      .select("key, value")
+      .in("key", [
+        "points_per_active_member",
+        "points_per_vip_level_per_day",
+        "points_per_deposit_type",
+        "points_per_deposit_value",
+        "points_per_withdrawal",
+      ]);
+
+    const getSetting = (key: string) => settingsData?.find((s: any) => s.key === key)?.value || "0";
+    const pointsPerVipPerDay = Number(getSetting("points_per_vip_level_per_day")) || 0;
+
     // Get all active user_products with their product info
     const { data: activeProducts, error: fetchError } = await supabase
       .from("user_products")
@@ -33,6 +48,9 @@ Deno.serve(async (req) => {
     let credited = 0;
     let expired = 0;
 
+    // Track users who received profits to also grant VIP points
+    const processedUsers = new Set<string>();
+
     for (const up of activeProducts || []) {
       const expiresAt = up.expires_at ? new Date(up.expires_at) : null;
       
@@ -49,16 +67,45 @@ Deno.serve(async (req) => {
       // Credit daily revenue to earnings_balance and balance
       const { data: profile } = await supabase
         .from("profiles")
-        .select("balance, earnings_balance")
+        .select("balance, earnings_balance, vip_level, gift_points")
         .eq("user_id", up.user_id)
         .single();
 
       if (profile) {
-        await supabase.from("profiles").update({
+        const updates: any = {
           balance: (profile.balance || 0) + dailyRevenue,
           earnings_balance: (profile.earnings_balance || 0) + dailyRevenue,
-        }).eq("user_id", up.user_id);
+        };
+
+        // Grant VIP points daily (once per user)
+        if (!processedUsers.has(up.user_id) && pointsPerVipPerDay > 0 && (profile.vip_level || 0) > 0) {
+          const vipPoints = (profile.vip_level || 0) * pointsPerVipPerDay;
+          updates.gift_points = (profile.gift_points || 0) + vipPoints;
+          processedUsers.add(up.user_id);
+        }
+
+        await supabase.from("profiles").update(updates).eq("user_id", up.user_id);
         credited++;
+      }
+
+      if (!processedUsers.has(up.user_id)) processedUsers.add(up.user_id);
+    }
+
+    // Grant VIP points to users with VIP level who weren't already processed
+    // (users who have VIP but no active products)
+    if (pointsPerVipPerDay > 0) {
+      const { data: vipUsers } = await supabase
+        .from("profiles")
+        .select("user_id, vip_level, gift_points")
+        .gt("vip_level", 0);
+
+      for (const vu of vipUsers || []) {
+        if (!processedUsers.has(vu.user_id)) {
+          const vipPoints = (vu.vip_level || 0) * pointsPerVipPerDay;
+          await supabase.from("profiles").update({
+            gift_points: (vu.gift_points || 0) + vipPoints,
+          }).eq("user_id", vu.user_id);
+        }
       }
     }
 
