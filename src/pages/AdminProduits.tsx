@@ -55,21 +55,33 @@ const AdminProduits = () => {
   }, []);
 
   const checkAdminAndLoad = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/connexion"); return; }
-    const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
-    if (!data) { showError("Accès refusé", "Vous n'avez pas les droits d'administrateur"); navigate("/"); return; }
-    loadAll();
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { navigate("/connexion"); return; }
+      const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (!data) { showError("Accès refusé", "Vous n'avez pas les droits d'administrateur"); navigate("/"); return; }
+      await loadAll();
+    } catch (err) {
+      console.error("Admin check error:", err);
+      showError("Erreur", "Impossible de vérifier les droits d'accès");
+      setLoading(false);
+    }
   };
 
   const loadAll = async () => {
-    const [s, p] = await Promise.all([
-      supabase.from("product_series").select("*").order("sort_order"),
-      supabase.from("products").select("*").order("sort_order"),
-    ]);
-    if (s.data) setSeries(s.data);
-    if (p.data) setProducts(p.data);
-    setLoading(false);
+    try {
+      const [s, p] = await Promise.all([
+        supabase.from("product_series").select("*").order("sort_order"),
+        supabase.from("products").select("*").order("sort_order"),
+      ]);
+      if (s.data) setSeries(s.data);
+      if (p.data) setProducts(p.data);
+    } catch (err) {
+      console.error("Load error:", err);
+      showError("Erreur", "Impossible de charger les données");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const openSeriesForm = (s?: Series) => {
@@ -176,7 +188,12 @@ const AdminProduits = () => {
     loadAll();
   };
 
-  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Chargement...</p></div>;
+  if (loading) return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3">
+      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <p className="text-foreground font-medium">Chargement...</p>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background pb-10">
