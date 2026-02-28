@@ -1932,6 +1932,10 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
       { key: "withdrawal_rules", label: "Regles (separees par |, {min} {max} {fee} dynamiques)" },
       { key: "max_withdrawals_per_day", label: "Nombre max de retraits par jour" },
       { key: "max_withdrawals_enabled", label: "Limite retraits activee (true/false)" },
+      { key: "withdrawal_enabled", label: "Retraits actifs (true/false)" },
+      { key: "withdrawal_days", label: "Jours autorises (ex: 1,2,3,4,5,6,7 — 1=Lundi)" },
+      { key: "withdrawal_hour_start", label: "Heure d'ouverture (ex: 10)" },
+      { key: "withdrawal_hour_end", label: "Heure de fermeture (ex: 17)" },
     ]},
     referral: { label: "Bonus Parrainage", keys: [
       { key: "referral_bonus_level_b", label: "Niveau B - Parrain direct (%)" },
