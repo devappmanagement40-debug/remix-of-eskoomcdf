@@ -5,7 +5,7 @@ export type CountryRule = {
   id: string;
   name: string;
   country_code: string;
-  flag_emoji: string;
+  
   phone_digits: number;
   validation_enabled: boolean;
   is_active: boolean;
@@ -17,7 +17,7 @@ export const usePhoneValidation = () => {
   useEffect(() => {
     supabase
       .from("countries")
-      .select("id, name, country_code, flag_emoji, phone_digits, validation_enabled, is_active")
+      .select("id, name, country_code, phone_digits, validation_enabled, is_active")
       .eq("is_active", true)
       .order("sort_order")
       .then(({ data }) => {

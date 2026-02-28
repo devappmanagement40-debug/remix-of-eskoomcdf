@@ -49,7 +49,7 @@ type PopupMsg = {
   button_confirm: string; button_cancel: string | null; tabs: any; is_active: boolean;
 };
 type AdminLog = { id: string; admin_id: string; action: string; target_type: string | null; details: string | null; created_at: string | null };
-type Country = { id: string; name: string; country_code: string; flag_emoji: string; is_active: boolean; sort_order: number };
+type Country = { id: string; name: string; country_code: string; is_active: boolean; sort_order: number };
 type VipCondition = { id: string; level: number; level_name: string; min_investment: number; min_active_members: number; min_purchases: number; min_products_bought: number; min_team_investment: number; condition_logic: string; image_url: string | null };
 type UserProduct = { id: string; user_id: string; product_id: string; purchased_at: string; is_active: boolean; expires_at: string | null };
 
@@ -1075,7 +1075,7 @@ const PaymentsTab = ({ methods, countries, reload, showSuccess, showError }: any
           <select value={form.country_id} onChange={e => { const c = countries.find((ct: Country) => ct.id === e.target.value); setForm({ ...form, country_id: e.target.value, country: c?.name || form.country }); }}
             className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none">
             <option value="">-- Selectionner un pays --</option>
-            {countries.filter((c: Country) => c.is_active).map((c: Country) => <option key={c.id} value={c.id}>{c.flag_emoji} {c.name}</option>)}
+            {countries.filter((c: Country) => c.is_active).map((c: Country) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
 
           {form.payment_type === "manual" ? (
@@ -2089,17 +2089,17 @@ const SecurityTab = ({ logs }: { logs: AdminLog[] }) => (
 const CountriesTab = ({ countries, methods, reload, showSuccess, showError }: any) => {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Country | null>(null);
-  const [form, setForm] = useState({ name: "", country_code: "", flag_emoji: "🏳️", phone_digits: "8", validation_enabled: true });
+  const [form, setForm] = useState({ name: "", country_code: "", phone_digits: "8", validation_enabled: true });
 
   const openForm = (c?: Country) => {
-    if (c) { setEditing(c); setForm({ name: c.name, country_code: c.country_code, flag_emoji: c.flag_emoji, phone_digits: String((c as any).phone_digits || 8), validation_enabled: (c as any).validation_enabled !== false }); }
-    else { setEditing(null); setForm({ name: "", country_code: "+", flag_emoji: "🏳️", phone_digits: "8", validation_enabled: true }); }
+    if (c) { setEditing(c); setForm({ name: c.name, country_code: c.country_code, phone_digits: String((c as any).phone_digits || 8), validation_enabled: (c as any).validation_enabled !== false }); }
+    else { setEditing(null); setForm({ name: "", country_code: "+", phone_digits: "8", validation_enabled: true }); }
     setShowForm(true);
   };
 
   const save = async () => {
     if (!form.name.trim()) { showError("Erreur", "Nom requis"); return; }
-    const payload = { name: form.name, country_code: form.country_code, flag_emoji: form.flag_emoji, phone_digits: Number(form.phone_digits) || 8, validation_enabled: form.validation_enabled };
+    const payload = { name: form.name, country_code: form.country_code, phone_digits: Number(form.phone_digits) || 8, validation_enabled: form.validation_enabled };
     if (editing) await supabase.from("countries").update(payload).eq("id", editing.id);
     else await supabase.from("countries").insert({ ...payload, sort_order: countries.length });
     showSuccess(editing ? "Pays modifié" : "Pays ajouté", "");
@@ -2134,15 +2134,11 @@ const CountriesTab = ({ countries, methods, reload, showSuccess, showError }: an
               <input value={form.country_code} onChange={e => setForm({ ...form, country_code: e.target.value })} placeholder="+226" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground">Emoji drapeau</label>
-              <input value={form.flag_emoji} onChange={e => setForm({ ...form, flag_emoji: e.target.value })} placeholder="🇧🇫" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
               <label className="text-xs text-muted-foreground">Chiffres requis</label>
               <input type="number" value={form.phone_digits} onChange={e => setForm({ ...form, phone_digits: e.target.value })} placeholder="8" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
             </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-muted-foreground">Validation</label>
               <button type="button" onClick={() => setForm({ ...form, validation_enabled: !form.validation_enabled })}
@@ -2162,7 +2158,6 @@ const CountriesTab = ({ countries, methods, reload, showSuccess, showError }: an
             <div className="px-4 py-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="text-lg">{c.flag_emoji}</span>
                   <div>
                     <p className="text-sm font-bold text-foreground">{c.name}</p>
                     <p className="text-xs text-muted-foreground">{c.country_code} · {(c as any).phone_digits || 8} chiffres {(c as any).validation_enabled !== false ? "" : "(non validé)"}</p>
