@@ -35,31 +35,36 @@ const Loterie = () => {
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
-    const [pz, ss] = await Promise.all([
-      supabase.from("wheel_prizes").select("*").eq("is_active", true).order("sort_order"),
-      supabase.from("site_settings").select("key, value").eq("category", "wheel"),
-    ]);
-    if (pz.data) setPrizes(pz.data as WheelPrize[]);
-    const settingsMap: Record<string, string> = {};
-    (ss.data || []).forEach((s: WheelSetting) => { if (s.value) settingsMap[s.key] = s.value; });
-    setSettings(settingsMap);
-
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const [spinRes, profileRes] = await Promise.all([
-        supabase.from("wheel_spins").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
-        supabase.from("profiles").select("spins_balance").eq("user_id", user.id).single(),
+    try {
+      const [pz, ss] = await Promise.all([
+        supabase.from("wheel_prizes").select("*").eq("is_active", true).order("sort_order"),
+        supabase.from("site_settings").select("key, value").eq("category", "wheel"),
       ]);
-      if (spinRes.data) {
-        setSpins(spinRes.data as SpinRecord[]);
-        const total = spinRes.data.filter(s => s.prize_type === "cash").reduce((sum, s) => sum + Number(s.prize_value), 0);
-        setTotalWon(total);
+      if (pz.data) setPrizes(pz.data as WheelPrize[]);
+      const settingsMap: Record<string, string> = {};
+      (ss.data || []).forEach((s: WheelSetting) => { if (s.value) settingsMap[s.key] = s.value; });
+      setSettings(settingsMap);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const [spinRes, profileRes] = await Promise.all([
+          supabase.from("wheel_spins").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
+          supabase.from("profiles").select("spins_balance").eq("user_id", user.id).single(),
+        ]);
+        if (spinRes.data) {
+          setSpins(spinRes.data as SpinRecord[]);
+          const total = spinRes.data.filter(s => s.prize_type === "cash").reduce((sum, s) => sum + Number(s.prize_value), 0);
+          setTotalWon(total);
+        }
+        setSpinsLeft((profileRes.data as any)?.spins_balance || 0);
       }
-      setSpinsLeft((profileRes.data as any)?.spins_balance || 0);
+      const { data: globalData } = await supabase.rpc("get_recent_winners", { lim: 30 });
+      if (globalData) setGlobalSpins(globalData);
+    } catch (err) {
+      console.error("Loterie load error:", err);
+    } finally {
+      setLoading(false);
     }
-    const { data: globalData } = await supabase.rpc("get_recent_winners", { lim: 30 });
-    if (globalData) setGlobalSpins(globalData);
-    setLoading(false);
   };
 
   const segments = prizes.length > 0 ? prizes : [{ id: "1", label: "—", value: 0, prize_type: "cash", vip_level: null, probability: 100, is_active: true }];

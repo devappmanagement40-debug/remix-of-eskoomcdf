@@ -41,90 +41,96 @@ const Retrait = () => {
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/connexion"); return; }
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { navigate("/connexion"); return; }
 
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
 
-    const [walletsRes, profileRes, settingsRes, todayRes] = await Promise.all([
-      supabase.from("user_wallets").select("*").eq("user_id", user.id),
-      supabase.from("profiles").select("balance, deposit_balance, earnings_balance, referral_balance").eq("user_id", user.id).single(),
-      supabase.from("site_settings").select("key, value").in("key", [
-        "deposit_not_withdrawable", "withdrawal_amounts", "withdrawal_min",
-        "withdrawal_max", "withdrawal_fee_percent", "withdrawal_rules",
-        "max_withdrawals_per_day", "max_withdrawals_enabled",
-        "withdrawal_enabled", "withdrawal_days", "withdrawal_hour_start", "withdrawal_hour_end"
-      ]),
-      supabase.from("withdrawals").select("id").eq("user_id", user.id).gte("created_at", todayStart.toISOString()),
-    ]);
+      const [walletsRes, profileRes, settingsRes, todayRes] = await Promise.all([
+        supabase.from("user_wallets").select("*").eq("user_id", user.id),
+        supabase.from("profiles").select("balance, deposit_balance, earnings_balance, referral_balance").eq("user_id", user.id).single(),
+        supabase.from("site_settings").select("key, value").in("key", [
+          "deposit_not_withdrawable", "withdrawal_amounts", "withdrawal_min",
+          "withdrawal_max", "withdrawal_fee_percent", "withdrawal_rules",
+          "max_withdrawals_per_day", "max_withdrawals_enabled",
+          "withdrawal_enabled", "withdrawal_days", "withdrawal_hour_start", "withdrawal_hour_end"
+        ]),
+        supabase.from("withdrawals").select("id").eq("user_id", user.id).gte("created_at", todayStart.toISOString()),
+      ]);
 
-    if (walletsRes.data) setWallets(walletsRes.data);
+      if (walletsRes.data) setWallets(walletsRes.data);
 
-    let dnw = true;
-    let wEnabled = true;
-    let wDays = [1,2,3,4,5,6,7];
-    let wHourStart = 0;
-    let wHourEnd = 24;
-    if (settingsRes.data) {
-      settingsRes.data.forEach(s => {
-        if (s.key === "deposit_not_withdrawable") dnw = s.value === "true";
-        if (s.key === "withdrawal_amounts" && s.value) setPresetAmounts(s.value.split(",").map(Number).filter(Boolean));
-        if (s.key === "withdrawal_min" && s.value) setMinAmount(Number(s.value));
-        if (s.key === "withdrawal_max" && s.value) setMaxAmount(Number(s.value));
-        if (s.key === "withdrawal_fee_percent" && s.value) setFeePercent(Number(s.value));
-        if (s.key === "max_withdrawals_per_day" && s.value) setMaxWithdrawalsPerDay(Number(s.value));
-        if (s.key === "max_withdrawals_enabled") setMaxWithdrawalsEnabled(s.value !== "false");
-        if (s.key === "withdrawal_enabled") wEnabled = s.value !== "false";
-        if (s.key === "withdrawal_days" && s.value) wDays = s.value.split(",").map(Number).filter(Boolean);
-        if (s.key === "withdrawal_hour_start" && s.value) wHourStart = Number(s.value);
-        if (s.key === "withdrawal_hour_end" && s.value) wHourEnd = Number(s.value);
-        if (s.key === "withdrawal_rules" && s.value) {
-          const parsed = s.value
-            .replace("{min}", String(Number(settingsRes.data?.find(x => x.key === "withdrawal_min")?.value || 800).toLocaleString()))
-            .replace("{max}", String(Number(settingsRes.data?.find(x => x.key === "withdrawal_max")?.value || 500000).toLocaleString()))
-            .replace("{fee}", settingsRes.data?.find(x => x.key === "withdrawal_fee_percent")?.value || "10");
-          setRules(parsed.split("|"));
-        }
-      });
+      let dnw = true;
+      let wEnabled = true;
+      let wDays = [1,2,3,4,5,6,7];
+      let wHourStart = 0;
+      let wHourEnd = 24;
+      if (settingsRes.data) {
+        settingsRes.data.forEach(s => {
+          if (s.key === "deposit_not_withdrawable") dnw = s.value === "true";
+          if (s.key === "withdrawal_amounts" && s.value) setPresetAmounts(s.value.split(",").map(Number).filter(Boolean));
+          if (s.key === "withdrawal_min" && s.value) setMinAmount(Number(s.value));
+          if (s.key === "withdrawal_max" && s.value) setMaxAmount(Number(s.value));
+          if (s.key === "withdrawal_fee_percent" && s.value) setFeePercent(Number(s.value));
+          if (s.key === "max_withdrawals_per_day" && s.value) setMaxWithdrawalsPerDay(Number(s.value));
+          if (s.key === "max_withdrawals_enabled") setMaxWithdrawalsEnabled(s.value !== "false");
+          if (s.key === "withdrawal_enabled") wEnabled = s.value !== "false";
+          if (s.key === "withdrawal_days" && s.value) wDays = s.value.split(",").map(Number).filter(Boolean);
+          if (s.key === "withdrawal_hour_start" && s.value) wHourStart = Number(s.value);
+          if (s.key === "withdrawal_hour_end" && s.value) wHourEnd = Number(s.value);
+          if (s.key === "withdrawal_rules" && s.value) {
+            const parsed = s.value
+              .replace("{min}", String(Number(settingsRes.data?.find(x => x.key === "withdrawal_min")?.value || 800).toLocaleString()))
+              .replace("{max}", String(Number(settingsRes.data?.find(x => x.key === "withdrawal_max")?.value || 500000).toLocaleString()))
+              .replace("{fee}", settingsRes.data?.find(x => x.key === "withdrawal_fee_percent")?.value || "10");
+            setRules(parsed.split("|"));
+          }
+        });
+      }
+      setDepositNotWithdrawable(dnw);
+      setWithdrawalEnabled(wEnabled);
+      setWithdrawalDays(wDays);
+      setWithdrawalHourStart(wHourStart);
+      setWithdrawalHourEnd(wHourEnd);
+
+      // Check schedule
+      const now = new Date();
+      const dayOfWeek = now.getDay() === 0 ? 7 : now.getDay();
+      const currentHour = now.getHours();
+      const dayNames = ["", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+
+      if (!wEnabled) {
+        setIsWithinSchedule(false);
+        setScheduleMessage("Les retraits sont temporairement désactivés.");
+      } else if (!wDays.includes(dayOfWeek)) {
+        setIsWithinSchedule(false);
+        const allowedDayNames = wDays.map(d => dayNames[d]).join(", ");
+        setScheduleMessage(`Les retraits sont disponibles uniquement les jours suivants : ${allowedDayNames}.`);
+      } else if (currentHour < wHourStart || currentHour >= wHourEnd) {
+        setIsWithinSchedule(false);
+        setScheduleMessage(`Les retraits sont disponibles uniquement de ${wHourStart}h00 à ${wHourEnd}h00.`);
+      } else {
+        setIsWithinSchedule(true);
+        setScheduleMessage("");
+      }
+
+      if (todayRes.data) setTodayWithdrawals(todayRes.data.length);
+
+      if (profileRes.data) {
+        const eb = profileRes.data.earnings_balance || 0;
+        const rb = profileRes.data.referral_balance || 0;
+        setEarningsBalance(eb);
+        setReferralBalance(rb);
+        setWithdrawableBalance(dnw ? eb + rb : profileRes.data.balance || 0);
+      }
+    } catch (err) {
+      console.error("Load error:", err);
+      showError("Erreur", "Impossible de charger les données");
+    } finally {
+      setLoading(false);
     }
-    setDepositNotWithdrawable(dnw);
-    setWithdrawalEnabled(wEnabled);
-    setWithdrawalDays(wDays);
-    setWithdrawalHourStart(wHourStart);
-    setWithdrawalHourEnd(wHourEnd);
-
-    // Check schedule
-    const now = new Date();
-    const dayOfWeek = now.getDay() === 0 ? 7 : now.getDay(); // 1=Monday...7=Sunday
-    const currentHour = now.getHours();
-    const dayNames = ["", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
-
-    if (!wEnabled) {
-      setIsWithinSchedule(false);
-      setScheduleMessage("Les retraits sont temporairement désactivés.");
-    } else if (!wDays.includes(dayOfWeek)) {
-      setIsWithinSchedule(false);
-      const allowedDayNames = wDays.map(d => dayNames[d]).join(", ");
-      setScheduleMessage(`Les retraits sont disponibles uniquement les jours suivants : ${allowedDayNames}.`);
-    } else if (currentHour < wHourStart || currentHour >= wHourEnd) {
-      setIsWithinSchedule(false);
-      setScheduleMessage(`Les retraits sont disponibles uniquement de ${wHourStart}h00 à ${wHourEnd}h00.`);
-    } else {
-      setIsWithinSchedule(true);
-      setScheduleMessage("");
-    }
-
-    if (todayRes.data) setTodayWithdrawals(todayRes.data.length);
-
-    if (profileRes.data) {
-      const eb = profileRes.data.earnings_balance || 0;
-      const rb = profileRes.data.referral_balance || 0;
-      setEarningsBalance(eb);
-      setReferralBalance(rb);
-      setWithdrawableBalance(dnw ? eb + rb : profileRes.data.balance || 0);
-    }
-    setLoading(false);
   };
 
   const numAmount = Number(amount) || 0;

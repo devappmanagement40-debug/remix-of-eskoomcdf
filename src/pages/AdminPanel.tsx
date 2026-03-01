@@ -116,44 +116,56 @@ const AdminPanel = () => {
   }, []);
 
   const checkAdmin = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/connexion"); return; }
-    const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
-    if (!data) { showError("Accès refusé", "Droits admin requis"); navigate("/"); return; }
-    setAdminId(user.id);
-    loadAll();
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { navigate("/connexion"); return; }
+      const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      if (!data) { showError("Accès refusé", "Droits admin requis"); navigate("/"); return; }
+      setAdminId(user.id);
+      await loadAll();
+    } catch (err) {
+      console.error("Admin check error:", err);
+      showError("Erreur", "Impossible de vérifier les droits d'accès");
+      setLoading(false);
+    }
   };
 
   const loadAll = async () => {
-    const [p, r, w, s, pr, pm, sl, ss, pop, logs, ctrs, vipc, bn] = await Promise.all([
-      supabase.from("profiles").select("*").order("created_at", { ascending: false }),
-      supabase.from("recharges").select("*").order("created_at", { ascending: false }),
-      supabase.from("withdrawals").select("*").order("created_at", { ascending: false }),
-      supabase.from("product_series").select("*").order("sort_order"),
-      supabase.from("products").select("*").order("sort_order"),
-      supabase.from("payment_methods").select("*").order("sort_order"),
-      supabase.from("social_links").select("*"),
-      supabase.from("site_settings").select("*"),
-      supabase.from("popup_messages").select("*").order("sort_order"),
-      supabase.from("admin_logs").select("*").order("created_at", { ascending: false }).limit(50),
-      supabase.from("countries").select("*").order("sort_order"),
-      supabase.from("vip_conditions").select("*").order("level"),
-      supabase.from("banners").select("*").order("sort_order"),
-    ]);
-    if (p.data) setProfiles(p.data as Profile[]);
-    if (r.data) setRecharges(r.data);
-    if (w.data) setWithdrawals(w.data);
-    if (s.data) setSeries(s.data);
-    if (pr.data) setProducts(pr.data as Product[]);
-    if (pm.data) setPaymentMethods(pm.data as PaymentMethod[]);
-    if (sl.data) setSocialLinks(sl.data);
-    if (ss.data) setSiteSettings(ss.data);
-    if (pop.data) setPopups(pop.data as unknown as PopupMsg[]);
-    if (logs.data) setAdminLogs(logs.data);
-    if (ctrs.data) setCountries(ctrs.data as Country[]);
-    if (vipc.data) setVipConditions(vipc.data as VipCondition[]);
-    if (bn.data) setBanners(bn.data as Banner[]);
-    setLoading(false);
+    try {
+      const [p, r, w, s, pr, pm, sl, ss, pop, logs, ctrs, vipc, bn] = await Promise.all([
+        supabase.from("profiles").select("*").order("created_at", { ascending: false }),
+        supabase.from("recharges").select("*").order("created_at", { ascending: false }),
+        supabase.from("withdrawals").select("*").order("created_at", { ascending: false }),
+        supabase.from("product_series").select("*").order("sort_order"),
+        supabase.from("products").select("*").order("sort_order"),
+        supabase.from("payment_methods").select("*").order("sort_order"),
+        supabase.from("social_links").select("*"),
+        supabase.from("site_settings").select("*"),
+        supabase.from("popup_messages").select("*").order("sort_order"),
+        supabase.from("admin_logs").select("*").order("created_at", { ascending: false }).limit(50),
+        supabase.from("countries").select("*").order("sort_order"),
+        supabase.from("vip_conditions").select("*").order("level"),
+        supabase.from("banners").select("*").order("sort_order"),
+      ]);
+      if (p.data) setProfiles(p.data as Profile[]);
+      if (r.data) setRecharges(r.data);
+      if (w.data) setWithdrawals(w.data);
+      if (s.data) setSeries(s.data);
+      if (pr.data) setProducts(pr.data as Product[]);
+      if (pm.data) setPaymentMethods(pm.data as PaymentMethod[]);
+      if (sl.data) setSocialLinks(sl.data);
+      if (ss.data) setSiteSettings(ss.data);
+      if (pop.data) setPopups(pop.data as unknown as PopupMsg[]);
+      if (logs.data) setAdminLogs(logs.data);
+      if (ctrs.data) setCountries(ctrs.data as Country[]);
+      if (vipc.data) setVipConditions(vipc.data as VipCondition[]);
+      if (bn.data) setBanners(bn.data as Banner[]);
+    } catch (err) {
+      console.error("Load error:", err);
+      showError("Erreur", "Impossible de charger les données");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const logAction = async (action: string, target_type?: string, target_id?: string, details?: string) => {
@@ -165,7 +177,12 @@ const AdminPanel = () => {
     return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   };
 
-  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Chargement...</p></div>;
+  if (loading) return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3">
+      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      <p className="text-foreground font-medium">Chargement...</p>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background pb-6">

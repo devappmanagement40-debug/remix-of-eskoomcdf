@@ -65,42 +65,47 @@ const Products = () => {
 
   useEffect(() => {
     const load = async () => {
-      const [s, p] = await Promise.all([
-        supabase.from("product_series").select("*").order("sort_order"),
-        supabase.from("products").select("*").eq("is_active", true).order("sort_order"),
-      ]);
-      if (s.data) setSeries(s.data as Series[]);
-      if (p.data) setProducts(p.data as Product[]);
+      try {
+        const [s, p] = await Promise.all([
+          supabase.from("product_series").select("*").order("sort_order"),
+          supabase.from("products").select("*").eq("is_active", true).order("sort_order"),
+        ]);
+        if (s.data) setSeries(s.data as Series[]);
+        if (p.data) setProducts(p.data as Product[]);
 
-      // Load user access data
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data: profile } = await supabase.from("profiles").select("vip_level, deposit_balance, user_id").eq("user_id", user.id).single();
-        if (profile) {
-          const { data: teamIds } = await supabase.rpc("get_team_profile_ids", { _user_id: user.id });
-          let activeMembers = 0;
-          let teamInvestment = 0;
-          const ids = (teamIds || []) as string[];
-          if (ids.length > 0) {
-            const { data: memberProfiles } = await supabase.from("profiles").select("user_id, deposit_balance").in("id", ids);
-            if (memberProfiles) {
-              const memberUserIds = memberProfiles.map((m: any) => m.user_id);
-              if (memberUserIds.length > 0) {
-                const { data: teamProducts } = await supabase.from("user_products").select("user_id").in("user_id", memberUserIds);
-                activeMembers = new Set((teamProducts || []).map((tp: any) => tp.user_id)).size;
+        // Load user access data
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { data: profile } = await supabase.from("profiles").select("vip_level, deposit_balance, user_id").eq("user_id", user.id).single();
+          if (profile) {
+            const { data: teamIds } = await supabase.rpc("get_team_profile_ids", { _user_id: user.id });
+            let activeMembers = 0;
+            let teamInvestment = 0;
+            const ids = (teamIds || []) as string[];
+            if (ids.length > 0) {
+              const { data: memberProfiles } = await supabase.from("profiles").select("user_id, deposit_balance").in("id", ids);
+              if (memberProfiles) {
+                const memberUserIds = memberProfiles.map((m: any) => m.user_id);
+                if (memberUserIds.length > 0) {
+                  const { data: teamProducts } = await supabase.from("user_products").select("user_id").in("user_id", memberUserIds);
+                  activeMembers = new Set((teamProducts || []).map((tp: any) => tp.user_id)).size;
+                }
+                teamInvestment = memberProfiles.reduce((s: number, m: any) => s + (m.deposit_balance || 0), 0);
               }
-              teamInvestment = memberProfiles.reduce((s: number, m: any) => s + (m.deposit_balance || 0), 0);
             }
+            setUserAccess({
+              vipLevel: profile.vip_level || 0,
+              personalInvestment: profile.deposit_balance || 0,
+              activeMembers,
+              teamInvestment,
+            });
           }
-          setUserAccess({
-            vipLevel: profile.vip_level || 0,
-            personalInvestment: profile.deposit_balance || 0,
-            activeMembers,
-            teamInvestment,
-          });
         }
+      } catch (err) {
+        console.error("Products load error:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     load();
   }, []);

@@ -35,40 +35,44 @@ const PointsCadeaux = () => {
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-      const [profileRes, rewardsRes, settingsRes, exchangesRes] = await Promise.all([
-        supabase.from("profiles").select("full_name, gift_points").eq("user_id", user.id).single(),
-        supabase.from("gift_rewards").select("*").eq("is_active", true).order("sort_order"),
-        supabase.from("site_settings").select("key, value").in("key", [
-          "points_per_active_member", "points_per_vip_level_per_day",
-          "points_per_deposit_value", "points_per_withdrawal"
-        ]),
-        supabase.from("point_exchanges").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(10),
-      ]);
+        const [profileRes, rewardsRes, settingsRes, exchangesRes] = await Promise.all([
+          supabase.from("profiles").select("full_name, gift_points").eq("user_id", user.id).single(),
+          supabase.from("gift_rewards").select("*").eq("is_active", true).order("sort_order"),
+          supabase.from("site_settings").select("key, value").in("key", [
+            "points_per_active_member", "points_per_vip_level_per_day",
+            "points_per_deposit_value", "points_per_withdrawal"
+          ]),
+          supabase.from("point_exchanges").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(10),
+        ]);
 
-      if (profileRes.data) {
-        setFullName(profileRes.data.full_name || "");
-        setPoints((profileRes.data as any).gift_points || 0);
-      }
-      if (rewardsRes.data) setRewards(rewardsRes.data as unknown as Reward[]);
-      if (exchangesRes.data) setExchanges(exchangesRes.data as unknown as Exchange[]);
+        if (profileRes.data) {
+          setFullName(profileRes.data.full_name || "");
+          setPoints((profileRes.data as any).gift_points || 0);
+        }
+        if (rewardsRes.data) setRewards(rewardsRes.data as unknown as Reward[]);
+        if (exchangesRes.data) setExchanges(exchangesRes.data as unknown as Exchange[]);
 
-      if (settingsRes.data) {
-        const tips: string[] = [];
-        const get = (k: string) => settingsRes.data?.find(s => s.key === k)?.value;
-        const pam = get("points_per_active_member");
-        const pvip = get("points_per_vip_level_per_day");
-        const pdep = get("points_per_deposit_value");
-        const pw = get("points_per_withdrawal");
-        if (pam && Number(pam) > 0) tips.push(`Chaque membre actif vous rapporte ${pam} points`);
-        if (pvip && Number(pvip) > 0) tips.push(`Gagnez ${pvip} points par niveau VIP chaque jour`);
-        if (pdep && Number(pdep) > 0) tips.push(`Chaque dépôt vous rapporte ${pdep} points`);
-        if (pw && Number(pw) > 0) tips.push(`Chaque retrait vous rapporte ${pw} points`);
-        tips.push("Invitez des amis et gagnez des points bonus par niveau");
-        tips.push("Utilisez un code d'échange pour obtenir des points gratuits");
-        setHowToEarn(tips);
+        if (settingsRes.data) {
+          const tips: string[] = [];
+          const get = (k: string) => settingsRes.data?.find(s => s.key === k)?.value;
+          const pam = get("points_per_active_member");
+          const pvip = get("points_per_vip_level_per_day");
+          const pdep = get("points_per_deposit_value");
+          const pw = get("points_per_withdrawal");
+          if (pam && Number(pam) > 0) tips.push(`Chaque membre actif vous rapporte ${pam} points`);
+          if (pvip && Number(pvip) > 0) tips.push(`Gagnez ${pvip} points par niveau VIP chaque jour`);
+          if (pdep && Number(pdep) > 0) tips.push(`Chaque dépôt vous rapporte ${pdep} points`);
+          if (pw && Number(pw) > 0) tips.push(`Chaque retrait vous rapporte ${pw} points`);
+          tips.push("Invitez des amis et gagnez des points bonus par niveau");
+          tips.push("Utilisez un code d'échange pour obtenir des points gratuits");
+          setHowToEarn(tips);
+        }
+      } catch (err) {
+        console.error("PointsCadeaux load error:", err);
       }
     };
     load();
