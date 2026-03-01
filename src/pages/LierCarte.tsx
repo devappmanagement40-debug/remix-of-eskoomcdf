@@ -6,8 +6,6 @@ import PageHeader from "@/components/PageHeader";
 import { CreditCard, Trash2, Plus, Smartphone } from "lucide-react";
 import CountryPicker from "@/components/CountryPicker";
 
-const networks = ["Orange Money", "Moov Money", "Wave", "MTN Money", "Free Money", "Airtel Money"];
-
 type Wallet = {
   id: string;
   phone: string;
@@ -15,6 +13,14 @@ type Wallet = {
   network: string;
   label: string | null;
   created_at: string | null;
+};
+
+type WithdrawalMethod = {
+  id: string;
+  name: string;
+  country_id: string | null;
+  is_active: boolean;
+  logo_url: string | null;
 };
 
 const LierCarte = () => {
@@ -25,18 +31,39 @@ const LierCarte = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showNetworkPicker, setShowNetworkPicker] = useState(false);
-  const [countries, setCountries] = useState<{code: string; name: string}[]>([]);
+  const [countries, setCountries] = useState<{ id: string; code: string; name: string }[]>([]);
+  const [withdrawalMethods, setWithdrawalMethods] = useState<WithdrawalMethod[]>([]);
 
   const [countryCode, setCountryCode] = useState("+226");
   const [phone, setPhone] = useState("");
-  const [network, setNetwork] = useState("Orange Money");
+  const [network, setNetwork] = useState("");
   const [holderName, setHolderName] = useState("");
 
   useEffect(() => {
     loadWallets();
-    supabase.from("countries").select("country_code, name").eq("is_active", true).order("sort_order")
-      .then(({ data }) => { if (data) setCountries(data.map(c => ({ code: c.country_code, name: c.name }))); });
+    Promise.all([
+      supabase.from("countries").select("id, country_code, name").eq("is_active", true).order("sort_order"),
+      supabase.from("withdrawal_methods").select("*").eq("is_active", true).order("sort_order"),
+    ]).then(([countriesRes, methodsRes]) => {
+      if (countriesRes.data) setCountries(countriesRes.data.map(c => ({ id: c.id, code: c.country_code, name: c.name })));
+      if (methodsRes.data) setWithdrawalMethods(methodsRes.data as WithdrawalMethod[]);
+    });
   }, []);
+
+  // Get available networks for selected country
+  const selectedCountry = countries.find(c => c.code === countryCode);
+  const availableNetworks = withdrawalMethods.filter(m =>
+    selectedCountry && m.country_id === selectedCountry.id
+  );
+
+  // Reset network when country changes and current network isn't available
+  useEffect(() => {
+    if (availableNetworks.length > 0 && !availableNetworks.find(n => n.name === network)) {
+      setNetwork(availableNetworks[0].name);
+    } else if (availableNetworks.length === 0) {
+      setNetwork("");
+    }
+  }, [countryCode, availableNetworks.length]);
 
   const loadWallets = async () => {
     try {
@@ -54,10 +81,10 @@ const LierCarte = () => {
   const handleSave = async () => {
     if (!holderName.trim()) { showError("Erreur", "Veuillez entrer le nom du titulaire"); return; }
     if (!phone || phone.length < 8) { showError("Erreur", "Numéro de téléphone invalide"); return; }
+    if (!network) { showError("Erreur", "Veuillez sélectionner un réseau"); return; }
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/connexion"); return; }
-    const country = countries.find(c => c.code === countryCode);
     const { error } = await supabase.from("user_wallets").insert({
       user_id: user.id, phone, country_code: countryCode, network,
       label: `${network}`,
@@ -72,8 +99,6 @@ const LierCarte = () => {
     const { error } = await supabase.from("user_wallets").delete().eq("id", id);
     if (!error) { showSuccess("Supprimé", "Le portefeuille a été supprimé"); loadWallets(); }
   };
-
-  const selectedCountry = countries.find(c => c.code === countryCode);
 
   return (
     <div className="min-h-screen bg-background pb-10">
@@ -91,7 +116,6 @@ const LierCarte = () => {
         ) : (
           <div className="space-y-4 mb-6">
             {wallets.map((w) => {
-              const country = countries.find(c => c.code === w.country_code);
               return (
                 <div key={w.id} className="relative rounded-2xl overflow-hidden border border-primary/30"
                   style={{ background: "linear-gradient(135deg, hsl(85 70% 55%), hsl(75 80% 50%), hsl(65 85% 45%))", minHeight: "160px" }}>
@@ -143,38 +167,44 @@ const LierCarte = () => {
 
             <div>
               <label className="text-xs text-muted-foreground mb-2 block">Réseau</label>
-              <button
-                type="button"
-                onClick={() => setShowNetworkPicker(true)}
-                className="w-full input-glow rounded-xl bg-secondary p-3 flex items-center justify-between text-sm text-foreground"
-              >
-                <span>{network}</span>
-                <span className="text-primary">▲</span>
-              </button>
+              {availableNetworks.length === 0 ? (
+                <p className="text-xs text-muted-foreground bg-secondary/50 rounded-xl p-3 text-center">Aucun réseau disponible pour ce pays</p>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setShowNetworkPicker(true)}
+                    className="w-full input-glow rounded-xl bg-secondary p-3 flex items-center justify-between text-sm text-foreground"
+                  >
+                    <span>{network || "Sélectionnez un réseau"}</span>
+                    <span className="text-primary">▲</span>
+                  </button>
 
-              {showNetworkPicker && (
-                <div className="fixed inset-0 z-[100] flex items-end justify-center">
-                  <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowNetworkPicker(false)} />
-                  <div className="relative w-full max-w-lg rounded-t-2xl overflow-hidden animate-in slide-in-from-bottom duration-300"
-                    style={{ background: "linear-gradient(135deg, hsl(174 72% 45%), hsl(220 25% 12%) 40%)" }}>
-                    <div className="flex items-center justify-between px-5 py-4">
-                      <span className="text-sm font-bold text-foreground">Sélectionnez le réseau</span>
-                      <button onClick={() => setShowNetworkPicker(false)} className="w-8 h-8 rounded-full bg-secondary/50 flex items-center justify-center">
-                        <span className="text-foreground text-sm">✕</span>
-                      </button>
+                  {showNetworkPicker && (
+                    <div className="fixed inset-0 z-[100] flex items-end justify-center">
+                      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowNetworkPicker(false)} />
+                      <div className="relative w-full max-w-lg rounded-t-2xl overflow-hidden animate-in slide-in-from-bottom duration-300"
+                        style={{ background: "linear-gradient(135deg, hsl(174 72% 45%), hsl(220 25% 12%) 40%)" }}>
+                        <div className="flex items-center justify-between px-5 py-4">
+                          <span className="text-sm font-bold text-foreground">Sélectionnez le réseau</span>
+                          <button onClick={() => setShowNetworkPicker(false)} className="w-8 h-8 rounded-full bg-secondary/50 flex items-center justify-center">
+                            <span className="text-foreground text-sm">✕</span>
+                          </button>
+                        </div>
+                        <div className="h-[2px] w-full" style={{ background: "linear-gradient(90deg, hsl(174 72% 50%), hsl(270 60% 55%))" }} />
+                        <div className="max-h-[50vh] overflow-y-auto py-2">
+                          {availableNetworks.map((n) => (
+                            <button key={n.id} onClick={() => { setNetwork(n.name); setShowNetworkPicker(false); }}
+                              className="w-full flex items-center justify-center py-4 transition-colors hover:bg-secondary/30">
+                              <span className={`text-base font-semibold ${n.name === network ? "text-primary" : "text-foreground"}`}>{n.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                        <div className="h-6" />
+                      </div>
                     </div>
-                    <div className="h-[2px] w-full" style={{ background: "linear-gradient(90deg, hsl(174 72% 50%), hsl(270 60% 55%))" }} />
-                    <div className="max-h-[50vh] overflow-y-auto py-2">
-                      {networks.map((n) => (
-                        <button key={n} onClick={() => { setNetwork(n); setShowNetworkPicker(false); }}
-                          className="w-full flex items-center justify-center py-4 transition-colors hover:bg-secondary/30">
-                          <span className={`text-base font-semibold ${n === network ? "text-primary" : "text-foreground"}`}>{n}</span>
-                        </button>
-                      ))}
-                    </div>
-                    <div className="h-6" />
-                  </div>
-                </div>
+                  )}
+                </>
               )}
             </div>
 
@@ -191,7 +221,7 @@ const LierCarte = () => {
 
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button onClick={() => setShowForm(false)} className="bg-secondary text-foreground font-semibold py-3 rounded-xl text-sm">Annuler</button>
-              <button onClick={handleSave} disabled={saving}
+              <button onClick={handleSave} disabled={saving || !network}
                 className="gradient-button text-primary-foreground font-semibold py-3 rounded-xl text-sm disabled:opacity-50">
                 {saving ? "..." : "Enregistrer"}
               </button>

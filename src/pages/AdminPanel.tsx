@@ -10,7 +10,7 @@ import {
   Clock, ArrowDown, Edit2, Trash2, Plus, X, Save, ChevronDown, ChevronUp,
   Layers, Eye, EyeOff, Ban, UserCheck, Pencil, TrendingUp, Activity,
   Globe, ImageIcon, UploadIcon, Bot, Power, ArrowLeft, Send, Star, Gift,
-  HelpCircle, Info, Smartphone
+  HelpCircle, Info, Smartphone, Wallet
 } from "lucide-react";
 
 // ==================== TYPES ====================
@@ -52,7 +52,7 @@ type AdminLog = { id: string; admin_id: string; action: string; target_type: str
 type Country = { id: string; name: string; country_code: string; is_active: boolean; sort_order: number };
 type VipCondition = { id: string; level: number; level_name: string; min_investment: number; min_active_members: number; min_purchases: number; min_products_bought: number; min_team_investment: number; condition_logic: string; image_url: string | null };
 type UserProduct = { id: string; user_id: string; product_id: string; purchased_at: string; is_active: boolean; expires_at: string | null };
-
+type WithdrawalMethod = { id: string; name: string; country_id: string | null; is_active: boolean; sort_order: number; logo_url: string | null; payment_type: string; api_provider: string | null };
 // ==================== TABS CONFIG ====================
 type Banner = { id: string; image_url: string; link_path: string; sort_order: number; is_active: boolean };
 
@@ -66,7 +66,8 @@ const tabs = [
   { key: "wheel", icon: Activity, label: "Roue" },
   { key: "rewards", icon: Star, label: "Cadeaux" },
   { key: "countries", icon: Globe, label: "Pays" },
-  { key: "payments", icon: CreditCard, label: "Paiement" },
+  { key: "payments", icon: CreditCard, label: "Dépôt" },
+  { key: "wmethods", icon: Wallet, label: "Retrait M." },
   { key: "links", icon: Link2, label: "Liens" },
   { key: "popups", icon: Bell, label: "Popups" },
   { key: "vip", icon: TrendingUp, label: "Niveaux" },
@@ -110,6 +111,7 @@ const AdminPanel = () => {
   const [countries, setCountries] = useState<Country[]>([]);
   const [vipConditions, setVipConditions] = useState<VipCondition[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
+  const [withdrawalMethods, setWithdrawalMethods] = useState<WithdrawalMethod[]>([]);
 
   useEffect(() => {
     checkAdmin();
@@ -132,7 +134,7 @@ const AdminPanel = () => {
 
   const loadAll = async () => {
     try {
-      const [p, r, w, s, pr, pm, sl, ss, pop, logs, ctrs, vipc, bn] = await Promise.all([
+      const [p, r, w, s, pr, pm, sl, ss, pop, logs, ctrs, vipc, bn, wm] = await Promise.all([
         supabase.from("profiles").select("*").order("created_at", { ascending: false }),
         supabase.from("recharges").select("*").order("created_at", { ascending: false }),
         supabase.from("withdrawals").select("*").order("created_at", { ascending: false }),
@@ -146,6 +148,7 @@ const AdminPanel = () => {
         supabase.from("countries").select("*").order("sort_order"),
         supabase.from("vip_conditions").select("*").order("level"),
         supabase.from("banners").select("*").order("sort_order"),
+        supabase.from("withdrawal_methods").select("*").order("sort_order"),
       ]);
       if (p.data) setProfiles(p.data as Profile[]);
       if (r.data) setRecharges(r.data);
@@ -160,6 +163,7 @@ const AdminPanel = () => {
       if (ctrs.data) setCountries(ctrs.data as Country[]);
       if (vipc.data) setVipConditions(vipc.data as VipCondition[]);
       if (bn.data) setBanners(bn.data as Banner[]);
+      if (wm.data) setWithdrawalMethods(wm.data as WithdrawalMethod[]);
     } catch (err) {
       console.error("Load error:", err);
       showError("Erreur", "Impossible de charger les données");
@@ -216,10 +220,11 @@ const AdminPanel = () => {
         {activeTab === "withdrawals" && <WithdrawalsTab withdrawals={withdrawals} profiles={profiles} reload={loadAll} showSuccess={showSuccess} showError={showError} logAction={logAction} />}
         {activeTab === "products" && <ProductsTab series={series} products={products} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "banners" && <BannersTab banners={banners} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
-        {activeTab === "countries" && <CountriesTab countries={countries} methods={paymentMethods} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
+        {activeTab === "countries" && <CountriesTab countries={countries} methods={paymentMethods} withdrawalMethods={withdrawalMethods} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "wheel" && <AdminWheelTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} logAction={logAction} adminId={adminId} />}
         {activeTab === "rewards" && <RewardsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "payments" && <PaymentsTab methods={paymentMethods} countries={countries} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
+        {activeTab === "wmethods" && <WithdrawalMethodsTab methods={withdrawalMethods} countries={countries} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "links" && <LinksTab links={socialLinks} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "popups" && <PopupsTab popups={popups} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "vip" && <VipTab conditions={vipConditions} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
@@ -2102,8 +2107,148 @@ const SecurityTab = ({ logs }: { logs: AdminLog[] }) => (
   </div>
 );
 
+// ==================== WITHDRAWAL METHODS ====================
+const WithdrawalMethodsTab = ({ methods, countries, reload, showSuccess, showError }: any) => {
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<WithdrawalMethod | null>(null);
+  const [form, setForm] = useState({ name: "", country_id: "", payment_type: "manual", api_provider: "", logo_url: "" });
+  const [uploading, setUploading] = useState(false);
+  const logoRef = useRef<HTMLInputElement>(null);
+
+  const openForm = (m?: WithdrawalMethod) => {
+    if (m) { setEditing(m); setForm({ name: m.name, country_id: m.country_id || "", payment_type: m.payment_type || "manual", api_provider: m.api_provider || "", logo_url: m.logo_url || "" }); }
+    else { setEditing(null); setForm({ name: "", country_id: "", payment_type: "manual", api_provider: "", logo_url: "" }); }
+    setShowForm(true);
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    const ext = file.name.split('.').pop();
+    const fileName = `wm-logo-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('site-assets').upload(fileName, file);
+    if (error) { showError("Erreur", "Upload impossible"); setUploading(false); return; }
+    const { data } = supabase.storage.from('site-assets').getPublicUrl(fileName);
+    setForm({ ...form, logo_url: data.publicUrl });
+    setUploading(false);
+  };
+
+  const save = async () => {
+    if (!form.name.trim()) { showError("Erreur", "Nom requis"); return; }
+    if (!form.country_id) { showError("Erreur", "Pays requis"); return; }
+    const payload = { name: form.name, country_id: form.country_id || null, payment_type: form.payment_type, api_provider: form.api_provider || null, logo_url: form.logo_url || null };
+    if (editing) await supabase.from("withdrawal_methods").update(payload).eq("id", editing.id);
+    else await supabase.from("withdrawal_methods").insert({ ...payload, sort_order: methods.length });
+    showSuccess(editing ? "Modifié" : "Créé", "");
+    setShowForm(false); reload();
+  };
+
+  // Group by country
+  const activeCountries = countries.filter((c: Country) => c.is_active);
+
+  return (
+    <div className="space-y-3">
+      <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
+        <p className="text-xs text-muted-foreground">
+          Gérez les moyens de retrait disponibles par pays. Ces réseaux apparaîtront lors de l'ajout d'un portefeuille.
+        </p>
+      </div>
+
+      <button onClick={() => openForm()} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2"><Plus size={16} /> Ajouter un moyen de retrait</button>
+
+      {showForm && (
+        <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
+          <div className="flex justify-between"><h3 className="text-sm font-bold text-foreground">{editing ? "Modifier" : "Nouveau"}</h3><button onClick={() => setShowForm(false)}><X size={16} className="text-muted-foreground" /></button></div>
+          <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nom (ex: Orange Money)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+
+          <select value={form.country_id} onChange={e => setForm({ ...form, country_id: e.target.value })}
+            className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none">
+            <option value="">-- Sélectionner un pays --</option>
+            {activeCountries.map((c: Country) => <option key={c.id} value={c.id}>{c.name} ({c.country_code})</option>)}
+          </select>
+
+          <div>
+            <label className="text-xs text-muted-foreground">Type</label>
+            <div className="flex gap-2 mt-1">
+              <button onClick={() => setForm({ ...form, payment_type: "manual" })}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors ${form.payment_type === "manual" ? "gradient-button text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
+                Manuel
+              </button>
+              <button onClick={() => setForm({ ...form, payment_type: "api" })}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors ${form.payment_type === "api" ? "gradient-button text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
+                API (automatique)
+              </button>
+            </div>
+          </div>
+
+          {form.payment_type === "api" && (
+            <input value={form.api_provider} onChange={e => setForm({ ...form, api_provider: e.target.value })} placeholder="Fournisseur API (ex: mtn, orange)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+          )}
+
+          {/* Logo */}
+          <div>
+            <label className="text-xs text-muted-foreground">Logo</label>
+            <input ref={logoRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+            {form.logo_url ? (
+              <div className="flex items-center gap-3 mt-1">
+                <img src={form.logo_url} className="w-10 h-10 rounded-lg object-cover" />
+                <button onClick={() => setForm({ ...form, logo_url: "" })} className="text-xs text-destructive">Supprimer</button>
+              </div>
+            ) : (
+              <button onClick={() => logoRef.current?.click()} disabled={uploading} className="mt-1 w-full h-12 rounded-xl border-2 border-dashed border-secondary hover:border-primary flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                {uploading ? "Upload..." : <><UploadIcon size={14} /> Ajouter logo</>}
+              </button>
+            )}
+          </div>
+
+          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editing ? "Modifier" : "Créer"}</button>
+        </div>
+      )}
+
+      {/* Group by country */}
+      {activeCountries.map((c: Country) => {
+        const countryMethods = methods.filter((m: WithdrawalMethod) => m.country_id === c.id);
+        if (countryMethods.length === 0 && !showForm) return null;
+        return (
+          <div key={c.id} className="bg-card rounded-xl border border-secondary overflow-hidden">
+            <div className="px-4 py-2.5 bg-secondary/30 border-b border-secondary">
+              <p className="text-xs font-bold text-foreground">{c.name} <span className="text-muted-foreground font-normal">({c.country_code})</span></p>
+            </div>
+            <div className="p-2 space-y-1">
+              {countryMethods.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-3">Aucun moyen de retrait</p>
+              ) : countryMethods.map((m: WithdrawalMethod) => (
+                <div key={m.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-secondary/20">
+                  <div className="flex items-center gap-3">
+                    {m.logo_url ? (
+                      <img src={m.logo_url} className="w-7 h-7 rounded-lg object-cover" />
+                    ) : (
+                      <div className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Wallet size={12} className="text-muted-foreground" /></div>
+                    )}
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{m.name}</p>
+                      <p className="text-[10px] text-muted-foreground">{m.payment_type === "api" ? `API (${m.api_provider || "—"})` : "Manuel"}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <button onClick={async () => { await supabase.from("withdrawal_methods").update({ is_active: !m.is_active }).eq("id", m.id); reload(); }}
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${m.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{m.is_active ? "ON" : "OFF"}</button>
+                    <button onClick={() => openForm(m)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
+                    <button onClick={async () => { await supabase.from("withdrawal_methods").delete().eq("id", m.id); showSuccess("Supprimé", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
 // ==================== COUNTRIES ====================
-const CountriesTab = ({ countries, methods, reload, showSuccess, showError }: any) => {
+const CountriesTab = ({ countries, methods, withdrawalMethods = [], reload, showSuccess, showError }: any) => {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Country | null>(null);
   const [form, setForm] = useState({ name: "", country_code: "", phone_digits: "8", validation_enabled: true });
@@ -2170,6 +2315,7 @@ const CountriesTab = ({ countries, methods, reload, showSuccess, showError }: an
 
       {countries.map((c: Country) => {
         const countryMethods = methods.filter((m: PaymentMethod) => m.country_id === c.id);
+        const countryWMethods = withdrawalMethods.filter((m: WithdrawalMethod) => m.country_id === c.id);
         return (
           <div key={c.id} className={`bg-card rounded-xl border overflow-hidden ${c.is_active ? "border-secondary" : "border-secondary opacity-60"}`}>
             <div className="px-4 py-3">
@@ -2187,13 +2333,28 @@ const CountriesTab = ({ countries, methods, reload, showSuccess, showError }: an
                   <button onClick={() => deleteCountry(c)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
                 </div>
               </div>
-              {/* Associated payment methods */}
+              {/* Deposit methods */}
               {countryMethods.length > 0 && (
                 <div className="mt-2 pt-2 border-t border-secondary">
-                  <p className="text-[10px] text-muted-foreground mb-1">Moyens de paiement :</p>
+                  <p className="text-[10px] text-muted-foreground mb-1">💳 Moyens de dépôt :</p>
                   <div className="flex flex-wrap gap-1.5">
                     {countryMethods.map((m: PaymentMethod) => (
-                      <span key={m.id} className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${m.is_active ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>{m.name}</span>
+                      <span key={m.id} className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${m.is_active ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                        {m.name} {m.payment_type === "external" ? "⚡" : ""}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* Withdrawal methods */}
+              {countryWMethods.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-secondary">
+                  <p className="text-[10px] text-muted-foreground mb-1">📤 Moyens de retrait :</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {countryWMethods.map((m: WithdrawalMethod) => (
+                      <span key={m.id} className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${m.is_active ? "bg-success/10 text-success" : "bg-secondary text-muted-foreground"}`}>
+                        {m.name} {m.payment_type === "api" ? "⚡" : ""}
+                      </span>
                     ))}
                   </div>
                 </div>
