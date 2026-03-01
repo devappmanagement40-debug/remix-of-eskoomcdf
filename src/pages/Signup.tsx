@@ -38,18 +38,14 @@ const Signup = () => {
     const cleanPhone = phone.replace(/\s/g, "");
     const email = `${cleanPhone}@users.eskom.app`;
 
-    const codeToCheck = inviteCode.trim().toUpperCase();
-    const { data: referrer } = await supabase
-      .from("profiles")
-      .select("id")
-      .ilike("referral_code", codeToCheck)
-      .single();
-    if (!referrer) {
+    const codeToCheck = inviteCode.trim();
+    const { data: referrerId, error: codeError } = await supabase
+      .rpc("validate_referral_code", { code: codeToCheck });
+    if (codeError || !referrerId) {
       showError("Erreur", "Code d'invitation invalide");
       setLoading(false);
       return;
     }
-    const referrerId = referrer.id;
 
     const { error } = await supabase.auth.signUp({
       email,
