@@ -135,45 +135,63 @@ const AdminProduits = () => {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    setUploading(true);
-    const ext = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const { error } = await supabase.storage.from('product-images').upload(fileName, file);
-    if (error) {
-      showError("Erreur", "Impossible d'uploader l'image");
+    try {
+      setUploading(true);
+      if (file.size > 5 * 1024 * 1024) {
+        showError("Erreur", "L'image ne doit pas dépasser 5 Mo");
+        return;
+      }
+      const ext = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from('product-images').upload(fileName, file);
+      if (error) {
+        console.error("Upload error:", error);
+        showError("Erreur", "Impossible d'uploader l'image: " + (error.message || "erreur inconnue"));
+        return;
+      }
+      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
+      setProductImageUrl(urlData.publicUrl);
+      showSuccess("Image uploadée", "L'image a été ajoutée avec succès ✅");
+    } catch (err) {
+      console.error("Upload crash:", err);
+      showError("Erreur", "Une erreur inattendue s'est produite lors de l'upload");
+    } finally {
       setUploading(false);
-      return;
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
-    const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
-    setProductImageUrl(urlData.publicUrl);
-    setUploading(false);
-    showSuccess("Image uploadée", "L'image a été ajoutée avec succès ✅");
   };
 
   const saveProduct = async () => {
     if (!productName.trim()) { showError("Erreur", "Nom requis"); return; }
-    const payload = {
-      series_id: productSeriesId,
-      name: productName,
-      image_url: productImageUrl || null,
-      return_percent: Number(productReturnPercent) || 0,
-      total_revenue: Number(productTotalRevenue) || 0,
-      daily_revenue: Number(productDailyRevenue) || 0,
-      cycles: Number(productCycles) || 365,
-      price: Number(productPrice) || 0,
-      is_new: productIsNew,
-      is_featured: productIsFeatured,
-    };
-    if (editingProduct) {
-      await supabase.from("products").update(payload).eq("id", editingProduct.id);
-      showSuccess("Produit modifié", "Le produit a été mis à jour avec succès ✅");
-    } else {
-      const seriesProducts = products.filter(p => p.series_id === productSeriesId);
-      await supabase.from("products").insert({ ...payload, sort_order: seriesProducts.length });
-      showSuccess("Produit créé", "Le nouveau produit a été créé avec succès ✅");
+    try {
+      const payload = {
+        series_id: productSeriesId,
+        name: productName,
+        image_url: productImageUrl || null,
+        return_percent: Number(productReturnPercent) || 0,
+        total_revenue: Number(productTotalRevenue) || 0,
+        daily_revenue: Number(productDailyRevenue) || 0,
+        cycles: Number(productCycles) || 365,
+        price: Number(productPrice) || 0,
+        is_new: productIsNew,
+        is_featured: productIsFeatured,
+      };
+      if (editingProduct) {
+        const { error } = await supabase.from("products").update(payload).eq("id", editingProduct.id);
+        if (error) throw error;
+        showSuccess("Produit modifié", "Le produit a été mis à jour avec succès ✅");
+      } else {
+        const seriesProducts = products.filter(p => p.series_id === productSeriesId);
+        const { error } = await supabase.from("products").insert({ ...payload, sort_order: seriesProducts.length });
+        if (error) throw error;
+        showSuccess("Produit créé", "Le nouveau produit a été créé avec succès ✅");
+      }
+      setShowProductForm(false);
+      loadAll();
+    } catch (err) {
+      console.error("Save product error:", err);
+      showError("Erreur", "Impossible de sauvegarder le produit");
     }
-    setShowProductForm(false);
-    loadAll();
   };
 
   const deleteProduct = async (id: string) => {
