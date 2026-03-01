@@ -5,6 +5,7 @@ import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import PremiumModal from "@/components/PremiumModal";
 import { Copy, ExternalLink, CheckCircle, Zap, Loader2 } from "lucide-react";
+import { safeClipboardWrite } from "@/lib/clipboard";
 
 type PaymentMethodInfo = {
   id: string; name: string; phone: string | null; holder_name: string | null;
@@ -36,8 +37,8 @@ const RechargePaiement = () => {
 
   if (!amount || !method) return null;
 
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
+  const copyToClipboard = async (text: string, label: string) => {
+    await safeClipboardWrite(text);
     showCopy(`${label} copie`);
   };
 

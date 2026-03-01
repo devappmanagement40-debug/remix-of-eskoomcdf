@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { History, ArrowDownLeft, ArrowUpRight, ShoppingBag, TrendingUp, Gift, X, Copy, CheckCircle2 } from "lucide-react";
+import { safeClipboardWrite } from "@/lib/clipboard";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,8 +50,8 @@ const Historique = () => {
   const [selectedOp, setSelectedOp] = useState<Operation | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
-  const copyText = (text: string, key: string) => {
-    navigator.clipboard.writeText(text);
+  const copyText = async (text: string, key: string) => {
+    await safeClipboardWrite(text);
     setCopied(key);
     setTimeout(() => setCopied(null), 1500);
   };
