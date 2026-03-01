@@ -890,6 +890,50 @@ export type Database = {
           },
         ]
       }
+      withdrawal_methods: {
+        Row: {
+          api_provider: string | null
+          country_id: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean
+          logo_url: string | null
+          name: string
+          payment_type: string
+          sort_order: number
+        }
+        Insert: {
+          api_provider?: string | null
+          country_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name: string
+          payment_type?: string
+          sort_order?: number
+        }
+        Update: {
+          api_provider?: string | null
+          country_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean
+          logo_url?: string | null
+          name?: string
+          payment_type?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawal_methods_country_id_fkey"
+            columns: ["country_id"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       withdrawals: {
         Row: {
           admin_note: string | null
