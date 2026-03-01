@@ -1,8 +1,43 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Send, Image, Paperclip, Smile, Check, CheckCheck, MoreVertical, Phone, Video, Bot } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import sarahAvatar from "@/assets/sarah-avatar.jpg";
+
+/** Renders text with auto-linked URLs */
+const LinkedText = ({ text }: { text: string }) => {
+  const parts = useMemo(() => {
+    const urlRegex = /(https?:\/\/[^\s,)]+)/g;
+    const result: { type: "text" | "link"; value: string }[] = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    while ((match = urlRegex.exec(text)) !== null) {
+      if (match.index > lastIndex) {
+        result.push({ type: "text", value: text.slice(lastIndex, match.index) });
+      }
+      result.push({ type: "link", value: match[1] });
+      lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex < text.length) {
+      result.push({ type: "text", value: text.slice(lastIndex) });
+    }
+    return result;
+  }, [text]);
+
+  return (
+    <>
+      {parts.map((p, i) =>
+        p.type === "link" ? (
+          <a key={i} href={p.value} target="_blank" rel="noopener noreferrer" className="text-primary underline break-all">
+            {p.value}
+          </a>
+        ) : (
+          <span key={i}>{p.value}</span>
+        )
+      )}
+    </>
+  );
+};
 
 interface Message {
   id: string;
@@ -339,7 +374,7 @@ const ServiceChat = () => {
                   <img src={msg.image} alt="Image envoyée" className="max-w-full max-h-60 object-contain rounded-lg" />
                 </div>
               )}
-              {msg.text && <p className="text-sm text-foreground leading-relaxed whitespace-pre-line">{msg.text}</p>}
+              {msg.text && <p className="text-sm text-foreground leading-relaxed whitespace-pre-line"><LinkedText text={msg.text} /></p>}
               <div className={`flex items-center gap-1 mt-1 ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
                 <span className="text-[10px] text-muted-foreground">{msg.time}</span>
                 {msg.sender === "user" && <StatusIcon status={msg.status} />}

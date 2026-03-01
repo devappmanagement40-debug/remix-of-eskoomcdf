@@ -33,20 +33,36 @@ const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacem
 
   useEffect(() => {
     if (open) {
-      supabase
-        .from("popup_messages")
-        .select("*")
-        .eq("trigger_key", triggerKey)
-        .eq("is_active", true)
-        .single()
-        .then(({ data: msg }) => {
-          if (msg) {
-            setData(msg as unknown as PopupMessage);
-            setActiveTab(0);
-            // animate in
-            requestAnimationFrame(() => setVisible(true));
-          }
-        });
+      Promise.all([
+        supabase.from("popup_messages").select("*").eq("trigger_key", triggerKey).eq("is_active", true).single(),
+        supabase.from("site_settings").select("key, value").in("key", [
+          "official_whatsapp_link", "official_telegram_link",
+          "official_whatsapp_group", "official_telegram_group",
+        ]),
+      ]).then(([{ data: msg }, { data: settings }]) => {
+        if (msg) {
+          // Build a map of official URLs
+          const urlMap: Record<string, string> = {};
+          (settings || []).forEach((s: any) => { if (s.value) urlMap[s.key] = s.value; });
+
+          // Auto-fill empty tab URLs based on label keywords
+          const rawTabs: Tab[] = msg.tabs ? (Array.isArray(msg.tabs) ? (msg.tabs as unknown as Tab[]) : []) : [];
+          const enrichedTabs = rawTabs.map((tab) => {
+            if (tab.url) return tab; // Already has a URL, keep it
+            const lbl = tab.label.toLowerCase();
+            if (lbl.includes("whatsapp") && lbl.includes("group")) return { ...tab, url: urlMap["official_whatsapp_group"] || "" };
+            if (lbl.includes("whatsapp")) return { ...tab, url: urlMap["official_whatsapp_link"] || "" };
+            if (lbl.includes("telegram") && lbl.includes("group")) return { ...tab, url: urlMap["official_telegram_group"] || "" };
+            if (lbl.includes("telegram")) return { ...tab, url: urlMap["official_telegram_link"] || "" };
+            if (lbl.includes("groupe")) return { ...tab, url: urlMap["official_whatsapp_group"] || urlMap["official_telegram_group"] || "" };
+            return tab;
+          });
+
+          setData({ ...(msg as unknown as PopupMessage), tabs: enrichedTabs });
+          setActiveTab(0);
+          requestAnimationFrame(() => setVisible(true));
+        }
+      });
     } else {
       setVisible(false);
       const t = setTimeout(() => setData(null), 300);
