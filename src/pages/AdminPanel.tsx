@@ -10,7 +10,7 @@ import {
   Clock, ArrowDown, Edit2, Trash2, Plus, X, Save, ChevronDown, ChevronUp,
   Layers, Eye, EyeOff, Ban, UserCheck, Pencil, TrendingUp, Activity,
   Globe, ImageIcon, UploadIcon, Bot, Power, ArrowLeft, Send, Star, Gift,
-  HelpCircle, Info, Smartphone, Wallet
+  HelpCircle, Info, Smartphone, Wallet, FileText
 } from "lucide-react";
 
 // ==================== TYPES ====================
@@ -75,6 +75,7 @@ const tabs = [
   { key: "popups", icon: Bell, label: "Popups" },
   { key: "vip", icon: TrendingUp, label: "Niveaux" },
   { key: "sarah", icon: Bot, label: "Sarah IA" },
+  { key: "officialdocs", icon: FileText, label: "Docs Off." },
   { key: "officialinfo", icon: Globe, label: "Infos Off." },
   { key: "support", icon: MessageSquare, label: "Support" },
   { key: "faq", icon: HelpCircle, label: "FAQ" },
@@ -240,6 +241,7 @@ const AdminPanel = () => {
         {activeTab === "vip" && <VipTab conditions={vipConditions} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "sarah" && <SarahTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "officialinfo" && <OfficialInfoTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
+        {activeTab === "officialdocs" && <OfficialDocsTab showSuccess={showSuccess} showError={showError} />}
         {activeTab === "support" && <SupportTab adminId={adminId} />}
         {activeTab === "faq" && <FaqTab showSuccess={showSuccess} showError={showError} />}
         {activeTab === "infos" && <InfoItemsTab showSuccess={showSuccess} showError={showError} />}
@@ -2116,7 +2118,125 @@ const OfficialInfoTab = ({ settings, reload, showSuccess }: { settings: SiteSett
   );
 };
 
-// ==================== SECURITY ====================
+// ==================== OFFICIAL DOCS ====================
+const OfficialDocsTab = ({ showSuccess, showError }: { showSuccess: (t: string, m: string) => void; showError: (t: string, m: string) => void }) => {
+  const [docs, setDocs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [docType, setDocType] = useState("image");
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const loadDocs = async () => {
+    const { data } = await supabase.from("official_documents").select("*").order("sort_order");
+    if (data) setDocs(data);
+    setLoading(false);
+  };
+
+  useEffect(() => { loadDocs(); }, []);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !title.trim()) {
+      showError("Erreur", "Veuillez saisir un titre avant d'uploader");
+      return;
+    }
+    setUploading(true);
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `official/${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage.from("site-assets").upload(path, file, { upsert: true });
+    if (upErr) { showError("Erreur", "Échec de l'upload"); setUploading(false); return; }
+    const { data: urlData } = supabase.storage.from("site-assets").getPublicUrl(path);
+
+    await supabase.from("official_documents").insert({
+      title: title.trim(),
+      description: description.trim() || null,
+      doc_type: docType,
+      file_url: urlData.publicUrl,
+      sort_order: docs.length,
+    });
+
+    setTitle(""); setDescription(""); setDocType("image");
+    showSuccess("Document ajouté", "Le document est maintenant disponible pour Sarah IA ✅");
+    loadDocs();
+    setUploading(false);
+  };
+
+  const toggleActive = async (id: string, current: boolean) => {
+    await supabase.from("official_documents").update({ is_active: !current }).eq("id", id);
+    loadDocs();
+  };
+
+  const deleteDoc = async (id: string) => {
+    await supabase.from("official_documents").delete().eq("id", id);
+    showSuccess("Supprimé", "Document supprimé ✅");
+    loadDocs();
+  };
+
+  if (loading) return <p className="text-xs text-muted-foreground text-center py-10">Chargement...</p>;
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+        <h3 className="text-sm font-bold text-foreground mb-1">📄 Documents Officiels & Preuves</h3>
+        <p className="text-xs text-muted-foreground">
+          Ajoutez vos certificats, documents légaux et images de preuve. Sarah les utilisera automatiquement pour rassurer les utilisateurs.
+        </p>
+      </div>
+
+      {/* Add form */}
+      <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
+        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titre du document" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
+        <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description (optionnel)" rows={2} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none resize-none" />
+        <select value={docType} onChange={e => setDocType(e.target.value)} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none">
+          <option value="image">Image / Photo</option>
+          <option value="certificate">Certificat</option>
+          <option value="pdf">Document PDF</option>
+        </select>
+        <button onClick={() => { if (!title.trim()) { showError("Erreur", "Saisissez un titre"); return; } fileRef.current?.click(); }} disabled={uploading} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
+          {uploading ? "Upload en cours..." : <><UploadIcon size={16} /> Uploader le fichier</>}
+        </button>
+        <input ref={fileRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleUpload} />
+      </div>
+
+      {/* List */}
+      <div className="space-y-2">
+        {docs.map(doc => (
+          <div key={doc.id} className="bg-card rounded-xl border border-secondary p-3">
+            <div className="flex items-start gap-3">
+              {doc.doc_type === "image" || doc.doc_type === "certificate" ? (
+                <img src={doc.file_url} alt={doc.title} className="w-16 h-16 rounded-lg object-cover flex-shrink-0" />
+              ) : (
+                <div className="w-16 h-16 rounded-lg bg-secondary flex items-center justify-center flex-shrink-0">
+                  <FileText size={24} className="text-muted-foreground" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-foreground truncate">{doc.title}</p>
+                {doc.description && <p className="text-[10px] text-muted-foreground line-clamp-2">{doc.description}</p>}
+                <span className={`inline-block text-[9px] mt-1 px-2 py-0.5 rounded-full ${doc.is_active ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                  {doc.doc_type} • {doc.is_active ? "Actif" : "Inactif"}
+                </span>
+              </div>
+              <div className="flex gap-1 flex-shrink-0">
+                <button onClick={() => toggleActive(doc.id, doc.is_active)} className="p-1.5 rounded-lg hover:bg-secondary">
+                  {doc.is_active ? <EyeOff size={14} className="text-muted-foreground" /> : <Eye size={14} className="text-primary" />}
+                </button>
+                <button onClick={() => deleteDoc(doc.id)} className="p-1.5 rounded-lg hover:bg-secondary">
+                  <Trash2 size={14} className="text-destructive" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+        {docs.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">Aucun document ajouté</p>}
+      </div>
+    </div>
+  );
+};
+
+
 const SecurityTab = ({ logs }: { logs: AdminLog[] }) => (
   <div className="space-y-3">
     <h3 className="text-sm font-bold text-foreground">Historique des actions</h3>

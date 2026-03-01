@@ -233,6 +233,42 @@ export type Database = {
         }
         Relationships: []
       }
+      official_documents: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          doc_type: string
+          file_url: string
+          id: string
+          is_active: boolean | null
+          sort_order: number | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          doc_type?: string
+          file_url: string
+          id?: string
+          is_active?: boolean | null
+          sort_order?: number | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          doc_type?: string
+          file_url?: string
+          id?: string
+          is_active?: boolean | null
+          sort_order?: number | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       payment_api_configs: {
         Row: {
           api_key: string | null
