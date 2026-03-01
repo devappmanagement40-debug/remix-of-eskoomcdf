@@ -233,8 +233,128 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_api_configs: {
+        Row: {
+          api_key: string | null
+          callback_url: string | null
+          country_id: string | null
+          created_at: string | null
+          endpoint_url: string | null
+          id: string
+          is_active: boolean
+          mode: string
+          name: string
+          notes: string | null
+          provider: string
+          secret_key: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          api_key?: string | null
+          callback_url?: string | null
+          country_id?: string | null
+          created_at?: string | null
+          endpoint_url?: string | null
+          id?: string
+          is_active?: boolean
+          mode?: string
+          name: string
+          notes?: string | null
+          provider?: string
+          secret_key?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          api_key?: string | null
+          callback_url?: string | null
+          country_id?: string | null
+          created_at?: string | null
+          endpoint_url?: string | null
+          id?: string
+          is_active?: boolean
+          mode?: string
+          name?: string
+          notes?: string | null
+          provider?: string
+          secret_key?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_api_configs_country_id_fkey"
+            columns: ["country_id"]
+            isOneToOne: false
+            referencedRelation: "countries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_logs: {
+        Row: {
+          amount: number
+          api_config_id: string | null
+          country_code: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          payment_method_id: string | null
+          phone: string
+          provider_ref: string | null
+          provider_response: Json | null
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          api_config_id?: string | null
+          country_code?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          payment_method_id?: string | null
+          phone: string
+          provider_ref?: string | null
+          provider_response?: Json | null
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          api_config_id?: string | null
+          country_code?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          payment_method_id?: string | null
+          phone?: string
+          provider_ref?: string | null
+          provider_response?: Json | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_logs_api_config_id_fkey"
+            columns: ["api_config_id"]
+            isOneToOne: false
+            referencedRelation: "payment_api_configs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_logs_payment_method_id_fkey"
+            columns: ["payment_method_id"]
+            isOneToOne: false
+            referencedRelation: "payment_methods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_methods: {
         Row: {
+          api_config_id: string | null
           country: string
           country_id: string | null
           created_at: string | null
@@ -250,6 +370,7 @@ export type Database = {
           sort_order: number | null
         }
         Insert: {
+          api_config_id?: string | null
           country?: string
           country_id?: string | null
           created_at?: string | null
@@ -265,6 +386,7 @@ export type Database = {
           sort_order?: number | null
         }
         Update: {
+          api_config_id?: string | null
           country?: string
           country_id?: string | null
           created_at?: string | null
@@ -280,6 +402,13 @@ export type Database = {
           sort_order?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "payment_methods_api_config_id_fkey"
+            columns: ["api_config_id"]
+            isOneToOne: false
+            referencedRelation: "payment_api_configs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payment_methods_country_id_fkey"
             columns: ["country_id"]

@@ -12,7 +12,7 @@ type PaymentMethod = {
   id: string; name: string; phone: string | null; holder_name: string | null;
   instructions: string | null; country_id: string | null; country: string;
   payment_type: string; external_url: string | null; logo_url: string | null;
-  is_active: boolean;
+  is_active: boolean; api_config_id: string | null;
 };
 
 const Recharge = () => {
@@ -81,9 +81,22 @@ const Recharge = () => {
       return;
     }
 
+    // If API payment, navigate to API payment flow
+    if (selectedMethod.payment_type === "api" && selectedMethod.api_config_id) {
+      navigate("/recharge/paiement", {
+        state: {
+          amount: parsedAmount,
+          phone,
+          countryCode,
+          method: selectedMethod,
+          isApi: true,
+        },
+      });
+      return;
+    }
+
     // If external link payment, redirect
     if (selectedMethod.payment_type === "external" && selectedMethod.external_url) {
-      // Store pending recharge info, then redirect
       navigate("/recharge/paiement", {
         state: {
           amount: parsedAmount,
@@ -181,7 +194,7 @@ const Recharge = () => {
                   <div className="flex-1 text-left">
                     <p className="text-sm font-semibold text-foreground">{m.name}</p>
                     <p className="text-[10px] text-muted-foreground">
-                      {m.payment_type === "external" ? "Paiement en ligne" : "Paiement manuel"}
+                      {m.payment_type === "api" ? "Paiement automatique ⚡" : m.payment_type === "external" ? "Paiement en ligne" : "Paiement manuel"}
                     </p>
                   </div>
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
