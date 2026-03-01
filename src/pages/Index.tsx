@@ -84,6 +84,7 @@ const Index = () => {
                 alt="ESKOM Energy"
                 className="w-full h-44 object-cover flex-shrink-0 cursor-pointer"
                 onClick={() => navigate(banner.link_path)}
+                {...(index === 0 ? { fetchPriority: "high" as const } : {})}
               />
             ))}
           </div>
