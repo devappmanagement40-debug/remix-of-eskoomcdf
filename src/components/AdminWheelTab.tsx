@@ -27,7 +27,7 @@ type Props = {
 };
 
 const AdminWheelTab = ({ settings, reload, showSuccess, showError, logAction, adminId }: Props) => {
-  const [subTab, setSubTab] = useState<"prizes" | "settings" | "vip_spins" | "images">("prizes");
+  const [subTab, setSubTab] = useState<"prizes" | "winners" | "settings" | "vip_spins" | "images">("prizes");
   const [prizes, setPrizes] = useState<WheelPrize[]>([]);
   const [spins, setSpins] = useState<WheelSpin[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +49,7 @@ const AdminWheelTab = ({ settings, reload, showSuccess, showError, logAction, ad
 
   const subTabs = [
     { key: "prizes", label: "🎯 Gains" },
+    { key: "winners", label: "🏆 Gagnants" },
     { key: "settings", label: "📝 Textes" },
     { key: "vip_spins", label: "👑 VIP" },
     { key: "images", label: "🖼 Images" },
@@ -69,6 +70,7 @@ const AdminWheelTab = ({ settings, reload, showSuccess, showError, logAction, ad
       </div>
 
       {subTab === "prizes" && <PrizesSection prizes={prizes} reload={() => { loadData(); reload(); }} showSuccess={showSuccess} showError={showError} />}
+      {subTab === "winners" && <WinnersSection spins={spins} reload={() => { loadData(); reload(); }} />}
       {subTab === "settings" && <SettingsSection settings={wheelSettings} financeSettings={financeSettings} reload={reload} showSuccess={showSuccess} />}
       {subTab === "vip_spins" && <VipSpinsSection spins={spins} reload={() => { loadData(); reload(); }} showSuccess={showSuccess} showError={showError} logAction={logAction} adminId={adminId} />}
       {subTab === "images" && <ImagesSection settings={wheelSettings} reload={reload} showSuccess={showSuccess} />}
@@ -180,6 +182,91 @@ const PrizesSection = ({ prizes, reload, showSuccess, showError }: any) => {
           </div>
         </div>
       ))}
+    </div>
+  );
+};
+
+// ========== WINNERS LIST ==========
+const WinnersSection = ({ spins, reload }: { spins: WheelSpin[]; reload: () => void }) => {
+  const [profiles, setProfiles] = useState<Record<string, any>>({});
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    const userIds: string[] = [...new Set(spins.map(s => s.user_id))] as string[];
+    if (userIds.length === 0) return;
+    supabase.from("profiles").select("user_id, full_name, phone").in("user_id", userIds)
+      .then(({ data }) => {
+        const map: Record<string, any> = {};
+        (data || []).forEach((p: any) => { map[p.user_id] = p; });
+        setProfiles(map);
+      });
+  }, [spins]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await reload();
+    setRefreshing(false);
+  };
+
+  const completedSpins = spins.filter(s => s.status === "completed" || s.status === "vip_approved");
+
+  const totalCash = completedSpins.filter(s => s.prize_type === "cash").reduce((sum, s) => sum + s.prize_value, 0);
+  const totalVip = completedSpins.filter(s => s.prize_type === "vip").length;
+
+  return (
+    <div className="space-y-3">
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-card rounded-xl border border-secondary p-3 text-center">
+          <p className="text-xl font-bold text-primary">{completedSpins.length}</p>
+          <p className="text-[10px] text-muted-foreground">Total gains</p>
+        </div>
+        <div className="bg-card rounded-xl border border-secondary p-3 text-center">
+          <p className="text-xl font-bold text-success">{totalCash.toLocaleString("fr-FR")}</p>
+          <p className="text-[10px] text-muted-foreground">Cash (FCFA)</p>
+        </div>
+        <div className="bg-card rounded-xl border border-secondary p-3 text-center">
+          <p className="text-xl font-bold text-warning">{totalVip}</p>
+          <p className="text-[10px] text-muted-foreground">VIP gagnés</p>
+        </div>
+      </div>
+
+      {/* Refresh button */}
+      <button onClick={handleRefresh} disabled={refreshing}
+        className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-50">
+        {refreshing ? (
+          <><span className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" /> Actualisation...</>
+        ) : (
+          <>🔄 Actualiser les gagnants</>
+        )}
+      </button>
+
+      {/* Winners list */}
+      {completedSpins.length === 0 ? (
+        <p className="text-center text-sm text-muted-foreground py-10">Aucun gagnant pour le moment</p>
+      ) : (
+        completedSpins.map(s => {
+          const p = profiles[s.user_id];
+          return (
+            <div key={s.id} className="bg-card rounded-xl border border-secondary px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-bold text-foreground">{p?.full_name || "Utilisateur"}</p>
+                  <p className="text-xs text-muted-foreground">{p?.phone || s.user_id.slice(0, 8)}</p>
+                </div>
+                <div className="text-right">
+                  <span className={`text-sm font-bold ${s.prize_type === "vip" ? "text-warning" : "text-primary"}`}>
+                    {s.prize_type === "vip" ? `VIP${s.vip_level}` : `${Number(s.prize_value).toLocaleString("fr-FR")} F`}
+                  </span>
+                  <p className="text-[10px] text-muted-foreground">
+                    {new Date(s.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })
+      )}
     </div>
   );
 };
