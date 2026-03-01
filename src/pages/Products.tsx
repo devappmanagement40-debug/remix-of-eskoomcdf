@@ -313,7 +313,23 @@ const Products = () => {
                           <p className="text-[9px] text-muted-foreground">Prix</p>
                           <p className="text-xs font-bold text-primary">{Number(product.price).toLocaleString("fr-FR")} <span className="text-[9px] font-normal text-muted-foreground">FCFA</span></p>
                         </div>
+                        {product.max_purchases && (
+                          <div className="col-span-2 mt-0.5">
+                            <p className="text-[9px] text-muted-foreground">Limite d'achat</p>
+                            <p className="text-xs font-bold text-warning">{product.max_purchases} achat{product.max_purchases > 1 ? "s" : ""} max</p>
+                          </div>
+                        )}
                       </div>
+                      {isLocked && productSeries && (
+                        <div className="mt-1.5 bg-destructive/10 rounded-lg px-2 py-1.5 space-y-0.5">
+                          {missingConditions.map((c, i) => (
+                            <p key={i} className="text-[9px] text-destructive flex items-start gap-1">
+                              <Lock size={8} className="mt-0.5 flex-shrink-0" />
+                              {c}
+                            </p>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="px-3 pb-3">
