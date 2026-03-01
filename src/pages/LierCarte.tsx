@@ -39,11 +39,16 @@ const LierCarte = () => {
   }, []);
 
   const loadWallets = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/connexion"); return; }
-    const { data } = await supabase.from("user_wallets").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
-    if (data) setWallets(data);
-    setLoading(false);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { navigate("/connexion"); return; }
+      const { data } = await supabase.from("user_wallets").select("*").eq("user_id", user.id).order("created_at", { ascending: false });
+      if (data) setWallets(data);
+    } catch (err) {
+      console.error("Wallets load error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSave = async () => {

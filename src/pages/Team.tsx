@@ -47,104 +47,103 @@ const Team = () => {
   }, []);
 
   const fetchTeam = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const { data: myProfile } = await supabase
-      .from("profiles")
-      .select("id, referral_code")
-      .eq("user_id", user.id)
-      .single();
+      const { data: myProfile } = await supabase
+        .from("profiles")
+        .select("id, referral_code")
+        .eq("user_id", user.id)
+        .single();
 
-    if (!myProfile) return;
-    setReferralCode(myProfile.referral_code || "");
+      if (!myProfile) return;
+      setReferralCode(myProfile.referral_code || "");
 
-    // Fetch level B members
-    const { data: levelB } = await supabase
-      .from("profiles")
-      .select("id, full_name, phone, country_code, balance, created_at, is_suspended, user_id")
-      .eq("referred_by", myProfile.id);
-    const bRaw = levelB || [];
-
-    const bIds = bRaw.map((m) => m.id);
-    let cRaw: any[] = [];
-    if (bIds.length > 0) {
-      const { data: levelC } = await supabase
+      const { data: levelB } = await supabase
         .from("profiles")
         .select("id, full_name, phone, country_code, balance, created_at, is_suspended, user_id")
-        .in("referred_by", bIds);
-      cRaw = levelC || [];
-    }
+        .eq("referred_by", myProfile.id);
+      const bRaw = levelB || [];
 
-    const cIds = cRaw.map((m) => m.id);
-    let dRaw: any[] = [];
-    if (cIds.length > 0) {
-      const { data: levelD } = await supabase
-        .from("profiles")
-        .select("id, full_name, phone, country_code, balance, created_at, is_suspended, user_id")
-        .in("referred_by", cIds);
-      dRaw = levelD || [];
-    }
+      const bIds = bRaw.map((m) => m.id);
+      let cRaw: any[] = [];
+      if (bIds.length > 0) {
+        const { data: levelC } = await supabase
+          .from("profiles")
+          .select("id, full_name, phone, country_code, balance, created_at, is_suspended, user_id")
+          .in("referred_by", bIds);
+        cRaw = levelC || [];
+      }
 
-    // Get all member user_ids to check investments
-    const allMembers = [...bRaw, ...cRaw, ...dRaw];
-    const allUserIds = allMembers.map((m) => m.user_id).filter(Boolean);
+      const cIds = cRaw.map((m) => m.id);
+      let dRaw: any[] = [];
+      if (cIds.length > 0) {
+        const { data: levelD } = await supabase
+          .from("profiles")
+          .select("id, full_name, phone, country_code, balance, created_at, is_suspended, user_id")
+          .in("referred_by", cIds);
+        dRaw = levelD || [];
+      }
 
-    // Check who has invested (has user_products)
-    let investedUserIds = new Set<string>();
-    if (allUserIds.length > 0) {
-      const { data: products } = await supabase
-        .from("user_products")
-        .select("user_id")
-        .in("user_id", allUserIds);
-      investedUserIds = new Set((products || []).map((p: any) => p.user_id));
-    }
+      const allMembers = [...bRaw, ...cRaw, ...dRaw];
+      const allUserIds = allMembers.map((m) => m.user_id).filter(Boolean);
 
-    // Get referral bonuses received by the current user from recharges
-    // Commission rates: B=10%, C=5%, D=1%
-    const enrichMembers = (members: any[], rate: number): TeamMember[] =>
-      members.map((m) => ({
-        ...m,
-        hasInvested: investedUserIds.has(m.user_id),
-        bonusEarned: 0, // Will be calculated below
-      }));
+      let investedUserIds = new Set<string>();
+      if (allUserIds.length > 0) {
+        const { data: products } = await supabase
+          .from("user_products")
+          .select("user_id")
+          .in("user_id", allUserIds);
+        investedUserIds = new Set((products || []).map((p: any) => p.user_id));
+      }
 
-    // Fetch all approved recharges for team members to calculate bonuses
-    let bonusMap = new Map<string, number>();
-    if (allUserIds.length > 0) {
-      const { data: recharges } = await supabase
-        .from("recharges")
-        .select("user_id, amount")
-        .in("user_id", allUserIds)
-        .eq("status", "approved");
-      if (recharges) {
-        const bUserIds = new Set(bRaw.map(m => m.user_id));
-        const cUserIds = new Set(cRaw.map(m => m.user_id));
-        const dUserIds = new Set(dRaw.map(m => m.user_id));
-        for (const r of recharges) {
-          const rate = bUserIds.has(r.user_id) ? 0.10 : cUserIds.has(r.user_id) ? 0.05 : dUserIds.has(r.user_id) ? 0.01 : 0;
-          bonusMap.set(r.user_id, (bonusMap.get(r.user_id) || 0) + r.amount * rate);
+      const enrichMembers = (members: any[], rate: number): TeamMember[] =>
+        members.map((m) => ({
+          ...m,
+          hasInvested: investedUserIds.has(m.user_id),
+          bonusEarned: 0,
+        }));
+
+      let bonusMap = new Map<string, number>();
+      if (allUserIds.length > 0) {
+        const { data: recharges } = await supabase
+          .from("recharges")
+          .select("user_id, amount")
+          .in("user_id", allUserIds)
+          .eq("status", "approved");
+        if (recharges) {
+          const bUserIds = new Set(bRaw.map(m => m.user_id));
+          const cUserIds = new Set(cRaw.map(m => m.user_id));
+          const dUserIds = new Set(dRaw.map(m => m.user_id));
+          for (const r of recharges) {
+            const rate = bUserIds.has(r.user_id) ? 0.10 : cUserIds.has(r.user_id) ? 0.05 : dUserIds.has(r.user_id) ? 0.01 : 0;
+            bonusMap.set(r.user_id, (bonusMap.get(r.user_id) || 0) + r.amount * rate);
+          }
         }
       }
+
+      const buildMembers = (members: any[]): TeamMember[] =>
+        members.map((m) => ({
+          ...m,
+          hasInvested: investedUserIds.has(m.user_id),
+          bonusEarned: bonusMap.get(m.user_id) || 0,
+        }));
+
+      const bMembers = buildMembers(bRaw);
+      const cMembers = buildMembers(cRaw);
+      const dMembers = buildMembers(dRaw);
+
+      setLevels([
+        { label: "B", color: "from-cyan-400 to-teal-400", members: bMembers, revenue: bMembers.reduce((s, m) => s + m.bonusEarned, 0) },
+        { label: "C", color: "from-pink-400 to-rose-400", members: cMembers, revenue: cMembers.reduce((s, m) => s + m.bonusEarned, 0) },
+        { label: "D", color: "from-purple-400 to-violet-400", members: dMembers, revenue: dMembers.reduce((s, m) => s + m.bonusEarned, 0) },
+      ]);
+    } catch (err) {
+      console.error("Team load error:", err);
+    } finally {
+      setLoading(false);
     }
-
-    const buildMembers = (members: any[]): TeamMember[] =>
-      members.map((m) => ({
-        ...m,
-        hasInvested: investedUserIds.has(m.user_id),
-        bonusEarned: bonusMap.get(m.user_id) || 0,
-      }));
-
-    const bMembers = buildMembers(bRaw);
-    const cMembers = buildMembers(cRaw);
-    const dMembers = buildMembers(dRaw);
-
-    setLevels([
-      { label: "B", color: "from-cyan-400 to-teal-400", members: bMembers, revenue: bMembers.reduce((s, m) => s + m.bonusEarned, 0) },
-      { label: "C", color: "from-pink-400 to-rose-400", members: cMembers, revenue: cMembers.reduce((s, m) => s + m.bonusEarned, 0) },
-      { label: "D", color: "from-purple-400 to-violet-400", members: dMembers, revenue: dMembers.reduce((s, m) => s + m.bonusEarned, 0) },
-    ]);
-    setLoading(false);
   };
 
   const totalMembers = levels.reduce((sum, l) => sum + l.members.length, 0);

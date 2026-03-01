@@ -43,17 +43,22 @@ const MesProduits = () => {
   const [detailProduct, setDetailProduct] = useState<UserProduct | null>(null);
 
   const load = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/connexion"); return; }
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { navigate("/connexion"); return; }
 
-    const { data } = await supabase
-      .from("user_products")
-      .select("*, products(name, price, daily_revenue, total_revenue, cycles, description, image_url)")
-      .eq("user_id", user.id)
-      .order("purchased_at", { ascending: false });
+      const { data } = await supabase
+        .from("user_products")
+        .select("*, products(name, price, daily_revenue, total_revenue, cycles, description, image_url)")
+        .eq("user_id", user.id)
+        .order("purchased_at", { ascending: false });
 
-    if (data) setUserProducts(data as UserProduct[]);
-    setLoading(false);
+      if (data) setUserProducts(data as UserProduct[]);
+    } catch (err) {
+      console.error("MesProduits load error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {

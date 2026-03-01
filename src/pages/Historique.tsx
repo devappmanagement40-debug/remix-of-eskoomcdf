@@ -47,91 +47,66 @@ const Historique = () => {
 
   useEffect(() => {
     const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-      const [depositsRes, withdrawalsRes, purchasesRes, exchangesRes] = await Promise.all([
-        supabase.from("recharges").select("id, amount, status, created_at, payment_method").eq("user_id", user.id).order("created_at", { ascending: false }),
-        supabase.from("withdrawals").select("id, amount, net_amount, fee_amount, status, created_at, network").eq("user_id", user.id).order("created_at", { ascending: false }),
-        supabase.from("user_products").select("id, purchased_at, total_collected, products(name, price, daily_revenue)").eq("user_id", user.id).order("purchased_at", { ascending: false }),
-        supabase.from("point_exchanges").select("id, points_spent, money_credited, reward_name, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
-      ]);
+        const [depositsRes, withdrawalsRes, purchasesRes, exchangesRes] = await Promise.all([
+          supabase.from("recharges").select("id, amount, status, created_at, payment_method").eq("user_id", user.id).order("created_at", { ascending: false }),
+          supabase.from("withdrawals").select("id, amount, net_amount, fee_amount, status, created_at, network").eq("user_id", user.id).order("created_at", { ascending: false }),
+          supabase.from("user_products").select("id, purchased_at, total_collected, products(name, price, daily_revenue)").eq("user_id", user.id).order("purchased_at", { ascending: false }),
+          supabase.from("point_exchanges").select("id, points_spent, money_credited, reward_name, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
+        ]);
 
-      const ops: Operation[] = [];
+        const ops: Operation[] = [];
 
-      // Deposits
-      (depositsRes.data || []).forEach((d: any) => {
-        ops.push({
-          id: `dep-${d.id}`,
-          type: "depots",
-          amount: d.amount,
-          date: d.created_at,
-          status: d.status,
-          description: `Dépôt via ${d.payment_method || "Mobile Money"}`,
-          icon: ArrowDownLeft,
-          color: "text-success",
-        });
-      });
-
-      // Withdrawals
-      (withdrawalsRes.data || []).forEach((w: any) => {
-        ops.push({
-          id: `ret-${w.id}`,
-          type: "retraits",
-          amount: w.amount,
-          date: w.created_at,
-          status: w.status,
-          description: `Retrait via ${w.network}`,
-          icon: ArrowUpRight,
-          color: "text-destructive",
-        });
-      });
-
-      // Purchases + gains
-      (purchasesRes.data || []).forEach((p: any) => {
-        const product = p.products;
-        ops.push({
-          id: `ach-${p.id}`,
-          type: "achats",
-          amount: Number(product?.price) || 0,
-          date: p.purchased_at,
-          status: "completed",
-          description: `Achat : ${product?.name || "Produit"}`,
-          icon: ShoppingBag,
-          color: "text-primary",
-        });
-
-        if ((p.total_collected || 0) > 0) {
+        (depositsRes.data || []).forEach((d: any) => {
           ops.push({
-            id: `gain-${p.id}`,
-            type: "gains",
-            amount: p.total_collected,
-            date: p.purchased_at,
-            status: "completed",
-            description: `Gains : ${product?.name || "Produit"}`,
-            icon: TrendingUp,
-            color: "text-success",
+            id: `dep-${d.id}`, type: "depots", amount: d.amount, date: d.created_at,
+            status: d.status, description: `Dépôt via ${d.payment_method || "Mobile Money"}`,
+            icon: ArrowDownLeft, color: "text-success",
           });
-        }
-      });
-
-      // Point exchanges
-      (exchangesRes.data || []).forEach((ex: any) => {
-        ops.push({
-          id: `pts-${ex.id}`,
-          type: "points",
-          amount: ex.money_credited,
-          date: ex.created_at,
-          status: "completed",
-          description: `Conversion : ${ex.reward_name} (${ex.points_spent} pts)`,
-          icon: Gift,
-          color: "text-primary",
         });
-      });
 
-      ops.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      setOperations(ops);
-      setLoading(false);
+        (withdrawalsRes.data || []).forEach((w: any) => {
+          ops.push({
+            id: `ret-${w.id}`, type: "retraits", amount: w.amount, date: w.created_at,
+            status: w.status, description: `Retrait via ${w.network}`,
+            icon: ArrowUpRight, color: "text-destructive",
+          });
+        });
+
+        (purchasesRes.data || []).forEach((p: any) => {
+          const product = p.products;
+          ops.push({
+            id: `ach-${p.id}`, type: "achats", amount: Number(product?.price) || 0, date: p.purchased_at,
+            status: "completed", description: `Achat : ${product?.name || "Produit"}`,
+            icon: ShoppingBag, color: "text-primary",
+          });
+          if ((p.total_collected || 0) > 0) {
+            ops.push({
+              id: `gain-${p.id}`, type: "gains", amount: p.total_collected, date: p.purchased_at,
+              status: "completed", description: `Gains : ${product?.name || "Produit"}`,
+              icon: TrendingUp, color: "text-success",
+            });
+          }
+        });
+
+        (exchangesRes.data || []).forEach((ex: any) => {
+          ops.push({
+            id: `pts-${ex.id}`, type: "points", amount: ex.money_credited, date: ex.created_at,
+            status: "completed", description: `Conversion : ${ex.reward_name} (${ex.points_spent} pts)`,
+            icon: Gift, color: "text-primary",
+          });
+        });
+
+        ops.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setOperations(ops);
+      } catch (err) {
+        console.error("Historique load error:", err);
+      } finally {
+        setLoading(false);
+      }
     };
 
     load();
