@@ -36,15 +36,27 @@ const Index = () => {
   const [annonces, setAnnonces] = useState<any[]>([]);
 
   useEffect(() => {
-    supabase.from("banners").select("image_url, link_path").eq("is_active", true).order("sort_order").then(({ data }) => {
-      if (data && data.length > 0) setBanners(data);
-    });
-    supabase.from("products").select("*").eq("is_active", true).eq("is_featured", true).order("sort_order").then(({ data }) => {
-      if (data) setFeaturedProducts(data);
-    });
-    supabase.from("info_items").select("*").eq("is_active", true).order("sort_order").then(({ data }) => {
-      if (data) setAnnonces(data);
-    });
+    const loadData = async () => {
+      try {
+        const [bannersRes, productsRes, annoncesRes] = await Promise.allSettled([
+          supabase.from("banners").select("image_url, link_path").eq("is_active", true).order("sort_order"),
+          supabase.from("products").select("*").eq("is_active", true).eq("is_featured", true).order("sort_order"),
+          supabase.from("info_items").select("*").eq("is_active", true).order("sort_order"),
+        ]);
+        if (bannersRes.status === "fulfilled" && bannersRes.value.data?.length) {
+          setBanners(bannersRes.value.data);
+        }
+        if (productsRes.status === "fulfilled" && productsRes.value.data) {
+          setFeaturedProducts(productsRes.value.data);
+        }
+        if (annoncesRes.status === "fulfilled" && annoncesRes.value.data) {
+          setAnnonces(annoncesRes.value.data);
+        }
+      } catch (err) {
+        console.error("Index load error:", err);
+      }
+    };
+    loadData();
   }, []);
 
   const nextBanner = useCallback(() => {
