@@ -59,6 +59,7 @@ const ServiceChat = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const manuallyAddedIds = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     init();
@@ -136,8 +137,12 @@ const ServiceChat = () => {
         { event: "INSERT", schema: "public", table: "chat_messages", filter: `user_id=eq.${user.id}` },
         (payload) => {
           const m = payload.new as any;
-          // Only add if it's a support message (admin reply)
+          // Only add support messages not already added manually
           if (m.sender === "support") {
+            if (manuallyAddedIds.current.has(m.id)) {
+              manuallyAddedIds.current.delete(m.id);
+              return;
+            }
             setMessages((prev) => {
               if (prev.find((p) => p.id === m.id)) return prev;
               return [...prev, {
@@ -200,8 +205,9 @@ const ServiceChat = () => {
         const replyText = data?.reply || "Je suis désolée, une erreur est survenue. Veuillez réessayer.";
 
         // Reply is already saved server-side, just update UI
-        // Use savedReplyId from edge function or generate a temp one
         const replyId = data?.savedReplyId || crypto.randomUUID();
+        // Mark as manually added so realtime subscription skips it
+        if (data?.savedReplyId) manuallyAddedIds.current.add(data.savedReplyId);
         setMessages((prev) => [
           ...prev.map((m): Message => m.id === inserted?.id ? { ...m, status: "read" } : m),
           {
@@ -272,6 +278,7 @@ const ServiceChat = () => {
         setIsTyping(false);
         const replyText = data?.reply || "Je suis désolée, une erreur est survenue. Veuillez réessayer.";
         const replyId = data?.savedReplyId || crypto.randomUUID();
+        if (data?.savedReplyId) manuallyAddedIds.current.add(data.savedReplyId);
         setMessages((prev) => [
           ...prev.map((m): Message => m.id === inserted?.id ? { ...m, status: "read" } : m),
           {
