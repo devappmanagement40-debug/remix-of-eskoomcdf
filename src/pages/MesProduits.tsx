@@ -79,11 +79,9 @@ const MesProduits = () => {
   };
 
   const getDaysReceived = (up: UserProduct) => {
-    if (!up.purchased_at) return 0;
-    const start = new Date(up.purchased_at);
-    const diff = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    const cycles = up.products?.cycles || 365;
-    return Math.min(diff, cycles);
+    const dailyRevenue = Number(up.products?.daily_revenue) || 0;
+    if (dailyRevenue <= 0) return 0;
+    return Math.round((up.total_collected || 0) / dailyRevenue);
   };
 
   const canCollect = (up: UserProduct) => {
