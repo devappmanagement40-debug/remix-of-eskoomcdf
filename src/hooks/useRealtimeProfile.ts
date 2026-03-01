@@ -31,21 +31,29 @@ export const useRealtimeProfile = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let cancelled = false;
     const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); return; }
-      setUserId(user.id);
+      try {
+        // Use getSession (cached, instant) instead of getUser (network call)
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user || cancelled) { setLoading(false); return; }
+        setUserId(session.user.id);
 
-      const { data } = await supabase
-        .from("profiles")
-        .select("balance, deposit_balance, earnings_balance, referral_balance, gift_points, vip_level, phone, referral_code, full_name")
-        .eq("user_id", user.id)
-        .single();
+        const { data } = await supabase
+          .from("profiles")
+          .select("balance, deposit_balance, earnings_balance, referral_balance, gift_points, vip_level, phone, referral_code, full_name")
+          .eq("user_id", session.user.id)
+          .single();
 
-      if (data) setProfile(data as ProfileData);
-      setLoading(false);
+        if (data && !cancelled) setProfile(data as ProfileData);
+      } catch (err) {
+        console.error("Profile load error:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
     init();
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
