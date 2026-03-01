@@ -53,6 +53,8 @@ type Country = { id: string; name: string; country_code: string; is_active: bool
 type VipCondition = { id: string; level: number; level_name: string; min_investment: number; min_active_members: number; min_purchases: number; min_products_bought: number; min_team_investment: number; condition_logic: string; image_url: string | null };
 type UserProduct = { id: string; user_id: string; product_id: string; purchased_at: string; is_active: boolean; expires_at: string | null };
 type WithdrawalMethod = { id: string; name: string; country_id: string | null; is_active: boolean; sort_order: number; logo_url: string | null; payment_type: string; api_provider: string | null };
+type ApiConfig = { id: string; name: string; provider: string; api_key: string | null; secret_key: string | null; endpoint_url: string | null; callback_url: string | null; mode: string; is_active: boolean; country_id: string | null; notes: string | null; created_at: string | null };
+type PaymentLog = { id: string; user_id: string; api_config_id: string | null; payment_method_id: string | null; amount: number; phone: string; country_code: string; status: string; provider_ref: string | null; error_message: string | null; created_at: string | null };
 // ==================== TABS CONFIG ====================
 type Banner = { id: string; image_url: string; link_path: string; sort_order: number; is_active: boolean };
 
@@ -68,6 +70,7 @@ const tabs = [
   { key: "countries", icon: Globe, label: "Pays" },
   { key: "payments", icon: CreditCard, label: "Dépôt" },
   { key: "wmethods", icon: Wallet, label: "Retrait M." },
+  { key: "apiconfigs", icon: Power, label: "APIs" },
   { key: "links", icon: Link2, label: "Liens" },
   { key: "popups", icon: Bell, label: "Popups" },
   { key: "vip", icon: TrendingUp, label: "Niveaux" },
@@ -112,6 +115,8 @@ const AdminPanel = () => {
   const [vipConditions, setVipConditions] = useState<VipCondition[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
   const [withdrawalMethods, setWithdrawalMethods] = useState<WithdrawalMethod[]>([]);
+  const [apiConfigs, setApiConfigs] = useState<ApiConfig[]>([]);
+  const [paymentLogs, setPaymentLogs] = useState<PaymentLog[]>([]);
 
   useEffect(() => {
     checkAdmin();
@@ -134,7 +139,7 @@ const AdminPanel = () => {
 
   const loadAll = async () => {
     try {
-      const [p, r, w, s, pr, pm, sl, ss, pop, logs, ctrs, vipc, bn, wm] = await Promise.all([
+      const [p, r, w, s, pr, pm, sl, ss, pop, logs, ctrs, vipc, bn, wm, apic, plogs] = await Promise.all([
         supabase.from("profiles").select("*").order("created_at", { ascending: false }),
         supabase.from("recharges").select("*").order("created_at", { ascending: false }),
         supabase.from("withdrawals").select("*").order("created_at", { ascending: false }),
@@ -149,6 +154,8 @@ const AdminPanel = () => {
         supabase.from("vip_conditions").select("*").order("level"),
         supabase.from("banners").select("*").order("sort_order"),
         supabase.from("withdrawal_methods").select("*").order("sort_order"),
+        supabase.from("payment_api_configs").select("*").order("created_at", { ascending: false }),
+        supabase.from("payment_logs").select("*").order("created_at", { ascending: false }).limit(100),
       ]);
       if (p.data) setProfiles(p.data as Profile[]);
       if (r.data) setRecharges(r.data);
@@ -164,6 +171,8 @@ const AdminPanel = () => {
       if (vipc.data) setVipConditions(vipc.data as VipCondition[]);
       if (bn.data) setBanners(bn.data as Banner[]);
       if (wm.data) setWithdrawalMethods(wm.data as WithdrawalMethod[]);
+      if (apic.data) setApiConfigs(apic.data as ApiConfig[]);
+      if (plogs.data) setPaymentLogs(plogs.data as PaymentLog[]);
     } catch (err) {
       console.error("Load error:", err);
       showError("Erreur", "Impossible de charger les données");
@@ -223,8 +232,9 @@ const AdminPanel = () => {
         {activeTab === "countries" && <CountriesTab countries={countries} methods={paymentMethods} withdrawalMethods={withdrawalMethods} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "wheel" && <AdminWheelTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} logAction={logAction} adminId={adminId} />}
         {activeTab === "rewards" && <RewardsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
-        {activeTab === "payments" && <PaymentsTab methods={paymentMethods} countries={countries} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
+        {activeTab === "payments" && <PaymentsTab methods={paymentMethods} countries={countries} apiConfigs={apiConfigs} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "wmethods" && <WithdrawalMethodsTab methods={withdrawalMethods} countries={countries} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
+        {activeTab === "apiconfigs" && <ApiConfigsTab configs={apiConfigs} countries={countries} paymentLogs={paymentLogs} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "links" && <LinksTab links={socialLinks} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "popups" && <PopupsTab popups={popups} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "vip" && <VipTab conditions={vipConditions} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
@@ -1019,16 +1029,16 @@ const BannersTab = ({ banners, reload, showSuccess, showError }: any) => {
 };
 
 // ==================== PAYMENTS ====================
-const PaymentsTab = ({ methods, countries, reload, showSuccess, showError }: any) => {
+const PaymentsTab = ({ methods, countries, apiConfigs, reload, showSuccess, showError }: any) => {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<PaymentMethod | null>(null);
-  const [form, setForm] = useState({ name: "", country: "Burkina Faso", phone: "", holder_name: "", instructions: "", country_id: "", payment_type: "manual", external_url: "", logo_url: "" });
+  const [form, setForm] = useState({ name: "", country: "Burkina Faso", phone: "", holder_name: "", instructions: "", country_id: "", payment_type: "manual", external_url: "", logo_url: "", api_config_id: "" });
   const [uploading, setUploading] = useState(false);
   const logoRef = useRef<HTMLInputElement>(null);
 
   const openForm = (m?: PaymentMethod) => {
-    if (m) { setEditing(m); setForm({ name: m.name, country: m.country, phone: m.phone || "", holder_name: m.holder_name || "", instructions: m.instructions || "", country_id: m.country_id || "", payment_type: m.payment_type || "manual", external_url: m.external_url || "", logo_url: m.logo_url || "" }); }
-    else { setEditing(null); setForm({ name: "", country: "Burkina Faso", phone: "", holder_name: "", instructions: "", country_id: "", payment_type: "manual", external_url: "", logo_url: "" }); }
+    if (m) { setEditing(m); setForm({ name: m.name, country: m.country, phone: m.phone || "", holder_name: m.holder_name || "", instructions: m.instructions || "", country_id: m.country_id || "", payment_type: m.payment_type || "manual", external_url: m.external_url || "", logo_url: m.logo_url || "", api_config_id: (m as any).api_config_id || "" }); }
+    else { setEditing(null); setForm({ name: "", country: "Burkina Faso", phone: "", holder_name: "", instructions: "", country_id: "", payment_type: "manual", external_url: "", logo_url: "", api_config_id: "" }); }
     setShowForm(true);
   };
 
@@ -1047,12 +1057,14 @@ const PaymentsTab = ({ methods, countries, reload, showSuccess, showError }: any
 
   const save = async () => {
     if (!form.name.trim()) { showError("Erreur", "Nom requis"); return; }
-    const payload = { ...form, country_id: form.country_id || null, external_url: form.external_url || null, logo_url: form.logo_url || null };
+    const payload = { ...form, country_id: form.country_id || null, external_url: form.external_url || null, logo_url: form.logo_url || null, api_config_id: form.api_config_id || null };
     if (editing) await supabase.from("payment_methods").update(payload).eq("id", editing.id);
     else await supabase.from("payment_methods").insert({ ...payload, sort_order: methods.length });
     showSuccess(editing ? "Modifie" : "Cree", "");
     setShowForm(false); reload();
   };
+
+  const countryApiConfigs = (apiConfigs || []).filter((ac: ApiConfig) => !form.country_id || ac.country_id === form.country_id || !ac.country_id);
 
   return (
     <div className="space-y-3">
@@ -1063,22 +1075,18 @@ const PaymentsTab = ({ methods, countries, reload, showSuccess, showError }: any
           <div className="flex justify-between"><h3 className="text-sm font-bold text-foreground">{editing ? "Modifier" : "Nouveau"}</h3><button onClick={() => setShowForm(false)}><X size={16} className="text-muted-foreground" /></button></div>
           <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nom (ex: Orange Money)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
 
-          {/* Payment type */}
           <div>
             <label className="text-xs text-muted-foreground">Type de paiement</label>
             <div className="flex gap-2 mt-1">
-              <button onClick={() => setForm({ ...form, payment_type: "manual" })}
-                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors ${form.payment_type === "manual" ? "gradient-button text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
-                Manuel
-              </button>
-              <button onClick={() => setForm({ ...form, payment_type: "external" })}
-                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors ${form.payment_type === "external" ? "gradient-button text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
-                Lien externe
-              </button>
+              {[{ key: "manual", label: "Manuel" }, { key: "external", label: "Lien ext." }, { key: "api", label: "API auto" }].map(t => (
+                <button key={t.key} onClick={() => setForm({ ...form, payment_type: t.key })}
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors ${form.payment_type === t.key ? "gradient-button text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
+                  {t.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Logo upload */}
           <div>
             <label className="text-xs text-muted-foreground">Logo</label>
             <input ref={logoRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
@@ -1100,14 +1108,32 @@ const PaymentsTab = ({ methods, countries, reload, showSuccess, showError }: any
             {countries.filter((c: Country) => c.is_active).map((c: Country) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
 
-          {form.payment_type === "manual" ? (
+          {form.payment_type === "manual" && (
             <>
               <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="Numero" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
               <input value={form.holder_name} onChange={e => setForm({ ...form, holder_name: e.target.value })} placeholder="Nom du beneficiaire" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
               <textarea value={form.instructions} onChange={e => setForm({ ...form, instructions: e.target.value })} placeholder="Instructions de paiement" rows={3} className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none resize-none" />
             </>
-          ) : (
+          )}
+
+          {form.payment_type === "external" && (
             <input value={form.external_url} onChange={e => setForm({ ...form, external_url: e.target.value })} placeholder="URL de paiement externe (https://...)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+          )}
+
+          {form.payment_type === "api" && (
+            <div>
+              <label className="text-xs text-muted-foreground">Configuration API liée</label>
+              <select value={form.api_config_id} onChange={e => setForm({ ...form, api_config_id: e.target.value })}
+                className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none">
+                <option value="">-- Sélectionner une API --</option>
+                {countryApiConfigs.filter((ac: ApiConfig) => ac.is_active).map((ac: ApiConfig) => (
+                  <option key={ac.id} value={ac.id}>{ac.name} ({ac.provider}) - {ac.mode}</option>
+                ))}
+              </select>
+              {countryApiConfigs.length === 0 && (
+                <p className="text-[10px] text-warning mt-1">⚠️ Aucune API configurée. Allez dans l'onglet "APIs".</p>
+              )}
+            </div>
           )}
 
           <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editing ? "Modifier" : "Creer"}</button>
@@ -1125,7 +1151,9 @@ const PaymentsTab = ({ methods, countries, reload, showSuccess, showError }: any
               )}
               <div>
                 <p className="text-sm font-bold text-foreground">{m.name}</p>
-                <p className="text-xs text-muted-foreground">{m.country} {m.payment_type === "external" ? "• Lien externe" : `• ${m.phone || "—"}`}</p>
+                <p className="text-xs text-muted-foreground">
+                  {m.country} • {m.payment_type === "external" ? "Lien externe" : m.payment_type === "api" ? "API auto ⚡" : `Manuel ${m.phone || "—"}`}
+                </p>
                 {m.holder_name && <p className="text-xs text-muted-foreground">{m.holder_name}</p>}
               </div>
             </div>
@@ -2530,6 +2558,213 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
         </div>
       ))}
       {uploading && <p className="text-xs text-center text-muted-foreground animate-pulse">Upload en cours...</p>}
+    </div>
+  );
+};
+
+// ==================== API CONFIGS ====================
+const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, showError }: any) => {
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<ApiConfig | null>(null);
+  const [form, setForm] = useState({ name: "", provider: "cinetpay", api_key: "", secret_key: "", endpoint_url: "", callback_url: "", mode: "test", country_id: "", notes: "" });
+  const [showLogs, setShowLogs] = useState(false);
+
+  const openForm = (c?: ApiConfig) => {
+    if (c) {
+      setEditing(c);
+      setForm({ name: c.name, provider: c.provider, api_key: c.api_key || "", secret_key: c.secret_key || "", endpoint_url: c.endpoint_url || "", callback_url: c.callback_url || "", mode: c.mode, country_id: c.country_id || "", notes: c.notes || "" });
+    } else {
+      setEditing(null);
+      setForm({ name: "", provider: "cinetpay", api_key: "", secret_key: "", endpoint_url: "", callback_url: "", mode: "test", country_id: "", notes: "" });
+    }
+    setShowForm(true);
+  };
+
+  const save = async () => {
+    if (!form.name.trim()) { showError("Erreur", "Nom requis"); return; }
+    const payload = { ...form, country_id: form.country_id || null, api_key: form.api_key || null, secret_key: form.secret_key || null, endpoint_url: form.endpoint_url || null, callback_url: form.callback_url || null, notes: form.notes || null };
+    if (editing) await supabase.from("payment_api_configs").update(payload).eq("id", editing.id);
+    else await supabase.from("payment_api_configs").insert(payload);
+    showSuccess(editing ? "API modifiée" : "API ajoutée", "");
+    setShowForm(false); reload();
+  };
+
+  const toggleActive = async (c: ApiConfig) => {
+    await supabase.from("payment_api_configs").update({ is_active: !c.is_active }).eq("id", c.id);
+    showSuccess(c.is_active ? "API désactivée" : "API activée ⚡", "");
+    reload();
+  };
+
+  const deleteConfig = async (id: string) => {
+    if (!confirm("Supprimer cette configuration API ?")) return;
+    await supabase.from("payment_api_configs").delete().eq("id", id);
+    showSuccess("Configuration supprimée", "");
+    reload();
+  };
+
+  const getCountryName = (id: string | null) => {
+    if (!id) return "Tous les pays";
+    const c = countries.find((ct: Country) => ct.id === id);
+    return c ? `${c.name} (${c.country_code})` : "—";
+  };
+
+  const providers = [
+    { value: "cinetpay", label: "CinetPay" },
+    { value: "fedapay", label: "FedaPay" },
+    { value: "paydunia", label: "PayDunia" },
+    { value: "flutterwave", label: "Flutterwave" },
+    { value: "custom", label: "Personnalisé" },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
+        <p className="text-xs text-muted-foreground">
+          Configurez vos APIs de paiement ici. Chaque API peut être liée à un pays spécifique et activée/désactivée en un clic. Les clés API sont stockées de manière sécurisée.
+        </p>
+      </div>
+
+      <div className="flex gap-2">
+        <button onClick={() => openForm()} className="flex-1 gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
+          <Plus size={16} /> Ajouter une API
+        </button>
+        <button onClick={() => setShowLogs(!showLogs)} className={`px-4 py-3 rounded-xl text-sm font-bold ${showLogs ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
+          Logs
+        </button>
+      </div>
+
+      {showForm && (
+        <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
+          <div className="flex justify-between">
+            <h3 className="text-sm font-bold text-foreground">{editing ? "Modifier l'API" : "Nouvelle API"}</h3>
+            <button onClick={() => setShowForm(false)}><X size={16} className="text-muted-foreground" /></button>
+          </div>
+
+          <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nom (ex: CinetPay CI)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+
+          <div>
+            <label className="text-xs text-muted-foreground">Fournisseur</label>
+            <select value={form.provider} onChange={e => setForm({ ...form, provider: e.target.value })}
+              className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none">
+              {providers.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs text-muted-foreground">Pays</label>
+            <select value={form.country_id} onChange={e => setForm({ ...form, country_id: e.target.value })}
+              className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none">
+              <option value="">Tous les pays</option>
+              {countries.filter((c: Country) => c.is_active).map((c: Country) => (
+                <option key={c.id} value={c.id}>{c.name} ({c.country_code})</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-xs text-muted-foreground">Mode</label>
+            <div className="flex gap-2 mt-1">
+              <button onClick={() => setForm({ ...form, mode: "test" })}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold ${form.mode === "test" ? "bg-warning/20 text-warning" : "bg-secondary text-muted-foreground"}`}>
+                🧪 Test
+              </button>
+              <button onClick={() => setForm({ ...form, mode: "production" })}
+                className={`flex-1 py-2.5 rounded-xl text-xs font-bold ${form.mode === "production" ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>
+                🚀 Production
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-muted-foreground">API Key</label>
+            <input type="password" value={form.api_key} onChange={e => setForm({ ...form, api_key: e.target.value })} placeholder="Clé API" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+          </div>
+
+          <div>
+            <label className="text-xs text-muted-foreground">Secret Key</label>
+            <input type="password" value={form.secret_key} onChange={e => setForm({ ...form, secret_key: e.target.value })} placeholder="Clé secrète" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+          </div>
+
+          <div>
+            <label className="text-xs text-muted-foreground">URL Endpoint</label>
+            <input value={form.endpoint_url} onChange={e => setForm({ ...form, endpoint_url: e.target.value })} placeholder="https://api.provider.com/v1/..." className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+          </div>
+
+          <div>
+            <label className="text-xs text-muted-foreground">URL Callback (webhook)</label>
+            <input value={form.callback_url} onChange={e => setForm({ ...form, callback_url: e.target.value })} placeholder="https://votre-site.com/api/callback" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+          </div>
+
+          <div>
+            <label className="text-xs text-muted-foreground">Notes</label>
+            <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Notes internes..." rows={2} className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none resize-none" />
+          </div>
+
+          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editing ? "Modifier" : "Créer"}</button>
+        </div>
+      )}
+
+      {/* API Configs list */}
+      {(configs || []).length === 0 && !showForm ? (
+        <p className="text-xs text-muted-foreground text-center py-10">Aucune API configurée</p>
+      ) : (configs || []).map((c: ApiConfig) => (
+        <div key={c.id} className={`bg-card rounded-xl border overflow-hidden ${c.is_active ? "border-success/30" : "border-secondary"}`}>
+          <div className="px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold text-foreground">{c.name}</p>
+                  <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold ${c.mode === "production" ? "bg-success/20 text-success" : "bg-warning/20 text-warning"}`}>
+                    {c.mode === "production" ? "PROD" : "TEST"}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {providers.find(p => p.value === c.provider)?.label || c.provider} • {getCountryName(c.country_id)}
+                </p>
+                {c.api_key && <p className="text-[10px] text-muted-foreground">🔑 Clé: ••••{c.api_key.slice(-4)}</p>}
+              </div>
+              <div className="flex gap-1.5">
+                <button onClick={() => toggleActive(c)}
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${c.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>
+                  {c.is_active ? "ON" : "OFF"}
+                </button>
+                <button onClick={() => openForm(c)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
+                <button onClick={() => deleteConfig(c.id)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
+
+      {/* Payment Logs */}
+      {showLogs && (
+        <div className="bg-card rounded-xl border border-secondary p-4 space-y-2">
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Activity size={14} className="text-primary" /> Logs de paiement API</h3>
+          {(paymentLogs || []).length === 0 ? (
+            <p className="text-xs text-muted-foreground text-center py-6">Aucun log</p>
+          ) : (paymentLogs || []).slice(0, 50).map((log: PaymentLog) => (
+            <div key={log.id} className="bg-secondary/30 rounded-lg px-3 py-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold text-foreground">{log.amount.toLocaleString()} FCFA • {log.phone}</p>
+                  <p className="text-[10px] text-muted-foreground">{log.provider_ref || "—"}</p>
+                </div>
+                <div className="text-right">
+                  <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold ${
+                    log.status === "completed" ? "bg-success/20 text-success" :
+                    log.status === "failed" ? "bg-destructive/20 text-destructive" :
+                    "bg-warning/20 text-warning"
+                  }`}>{log.status}</span>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {log.created_at ? new Date(log.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}
+                  </p>
+                </div>
+              </div>
+              {log.error_message && <p className="text-[10px] text-destructive mt-1">{log.error_message}</p>}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

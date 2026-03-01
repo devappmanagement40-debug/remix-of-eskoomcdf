@@ -4,26 +4,29 @@ import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import PremiumModal from "@/components/PremiumModal";
-import { Copy, ExternalLink, CheckCircle } from "lucide-react";
+import { Copy, ExternalLink, CheckCircle, Zap, Loader2 } from "lucide-react";
 
 type PaymentMethodInfo = {
   id: string; name: string; phone: string | null; holder_name: string | null;
   instructions: string | null; payment_type: string; external_url: string | null;
+  api_config_id?: string | null;
 };
 
 const RechargePaiement = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { showError, showCopy } = useActionPopup();
-  const { amount, phone, countryCode, method, isExternal } = (location.state as {
+  const { showError, showCopy, showSuccess } = useActionPopup();
+  const { amount, phone, countryCode, method, isExternal, isApi } = (location.state as {
     amount: number; phone: string; countryCode: string;
-    method: PaymentMethodInfo; isExternal?: boolean;
+    method: PaymentMethodInfo; isExternal?: boolean; isApi?: boolean;
   }) || {};
 
   const [transactionRef, setTransactionRef] = useState("");
   const [loading, setLoading] = useState(false);
   const [showRechargeSuccess, setShowRechargeSuccess] = useState(false);
   const [redirected, setRedirected] = useState(false);
+  const [apiProcessing, setApiProcessing] = useState(false);
+  const [apiStatus, setApiStatus] = useState<"idle" | "processing" | "success" | "failed">("idle");
 
   useEffect(() => {
     if (!amount || !method) {
@@ -42,6 +45,48 @@ const RechargePaiement = () => {
     if (method.external_url) {
       window.open(method.external_url, "_blank");
       setRedirected(true);
+    }
+  };
+
+  const handleApiPayment = async () => {
+    setApiProcessing(true);
+    setApiStatus("processing");
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        showError("Erreur", "Vous devez etre connecte");
+        navigate("/connexion");
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("process-payment", {
+        body: {
+          amount,
+          phone,
+          country_code: countryCode,
+          payment_method_id: method.id,
+          api_config_id: method.api_config_id,
+        },
+      });
+
+      if (error) {
+        setApiStatus("failed");
+        showError("Erreur", "Le paiement a échoué. Réessayez ou utilisez le paiement manuel.");
+        return;
+      }
+
+      if (data?.success) {
+        setApiStatus("success");
+        setShowRechargeSuccess(true);
+      } else {
+        setApiStatus("failed");
+        showError("Erreur", data?.error || "Le paiement a échoué");
+      }
+    } catch {
+      setApiStatus("failed");
+      showError("Erreur", "Erreur de connexion au serveur");
+    } finally {
+      setApiProcessing(false);
     }
   };
 
@@ -100,10 +145,59 @@ const RechargePaiement = () => {
           <p className="text-xs text-muted-foreground mb-1">Montant a payer</p>
           <p className="text-3xl font-bold text-foreground">{amount.toLocaleString()}<span className="text-sm font-normal text-muted-foreground ml-1">FCFA</span></p>
           <p className="text-xs text-muted-foreground mt-2">via {method.name}</p>
+          {isApi && <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold mt-1 inline-block">⚡ Paiement automatique</span>}
         </div>
 
+        {/* API payment */}
+        {isApi && (
+          <div className="bg-card rounded-2xl border border-border/30 p-4 space-y-3">
+            <p className="text-xs font-bold text-foreground flex items-center gap-2"><Zap size={14} className="text-primary" /> Paiement automatique</p>
+            <p className="text-xs text-muted-foreground">
+              Le paiement sera traité automatiquement. Vous recevrez une notification de confirmation sur votre téléphone.
+            </p>
+
+            {apiStatus === "idle" && (
+              <button
+                onClick={handleApiPayment}
+                disabled={apiProcessing}
+                className="w-full gradient-button text-primary-foreground font-bold py-3.5 rounded-xl text-sm flex items-center justify-center gap-2"
+              >
+                <Zap size={16} />
+                Payer {amount.toLocaleString()} FCFA
+              </button>
+            )}
+
+            {apiStatus === "processing" && (
+              <div className="flex flex-col items-center gap-3 py-4">
+                <Loader2 size={32} className="text-primary animate-spin" />
+                <p className="text-sm font-semibold text-foreground">Traitement en cours...</p>
+                <p className="text-xs text-muted-foreground">Veuillez patienter, ne fermez pas cette page.</p>
+              </div>
+            )}
+
+            {apiStatus === "failed" && (
+              <div className="space-y-3">
+                <div className="bg-destructive/10 text-destructive rounded-xl px-4 py-3">
+                  <p className="text-xs font-semibold">Le paiement automatique a échoué</p>
+                  <p className="text-[10px] mt-1">Vous pouvez réessayer ou utiliser le paiement manuel ci-dessous.</p>
+                </div>
+                <button onClick={handleApiPayment} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">
+                  Réessayer
+                </button>
+              </div>
+            )}
+
+            {apiStatus === "success" && (
+              <div className="flex items-center gap-2 bg-success/10 text-success rounded-xl px-4 py-3">
+                <CheckCircle size={16} />
+                <p className="text-xs font-semibold">Paiement confirmé avec succès !</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Manual payment info */}
-        {method.payment_type !== "external" && (
+        {method.payment_type === "manual" && (
           <div className="bg-card rounded-2xl border border-border/30 p-4 space-y-3">
             <p className="text-xs font-bold text-foreground">Informations de paiement</p>
 
@@ -173,36 +267,40 @@ const RechargePaiement = () => {
           </div>
         )}
 
-        {/* Transaction confirmation */}
-        <div className="bg-card rounded-2xl border border-border/30 p-4 space-y-3">
-          <p className="text-xs font-bold text-foreground">Confirmation de transaction</p>
+        {/* Transaction confirmation - show for manual and external, and as fallback for failed API */}
+        {(method.payment_type !== "api" || apiStatus === "failed") && (
+          <div className="bg-card rounded-2xl border border-border/30 p-4 space-y-3">
+            <p className="text-xs font-bold text-foreground">
+              {apiStatus === "failed" ? "Confirmation manuelle (secours)" : "Confirmation de transaction"}
+            </p>
 
-          <div>
-            <label className="text-[10px] text-muted-foreground mb-1 block">ID de transaction</label>
-            <input
-              type="text"
-              placeholder="Entrez l'ID de la transaction"
-              value={transactionRef}
-              onChange={(e) => setTransactionRef(e.target.value)}
-              className="w-full bg-secondary/50 rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-primary"
-            />
-          </div>
-
-          <div>
-            <label className="text-[10px] text-muted-foreground mb-1 block">Numero utilise</label>
-            <div className="bg-secondary/40 rounded-xl px-4 py-3">
-              <p className="text-sm text-foreground">{countryCode} {phone}</p>
+            <div>
+              <label className="text-[10px] text-muted-foreground mb-1 block">ID de transaction</label>
+              <input
+                type="text"
+                placeholder="Entrez l'ID de la transaction"
+                value={transactionRef}
+                onChange={(e) => setTransactionRef(e.target.value)}
+                className="w-full bg-secondary/50 rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-primary"
+              />
             </div>
-          </div>
 
-          <button
-            onClick={handleValidate}
-            disabled={loading || !transactionRef.trim()}
-            className="w-full bg-success text-success-foreground font-bold py-3.5 rounded-xl text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
-            {loading ? "Envoi en cours..." : "Confirmer le paiement"}
-          </button>
-        </div>
+            <div>
+              <label className="text-[10px] text-muted-foreground mb-1 block">Numero utilise</label>
+              <div className="bg-secondary/40 rounded-xl px-4 py-3">
+                <p className="text-sm text-foreground">{countryCode} {phone}</p>
+              </div>
+            </div>
+
+            <button
+              onClick={handleValidate}
+              disabled={loading || !transactionRef.trim()}
+              className="w-full bg-success text-success-foreground font-bold py-3.5 rounded-xl text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {loading ? "Envoi en cours..." : "Confirmer le paiement"}
+            </button>
+          </div>
+        )}
       </div>
 
       <PremiumModal

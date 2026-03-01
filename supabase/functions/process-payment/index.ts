@@ -1,0 +1,233 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ success: false, error: 'Non autorisé' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    // Auth client for user verification
+    const supabaseAuth = createClient(supabaseUrl, supabaseKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ success: false, error: 'Non autorisé' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+    const userId = claimsData.claims.sub;
+
+    // Service client for DB operations
+    const supabaseAdmin = createClient(supabaseUrl, serviceKey);
+
+    const { amount, phone, country_code, payment_method_id, api_config_id } = await req.json();
+
+    if (!amount || !phone || !payment_method_id) {
+      return new Response(JSON.stringify({ success: false, error: 'Paramètres manquants' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // Get API config
+    const { data: apiConfig, error: configErr } = await supabaseAdmin
+      .from('payment_api_configs')
+      .select('*')
+      .eq('id', api_config_id)
+      .eq('is_active', true)
+      .single();
+
+    if (configErr || !apiConfig) {
+      return new Response(JSON.stringify({ success: false, error: 'Configuration API non trouvée ou désactivée' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // Create payment log entry
+    const { data: logEntry, error: logErr } = await supabaseAdmin
+      .from('payment_logs')
+      .insert({
+        user_id: userId,
+        api_config_id: api_config_id,
+        payment_method_id: payment_method_id,
+        amount,
+        phone,
+        country_code: country_code || '+226',
+        status: 'initiated',
+      })
+      .select()
+      .single();
+
+    if (logErr) {
+      console.error('Log insert error:', logErr);
+      return new Response(JSON.stringify({ success: false, error: 'Erreur interne' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
+    // Process payment based on provider
+    let paymentResult: { success: boolean; provider_ref?: string; error?: string } = { success: false, error: 'Provider non supporté' };
+
+    try {
+      switch (apiConfig.provider) {
+        case 'cinetpay':
+          paymentResult = await processCinetPay(apiConfig, amount, phone, country_code, logEntry.id);
+          break;
+        case 'fedapay':
+          paymentResult = await processFedaPay(apiConfig, amount, phone, country_code, logEntry.id);
+          break;
+        default:
+          // Generic API call
+          if (apiConfig.endpoint_url) {
+            paymentResult = await processGenericApi(apiConfig, amount, phone, country_code, logEntry.id);
+          } else {
+            paymentResult = { success: false, error: `Provider ${apiConfig.provider} non configuré` };
+          }
+      }
+    } catch (err) {
+      console.error('Payment processing error:', err);
+      paymentResult = { success: false, error: 'Erreur lors du traitement du paiement' };
+    }
+
+    // Update log
+    await supabaseAdmin
+      .from('payment_logs')
+      .update({
+        status: paymentResult.success ? 'completed' : 'failed',
+        provider_ref: paymentResult.provider_ref || null,
+        error_message: paymentResult.error || null,
+      })
+      .eq('id', logEntry.id);
+
+    // If successful, create recharge entry
+    if (paymentResult.success) {
+      const { data: pm } = await supabaseAdmin.from('payment_methods').select('name').eq('id', payment_method_id).single();
+      
+      await supabaseAdmin.from('recharges').insert({
+        user_id: userId,
+        phone,
+        country_code: country_code || '+226',
+        amount,
+        transaction_ref: paymentResult.provider_ref || `API-${logEntry.id.slice(0, 8)}`,
+        payment_method: pm?.name || 'API',
+        status: 'approved',
+      });
+
+      // Credit user balance
+      const { data: profile } = await supabaseAdmin.from('profiles').select('balance, deposit_balance').eq('user_id', userId).single();
+      if (profile) {
+        await supabaseAdmin.from('profiles').update({
+          balance: (profile.balance || 0) + amount,
+          deposit_balance: (profile.deposit_balance || 0) + amount,
+        }).eq('user_id', userId);
+      }
+    }
+
+    return new Response(JSON.stringify({
+      success: paymentResult.success,
+      provider_ref: paymentResult.provider_ref,
+      error: paymentResult.error,
+    }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+  } catch (err) {
+    console.error('Process payment error:', err);
+    return new Response(JSON.stringify({ success: false, error: 'Erreur serveur' }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
+});
+
+// CinetPay integration
+async function processCinetPay(config: any, amount: number, phone: string, countryCode: string, transactionId: string) {
+  try {
+    const response = await fetch(config.endpoint_url || 'https://api-checkout.cinetpay.com/v2/payment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        apikey: config.api_key,
+        site_id: config.secret_key,
+        transaction_id: transactionId,
+        amount: Math.round(amount),
+        currency: 'XOF',
+        customer_phone_number: phone,
+        customer_country_code: countryCode,
+        description: `Dépôt ${amount} FCFA`,
+        channels: 'MOBILE_MONEY',
+        notify_url: config.callback_url || '',
+      }),
+    });
+
+    const data = await response.json();
+    if (data.code === '201' && data.data?.payment_url) {
+      return { success: true, provider_ref: data.data.payment_token };
+    }
+    return { success: false, error: data.message || 'Erreur CinetPay' };
+  } catch (err) {
+    return { success: false, error: 'Erreur de connexion à CinetPay' };
+  }
+}
+
+// FedaPay integration
+async function processFedaPay(config: any, amount: number, phone: string, countryCode: string, transactionId: string) {
+  try {
+    const baseUrl = config.mode === 'production' ? 'https://api.fedapay.com' : 'https://sandbox-api.fedapay.com';
+    const response = await fetch(`${baseUrl}/v1/transactions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.secret_key}`,
+      },
+      body: JSON.stringify({
+        description: `Dépôt ${amount} FCFA`,
+        amount: Math.round(amount),
+        currency: { iso: 'XOF' },
+        callback_url: config.callback_url || '',
+        customer: { phone_number: { number: phone, country: countryCode } },
+      }),
+    });
+
+    const data = await response.json();
+    if (data.v1?.transaction?.id) {
+      return { success: true, provider_ref: String(data.v1.transaction.id) };
+    }
+    return { success: false, error: data.message || 'Erreur FedaPay' };
+  } catch (err) {
+    return { success: false, error: 'Erreur de connexion à FedaPay' };
+  }
+}
+
+// Generic API integration
+async function processGenericApi(config: any, amount: number, phone: string, countryCode: string, transactionId: string) {
+  try {
+    const response = await fetch(config.endpoint_url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${config.api_key}`,
+        'X-Secret-Key': config.secret_key || '',
+      },
+      body: JSON.stringify({
+        transaction_id: transactionId,
+        amount: Math.round(amount),
+        currency: 'XOF',
+        phone,
+        country_code: countryCode,
+      }),
+    });
+
+    const data = await response.json();
+    if (response.ok && (data.success || data.status === 'success')) {
+      return { success: true, provider_ref: data.reference || data.id || transactionId };
+    }
+    return { success: false, error: data.message || data.error || 'Erreur API' };
+  } catch (err) {
+    return { success: false, error: 'Erreur de connexion à l\'API' };
+  }
+}
