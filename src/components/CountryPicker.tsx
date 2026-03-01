@@ -20,18 +20,26 @@ const CountryPicker = ({ value, onChange, triggerClassName }: CountryPickerProps
 
   useEffect(() => {
     const load = async () => {
-      const { data } = await supabase
-        .from("countries")
-        .select("country_code, name")
-        .eq("is_active", true)
-        .order("sort_order");
-      if (data) {
-        setCountries(data.map(c => ({
-          code: c.country_code,
-          name: c.name,
-        })));
+      try {
+        const { data, error } = await supabase
+          .from("countries")
+          .select("country_code, name")
+          .eq("is_active", true)
+          .order("sort_order");
+        if (error) {
+          console.error("CountryPicker load error:", error);
+        }
+        if (data && data.length > 0) {
+          setCountries(data.map(c => ({
+            code: c.country_code,
+            name: c.name,
+          })));
+        }
+      } catch (err) {
+        console.error("CountryPicker unexpected error:", err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     load();
   }, []);

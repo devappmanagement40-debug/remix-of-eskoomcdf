@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ActionPopupProvider } from "@/components/ActionPopupProvider";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 // Eager load core pages
 import Index from "./pages/Index";
@@ -57,49 +58,51 @@ const Loading = () => (
 );
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <ActionPopupProvider>
-      <BrowserRouter>
-        <Suspense fallback={<Loading />}>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/connexion" element={<Login />} />
-          <Route path="/inscription" element={<Signup />} />
-          <Route path="/produits" element={<Products />} />
-          <Route path="/equipe" element={<Team />} />
-          <Route path="/portefeuille" element={<Portefeuille />} />
-          <Route path="/historique" element={<Historique />} />
-          <Route path="/aide" element={<Aide />} />
-          <Route path="/a-propos" element={<APropos />} />
-          <Route path="/actualite/:id" element={<NewsDetail />} />
-          <Route path="/historique-retraits" element={<HistoriqueRetraits />} />
-          <Route path="/historique-fonds" element={<HistoriqueFonds />} />
-          <Route path="/points-cadeaux" element={<PointsCadeaux />} />
-          <Route path="/mes-produits" element={<MesProduits />} />
-          <Route path="/recharge" element={<Recharge />} />
-          <Route path="/recharge/paiement" element={<RechargePaiement />} />
-          <Route path="/admin/recharges" element={<AdminRecharges />} />
-          <Route path="/lier-carte" element={<LierCarte />} />
-          <Route path="/retrait" element={<Retrait />} />
-          <Route path="/admin/retraits" element={<AdminRetraits />} />
-          <Route path="/admin/produits" element={<AdminProduits />} />
-          <Route path="/admin/popups" element={<AdminPopups />} />
-          <Route path="/admin" element={<AdminPanel />} />
-          <Route path="/echanger-code" element={<EchangerCode />} />
-          <Route path="/changer-mot-de-passe" element={<ChangerMotDePasse />} />
-          <Route path="/changer-langue" element={<ChangerLangue />} />
-          <Route path="/profil" element={<Profile />} />
-          <Route path="/parametres" element={<Settings />} />
-          <Route path="/loterie" element={<Loterie />} />
-          <Route path="/service-chat" element={<ServiceChat />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        </Suspense>
-      </BrowserRouter>
-      </ActionPopupProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <ActionPopupProvider>
+          <BrowserRouter>
+            <Suspense fallback={<Loading />}>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/connexion" element={<Login />} />
+                <Route path="/inscription" element={<Signup />} />
+                <Route path="/produits" element={<Products />} />
+                <Route path="/equipe" element={<Team />} />
+                <Route path="/portefeuille" element={<Portefeuille />} />
+                <Route path="/historique" element={<Historique />} />
+                <Route path="/aide" element={<Aide />} />
+                <Route path="/a-propos" element={<APropos />} />
+                <Route path="/actualite/:id" element={<NewsDetail />} />
+                <Route path="/historique-retraits" element={<HistoriqueRetraits />} />
+                <Route path="/historique-fonds" element={<HistoriqueFonds />} />
+                <Route path="/points-cadeaux" element={<PointsCadeaux />} />
+                <Route path="/mes-produits" element={<MesProduits />} />
+                <Route path="/recharge" element={<Recharge />} />
+                <Route path="/recharge/paiement" element={<RechargePaiement />} />
+                <Route path="/admin/recharges" element={<AdminRecharges />} />
+                <Route path="/lier-carte" element={<LierCarte />} />
+                <Route path="/retrait" element={<Retrait />} />
+                <Route path="/admin/retraits" element={<AdminRetraits />} />
+                <Route path="/admin/produits" element={<AdminProduits />} />
+                <Route path="/admin/popups" element={<AdminPopups />} />
+                <Route path="/admin" element={<AdminPanel />} />
+                <Route path="/echanger-code" element={<EchangerCode />} />
+                <Route path="/changer-mot-de-passe" element={<ChangerMotDePasse />} />
+                <Route path="/changer-langue" element={<ChangerLangue />} />
+                <Route path="/profil" element={<Profile />} />
+                <Route path="/parametres" element={<Settings />} />
+                <Route path="/loterie" element={<Loterie />} />
+                <Route path="/service-chat" element={<ServiceChat />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </BrowserRouter>
+        </ActionPopupProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
