@@ -4,6 +4,7 @@ import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
+import { safeClipboardWrite } from "@/lib/clipboard";
 import { Badge } from "@/components/ui/badge";
 
 interface TeamMember {
@@ -156,11 +157,13 @@ const Team = () => {
     window.open(`https://wa.me/${code}${num}?text=${WHATSAPP_MESSAGE}`, "_blank");
   };
 
-  const copyCode = () => {
-    navigator.clipboard.writeText(referralCode);
-    setCopied(true);
-    showCopy("Code de parrainage copié !");
-    setTimeout(() => setCopied(false), 2000);
+  const copyCode = async () => {
+    const ok = await safeClipboardWrite(referralCode);
+    if (ok) {
+      setCopied(true);
+      showCopy("Code de parrainage copié !");
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const formatDate = (d: string | null) => {

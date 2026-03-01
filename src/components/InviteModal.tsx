@@ -2,6 +2,7 @@ import { X, Copy, Check } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
+import { safeClipboardWrite } from "@/lib/clipboard";
 
 interface InviteModalProps {
   open: boolean;
@@ -51,11 +52,13 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
 
   const inviteLink = `${window.location.origin}/inscription?code=${referralCode}`;
 
-  const copyLink = () => {
-    navigator.clipboard.writeText(inviteLink);
-    setCopied(true);
-    showCopy("Votre lien d'invitation a été copié dans le presse-papiers");
-    setTimeout(() => setCopied(false), 2000);
+  const copyLink = async () => {
+    const ok = await safeClipboardWrite(inviteLink);
+    if (ok) {
+      setCopied(true);
+      showCopy("Votre lien d'invitation a été copié dans le presse-papiers");
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const defaultRules = [
