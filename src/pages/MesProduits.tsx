@@ -4,7 +4,7 @@ import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
-import { X, Info } from "lucide-react";
+import { Info } from "lucide-react";
 
 type TabKey = "tous" | "detenir" | "expire";
 
@@ -30,7 +30,32 @@ type UserProduct = {
     cycles: number | null;
     description: string | null;
     image_url: string | null;
+    series_id: string;
   } | null;
+};
+
+type Series = {
+  id: string;
+  name: string;
+  color: string | null;
+};
+
+const seriesGradients: Record<string, string> = {
+  primary: "from-primary to-primary/70",
+  success: "from-success to-success/70",
+  warning: "from-warning to-warning/70",
+  destructive: "from-destructive to-destructive/70",
+  purple: "from-purple-500 to-purple-500/70",
+  blue: "from-blue-500 to-blue-500/70",
+};
+
+const seriesTextColors: Record<string, string> = {
+  primary: "text-primary",
+  success: "text-success",
+  warning: "text-warning",
+  destructive: "text-destructive",
+  purple: "text-purple-400",
+  blue: "text-blue-400",
 };
 
 const MesProduits = () => {
@@ -38,6 +63,7 @@ const MesProduits = () => {
   const { showSuccess, showError } = useActionPopup();
   const [activeTab, setActiveTab] = useState<TabKey>("tous");
   const [userProducts, setUserProducts] = useState<UserProduct[]>([]);
+  const [seriesMap, setSeriesMap] = useState<Record<string, Series>>({});
   const [loading, setLoading] = useState(true);
   const [collecting, setCollecting] = useState<string | null>(null);
   const [detailProduct, setDetailProduct] = useState<UserProduct | null>(null);
@@ -47,13 +73,21 @@ const MesProduits = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { navigate("/connexion"); return; }
 
-      const { data } = await supabase
-        .from("user_products")
-        .select("*, products(name, price, daily_revenue, total_revenue, cycles, description, image_url)")
-        .eq("user_id", user.id)
-        .order("purchased_at", { ascending: false });
+      const [productsRes, seriesRes] = await Promise.all([
+        supabase
+          .from("user_products")
+          .select("*, products(name, price, daily_revenue, total_revenue, cycles, description, image_url, series_id)")
+          .eq("user_id", user.id)
+          .order("purchased_at", { ascending: false }),
+        supabase.from("product_series").select("id, name, color"),
+      ]);
 
-      if (data) setUserProducts(data as UserProduct[]);
+      if (productsRes.data) setUserProducts(productsRes.data as UserProduct[]);
+      if (seriesRes.data) {
+        const map: Record<string, Series> = {};
+        seriesRes.data.forEach((s: any) => { map[s.id] = s; });
+        setSeriesMap(map);
+      }
     } catch (err) {
       console.error("MesProduits load error:", err);
     } finally {
@@ -95,7 +129,7 @@ const MesProduits = () => {
   const handleCollect = async (up: UserProduct) => {
     if (!canCollect(up) || collecting) return;
     setCollecting(up.id);
-    
+
     const dailyRevenue = Number(up.products?.daily_revenue) || 0;
     if (dailyRevenue <= 0) { setCollecting(null); return; }
 
@@ -108,7 +142,6 @@ const MesProduits = () => {
 
     if (!profile) { setCollecting(null); return; }
 
-    // Credit earnings
     const { error: updateErr } = await supabase.from("profiles").update({
       balance: (profile.balance || 0) + dailyRevenue,
       earnings_balance: (profile.earnings_balance || 0) + dailyRevenue,
@@ -120,7 +153,6 @@ const MesProduits = () => {
       return;
     }
 
-    // Update last_collected_at and total_collected
     await supabase.from("user_products").update({
       last_collected_at: new Date().toISOString(),
       total_collected: (up.total_collected || 0) + dailyRevenue,
@@ -139,6 +171,12 @@ const MesProduits = () => {
     return true;
   });
 
+  const getColor = (up: UserProduct) => {
+    const seriesId = up.products?.series_id;
+    if (!seriesId) return "success";
+    return seriesMap[seriesId]?.color || "success";
+  };
+
   // Product detail modal
   if (detailProduct) {
     const product = detailProduct.products;
@@ -148,6 +186,7 @@ const MesProduits = () => {
     const dailyRevenue = Number(product?.daily_revenue) || 0;
     const totalRevenue = dailyRevenue * cycles;
     const earnedSoFar = detailProduct.total_collected || 0;
+    const color = getColor(detailProduct);
 
     return (
       <div className="min-h-screen bg-background pb-20">
@@ -165,7 +204,7 @@ const MesProduits = () => {
 
           <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
             <h2 className="text-lg font-bold text-foreground">{product?.name}</h2>
-            
+
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-secondary/50 rounded-lg p-3">
                 <p className="text-[10px] text-muted-foreground">Prix d'achat</p>
@@ -173,11 +212,11 @@ const MesProduits = () => {
               </div>
               <div className="bg-secondary/50 rounded-lg p-3">
                 <p className="text-[10px] text-muted-foreground">Revenu quotidien</p>
-                <p className="text-sm font-bold text-success">{dailyRevenue.toLocaleString("fr-FR")} FCFA</p>
+                <p className={`text-sm font-bold ${seriesTextColors[color] || "text-success"}`}>{dailyRevenue.toLocaleString("fr-FR")} FCFA</p>
               </div>
               <div className="bg-secondary/50 rounded-lg p-3">
                 <p className="text-[10px] text-muted-foreground">Revenu total</p>
-                <p className="text-sm font-bold text-primary">{totalRevenue.toLocaleString("fr-FR")} FCFA</p>
+                <p className={`text-sm font-bold ${seriesTextColors[color] || "text-primary"}`}>{totalRevenue.toLocaleString("fr-FR")} FCFA</p>
               </div>
               <div className="bg-secondary/50 rounded-lg p-3">
                 <p className="text-[10px] text-muted-foreground">Durée (cycles)</p>
@@ -218,7 +257,7 @@ const MesProduits = () => {
     <div className="min-h-screen bg-background pb-20">
       <PageHeader title="Mon produit" showBack />
       <div className="px-4 pt-4">
-        {/* Tabs - green gradient style like reference */}
+        {/* Tabs */}
         <div className="flex gap-2 mb-5">
           {tabs.map((tab) => (
             <button
@@ -256,25 +295,41 @@ const MesProduits = () => {
                 ? new Date(up.purchased_at).toLocaleDateString("fr-FR")
                 : "—";
               const collectible = canCollect(up);
+              const color = getColor(up);
+              const gradient = seriesGradients[color] || seriesGradients.success;
+              const textColor = seriesTextColors[color] || seriesTextColors.success;
 
               return (
-                <div key={up.id} className="bg-card rounded-xl border border-secondary overflow-hidden">
-                  {/* Green gradient header like reference */}
-                  <div
-                    className="flex items-center justify-between px-4 py-2.5 bg-gradient-to-r from-success to-success/70 cursor-pointer"
-                    onClick={() => setDetailProduct(up)}
-                  >
-                    <span className="text-sm font-bold text-success-foreground">{product.name}</span>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-success-foreground/80">Heure de réception</span>
-                      <span className="text-xs font-semibold text-success-foreground">{purchaseDate}</span>
-                    </div>
+                <div key={up.id} className="bg-card rounded-2xl border border-secondary overflow-hidden">
+                  {/* Product image + header overlay */}
+                  <div className="relative cursor-pointer" onClick={() => setDetailProduct(up)}>
+                    {product.image_url ? (
+                      <div className="w-full h-36 relative">
+                        <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                        <div className="absolute bottom-0 left-0 right-0 px-4 py-3 flex items-end justify-between">
+                          <span className="text-base font-bold text-white">{product.name}</span>
+                          <div className="text-right">
+                            <span className="text-[10px] text-white/70 block">Date d'achat</span>
+                            <span className="text-xs font-semibold text-white">{purchaseDate}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className={`flex items-center justify-between px-4 py-3 bg-gradient-to-r ${gradient}`}>
+                        <span className="text-sm font-bold text-white">{product.name}</span>
+                        <div className="text-right">
+                          <span className="text-[10px] text-white/70 block">Date d'achat</span>
+                          <span className="text-xs font-semibold text-white">{purchaseDate}</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="px-4 py-3 space-y-2.5">
                     {/* Revenu Total */}
                     <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-primary">Revenu Total</span>
+                      <span className={`text-sm font-semibold ${textColor}`}>Revenu Total</span>
                       <span className="text-lg font-bold text-foreground">
                         {totalRevenue.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">CFA</span>
                       </span>
@@ -297,25 +352,19 @@ const MesProduits = () => {
                       </div>
                     </div>
 
-                    {/* Collect / status button */}
+                    {/* Collect button */}
                     <button
                       onClick={(e) => { e.stopPropagation(); handleCollect(up); }}
                       disabled={!collectible || collecting === up.id || status !== "actif"}
-                      className={`w-full py-3 rounded-xl text-sm font-semibold mt-2 transition-colors ${
+                      className={`w-full py-3 rounded-xl text-sm font-semibold mt-2 transition-all ${
                         status !== "actif"
                           ? "bg-secondary text-muted-foreground cursor-not-allowed"
                           : collectible
-                            ? "bg-gradient-to-r from-success to-success/80 text-success-foreground active:scale-[0.98] transition-transform"
+                            ? `bg-gradient-to-r ${gradient} text-white active:scale-[0.98]`
                             : "bg-secondary text-muted-foreground cursor-not-allowed"
                       }`}
                     >
-                      {collecting === up.id
-                        ? "Collecte..."
-                        : status !== "actif"
-                          ? "Recevoir"
-                          : collectible
-                            ? "Recevoir"
-                            : "Recevoir"}
+                      {collecting === up.id ? "Collecte..." : "Recevoir"}
                     </button>
                   </div>
                 </div>
