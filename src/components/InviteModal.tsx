@@ -20,9 +20,9 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
   useEffect(() => {
     if (!open) return;
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        supabase.from("profiles").select("referral_code").eq("user_id", user.id).single().then(({ data }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        supabase.from("profiles").select("referral_code").eq("user_id", session.user.id).single().then(({ data }) => {
           if (data?.referral_code) setReferralCode(data.referral_code);
         });
       }
@@ -66,9 +66,9 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
 
   const defaultRules = [
     "Partagez votre lien d'invitation avec des amis pour qu'ils rejoignent et obtiennent bonus d'invitation et gagnez une commission",
-    "Gagnez 10% de commission sur vos directs (niveau B)",
-    "Supplémentaire 5% de commission sur les parrainages de second niveau (niveau C)",
-    "Supplémentaire 1% de commission sur les parrainages de troisième niveau (niveau D)",
+    "Gagnez 10% de commission sur vos directs (niveau E)",
+    "Supplémentaire 5% de commission sur les parrainages de second niveau (niveau F)",
+    "Supplémentaire 1% de commission sur les parrainages de troisième niveau (niveau G)",
   ];
 
   const displayRules = rules.length > 0 ? rules.map((r) => r.text) : defaultRules;
