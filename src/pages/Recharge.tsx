@@ -57,9 +57,14 @@ const Recharge = () => {
 
   // Filter methods by selected country
   const selectedCountry = countriesList.find(c => c.country_code === countryCode);
-  const filteredMethods = paymentMethods.filter(m =>
-    !m.country_id || (selectedCountry && m.country_id === selectedCountry.id)
-  );
+  const isApiEnabled = selectedCountry?.api_enabled === true;
+  const filteredMethods = paymentMethods.filter(m => {
+    // Filter by country
+    if (m.country_id && (!selectedCountry || m.country_id !== selectedCountry.id)) return false;
+    // If API disabled for this country, hide API payment methods
+    if (!isApiEnabled && m.payment_type === "api") return false;
+    return true;
+  });
 
   const handleConfirm = () => {
     const parsedAmount = parseFloat(amount);
