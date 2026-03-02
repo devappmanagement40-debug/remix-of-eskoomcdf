@@ -34,9 +34,9 @@ const WHATSAPP_MESSAGE = encodeURIComponent(
 const Team = () => {
   const { showCopy } = useActionPopup();
   const [levels, setLevels] = useState<LevelData[]>([
-    { label: "B", color: "from-cyan-400 to-teal-400", members: [], revenue: 0 },
-    { label: "C", color: "from-pink-400 to-rose-400", members: [], revenue: 0 },
-    { label: "D", color: "from-purple-400 to-violet-400", members: [], revenue: 0 },
+    { label: "E", color: "from-cyan-400 to-teal-400", members: [], revenue: 0 },
+    { label: "F", color: "from-pink-400 to-rose-400", members: [], revenue: 0 },
+    { label: "G", color: "from-purple-400 to-violet-400", members: [], revenue: 0 },
   ]);
   const [referralCode, setReferralCode] = useState("");
   const [copied, setCopied] = useState(false);
@@ -49,7 +49,8 @@ const Team = () => {
 
   const fetchTeam = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) return;
 
       const { data: myProfile } = await supabase
@@ -136,9 +137,9 @@ const Team = () => {
       const dMembers = buildMembers(dRaw);
 
       setLevels([
-        { label: "B", color: "from-cyan-400 to-teal-400", members: bMembers, revenue: bMembers.reduce((s, m) => s + m.bonusEarned, 0) },
-        { label: "C", color: "from-pink-400 to-rose-400", members: cMembers, revenue: cMembers.reduce((s, m) => s + m.bonusEarned, 0) },
-        { label: "D", color: "from-purple-400 to-violet-400", members: dMembers, revenue: dMembers.reduce((s, m) => s + m.bonusEarned, 0) },
+        { label: "E", color: "from-cyan-400 to-teal-400", members: bMembers, revenue: bMembers.reduce((s, m) => s + m.bonusEarned, 0) },
+        { label: "F", color: "from-pink-400 to-rose-400", members: cMembers, revenue: cMembers.reduce((s, m) => s + m.bonusEarned, 0) },
+        { label: "G", color: "from-purple-400 to-violet-400", members: dMembers, revenue: dMembers.reduce((s, m) => s + m.bonusEarned, 0) },
       ]);
     } catch (err) {
       console.error("Team load error:", err);
@@ -184,7 +185,7 @@ const Team = () => {
             {level.label}
           </div>
           <div>
-            <h1 className="text-sm font-bold text-foreground">{level.label} Niveau</h1>
+            <h1 className="text-sm font-bold text-foreground">Niveau {level.label}</h1>
             <p className="text-xs text-muted-foreground">{level.members.length} membre(s)</p>
           </div>
         </div>
@@ -290,7 +291,7 @@ const Team = () => {
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-foreground">{level.label} Niveau</span>
+                  <span className="font-semibold text-foreground">Niveau {level.label}</span>
                   <ChevronRight size={20} className="text-muted-foreground" />
                 </div>
                 <div className="flex justify-between mt-1">

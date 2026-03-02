@@ -429,9 +429,9 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
             <div className="bg-card rounded-xl border border-secondary p-4">
               <h4 className="text-xs font-bold text-muted-foreground mb-3">ÉQUIPE</h4>
               {[
-                { label: "Niveau B (directs)", members: teamMembers.b },
-                { label: "Niveau C", members: teamMembers.c },
-                { label: "Niveau D", members: teamMembers.d },
+                { label: "Niveau E (directs)", members: teamMembers.b },
+                { label: "Niveau F", members: teamMembers.c },
+                { label: "Niveau G", members: teamMembers.d },
               ].map(level => (
                 <div key={level.label} className="mb-3">
                   <p className="text-xs font-semibold text-foreground mb-1">{level.label} ({level.members.length})</p>
@@ -2022,9 +2022,9 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
       { key: "withdrawal_hour_end", label: "Heure de fermeture (ex: 17)" },
     ]},
     referral: { label: "Bonus Parrainage", keys: [
-      { key: "referral_bonus_level_b", label: "Niveau B - Parrain direct (%)" },
-      { key: "referral_bonus_level_c", label: "Niveau C - 2eme niveau (%)" },
-      { key: "referral_bonus_level_d", label: "Niveau D - 3eme niveau (%)" },
+      { key: "referral_bonus_level_b", label: "Niveau E - Parrain direct (%)" },
+      { key: "referral_bonus_level_c", label: "Niveau F - 2eme niveau (%)" },
+      { key: "referral_bonus_level_d", label: "Niveau G - 3eme niveau (%)" },
       { key: "referral_title", label: "Titre modal invitation" },
       { key: "referral_subtitle", label: "Sous-titre gains invitation" },
       { key: "referral_rules", label: "Règles (JSON array de textes)" },
