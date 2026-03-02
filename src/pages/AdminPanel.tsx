@@ -2425,7 +2425,7 @@ const CountriesTab = ({ countries, methods, withdrawalMethods = [], reload, show
     if (!form.name.trim()) { showError("Erreur", "Nom requis"); return; }
     const payload = { name: form.name, country_code: form.country_code, phone_digits: Number(form.phone_digits) || 8, validation_enabled: form.validation_enabled };
     if (editing) await supabase.from("countries").update(payload).eq("id", editing.id);
-    else await supabase.from("countries").insert({ ...payload, sort_order: countries.length });
+    else await supabase.from("countries").insert({ ...payload, sort_order: countries.length, api_enabled: true });
     showSuccess(editing ? "Pays modifié" : "Pays ajouté", "");
     setShowForm(false); reload();
   };
