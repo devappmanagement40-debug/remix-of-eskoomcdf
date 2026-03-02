@@ -85,6 +85,9 @@ serve(async (req) => {
         case 'fedapay':
           paymentResult = await processFedaPay(apiConfig, amount, phone, country_code, logEntry.id);
           break;
+        case 'sendavapay':
+          paymentResult = await processSendavaPay(apiConfig, amount, phone, country_code, logEntry.id);
+          break;
         default:
           // Generic API call
           if (apiConfig.endpoint_url) {
@@ -200,6 +203,66 @@ async function processFedaPay(config: any, amount: number, phone: string, countr
     return { success: false, error: data.message || 'Erreur FedaPay' };
   } catch (err) {
     return { success: false, error: 'Erreur de connexion à FedaPay' };
+  }
+}
+
+// SendavaPay integration (HMAC-SHA256)
+async function processSendavaPay(config: any, amount: number, phone: string, countryCode: string, transactionId: string) {
+  try {
+    const apiKey = config.api_key || Deno.env.get('SENDAVAPAY_API_KEY') || '';
+    const apiSecret = config.secret_key || Deno.env.get('SENDAVAPAY_API_SECRET') || '';
+    const baseUrl = config.endpoint_url || 'https://sendavapay.com';
+
+    const countryMap: Record<string, string> = {
+      '+229': 'BJ', '+226': 'BF', '+228': 'TG',
+      '+237': 'CM', '+225': 'CI', '+243': 'COD', '+242': 'COG',
+    };
+    const sendavaCountry = countryMap[countryCode] || 'BF';
+
+    const defaultOperators: Record<string, string> = {
+      'BJ': 'MTN', 'BF': 'Orange', 'TG': 'TMoney',
+      'CM': 'MTN', 'CI': 'Orange', 'COD': 'Vodacom', 'COG': 'Airtel',
+    };
+    const operator = config.notes || defaultOperators[sendavaCountry] || 'MTN';
+
+    const payload = {
+      amount: Math.round(amount),
+      phoneNumber: phone.startsWith('+') ? phone : `${countryCode}${phone}`,
+      operator,
+      country: sendavaCountry,
+      customerName: 'Client',
+      description: `Dépôt ${amount} FCFA`,
+      callbackUrl: config.callback_url || '',
+    };
+
+    // HMAC-SHA256 signature
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw', encoder.encode(apiSecret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+    );
+    const signatureBuffer = await crypto.subtle.sign('HMAC', key, encoder.encode(JSON.stringify(payload)));
+    const sigHex = Array.from(new Uint8Array(signatureBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+    const response = await fetch(`${baseUrl}/api/sdk/payment`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'x-signature': sigHex,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    console.log('SendavaPay response:', JSON.stringify(data));
+
+    if (data.success && (data.status === 'SUCCESS' || data.status === 'PROCESSING' || data.status === 'PENDING')) {
+      return { success: true, provider_ref: data.reference || data.txid || transactionId };
+    }
+    return { success: false, error: data.message || 'Erreur SendavaPay' };
+  } catch (err) {
+    console.error('SendavaPay error:', err);
+    return { success: false, error: 'Erreur de connexion à SendavaPay' };
   }
 }
 
