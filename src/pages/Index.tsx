@@ -8,6 +8,7 @@ import InviteModal from "@/components/InviteModal";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import bannerHome from "@/assets/banner-home.jpg";
+import { optimizeStorageUrl } from "@/lib/imageUtils";
 
 const circleActions = [
   { icon: ShoppingBag, label: "Mon produit", path: "/mes-produits" },
@@ -80,10 +81,13 @@ const Index = () => {
             {banners.map((banner, index) => (
               <img
                 key={index}
-                src={banner.image_url}
+                src={optimizeStorageUrl(banner.image_url, 800, 400)}
                 alt="ESKOM Energy"
+                width={800}
+                height={400}
                 className="w-full h-44 object-cover flex-shrink-0 cursor-pointer"
                 onClick={() => navigate(banner.link_path)}
+                loading={index === 0 ? undefined : "lazy"}
                 {...(index === 0 ? { fetchPriority: "high" as const } : {})}
               />
             ))}
@@ -151,7 +155,7 @@ const Index = () => {
                 <div className="flex gap-3 p-3">
                   {product.image_url ? (
                     <div className="relative w-28 h-32 rounded-lg overflow-hidden flex-shrink-0">
-                      <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                      <img src={optimizeStorageUrl(product.image_url, 224, 256)} alt={product.name} width={224} height={256} loading="lazy" className="w-full h-full object-cover" />
                       {product.is_new && (
                         <Badge className="absolute top-1.5 left-1.5 bg-success text-success-foreground text-[9px] px-1.5 py-0.5">nouveau</Badge>
                       )}
@@ -213,7 +217,7 @@ const Index = () => {
                 </div>
                 {item.image_url && (
                   <div className="w-24 h-20 rounded-lg overflow-hidden flex-shrink-0">
-                    <img src={item.image_url} alt={item.title} className="w-full h-full object-cover" />
+                    <img src={optimizeStorageUrl(item.image_url, 192, 160)} alt={item.title} width={192} height={160} loading="lazy" className="w-full h-full object-cover" />
                   </div>
                 )}
               </div>

@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { optimizeStorageUrl } from "@/lib/imageUtils";
 
 const FloatingButtons = () => {
   const navigate = useNavigate();
@@ -13,8 +14,8 @@ const FloatingButtons = () => {
   useEffect(() => {
     supabase.from("site_settings").select("key, value").in("key", ["wheel_icon_url", "support_icon_url"]).then(({ data }) => {
       (data || []).forEach((s: any) => {
-        if (s.key === "wheel_icon_url" && s.value) setWheelIconUrl(s.value);
-        if (s.key === "support_icon_url" && s.value) setSupportIconUrl(s.value);
+        if (s.key === "wheel_icon_url" && s.value) setWheelIconUrl(optimizeStorageUrl(s.value, 100, 100));
+        if (s.key === "support_icon_url" && s.value) setSupportIconUrl(optimizeStorageUrl(s.value, 100, 100));
       });
     });
   }, []);
