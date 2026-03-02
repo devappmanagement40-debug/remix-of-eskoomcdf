@@ -75,7 +75,7 @@ serve(async (req) => {
     }
 
     // Process payment based on provider
-    let paymentResult: { success: boolean; provider_ref?: string; error?: string } = { success: false, error: 'Provider non supporté' };
+    let paymentResult: { success: boolean; pending?: boolean; provider_ref?: string; error?: string } = { success: false, error: 'Provider non supporté' };
 
     try {
       switch (apiConfig.provider) {
@@ -102,17 +102,19 @@ serve(async (req) => {
     }
 
     // Update log
+    const logStatus = paymentResult.pending ? 'processing' : (paymentResult.success ? 'completed' : 'failed');
     await supabaseAdmin
       .from('payment_logs')
       .update({
-        status: paymentResult.success ? 'completed' : 'failed',
+        status: logStatus,
         provider_ref: paymentResult.provider_ref || null,
         error_message: paymentResult.error || null,
       })
       .eq('id', logEntry.id);
 
-    // If successful, create recharge entry
-    if (paymentResult.success) {
+    // If pending (SendavaPay PROCESSING), don't credit yet — webhook will handle it
+    // If immediately successful, create recharge entry and credit
+    if (paymentResult.success && !paymentResult.pending) {
       const { data: pm } = await supabaseAdmin.from('payment_methods').select('name').eq('id', payment_method_id).single();
       
       await supabaseAdmin.from('recharges').insert({
@@ -137,6 +139,7 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: paymentResult.success,
+      pending: paymentResult.pending || false,
       provider_ref: paymentResult.provider_ref,
       error: paymentResult.error,
     }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -232,7 +235,7 @@ async function processSendavaPay(config: any, amount: number, phone: string, cou
       country: sendavaCountry,
       customerName: 'Client',
       description: `Dépôt ${amount} FCFA`,
-      callbackUrl: config.callback_url || '',
+      callbackUrl: config.callback_url || `${Deno.env.get('SUPABASE_URL')}/functions/v1/sendavapay-webhook`,
     };
 
     // HMAC-SHA256 signature
@@ -257,7 +260,8 @@ async function processSendavaPay(config: any, amount: number, phone: string, cou
     console.log('SendavaPay response:', JSON.stringify(data));
 
     if (data.success && (data.status === 'SUCCESS' || data.status === 'PROCESSING' || data.status === 'PENDING')) {
-      return { success: true, provider_ref: data.reference || data.txid || transactionId };
+      const isPending = data.status === 'PROCESSING' || data.status === 'PENDING';
+      return { success: true, pending: isPending, provider_ref: data.reference || data.txid || transactionId };
     }
     return { success: false, error: data.message || 'Erreur SendavaPay' };
   } catch (err) {
