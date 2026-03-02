@@ -1,0 +1,1 @@
+ALTER TABLE public.countries ADD COLUMN api_enabled boolean NOT NULL DEFAULT false;

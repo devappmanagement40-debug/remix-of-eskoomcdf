@@ -100,6 +100,7 @@ export type Database = {
       }
       countries: {
         Row: {
+          api_enabled: boolean
           country_code: string
           created_at: string | null
           flag_emoji: string | null
@@ -111,6 +112,7 @@ export type Database = {
           validation_enabled: boolean | null
         }
         Insert: {
+          api_enabled?: boolean
           country_code: string
           created_at?: string | null
           flag_emoji?: string | null
@@ -122,6 +124,7 @@ export type Database = {
           validation_enabled?: boolean | null
         }
         Update: {
+          api_enabled?: boolean
           country_code?: string
           created_at?: string | null
           flag_emoji?: string | null

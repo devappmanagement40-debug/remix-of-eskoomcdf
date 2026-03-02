@@ -49,7 +49,7 @@ type PopupMsg = {
   button_confirm: string; button_cancel: string | null; tabs: any; is_active: boolean;
 };
 type AdminLog = { id: string; admin_id: string; action: string; target_type: string | null; details: string | null; created_at: string | null };
-type Country = { id: string; name: string; country_code: string; is_active: boolean; sort_order: number };
+type Country = { id: string; name: string; country_code: string; is_active: boolean; sort_order: number; api_enabled: boolean };
 type VipCondition = { id: string; level: number; level_name: string; min_investment: number; min_active_members: number; min_purchases: number; min_products_bought: number; min_team_investment: number; condition_logic: string; image_url: string | null };
 type UserProduct = { id: string; user_id: string; product_id: string; purchased_at: string; is_active: boolean; expires_at: string | null };
 type WithdrawalMethod = { id: string; name: string; country_id: string | null; is_active: boolean; sort_order: number; logo_url: string | null; payment_type: string; api_provider: string | null };
@@ -2436,6 +2436,12 @@ const CountriesTab = ({ countries, methods, withdrawalMethods = [], reload, show
     reload();
   };
 
+  const toggleApi = async (c: Country) => {
+    await supabase.from("countries").update({ api_enabled: !(c as any).api_enabled }).eq("id", c.id);
+    showSuccess((c as any).api_enabled ? "API désactivée pour " + c.name : "API activée pour " + c.name + " ✅", "");
+    reload();
+  };
+
   const deleteCountry = async (c: Country) => {
     await supabase.from("countries").delete().eq("id", c.id);
     showSuccess("Pays supprimé", "");
@@ -2493,6 +2499,16 @@ const CountriesTab = ({ countries, methods, withdrawalMethods = [], reload, show
                     className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${c.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{c.is_active ? "ON" : "OFF"}</button>
                   <button onClick={() => openForm(c)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
                   <button onClick={() => deleteCountry(c)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+                </div>
+              </div>
+              {/* API toggle */}
+              <div className="mt-2 pt-2 border-t border-secondary">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] text-muted-foreground">⚡ API de paiement</p>
+                  <button onClick={() => toggleApi(c)}
+                    className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all ${(c as any).api_enabled ? "bg-success/20 text-success" : "bg-destructive/10 text-destructive"}`}>
+                    {(c as any).api_enabled ? "✅ Activée" : "❌ Désactivée"}
+                  </button>
                 </div>
               </div>
               {/* Deposit methods */}
