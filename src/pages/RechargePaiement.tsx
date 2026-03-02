@@ -27,7 +27,7 @@ const RechargePaiement = () => {
   const [showRechargeSuccess, setShowRechargeSuccess] = useState(false);
   const [redirected, setRedirected] = useState(false);
   const [apiProcessing, setApiProcessing] = useState(false);
-  const [apiStatus, setApiStatus] = useState<"idle" | "processing" | "success" | "failed">("idle");
+  const [apiStatus, setApiStatus] = useState<"idle" | "processing" | "success" | "pending" | "failed">("idle");
 
   useEffect(() => {
     if (!amount || !method) {
@@ -77,8 +77,12 @@ const RechargePaiement = () => {
       }
 
       if (data?.success) {
-        setApiStatus("success");
-        setShowRechargeSuccess(true);
+        if (data?.pending) {
+          setApiStatus("pending");
+        } else {
+          setApiStatus("success");
+          setShowRechargeSuccess(true);
+        }
       } else {
         setApiStatus("failed");
         showError("Erreur", data?.error || "Le paiement a échoué");
@@ -173,6 +177,23 @@ const RechargePaiement = () => {
                 <Loader2 size={32} className="text-primary animate-spin" />
                 <p className="text-sm font-semibold text-foreground">Traitement en cours...</p>
                 <p className="text-xs text-muted-foreground">Veuillez patienter, ne fermez pas cette page.</p>
+              </div>
+            )}
+
+            {apiStatus === "pending" && (
+              <div className="space-y-3">
+                <div className="bg-amber-500/10 text-amber-600 rounded-xl px-4 py-3">
+                  <p className="text-xs font-semibold flex items-center gap-2">
+                    <Loader2 size={14} className="animate-spin" />
+                    Paiement en attente de confirmation
+                  </p>
+                  <p className="text-[10px] mt-1">
+                    Une notification USSD a été envoyée sur votre téléphone. Validez le paiement depuis votre téléphone, votre solde sera crédité automatiquement.
+                  </p>
+                </div>
+                <button onClick={() => navigate("/portefeuille")} className="w-full bg-secondary text-foreground font-bold py-3 rounded-xl text-sm">
+                  Retour au portefeuille
+                </button>
               </div>
             )}
 
