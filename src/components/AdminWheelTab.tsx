@@ -204,8 +204,15 @@ const WinnersSection = ({ spins, reload }: { spins: WheelSpin[]; reload: () => v
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await reload();
-    setRefreshing(false);
+    try {
+      await new Promise<void>((resolve) => {
+        reload();
+        // Give time for parent state to propagate
+        setTimeout(resolve, 500);
+      });
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const completedSpins = spins.filter(s => s.status === "completed" || s.status === "vip_approved");
