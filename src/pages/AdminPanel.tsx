@@ -2743,6 +2743,7 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
   };
 
   const providers = [
+    { value: "sendavapay", label: "SendavaPay" },
     { value: "cinetpay", label: "CinetPay" },
     { value: "fedapay", label: "FedaPay" },
     { value: "paydunia", label: "PayDunia" },
