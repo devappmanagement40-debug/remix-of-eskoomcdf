@@ -58,6 +58,9 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
       setCopied(true);
       showCopy("Votre lien d'invitation a été copié dans le presse-papiers");
       setTimeout(() => setCopied(false), 2000);
+    } else {
+      // Ultime fallback: prompt pour copie manuelle
+      window.prompt("Copiez ce lien manuellement :", inviteLink);
     }
   };
 

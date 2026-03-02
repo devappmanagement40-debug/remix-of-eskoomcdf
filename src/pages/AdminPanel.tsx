@@ -787,14 +787,21 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { showError("Fichier trop volumineux", "Maximum 5 Mo autorisé"); return; }
     setUploading(true);
-    const ext = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const { error } = await supabase.storage.from('product-images').upload(fileName, file);
-    if (error) { showError("Erreur", "Impossible d'uploader"); setUploading(false); return; }
-    const { data } = supabase.storage.from('product-images').getPublicUrl(fileName);
-    setForm({ ...form, image_url: data.publicUrl });
-    setUploading(false);
+    try {
+      const ext = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from('product-images').upload(fileName, file);
+      if (error) { showError("Erreur upload", error.message || "Vérifiez votre connexion et réessayez"); setUploading(false); return; }
+      const { data } = supabase.storage.from('product-images').getPublicUrl(fileName);
+      setForm({ ...form, image_url: data.publicUrl });
+      showSuccess("Image uploadée", "");
+    } catch (err: any) {
+      showError("Erreur réseau", err?.message || "Vérifiez votre connexion internet");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const saveProduct = async () => {
@@ -1824,16 +1831,23 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
   };
 
   const uploadImage = async (itemId: string, file: File) => {
+    if (file.size > 5 * 1024 * 1024) { showError("Fichier trop volumineux", "Maximum 5 Mo autorisé"); return; }
     setUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `annonces/${itemId}.${ext}`;
-    const { error: upErr } = await supabase.storage.from("site-assets").upload(path, file, { upsert: true });
-    if (upErr) { showError("Erreur", "Upload échoué"); setUploading(false); return; }
-    const { data: urlData } = supabase.storage.from("site-assets").getPublicUrl(path);
-    await supabase.from("info_items").update({ image_url: urlData.publicUrl }).eq("id", itemId);
-    showSuccess("Image ajoutée", "");
-    setUploading(false);
-    load();
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `annonces/${itemId}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("site-assets").upload(path, file, { upsert: true });
+      if (upErr) { showError("Erreur upload", upErr.message || "Vérifiez votre connexion"); setUploading(false); return; }
+      const { data: urlData } = supabase.storage.from("site-assets").getPublicUrl(path);
+      const { error: dbErr } = await supabase.from("info_items").update({ image_url: urlData.publicUrl }).eq("id", itemId);
+      if (dbErr) { showError("Erreur sauvegarde", dbErr.message); setUploading(false); return; }
+      showSuccess("Image ajoutée ✅", "");
+      load();
+    } catch (err: any) {
+      showError("Erreur réseau", err?.message || "Vérifiez votre connexion internet");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const removeImage = async (itemId: string) => {
