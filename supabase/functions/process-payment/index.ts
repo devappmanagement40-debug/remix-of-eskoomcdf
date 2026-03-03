@@ -242,15 +242,31 @@ async function processSendavaPay(config: any, amount: number, phone: string, cou
       operator = config.notes || defaultOperators[sendavaCountry] || 'MTN';
     }
 
+    // Clean phone: remove country code prefix if present, keep only local digits
+    let cleanPhone = phone.replace(/\D/g, '');
+    // Remove leading country code if user accidentally included it
+    const codeDigits = countryCode.replace('+', '');
+    if (cleanPhone.startsWith(codeDigits)) {
+      cleanPhone = cleanPhone.slice(codeDigits.length);
+    }
+    // For some countries, remove leading 0 (local format)
+    // SendavaPay expects local number without leading 0 for some operators
+    // But CI uses 10-digit format starting with 0, so keep it
+    // BF uses 8-digit format without 0
+    
+    console.log('SendavaPay DEBUG - original phone:', phone, 'cleanPhone:', cleanPhone, 'country:', sendavaCountry, 'operator:', operator, 'countryCode:', countryCode);
+
     const payload = {
       amount: Math.round(amount),
-      phoneNumber: phone.startsWith('+') ? phone : `${countryCode}${phone}`,
+      phoneNumber: cleanPhone,
       operator,
       country: sendavaCountry,
       customerName: 'Client',
-      description: `Dépôt ${amount} FCFA`,
+      description: `Depot ${amount} FCFA`,
       callbackUrl: config.callback_url || `${Deno.env.get('SUPABASE_URL')}/functions/v1/sendavapay-webhook`,
     };
+
+    console.log('SendavaPay payload:', JSON.stringify(payload));
 
     // HMAC-SHA256 signature
     const encoder = new TextEncoder();
@@ -259,6 +275,8 @@ async function processSendavaPay(config: any, amount: number, phone: string, cou
     );
     const signatureBuffer = await crypto.subtle.sign('HMAC', key, encoder.encode(JSON.stringify(payload)));
     const sigHex = Array.from(new Uint8Array(signatureBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+    console.log('SendavaPay request URL:', `${baseUrl}/api/sdk/payment`);
 
     const response = await fetch(`${baseUrl}/api/sdk/payment`, {
       method: 'POST',
@@ -271,7 +289,7 @@ async function processSendavaPay(config: any, amount: number, phone: string, cou
     });
 
     const data = await response.json();
-    console.log('SendavaPay response:', JSON.stringify(data));
+    console.log('SendavaPay response status:', response.status, 'body:', JSON.stringify(data));
 
     if (data.success && (data.status === 'SUCCESS' || data.status === 'PROCESSING' || data.status === 'PENDING')) {
       const isPending = data.status === 'PROCESSING' || data.status === 'PENDING';
