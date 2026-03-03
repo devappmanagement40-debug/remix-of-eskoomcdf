@@ -242,23 +242,17 @@ async function processSendavaPay(config: any, amount: number, phone: string, cou
       operator = config.notes || defaultOperators[sendavaCountry] || 'MTN';
     }
 
-    // Clean phone: remove country code prefix if present, keep only local digits
-    let cleanPhone = phone.replace(/\D/g, '');
-    // Remove leading country code if user accidentally included it
+    // SendavaPay expects phone WITH country code prefix (e.g. 22670000000)
     const codeDigits = countryCode.replace('+', '');
-    if (cleanPhone.startsWith(codeDigits)) {
-      cleanPhone = cleanPhone.slice(codeDigits.length);
-    }
-    // For some countries, remove leading 0 (local format)
-    // SendavaPay expects local number without leading 0 for some operators
-    // But CI uses 10-digit format starting with 0, so keep it
-    // BF uses 8-digit format without 0
+    let cleanPhone = phone.replace(/\D/g, '');
+    // If phone already starts with country code, use as-is; otherwise prepend it
+    const fullPhone = cleanPhone.startsWith(codeDigits) ? cleanPhone : `${codeDigits}${cleanPhone}`;
     
-    console.log('SendavaPay DEBUG - original phone:', phone, 'cleanPhone:', cleanPhone, 'country:', sendavaCountry, 'operator:', operator, 'countryCode:', countryCode);
+    console.log('SendavaPay DEBUG - original phone:', phone, 'fullPhone:', fullPhone, 'country:', sendavaCountry, 'operator:', operator, 'countryCode:', countryCode);
 
     const payload = {
       amount: Math.round(amount),
-      phoneNumber: cleanPhone,
+      phoneNumber: fullPhone,
       operator,
       country: sendavaCountry,
       customerName: 'Client',
