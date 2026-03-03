@@ -67,6 +67,7 @@ const RechargePaiement = () => {
           country_code: countryCode,
           payment_method_id: method.id,
           api_config_id: method.api_config_id,
+          payment_method_name: method.name,
         },
       });
 
