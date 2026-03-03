@@ -45,20 +45,21 @@ const CountryPicker = ({ value, onChange, triggerClassName }: CountryPickerProps
   }, []);
 
   return (
-    <>
+    <div translate="no" className="notranslate">
       <button
         type="button"
         onClick={() => setOpen(true)}
         className={triggerClassName || "flex items-center gap-1 text-primary font-semibold text-sm whitespace-nowrap"}
       >
-        {value} ▼
+        <span>{value}</span> <span>▼</span>
       </button>
 
       {open && (
         <div className="fixed inset-0 z-[100] flex items-end justify-center">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
           <div
-            className="relative w-full max-w-lg rounded-t-2xl overflow-hidden animate-in slide-in-from-bottom duration-300"
+            translate="no"
+            className="notranslate relative w-full max-w-lg rounded-t-2xl overflow-hidden animate-in slide-in-from-bottom duration-300"
             style={{
               background: "linear-gradient(135deg, hsl(174 72% 45%), hsl(220 25% 12%) 40%)",
             }}
@@ -106,7 +107,7 @@ const CountryPicker = ({ value, onChange, triggerClassName }: CountryPickerProps
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 };
 

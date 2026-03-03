@@ -60,7 +60,11 @@ const Portefeuille = () => {
         {/* Main Balance Card */}
         <div className="bg-card rounded-2xl border border-border/30 p-5">
           <p className="text-xs text-muted-foreground text-center mb-1">Solde total</p>
-          <p className="text-3xl font-bold text-foreground text-center">{fmt(profile.balance)} <span className="text-sm font-normal text-muted-foreground">FCFA</span></p>
+          {loading ? (
+            <div className="h-9 w-40 mx-auto bg-secondary/50 rounded animate-pulse" />
+          ) : (
+            <p className="text-3xl font-bold text-foreground text-center">{fmt(profile.balance)} <span className="text-sm font-normal text-muted-foreground">FCFA</span></p>
+          )}
 
           {/* Split balances */}
           <div className="grid grid-cols-3 gap-2 mt-5">

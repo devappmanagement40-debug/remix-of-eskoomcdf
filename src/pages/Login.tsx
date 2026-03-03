@@ -51,7 +51,7 @@ const Login = () => {
           <EskomLogo size="md" />
         </div>
 
-        <form onSubmit={handleLogin} className="w-full max-w-sm space-y-4">
+        <form onSubmit={handleLogin} className="w-full max-w-sm space-y-4" translate="no">
           <div className="input-glow rounded-lg bg-input">
             <div className="flex items-center">
               <span className="pl-3 pr-1">
