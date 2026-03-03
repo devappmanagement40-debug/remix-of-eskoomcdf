@@ -157,7 +157,7 @@ const Recharge = () => {
         </div>
 
         {/* Phone */}
-        <div className="bg-card rounded-2xl border border-border/30 p-4">
+        <div className="bg-card rounded-2xl border border-border/30 p-4" translate="no">
           <label className="text-xs text-muted-foreground mb-2 block">Numero de telephone</label>
           <div className="flex items-center bg-secondary/50 rounded-xl px-3 py-3 gap-3">
             <CountryPicker value={countryCode} onChange={setCountryCode} />

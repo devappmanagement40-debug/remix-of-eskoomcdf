@@ -119,7 +119,11 @@ const Profile = () => {
         {/* Balance */}
         <div className="bg-card rounded-xl border border-secondary p-5 mb-4">
           <p className="text-xs text-muted-foreground mb-1">Solde disponible</p>
-          <p className="text-2xl font-bold text-primary">{profile.balance.toLocaleString('fr-FR')} FCFA</p>
+          {loading ? (
+            <div className="h-8 w-32 bg-secondary/50 rounded animate-pulse" />
+          ) : (
+            <p className="text-2xl font-bold text-primary">{profile.balance.toLocaleString('fr-FR')} FCFA</p>
+          )}
         </div>
 
         {/* Action buttons */}
