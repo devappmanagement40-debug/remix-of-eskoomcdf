@@ -75,7 +75,7 @@ serve(async (req) => {
     }
 
     // Process payment based on provider
-    let paymentResult: { success: boolean; pending?: boolean; provider_ref?: string; error?: string } = { success: false, error: 'Provider non supporté' };
+    let paymentResult: { success: boolean; pending?: boolean; provider_ref?: string; error?: string; paymentUrl?: string } = { success: false, error: 'Provider non supporté' };
 
     try {
       switch (apiConfig.provider) {
@@ -142,6 +142,7 @@ serve(async (req) => {
       pending: paymentResult.pending || false,
       provider_ref: paymentResult.provider_ref,
       error: paymentResult.error,
+      paymentUrl: paymentResult.paymentUrl || null,
     }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (err) {
@@ -209,87 +210,56 @@ async function processFedaPay(config: any, amount: number, phone: string, countr
   }
 }
 
-// SendavaPay integration (HMAC-SHA256)
+// SendavaPay integration (Official v1 API)
 async function processSendavaPay(config: any, amount: number, phone: string, countryCode: string, transactionId: string, methodName?: string) {
   try {
     const apiKey = config.api_key || Deno.env.get('SENDAVAPAY_API_KEY') || '';
-    const apiSecret = config.secret_key || Deno.env.get('SENDAVAPAY_API_SECRET') || '';
     const baseUrl = config.endpoint_url || 'https://sendavapay.com';
 
-    const countryMap: Record<string, string> = {
-      '+229': 'BJ', '+226': 'BF', '+228': 'TG',
-      '+237': 'CM', '+225': 'CI', '+243': 'COD', '+242': 'COG',
-    };
-    const sendavaCountry = countryMap[countryCode] || 'BF';
-
-    // Extract operator from payment method name (e.g. "ORANGE.CI" -> "Orange", "MTN.CI" -> "MTN")
-    const operatorMap: Record<string, string> = {
-      'orange': 'Orange', 'mtn': 'MTN', 'moov': 'Moov', 'wave': 'Wave',
-      'tmoney': 'TMoney', 'vodacom': 'Vodacom', 'airtel': 'Airtel',
-    };
-    let operator = '';
-    if (methodName) {
-      const nameLower = methodName.toLowerCase();
-      for (const [key, value] of Object.entries(operatorMap)) {
-        if (nameLower.includes(key)) { operator = value; break; }
-      }
-    }
-    if (!operator) {
-      const defaultOperators: Record<string, string> = {
-        'BJ': 'MTN', 'BF': 'Orange', 'TG': 'TMoney',
-        'CM': 'MTN', 'CI': 'Orange', 'COD': 'Vodacom', 'COG': 'Airtel',
-      };
-      operator = config.notes || defaultOperators[sendavaCountry] || 'MTN';
-    }
-
-    // SendavaPay expects phone WITH country code prefix (e.g. 22670000000)
+    // Format phone with country code for customerPhone
     const codeDigits = countryCode.replace('+', '');
-    let cleanPhone = phone.replace(/\D/g, '');
-    // If phone already starts with country code, use as-is; otherwise prepend it
-    const fullPhone = cleanPhone.startsWith(codeDigits) ? cleanPhone : `${codeDigits}${cleanPhone}`;
-    
-    console.log('SendavaPay DEBUG - original phone:', phone, 'fullPhone:', fullPhone, 'country:', sendavaCountry, 'operator:', operator, 'countryCode:', countryCode);
+    const cleanPhone = phone.replace(/\D/g, '');
+    const fullPhone = cleanPhone.startsWith(codeDigits) ? `+${cleanPhone}` : `${countryCode}${cleanPhone}`;
+
+    const callbackUrl = config.callback_url || `${Deno.env.get('SUPABASE_URL')}/functions/v1/sendavapay-webhook`;
 
     const payload = {
       amount: Math.round(amount),
-      phoneNumber: fullPhone,
-      operator,
-      country: sendavaCountry,
-      customerName: 'Client',
+      currency: 'XOF',
       description: `Depot ${amount} FCFA`,
-      callbackUrl: config.callback_url || `${Deno.env.get('SUPABASE_URL')}/functions/v1/sendavapay-webhook`,
+      customerPhone: fullPhone,
+      customerName: 'Client',
+      externalReference: transactionId,
+      redirectUrl: callbackUrl,
+      metadata: {
+        transactionId,
+        methodName: methodName || '',
+      },
     };
 
-    console.log('SendavaPay payload:', JSON.stringify(payload));
+    console.log('SendavaPay v1 payload:', JSON.stringify(payload));
 
-    // HMAC-SHA256 signature
-    const encoder = new TextEncoder();
-    const key = await crypto.subtle.importKey(
-      'raw', encoder.encode(apiSecret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
-    );
-    const signatureBuffer = await crypto.subtle.sign('HMAC', key, encoder.encode(JSON.stringify(payload)));
-    const sigHex = Array.from(new Uint8Array(signatureBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
-
-    console.log('SendavaPay request URL:', `${baseUrl}/api/sdk/payment`);
-
-    const response = await fetch(`${baseUrl}/api/sdk/payment`, {
+    const response = await fetch(`${baseUrl}/api/v1/create-payment`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'x-signature': sigHex,
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify(payload),
     });
 
     const data = await response.json();
-    console.log('SendavaPay response status:', response.status, 'body:', JSON.stringify(data));
+    console.log('SendavaPay v1 response status:', response.status, 'body:', JSON.stringify(data));
 
-    if (data.success && (data.status === 'SUCCESS' || data.status === 'PROCESSING' || data.status === 'PENDING')) {
-      const isPending = data.status === 'PROCESSING' || data.status === 'PENDING';
-      return { success: true, pending: isPending, provider_ref: data.reference || data.txid || transactionId };
+    if (data.success && data.data?.paymentUrl) {
+      return { 
+        success: true, 
+        pending: true, 
+        provider_ref: data.data.reference || transactionId,
+        paymentUrl: data.data.paymentUrl,
+      };
     }
-    return { success: false, error: data.message || 'Erreur SendavaPay' };
+    return { success: false, error: data.message || data.error || 'Erreur SendavaPay' };
   } catch (err) {
     console.error('SendavaPay error:', err);
     return { success: false, error: 'Erreur de connexion à SendavaPay' };
