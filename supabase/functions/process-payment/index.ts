@@ -36,7 +36,7 @@ serve(async (req) => {
     // Service client for DB operations
     const supabaseAdmin = createClient(supabaseUrl, serviceKey);
 
-    const { amount, phone, country_code, payment_method_id, api_config_id } = await req.json();
+    const { amount, phone, country_code, payment_method_id, api_config_id, payment_method_name } = await req.json();
 
     if (!amount || !phone || !payment_method_id) {
       return new Response(JSON.stringify({ success: false, error: 'Paramètres manquants' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -86,7 +86,7 @@ serve(async (req) => {
           paymentResult = await processFedaPay(apiConfig, amount, phone, country_code, logEntry.id);
           break;
         case 'sendavapay':
-          paymentResult = await processSendavaPay(apiConfig, amount, phone, country_code, logEntry.id);
+          paymentResult = await processSendavaPay(apiConfig, amount, phone, country_code, logEntry.id, payment_method_name);
           break;
         default:
           // Generic API call
@@ -210,7 +210,7 @@ async function processFedaPay(config: any, amount: number, phone: string, countr
 }
 
 // SendavaPay integration (HMAC-SHA256)
-async function processSendavaPay(config: any, amount: number, phone: string, countryCode: string, transactionId: string) {
+async function processSendavaPay(config: any, amount: number, phone: string, countryCode: string, transactionId: string, methodName?: string) {
   try {
     const apiKey = config.api_key || Deno.env.get('SENDAVAPAY_API_KEY') || '';
     const apiSecret = config.secret_key || Deno.env.get('SENDAVAPAY_API_SECRET') || '';
@@ -222,11 +222,25 @@ async function processSendavaPay(config: any, amount: number, phone: string, cou
     };
     const sendavaCountry = countryMap[countryCode] || 'BF';
 
-    const defaultOperators: Record<string, string> = {
-      'BJ': 'MTN', 'BF': 'Orange', 'TG': 'TMoney',
-      'CM': 'MTN', 'CI': 'Orange', 'COD': 'Vodacom', 'COG': 'Airtel',
+    // Extract operator from payment method name (e.g. "ORANGE.CI" -> "Orange", "MTN.CI" -> "MTN")
+    const operatorMap: Record<string, string> = {
+      'orange': 'Orange', 'mtn': 'MTN', 'moov': 'Moov', 'wave': 'Wave',
+      'tmoney': 'TMoney', 'vodacom': 'Vodacom', 'airtel': 'Airtel',
     };
-    const operator = config.notes || defaultOperators[sendavaCountry] || 'MTN';
+    let operator = '';
+    if (methodName) {
+      const nameLower = methodName.toLowerCase();
+      for (const [key, value] of Object.entries(operatorMap)) {
+        if (nameLower.includes(key)) { operator = value; break; }
+      }
+    }
+    if (!operator) {
+      const defaultOperators: Record<string, string> = {
+        'BJ': 'MTN', 'BF': 'Orange', 'TG': 'TMoney',
+        'CM': 'MTN', 'CI': 'Orange', 'COD': 'Vodacom', 'COG': 'Airtel',
+      };
+      operator = config.notes || defaultOperators[sendavaCountry] || 'MTN';
+    }
 
     const payload = {
       amount: Math.round(amount),
