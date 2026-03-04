@@ -85,7 +85,7 @@ const EchangerCode = () => {
         used_count: (giftCode as any).used_count + 1,
       } as any).eq("id", giftCode.id);
 
-      showSuccess("Code échangé avec succès ✅", `Vous avez reçu ${pointsValue} points cadeaux !`);
+      showSuccess("Code échangé avec succès ✅", `Vous avez reçu ${pointsValue} ESK (Monnaie Eskom) !`);
       setCode("");
     } catch (err) {
       console.error("Exchange code error:", err);
