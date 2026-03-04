@@ -67,6 +67,7 @@ const tabs = [
   { key: "banners", icon: ImageIcon, label: "Bannières" },
   { key: "wheel", icon: Activity, label: "Roue" },
   { key: "rewards", icon: Star, label: "Cadeaux" },
+  { key: "giftcodes", icon: Gift, label: "Codes" },
   { key: "countries", icon: Globe, label: "Pays" },
   { key: "payments", icon: CreditCard, label: "Dépôt" },
   { key: "wmethods", icon: Wallet, label: "Retrait M." },
@@ -233,6 +234,7 @@ const AdminPanel = () => {
         {activeTab === "countries" && <CountriesTab countries={countries} methods={paymentMethods} withdrawalMethods={withdrawalMethods} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "wheel" && <AdminWheelTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} logAction={logAction} adminId={adminId} />}
         {activeTab === "rewards" && <RewardsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
+        {activeTab === "giftcodes" && <GiftCodesTab showSuccess={showSuccess} showError={showError} />}
         {activeTab === "payments" && <PaymentsTab methods={paymentMethods} countries={countries} apiConfigs={apiConfigs} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "wmethods" && <WithdrawalMethodsTab methods={withdrawalMethods} countries={countries} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "apiconfigs" && <ApiConfigsTab configs={apiConfigs} countries={countries} paymentLogs={paymentLogs} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
@@ -1712,6 +1714,117 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
                 <button onClick={() => toggleReward(r)} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${r.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{r.is_active ? "ON" : "OFF"}</button>
                 <button onClick={() => openForm(r)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
                 <button onClick={() => deleteReward(r)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  );
+};
+
+// ==================== GIFT CODES ====================
+const GiftCodesTab = ({ showSuccess, showError }: any) => {
+  const [codes, setCodes] = useState<any[]>([]);
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<any>(null);
+  const [form, setForm] = useState({ code: "", points_value: "", max_uses: "1", expires_at: "" });
+
+  useEffect(() => { loadCodes(); }, []);
+  const loadCodes = async () => {
+    const { data } = await supabase.from("gift_codes").select("*").order("created_at", { ascending: false });
+    if (data) setCodes(data);
+  };
+
+  const openForm = (c?: any) => {
+    if (c) {
+      setEditing(c);
+      setForm({ code: c.code, points_value: String(c.points_value), max_uses: String(c.max_uses), expires_at: c.expires_at ? c.expires_at.slice(0, 16) : "" });
+    } else {
+      setEditing(null);
+      const randomCode = "ESKOM" + Math.random().toString(36).substring(2, 8).toUpperCase();
+      setForm({ code: randomCode, points_value: "", max_uses: "1", expires_at: "" });
+    }
+    setShowForm(true);
+  };
+
+  const saveCode = async () => {
+    if (!form.code || !form.points_value) { showError("Erreur", "Code et valeur en points sont obligatoires"); return; }
+    const payload: any = {
+      code: form.code.toUpperCase().trim(),
+      points_value: Number(form.points_value),
+      max_uses: Number(form.max_uses) || 1,
+      expires_at: form.expires_at ? new Date(form.expires_at).toISOString() : null,
+    };
+    if (editing) {
+      await supabase.from("gift_codes").update(payload).eq("id", editing.id);
+    } else {
+      await supabase.from("gift_codes").insert(payload);
+    }
+    showSuccess(editing ? "Code modifié" : "Code créé", "");
+    setShowForm(false);
+    loadCodes();
+  };
+
+  const toggleCode = async (c: any) => {
+    await supabase.from("gift_codes").update({ is_active: !c.is_active }).eq("id", c.id);
+    loadCodes();
+  };
+
+  const deleteCode = async (c: any) => {
+    await supabase.from("gift_codes").delete().eq("id", c.id);
+    showSuccess("Code supprimé", "");
+    loadCodes();
+  };
+
+  const formatDate = (d: string | null) => {
+    if (!d) return "—";
+    return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card rounded-xl border border-secondary p-4">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Gift size={16} className="text-primary" /> Codes d'échange</h3>
+          <button onClick={() => openForm()} className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center"><Plus size={16} className="text-primary" /></button>
+        </div>
+
+        {showForm && (
+          <div className="bg-secondary/30 rounded-xl p-4 mb-3 space-y-3">
+            <div className="flex justify-between"><span className="text-xs font-bold text-foreground">{editing ? "Modifier le code" : "Nouveau code"}</span><button onClick={() => setShowForm(false)}><X size={14} className="text-muted-foreground" /></button></div>
+            <div>
+              <label className="text-xs text-muted-foreground">Code</label>
+              <input value={form.code} onChange={e => setForm({ ...form, code: e.target.value })} placeholder="Ex: ESKOM2024" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none uppercase" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Points à attribuer</label>
+              <input type="number" value={form.points_value} onChange={e => setForm({ ...form, points_value: e.target.value })} placeholder="Ex: 50" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Nombre d'utilisations max</label>
+              <input type="number" value={form.max_uses} onChange={e => setForm({ ...form, max_uses: e.target.value })} placeholder="1" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">Date d'expiration (optionnel)</label>
+              <input type="datetime-local" value={form.expires_at} onChange={e => setForm({ ...form, expires_at: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+            </div>
+            <button onClick={saveCode} className="w-full gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm">{editing ? "Modifier" : "Créer le code"}</button>
+          </div>
+        )}
+
+        {codes.length === 0 ? <p className="text-xs text-muted-foreground text-center py-4">Aucun code créé</p> :
+          codes.map((c: any) => (
+            <div key={c.id} className={`flex items-center justify-between py-3 border-b border-secondary/50 last:border-0 ${!c.is_active ? "opacity-50" : ""}`}>
+              <div>
+                <p className="text-sm font-bold text-primary font-mono">{c.code}</p>
+                <p className="text-xs text-muted-foreground">{c.points_value} pts • {c.used_count}/{c.max_uses} utilisés</p>
+                {c.expires_at && <p className="text-[10px] text-muted-foreground">Expire: {formatDate(c.expires_at)}</p>}
+              </div>
+              <div className="flex gap-1.5">
+                <button onClick={() => toggleCode(c)} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${c.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{c.is_active ? "ON" : "OFF"}</button>
+                <button onClick={() => openForm(c)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
+                <button onClick={() => deleteCode(c)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
               </div>
             </div>
           ))

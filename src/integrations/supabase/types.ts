@@ -167,6 +167,74 @@ export type Database = {
         }
         Relationships: []
       }
+      gift_code_uses: {
+        Row: {
+          code_id: string
+          created_at: string | null
+          id: string
+          points_awarded: number
+          user_id: string
+        }
+        Insert: {
+          code_id: string
+          created_at?: string | null
+          id?: string
+          points_awarded: number
+          user_id: string
+        }
+        Update: {
+          code_id?: string
+          created_at?: string | null
+          id?: string
+          points_awarded?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_code_uses_code_id_fkey"
+            columns: ["code_id"]
+            isOneToOne: false
+            referencedRelation: "gift_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gift_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_uses: number
+          points_value: number
+          updated_at: string | null
+          used_count: number
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number
+          points_value?: number
+          updated_at?: string | null
+          used_count?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number
+          points_value?: number
+          updated_at?: string | null
+          used_count?: number
+        }
+        Relationships: []
+      }
       gift_rewards: {
         Row: {
           created_at: string | null
