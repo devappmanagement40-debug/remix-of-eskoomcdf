@@ -3,23 +3,96 @@ import { useActionPopup } from "@/components/ActionPopupProvider";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
 
 const EchangerCode = () => {
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
-  const { showError } = useActionPopup();
+  const { showError, showSuccess } = useActionPopup();
 
-  const handleConfirm = () => {
-    if (!code.trim()) {
+  const handleConfirm = async () => {
+    const trimmed = code.trim().toUpperCase();
+    if (!trimmed) {
       showError("Erreur", "Veuillez saisir un code");
       return;
     }
+
     setLoading(true);
-    // TODO: validate code against backend
-    setTimeout(() => {
-      showError("Code invalide", "Ce code est invalide ou a déjà été utilisé");
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { showError("Erreur", "Vous devez être connecté"); return; }
+
+      // Find the code
+      const { data: giftCode } = await supabase
+        .from("gift_codes")
+        .select("*")
+        .eq("code", trimmed)
+        .eq("is_active", true)
+        .single();
+
+      if (!giftCode) {
+        showError("Code invalide", "Ce code est invalide ou a déjà été désactivé");
+        return;
+      }
+
+      // Check expiration
+      if ((giftCode as any).expires_at && new Date((giftCode as any).expires_at) < new Date()) {
+        showError("Code expiré", "Ce code a expiré et ne peut plus être utilisé");
+        return;
+      }
+
+      // Check max uses
+      if ((giftCode as any).used_count >= (giftCode as any).max_uses) {
+        showError("Code épuisé", "Ce code a atteint le nombre maximum d'utilisations");
+        return;
+      }
+
+      // Check if user already used this code
+      const { count } = await supabase
+        .from("gift_code_uses")
+        .select("*", { count: "exact", head: true })
+        .eq("code_id", giftCode.id)
+        .eq("user_id", user.id);
+
+      if ((count || 0) > 0) {
+        showError("Déjà utilisé", "Vous avez déjà utilisé ce code");
+        return;
+      }
+
+      // Credit points to user
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("gift_points")
+        .eq("user_id", user.id)
+        .single();
+
+      const currentPoints = (profile as any)?.gift_points || 0;
+      const pointsValue = (giftCode as any).points_value;
+
+      await supabase.from("profiles").update({
+        gift_points: currentPoints + pointsValue,
+      } as any).eq("user_id", user.id);
+
+      // Record usage
+      await supabase.from("gift_code_uses").insert({
+        code_id: giftCode.id,
+        user_id: user.id,
+        points_awarded: pointsValue,
+      } as any);
+
+      // Increment used_count
+      await supabase.from("gift_codes").update({
+        used_count: (giftCode as any).used_count + 1,
+      } as any).eq("id", giftCode.id);
+
+      showSuccess("Code échangé avec succès ✅", `Vous avez reçu ${pointsValue} points cadeaux !`);
+      setCode("");
+    } catch (err) {
+      console.error("Exchange code error:", err);
+      showError("Erreur", "Une erreur est survenue lors de l'échange");
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -52,8 +125,8 @@ const EchangerCode = () => {
             type="text"
             placeholder="Veuillez saisir le code d'échange"
             value={code}
-            onChange={(e) => setCode(e.target.value)}
-            className="bg-transparent border border-primary/40 text-foreground placeholder:text-muted-foreground h-12 rounded-lg focus-visible:ring-primary/50"
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            className="bg-transparent border border-primary/40 text-foreground placeholder:text-muted-foreground h-12 rounded-lg focus-visible:ring-primary/50 uppercase"
           />
           <button
             onClick={handleConfirm}
