@@ -104,7 +104,56 @@ serve(async (req) => {
     if (userProfile?.data) {
       const p = userProfile.data;
       const vipLevel = getVipLevel(p.balance || 0, settingsMap);
-      userContext += `\nPROFIL DE L'UTILISATEUR ACTUEL :\n- Nom : ${p.full_name || "Non renseigné"}\n- Solde actuel : ${p.balance || 0} FCFA\n- Niveau VIP : ${vipLevel}\n- Code de parrainage : ${p.referral_code || "Non généré"}\n- Inscrit depuis : ${new Date(p.created_at).toLocaleDateString("fr-FR")}\n`;
+      userContext += `\nPROFIL COMPLET DE L'UTILISATEUR ACTUEL :
+- Nom : ${p.full_name || "Non renseigné"}
+- Téléphone : ${p.phone || "Non renseigné"}
+- Indicatif pays : ${p.country_code || "+226"}
+- Solde total (balance) : ${p.balance || 0} FCFA
+- Solde dépôt : ${p.deposit_balance || 0} FCFA
+- Solde gains : ${p.earnings_balance || 0} FCFA
+- Solde parrainage : ${p.referral_balance || 0} FCFA
+- Points cadeaux : ${p.gift_points || 0}
+- Spins (tours de roue) restants : ${p.spins_balance || 0}
+- Niveau VIP : ${p.vip_level || 0} (${vipLevel})
+- Code de parrainage : ${p.referral_code || "Non généré"}
+- Inscrit depuis : ${new Date(p.created_at).toLocaleDateString("fr-FR")}
+`;
+    }
+
+    // User's active products
+    if (userProducts?.data && (userProducts.data as any[]).length > 0) {
+      userContext += `\nPRODUITS ACTIFS DE L'UTILISATEUR :\n`;
+      (userProducts.data as any[]).forEach((up: any) => {
+        const prod = up.products;
+        userContext += `- ${prod?.name || "Produit inconnu"} : acheté le ${new Date(up.purchased_at).toLocaleDateString("fr-FR")}, expire le ${up.expires_at ? new Date(up.expires_at).toLocaleDateString("fr-FR") : "N/A"}, revenus collectés : ${up.total_collected || 0} FCFA sur ${prod?.total_revenue || "N/A"} FCFA total\n`;
+      });
+    }
+
+    // Team members
+    if (teamMembers?.data && (teamMembers.data as any[]).length > 0) {
+      const team = teamMembers.data as any[];
+      const myProfileId = userProfile?.data?.id;
+      const levelE = team.filter((m: any) => m.referred_by === myProfileId);
+      const levelEIds = new Set(levelE.map((m: any) => m.id));
+      const levelF = team.filter((m: any) => levelEIds.has(m.referred_by));
+      const levelFIds = new Set(levelF.map((m: any) => m.id));
+      const levelG = team.filter((m: any) => levelFIds.has(m.referred_by));
+
+      userContext += `\nÉQUIPE DE L'UTILISATEUR (${team.length} membres au total) :\n`;
+      
+      const formatMembers = (members: any[], level: string) => {
+        if (members.length === 0) return "";
+        let txt = `  ${level} (${members.length} membres) :\n`;
+        members.slice(0, 10).forEach((m: any) => {
+          txt += `    - ${m.full_name || "Sans nom"} | Tél: ${m.phone || "?"} | VIP ${m.vip_level || 0} | Solde: ${m.balance || 0} FCFA | Inscrit: ${new Date(m.created_at).toLocaleDateString("fr-FR")}\n`;
+        });
+        if (members.length > 10) txt += `    ... et ${members.length - 10} autres\n`;
+        return txt;
+      };
+
+      userContext += formatMembers(levelE, "Niveau E (filleuls directs)");
+      userContext += formatMembers(levelF, "Niveau F (filleuls de niveau 2)");
+      userContext += formatMembers(levelG, "Niveau G (filleuls de niveau 3)");
     }
 
     if (userRecharges?.data && userRecharges.data.length > 0) {
@@ -119,6 +168,18 @@ serve(async (req) => {
       userWithdrawals.data.forEach((w: any) => {
         userContext += `- ${w.amount} FCFA (net: ${w.net_amount} FCFA, frais: ${w.fee_amount} FCFA) via ${w.network} — statut : ${translateStatus(w.status)} — le ${new Date(w.created_at).toLocaleDateString("fr-FR")}\n`;
       });
+    }
+
+    // News / Updates
+    let newsContext = "";
+    if (infoItems?.data && (infoItems.data as any[]).length > 0) {
+      newsContext = `\n═══════════════════════════════════════
+ACTUALITÉS & MISES À JOUR RÉCENTES
+═══════════════════════════════════════\n`;
+      (infoItems.data as any[]).forEach((item: any) => {
+        newsContext += `- ${item.title} : ${item.description}\n`;
+      });
+      newsContext += `\nUtilise ces informations quand l'utilisateur demande "quoi de neuf", "actualités", "mises à jour", "nouveautés", etc.\n`;
     }
 
     const systemPrompt = `Tu es Sarah, l'assistante virtuelle officielle et exclusive de la plateforme ${siteName}.
