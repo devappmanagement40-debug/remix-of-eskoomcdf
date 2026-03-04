@@ -19,9 +19,24 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
 
     const body = await req.text();
-    const payload = JSON.parse(body);
+    let payload: any;
+    try {
+      payload = JSON.parse(body);
+    } catch {
+      console.error('Invalid JSON body:', body);
+      return new Response(JSON.stringify({ received: true, error: 'Invalid JSON' }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-    // Verify HMAC-SHA256 signature (v1 API uses x-sendavapay-signature header)
+    // Log everything for debugging
+    const headers: Record<string, string> = {};
+    req.headers.forEach((v, k) => { headers[k] = v; });
+    console.log('=== SENDAVAPAY WEBHOOK RECEIVED ===');
+    console.log('Headers:', JSON.stringify(headers));
+    console.log('Body:', JSON.stringify(payload));
+
+    // Optional HMAC-SHA256 signature verification
     const receivedSignature = req.headers.get('x-sendavapay-signature') || req.headers.get('x-signature');
     if (receivedSignature && apiSecret) {
       const encoder = new TextEncoder();
@@ -32,45 +47,47 @@ serve(async (req) => {
       const expectedSig = Array.from(new Uint8Array(signatureBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
 
       if (receivedSignature !== expectedSig) {
-        console.error('Invalid signature');
+        console.error('Invalid signature. Received:', receivedSignature, 'Expected:', expectedSig);
         return new Response(JSON.stringify({ received: true }), {
           status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
+      console.log('Signature verified OK');
+    } else {
+      console.log('No signature verification (no signature header or no secret)');
     }
 
-    console.log('SendavaPay webhook received:', JSON.stringify(payload));
-
-    // v1 API webhook format: { event: "payment.completed", data: { reference, amount, ... }, timestamp }
-    // Also support legacy SDK format: { reference, status, ... }
+    // SendavaPay callback format (flat):
+    // { reference: "PTR_xxx", status: "SUCCESS", amount: "5000", fee: "350", netAmount: "4650", currency: "XOF", provider: "omnipay" }
+    // Also support wrapped format: { event: "payment.completed", data: { reference, ... } }
     const event = req.headers.get('x-sendavapay-event') || payload.event;
     const webhookData = payload.data || payload;
     
     const reference = webhookData.reference || webhookData.externalReference || webhookData.txid || webhookData.transaction_id;
+    const status = webhookData.status;
     
-    // Determine success/failure from event type or status field
+    console.log('Parsed -> reference:', reference, 'status:', status, 'event:', event);
+
+    // Determine success/failure
     let isSuccess = false;
     let isFailed = false;
     
-    if (event === 'payment.completed') {
+    if (event === 'payment.completed' || status === 'SUCCESS' || status === 'completed' || status === 'success') {
       isSuccess = true;
-    } else if (event === 'payment.failed') {
+    } else if (event === 'payment.failed' || status === 'FAILED' || status === 'CANCELLED' || status === 'failed' || status === 'cancelled') {
       isFailed = true;
-    } else {
-      // Legacy SDK format
-      const status = webhookData.status;
-      isSuccess = status === 'SUCCESS' || status === 'completed';
-      isFailed = status === 'FAILED' || status === 'CANCELLED' || status === 'failed';
     }
+
+    console.log('Result -> isSuccess:', isSuccess, 'isFailed:', isFailed);
 
     if (!reference) {
       console.error('Missing reference in webhook payload');
-      return new Response(JSON.stringify({ received: true }), {
+      return new Response(JSON.stringify({ received: true, error: 'No reference' }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Find the payment log by provider_ref OR externalReference
+    // Find the payment log by provider_ref OR id
     const { data: logEntry, error: findErr } = await supabase
       .from('payment_logs')
       .select('*')
@@ -80,14 +97,20 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
+    console.log('Payment log lookup -> found:', !!logEntry, 'error:', findErr?.message || 'none');
+    if (logEntry) {
+      console.log('Log entry:', JSON.stringify({ id: logEntry.id, user_id: logEntry.user_id, amount: logEntry.amount, status: logEntry.status }));
+    }
+
     if (findErr || !logEntry) {
-      console.error('Payment log not found for reference:', reference, findErr);
-      return new Response(JSON.stringify({ received: true }), {
+      console.error('Payment log not found for reference:', reference);
+      return new Response(JSON.stringify({ received: true, error: 'Log not found' }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     if (!isSuccess && !isFailed) {
+      console.log('Status still processing, waiting...');
       return new Response(JSON.stringify({ received: true, message: 'Still processing' }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -103,7 +126,9 @@ serve(async (req) => {
       })
       .eq('id', logEntry.id);
 
-    // If successful, credit user and create recharge entry
+    console.log('Payment log updated to:', isSuccess ? 'completed' : 'failed');
+
+    // If successful, credit user
     if (isSuccess) {
       const { data: pm } = await supabase
         .from('payment_methods')
@@ -128,24 +153,26 @@ serve(async (req) => {
         .single();
 
       if (profile) {
+        const newBalance = (profile.balance || 0) + logEntry.amount;
+        const newDeposit = (profile.deposit_balance || 0) + logEntry.amount;
         await supabase.from('profiles').update({
-          balance: (profile.balance || 0) + logEntry.amount,
-          deposit_balance: (profile.deposit_balance || 0) + logEntry.amount,
+          balance: newBalance,
+          deposit_balance: newDeposit,
         }).eq('user_id', logEntry.user_id);
+        
+        console.log(`✅ User ${logEntry.user_id} credited: +${logEntry.amount} FCFA (balance: ${newBalance}, deposit: ${newDeposit})`);
       }
-
-      console.log(`Payment ${reference} confirmed, credited ${logEntry.amount} to user ${logEntry.user_id}`);
     } else {
-      console.log(`Payment ${reference} failed/cancelled`);
+      console.log(`❌ Payment ${reference} failed/cancelled`);
     }
 
-    return new Response(JSON.stringify({ received: true }), {
+    return new Response(JSON.stringify({ received: true, status: isSuccess ? 'credited' : 'failed' }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (err) {
     console.error('Webhook error:', err);
-    return new Response(JSON.stringify({ received: true }), {
+    return new Response(JSON.stringify({ received: true, error: 'Internal error' }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
