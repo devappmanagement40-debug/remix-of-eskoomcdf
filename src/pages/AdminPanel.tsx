@@ -28,7 +28,7 @@ type Recharge = {
 type Withdrawal = {
   id: string; user_id: string; amount: number; fee_amount: number;
   net_amount: number; phone: string; country_code: string; network: string;
-  status: string; created_at: string | null;
+  status: string; created_at: string | null; wallet_id: string | null;
 };
 type Series = { id: string; name: string; color: string | null; sort_order: number | null; min_vip_level: number | null; min_personal_investment: number | null; min_team_investment: number | null; min_active_members: number | null };
 type Product = {
@@ -660,8 +660,24 @@ const DepositsTab = ({ recharges, profiles, reload, showSuccess, showError, logA
 const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError, logAction }: any) => {
   const [filter, setFilter] = useState("pending");
   const [search, setSearch] = useState("");
+  const [wallets, setWallets] = useState<Record<string, any>>({});
+  const [detailW, setDetailW] = useState<Withdrawal | null>(null);
   const profileMap: Record<string, Profile> = {};
   profiles.forEach((p: Profile) => { profileMap[p.user_id] = p; });
+
+  useEffect(() => {
+    const loadWallets = async () => {
+      const walletIds = withdrawals.map((w: any) => w.wallet_id).filter(Boolean);
+      if (walletIds.length === 0) return;
+      const { data } = await supabase.from("user_wallets").select("*").in("id", walletIds);
+      if (data) {
+        const map: Record<string, any> = {};
+        data.forEach((w: any) => { map[w.id] = w; });
+        setWallets(map);
+      }
+    };
+    loadWallets();
+  }, [withdrawals]);
 
   const counts = {
     pending: withdrawals.filter((w: Withdrawal) => w.status === "pending").length,
@@ -679,7 +695,6 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
     });
 
   const handleAction = async (w: Withdrawal, status: "approved" | "rejected") => {
-    // Trigger handles auto-debit on insert and refund on rejection
     await supabase.from("withdrawals").update({ status }).eq("id", w.id);
     logAction(`withdrawal_${status}`, "withdrawal", w.id, `${w.amount} FCFA`);
     showSuccess(status === "approved" ? "Retrait approuve" : "Retrait refuse — montant restitue", "");
@@ -708,12 +723,82 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
           className="w-full bg-card border border-secondary rounded-xl pl-11 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary" />
       </div>
 
+      {/* Detail modal */}
+      {detailW && (() => {
+        const p = profileMap[detailW.user_id];
+        const wallet = detailW.wallet_id ? wallets[detailW.wallet_id] : null;
+        const feePercent = detailW.amount > 0 ? Math.round((detailW.fee_amount / detailW.amount) * 100) : 0;
+        return (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setDetailW(null)}>
+            <div className="bg-card rounded-2xl border border-secondary w-full max-w-md max-h-[80vh] overflow-y-auto p-5 space-y-4" onClick={e => e.stopPropagation()}>
+              <div className="flex items-center justify-between">
+                <h3 className="text-base font-bold text-foreground">Détails du retrait</h3>
+                <button onClick={() => setDetailW(null)}><X size={18} className="text-muted-foreground" /></button>
+              </div>
+
+              <div className="text-center py-3">
+                <p className="text-2xl font-bold text-foreground">{detailW.amount.toLocaleString("fr-FR")} FCFA</p>
+                <p className="text-sm text-success font-semibold">Net: {detailW.net_amount.toLocaleString("fr-FR")} FCFA <span className="text-muted-foreground text-xs">(-{feePercent}% frais)</span></p>
+                <StatusBadge status={detailW.status} />
+              </div>
+
+              <div className="bg-secondary/30 rounded-xl p-4 space-y-2">
+                <p className="text-xs font-bold text-foreground mb-2">👤 Informations utilisateur</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><p className="text-[10px] text-muted-foreground">Nom</p><p className="text-xs font-semibold text-foreground">{p?.full_name || "—"}</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Téléphone compte</p><p className="text-xs font-semibold text-foreground">{p?.country_code} {p?.phone}</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Solde actuel</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("fr-FR")} FCFA` : "—"}</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Niveau VIP</p><p className="text-xs font-semibold text-foreground">VIP {p?.vip_level || 0}</p></div>
+                </div>
+              </div>
+
+              <div className="bg-secondary/30 rounded-xl p-4 space-y-2">
+                <p className="text-xs font-bold text-foreground mb-2">💳 Portefeuille de retrait</p>
+                {wallet ? (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><p className="text-[10px] text-muted-foreground">Réseau</p><p className="text-xs font-semibold text-primary">{wallet.network}</p></div>
+                    <div><p className="text-[10px] text-muted-foreground">Pays</p><p className="text-xs font-semibold text-foreground">{wallet.country_code}</p></div>
+                    <div><p className="text-[10px] text-muted-foreground">Numéro</p><p className="text-xs font-semibold text-foreground">{wallet.phone}</p></div>
+                    <div><p className="text-[10px] text-muted-foreground">Titulaire</p><p className="text-xs font-semibold text-foreground">{wallet.holder_name || "—"}</p></div>
+                    {wallet.label && <div className="col-span-2"><p className="text-[10px] text-muted-foreground">Libellé</p><p className="text-xs font-semibold text-foreground">{wallet.label}</p></div>}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><p className="text-[10px] text-muted-foreground">Réseau</p><p className="text-xs font-semibold text-primary">{detailW.network}</p></div>
+                    <div><p className="text-[10px] text-muted-foreground">Numéro</p><p className="text-xs font-semibold text-foreground">{detailW.country_code} {detailW.phone}</p></div>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-secondary/30 rounded-xl p-4 space-y-2">
+                <p className="text-xs font-bold text-foreground mb-2">📋 Transaction</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div><p className="text-[10px] text-muted-foreground">Montant brut</p><p className="text-xs font-semibold text-foreground">{detailW.amount.toLocaleString("fr-FR")} FCFA</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Frais ({feePercent}%)</p><p className="text-xs font-semibold text-destructive">{detailW.fee_amount.toLocaleString("fr-FR")} FCFA</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Montant net</p><p className="text-xs font-semibold text-success">{detailW.net_amount.toLocaleString("fr-FR")} FCFA</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Date</p><p className="text-xs font-semibold text-foreground">{detailW.created_at ? new Date(detailW.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</p></div>
+                </div>
+                <div><p className="text-[10px] text-muted-foreground">ID</p><p className="text-[10px] font-mono text-muted-foreground break-all">{detailW.id}</p></div>
+              </div>
+
+              {detailW.status === "pending" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <button onClick={() => { handleAction(detailW, "approved"); setDetailW(null); }} className="flex items-center justify-center gap-2 border-2 border-success text-success font-bold py-2.5 rounded-xl text-sm hover:bg-success/10"><CheckCircle2 size={16} /> Approuver</button>
+                  <button onClick={() => { handleAction(detailW, "rejected"); setDetailW(null); }} className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10"><XCircle size={16} /> Rejeter</button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {filtered.length === 0 ? <p className="text-center text-sm text-muted-foreground py-10">Aucun retrait</p> :
         filtered.map((w: Withdrawal) => {
           const p = profileMap[w.user_id];
+          const wallet = w.wallet_id ? wallets[w.wallet_id] : null;
           const feePercent = w.amount > 0 ? Math.round((w.fee_amount / w.amount) * 100) : 0;
           return (
-            <div key={w.id} className="bg-card rounded-xl border border-secondary px-4 pt-4 pb-3">
+            <div key={w.id} className="bg-card rounded-xl border border-secondary px-4 pt-4 pb-3 cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setDetailW(w)}>
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <p className="text-lg font-bold text-foreground">{w.amount.toLocaleString("fr-FR")} FCFA</p>
@@ -733,10 +818,11 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
                 <div><p className="text-[10px] text-muted-foreground">Client</p><p className="text-xs font-semibold text-foreground">{w.country_code} {w.phone}</p></div>
                 <div><p className="text-[10px] text-muted-foreground">Solde actuel</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("fr-FR")} FCFA` : "—"}</p></div>
                 <div><p className="text-[10px] text-muted-foreground">Nom</p><p className="text-xs font-semibold text-foreground">{p?.full_name || "—"}</p></div>
-                <div><p className="text-[10px] text-muted-foreground">Date</p><p className="text-xs font-semibold text-foreground">{w.created_at ? new Date(w.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Titulaire carte</p><p className="text-xs font-semibold text-foreground">{wallet?.holder_name || "—"}</p></div>
               </div>
+              <p className="text-[10px] text-muted-foreground mt-2 text-right">Cliquez pour voir les détails →</p>
               {w.status === "pending" && (
-                <div className="grid grid-cols-2 gap-3 mt-4">
+                <div className="grid grid-cols-2 gap-3 mt-4" onClick={e => e.stopPropagation()}>
                   <button onClick={() => handleAction(w, "approved")} className="flex items-center justify-center gap-2 border-2 border-success text-success font-bold py-2.5 rounded-xl text-sm hover:bg-success/10"><CheckCircle2 size={16} /> Approuver</button>
                   <button onClick={() => handleAction(w, "rejected")} className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10"><XCircle size={16} /> Rejeter</button>
                 </div>
