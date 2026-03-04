@@ -34,23 +34,33 @@ serve(async (req) => {
       );
     }
 
-    // Fetch all site data in parallel including official documents
+    // Fetch all site data in parallel including official documents, team, user products, news
     const [
       { data: settings },
       { data: paymentMethods },
       { data: products },
       { data: officialDocs },
+      { data: infoItems },
       userProfile,
       userRecharges,
       userWithdrawals,
+      userProducts,
+      teamMembers,
     ] = await Promise.all([
       supabase.from("site_settings").select("key, value"),
       supabase.from("payment_methods").select("name, phone, country, holder_name, instructions, is_active").eq("is_active", true),
       supabase.from("products").select("name, price, daily_revenue, cycles, total_revenue, return_percent, is_active").eq("is_active", true),
       supabase.from("official_documents").select("title, description, doc_type, file_url").eq("is_active", true).order("sort_order"),
+      supabase.from("info_items").select("title, description").eq("is_active", true).order("sort_order").limit(10),
       userId ? supabase.from("profiles").select("*").eq("user_id", userId).single() : Promise.resolve({ data: null }),
       userId ? supabase.from("recharges").select("amount, status, created_at, payment_method").eq("user_id", userId).order("created_at", { ascending: false }).limit(5) : Promise.resolve({ data: [] }),
       userId ? supabase.from("withdrawals").select("amount, status, created_at, network, phone, net_amount, fee_amount").eq("user_id", userId).order("created_at", { ascending: false }).limit(5) : Promise.resolve({ data: [] }),
+      userId ? supabase.from("user_products").select("id, product_id, purchased_at, expires_at, is_active, total_collected, products(name, price, daily_revenue, cycles, total_revenue)").eq("user_id", userId).eq("is_active", true) : Promise.resolve({ data: [] }),
+      userId ? supabase.rpc("get_team_profile_ids", { _user_id: userId }).then(async (res: any) => {
+        if (!res.data || res.data.length === 0) return { data: [] };
+        const { data: teamProfiles } = await supabase.from("profiles").select("id, full_name, phone, vip_level, balance, created_at, referred_by").in("id", res.data);
+        return { data: teamProfiles || [] };
+      }) : Promise.resolve({ data: [] }),
     ]);
 
     const settingsMap: Record<string, string> = {};
