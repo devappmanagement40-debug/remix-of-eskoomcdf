@@ -3,7 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key, x-signature, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-api-key, x-signature, x-sendavapay-signature, x-sendavapay-event, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
 serve(async (req) => {
@@ -21,8 +21,8 @@ serve(async (req) => {
     const body = await req.text();
     const payload = JSON.parse(body);
 
-    // Verify HMAC-SHA256 signature if present
-    const receivedSignature = req.headers.get('x-signature');
+    // Verify HMAC-SHA256 signature (v1 API uses x-sendavapay-signature header)
+    const receivedSignature = req.headers.get('x-sendavapay-signature') || req.headers.get('x-signature');
     if (receivedSignature && apiSecret) {
       const encoder = new TextEncoder();
       const key = await crypto.subtle.importKey(
@@ -33,29 +33,48 @@ serve(async (req) => {
 
       if (receivedSignature !== expectedSig) {
         console.error('Invalid signature');
-        return new Response(JSON.stringify({ success: false, error: 'Invalid signature' }), {
-          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        return new Response(JSON.stringify({ received: true }), {
+          status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
     }
 
     console.log('SendavaPay webhook received:', JSON.stringify(payload));
 
-    // Extract reference and status from callback
-    const reference = payload.reference || payload.txid || payload.transaction_id;
-    const status = payload.status;
+    // v1 API webhook format: { event: "payment.completed", data: { reference, amount, ... }, timestamp }
+    // Also support legacy SDK format: { reference, status, ... }
+    const event = req.headers.get('x-sendavapay-event') || payload.event;
+    const webhookData = payload.data || payload;
+    
+    const reference = webhookData.reference || webhookData.externalReference || webhookData.txid || webhookData.transaction_id;
+    
+    // Determine success/failure from event type or status field
+    let isSuccess = false;
+    let isFailed = false;
+    
+    if (event === 'payment.completed') {
+      isSuccess = true;
+    } else if (event === 'payment.failed') {
+      isFailed = true;
+    } else {
+      // Legacy SDK format
+      const status = webhookData.status;
+      isSuccess = status === 'SUCCESS' || status === 'completed';
+      isFailed = status === 'FAILED' || status === 'CANCELLED' || status === 'failed';
+    }
 
     if (!reference) {
-      return new Response(JSON.stringify({ success: false, error: 'Missing reference' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      console.error('Missing reference in webhook payload');
+      return new Response(JSON.stringify({ received: true }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Find the payment log by provider_ref
+    // Find the payment log by provider_ref OR externalReference
     const { data: logEntry, error: findErr } = await supabase
       .from('payment_logs')
       .select('*')
-      .eq('provider_ref', reference)
+      .or(`provider_ref.eq.${reference},id.eq.${reference}`)
       .in('status', ['initiated', 'processing'])
       .order('created_at', { ascending: false })
       .limit(1)
@@ -63,17 +82,13 @@ serve(async (req) => {
 
     if (findErr || !logEntry) {
       console.error('Payment log not found for reference:', reference, findErr);
-      return new Response(JSON.stringify({ success: false, error: 'Payment not found' }), {
-        status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      return new Response(JSON.stringify({ received: true }), {
+        status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const isSuccess = status === 'SUCCESS';
-    const isFailed = status === 'FAILED' || status === 'CANCELLED';
-
     if (!isSuccess && !isFailed) {
-      // Still processing, acknowledge but don't update
-      return new Response(JSON.stringify({ success: true, message: 'Still processing' }), {
+      return new Response(JSON.stringify({ received: true, message: 'Still processing' }), {
         status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -84,20 +99,18 @@ serve(async (req) => {
       .update({
         status: isSuccess ? 'completed' : 'failed',
         provider_response: payload,
-        error_message: isFailed ? (payload.message || 'Paiement échoué') : null,
+        error_message: isFailed ? (webhookData.message || 'Paiement échoué') : null,
       })
       .eq('id', logEntry.id);
 
     // If successful, credit user and create recharge entry
     if (isSuccess) {
-      // Get payment method name
       const { data: pm } = await supabase
         .from('payment_methods')
         .select('name')
         .eq('id', logEntry.payment_method_id)
         .single();
 
-      // Create recharge entry
       await supabase.from('recharges').insert({
         user_id: logEntry.user_id,
         phone: logEntry.phone,
@@ -108,7 +121,6 @@ serve(async (req) => {
         status: 'approved',
       });
 
-      // Credit user balance
       const { data: profile } = await supabase
         .from('profiles')
         .select('balance, deposit_balance')
@@ -127,14 +139,14 @@ serve(async (req) => {
       console.log(`Payment ${reference} failed/cancelled`);
     }
 
-    return new Response(JSON.stringify({ success: true, status: isSuccess ? 'confirmed' : 'rejected' }), {
+    return new Response(JSON.stringify({ received: true }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (err) {
     console.error('Webhook error:', err);
-    return new Response(JSON.stringify({ success: false, error: 'Server error' }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    return new Response(JSON.stringify({ received: true }), {
+      status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
