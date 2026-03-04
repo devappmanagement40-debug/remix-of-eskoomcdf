@@ -23,7 +23,7 @@ const menuGrid = [
   { icon: Smartphone, label: "Télécharger APP", path: "#" },
   { icon: CreditCard, label: "Lier carte bancaire", path: "/lier-carte" },
   { icon: Lock, label: "Changer mot de passe", path: "/parametres" },
-  { icon: Gift, label: "Échanger cadeau", path: "/points-cadeaux" },
+  { icon: Gift, label: "Monnaie Eskom", path: "/points-cadeaux" },
 ];
 
 const Profile = () => {

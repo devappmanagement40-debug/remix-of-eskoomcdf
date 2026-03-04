@@ -10,7 +10,7 @@ const menuItems = [
   { label: "Historique des retraits", path: "/historique-retraits", hasChevron: true },
   { label: "Historique des fonds", path: "/historique-fonds", hasChevron: true },
   { label: "Energy Storage", path: "#", value: "0" },
-  { label: "Points Cadeaux", path: "/points-cadeaux", value: "0", hasChevron: true },
+  { label: "Monnaie Eskom", path: "/points-cadeaux", value: "0", hasChevron: true },
 ];
 
 const Portefeuille = () => {

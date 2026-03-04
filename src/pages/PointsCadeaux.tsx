@@ -63,12 +63,12 @@ const PointsCadeaux = () => {
           const pvip = get("points_per_vip_level_per_day");
           const pdep = get("points_per_deposit_value");
           const pw = get("points_per_withdrawal");
-          if (pam && Number(pam) > 0) tips.push(`Chaque membre actif vous rapporte ${pam} points`);
-          if (pvip && Number(pvip) > 0) tips.push(`Gagnez ${pvip} points par niveau VIP chaque jour`);
-          if (pdep && Number(pdep) > 0) tips.push(`Chaque dépôt vous rapporte ${pdep} points`);
-          if (pw && Number(pw) > 0) tips.push(`Chaque retrait vous rapporte ${pw} points`);
-          tips.push("Invitez des amis et gagnez des points bonus par niveau");
-          tips.push("Utilisez un code d'échange pour obtenir des points gratuits");
+          if (pam && Number(pam) > 0) tips.push(`Chaque membre actif vous rapporte ${pam} ESK`);
+          if (pvip && Number(pvip) > 0) tips.push(`Gagnez ${pvip} ESK par niveau VIP chaque jour`);
+          if (pdep && Number(pdep) > 0) tips.push(`Chaque dépôt vous rapporte ${pdep} ESK`);
+          if (pw && Number(pw) > 0) tips.push(`Chaque retrait vous rapporte ${pw} ESK`);
+          tips.push("Invitez des amis et gagnez des ESK bonus par niveau");
+          tips.push("Utilisez un code d'échange pour obtenir des ESK gratuits");
           setHowToEarn(tips);
         }
       } catch (err) {
@@ -80,7 +80,7 @@ const PointsCadeaux = () => {
 
   const handleExchange = async (reward: Reward) => {
     if (points < reward.points_required) {
-      showError("Points insuffisants", `Il vous faut ${reward.points_required} points pour échanger ce cadeau.`);
+      showError("ESK insuffisants", `Il vous faut ${reward.points_required} ESK pour échanger ce cadeau.`);
       return;
     }
     if (reward.money_value <= 0) {
@@ -101,7 +101,7 @@ const PointsCadeaux = () => {
 
       const currentPoints = (profile as any).gift_points || 0;
       if (currentPoints < reward.points_required) {
-        showError("Points insuffisants", "Vos points ont changé. Veuillez réessayer.");
+        showError("ESK insuffisants", "Votre solde ESK a changé. Veuillez réessayer.");
         setPoints(currentPoints);
         return;
       }
@@ -137,7 +137,7 @@ const PointsCadeaux = () => {
         created_at: new Date().toISOString(),
       }, ...prev]);
 
-      showSuccess("Conversion réussie ✅", `${reward.points_required} points convertis en ${reward.money_value.toLocaleString("fr-FR")} FCFA. Le montant a été crédité sur votre compte.`);
+      showSuccess("Conversion réussie ✅", `${reward.points_required} ESK convertis en ${reward.money_value.toLocaleString("fr-FR")} FCFA. Le montant a été crédité sur votre compte.`);
     } finally {
       setExchanging(null);
     }
@@ -147,7 +147,7 @@ const PointsCadeaux = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <PageHeader title="Points Cadeaux" showBack />
+      <PageHeader title="Monnaie Eskom" showBack />
       <div className="px-4 pt-6 space-y-4">
 
         {/* Points balance card */}
@@ -158,8 +158,8 @@ const PointsCadeaux = () => {
               <Gift size={28} className="text-primary" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Points disponibles</p>
-              <p className="text-3xl font-bold text-primary">{points}</p>
+              <p className="text-xs text-muted-foreground">Monnaie Eskom disponible</p>
+              <p className="text-3xl font-bold text-primary">{points} <span className="text-sm font-normal">ESK</span></p>
             </div>
           </div>
           {fullName && (
@@ -194,7 +194,7 @@ const PointsCadeaux = () => {
 
         {/* Comment gagner */}
         <div className="bg-card rounded-xl border border-secondary p-5">
-          <h2 className="text-sm font-bold text-foreground mb-3">Comment gagner des points ?</h2>
+          <h2 className="text-sm font-bold text-foreground mb-3">Comment gagner de la Monnaie Eskom ?</h2>
           <ul className="space-y-2.5 text-xs text-muted-foreground">
             {howToEarn.map((tip, i) => (
               <li key={i} className="flex items-start gap-2">
@@ -207,7 +207,7 @@ const PointsCadeaux = () => {
 
         {/* Rewards catalog */}
         <div>
-          <h2 className="text-sm font-bold text-foreground mb-3">Convertir vos points en argent</h2>
+          <h2 className="text-sm font-bold text-foreground mb-3">Convertir votre Monnaie Eskom</h2>
           {rewards.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-6">Aucune récompense disponible pour le moment</p>
           ) : (
@@ -227,7 +227,7 @@ const PointsCadeaux = () => {
                     )}
                     <div>
                       <p className="text-sm font-medium text-foreground">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">{item.points_required} pts → <span className="text-success font-semibold">{item.money_value.toLocaleString("fr-FR")} FCFA</span></p>
+                      <p className="text-xs text-muted-foreground">{item.points_required} ESK → <span className="text-success font-semibold">{item.money_value.toLocaleString("fr-FR")} FCFA</span></p>
                     </div>
                   </div>
                   <button
@@ -256,7 +256,7 @@ const PointsCadeaux = () => {
                   </div>
                   <div className="text-right">
                     <p className="text-xs font-bold text-success">+{ex.money_credited.toLocaleString("fr-FR")} F</p>
-                    <p className="text-[10px] text-muted-foreground">-{ex.points_spent} pts</p>
+                    <p className="text-[10px] text-muted-foreground">-{ex.points_spent} ESK</p>
                   </div>
                 </div>
               ))}

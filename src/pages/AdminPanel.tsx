@@ -1709,7 +1709,7 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
       if (existing) await supabase.from("site_settings").update({ value }).eq("key", key);
       else await supabase.from("site_settings").insert({ key, value, category: "points" });
     }
-    showSuccess("Configuration points sauvegardee", "");
+    showSuccess("Configuration Monnaie Eskom sauvegardée", "");
     setEdits({});
     reload();
   };
@@ -1742,18 +1742,18 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
   };
 
   const pointsKeys = [
-    { key: "points_per_active_member", label: "Points par membre actif" },
-    { key: "points_per_vip_level_per_day", label: "Points par niveau VIP / jour" },
+    { key: "points_per_active_member", label: "ESK par membre actif" },
+    { key: "points_per_vip_level_per_day", label: "ESK par niveau VIP / jour" },
     { key: "points_per_deposit_type", label: "Type depot (fixed / percent)" },
-    { key: "points_per_deposit_value", label: "Valeur points depot" },
-    { key: "points_per_withdrawal", label: "Points par retrait" },
+    { key: "points_per_deposit_value", label: "Valeur ESK par depot" },
+    { key: "points_per_withdrawal", label: "ESK par retrait" },
   ];
 
   return (
     <div className="space-y-4">
       {/* Points configuration */}
       <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
-        <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Gift size={16} className="text-primary" /> Configuration des points</h3>
+        <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Gift size={16} className="text-primary" /> Configuration Monnaie Eskom</h3>
         {pointsKeys.map(k => (
           <div key={k.key}>
             <label className="text-xs text-muted-foreground">{k.label}</label>
@@ -1771,7 +1771,7 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
       {/* Rewards catalog */}
       <div className="bg-card rounded-xl border border-secondary p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold text-foreground">Catalogue des cadeaux</h3>
+          <h3 className="text-sm font-bold text-foreground">Catalogue de conversion ESK</h3>
           <button onClick={() => openForm()} className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center"><Plus size={16} className="text-primary" /></button>
         </div>
 
@@ -1793,7 +1793,7 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
                 {r.image_url ? <img src={r.image_url} className="w-10 h-10 rounded-lg object-cover" /> : <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Gift size={16} className="text-primary" /></div>}
                 <div>
                   <p className="text-sm font-semibold text-foreground">{r.name}</p>
-                  <p className="text-xs text-muted-foreground">{r.points_required} pts → {Number(r.money_value || 0).toLocaleString("fr-FR")} FCFA</p>
+                  <p className="text-xs text-muted-foreground">{r.points_required} ESK → {Number(r.money_value || 0).toLocaleString("fr-FR")} FCFA</p>
                 </div>
               </div>
               <div className="flex gap-1.5">
