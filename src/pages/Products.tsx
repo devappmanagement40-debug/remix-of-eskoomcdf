@@ -149,12 +149,15 @@ const Products = () => {
       }
 
       if (product.max_purchases) {
-        const { count } = await supabase.from("user_products")
+        // Count only active (non-expired) instances of this product
+        const { count: activeCount } = await supabase.from("user_products")
           .select("*", { count: "exact", head: true })
           .eq("user_id", user.id)
-          .eq("product_id", product.id);
-        if ((count || 0) >= product.max_purchases) {
-          showError("Limite atteinte", `Vous avez déjà acheté ce produit ${count} fois (maximum: ${product.max_purchases})`);
+          .eq("product_id", product.id)
+          .eq("is_active", true)
+          .gt("expires_at", new Date().toISOString());
+        if ((activeCount || 0) >= product.max_purchases) {
+          showError("Produit encore actif", `Vous avez déjà ${activeCount} exemplaire(s) actif(s) de ce produit. Vous pourrez racheter après expiration.`);
           return;
         }
       }
