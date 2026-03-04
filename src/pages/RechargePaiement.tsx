@@ -78,11 +78,7 @@ const RechargePaiement = () => {
       }
 
       if (data?.success) {
-        if (data?.paymentUrl) {
-          // Redirect to SendavaPay payment page
-          window.open(data.paymentUrl, "_blank");
-          setApiStatus("pending");
-        } else if (data?.pending) {
+        if (data?.pending) {
           setApiStatus("pending");
         } else {
           setApiStatus("success");
@@ -190,10 +186,10 @@ const RechargePaiement = () => {
                 <div className="bg-amber-500/10 text-amber-600 rounded-xl px-4 py-3">
                    <p className="text-xs font-semibold flex items-center gap-2">
                      <Loader2 size={14} className="animate-spin" />
-                     Paiement en attente de confirmation
+                     En attente de validation USSD
                    </p>
                    <p className="text-[10px] mt-1">
-                     Complétez le paiement sur la page qui s'est ouverte. Votre solde sera crédité automatiquement après confirmation.
+                     Une demande de paiement a été envoyée sur votre téléphone. Composez votre code PIN pour confirmer.
                    </p>
                  </div>
                  <button onClick={() => navigate("/portefeuille")} className="w-full bg-secondary text-foreground font-bold py-3 rounded-xl text-sm">
