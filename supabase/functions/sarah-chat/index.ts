@@ -34,23 +34,33 @@ serve(async (req) => {
       );
     }
 
-    // Fetch all site data in parallel including official documents
+    // Fetch all site data in parallel including official documents, team, user products, news
     const [
       { data: settings },
       { data: paymentMethods },
       { data: products },
       { data: officialDocs },
+      { data: infoItems },
       userProfile,
       userRecharges,
       userWithdrawals,
+      userProducts,
+      teamMembers,
     ] = await Promise.all([
       supabase.from("site_settings").select("key, value"),
       supabase.from("payment_methods").select("name, phone, country, holder_name, instructions, is_active").eq("is_active", true),
       supabase.from("products").select("name, price, daily_revenue, cycles, total_revenue, return_percent, is_active").eq("is_active", true),
       supabase.from("official_documents").select("title, description, doc_type, file_url").eq("is_active", true).order("sort_order"),
+      supabase.from("info_items").select("title, description").eq("is_active", true).order("sort_order").limit(10),
       userId ? supabase.from("profiles").select("*").eq("user_id", userId).single() : Promise.resolve({ data: null }),
       userId ? supabase.from("recharges").select("amount, status, created_at, payment_method").eq("user_id", userId).order("created_at", { ascending: false }).limit(5) : Promise.resolve({ data: [] }),
       userId ? supabase.from("withdrawals").select("amount, status, created_at, network, phone, net_amount, fee_amount").eq("user_id", userId).order("created_at", { ascending: false }).limit(5) : Promise.resolve({ data: [] }),
+      userId ? supabase.from("user_products").select("id, product_id, purchased_at, expires_at, is_active, total_collected, products(name, price, daily_revenue, cycles, total_revenue)").eq("user_id", userId).eq("is_active", true) : Promise.resolve({ data: [] }),
+      userId ? supabase.rpc("get_team_profile_ids", { _user_id: userId }).then(async (res: any) => {
+        if (!res.data || res.data.length === 0) return { data: [] };
+        const { data: teamProfiles } = await supabase.from("profiles").select("id, full_name, phone, vip_level, balance, created_at, referred_by").in("id", res.data);
+        return { data: teamProfiles || [] };
+      }) : Promise.resolve({ data: [] }),
     ]);
 
     const settingsMap: Record<string, string> = {};
@@ -94,7 +104,56 @@ serve(async (req) => {
     if (userProfile?.data) {
       const p = userProfile.data;
       const vipLevel = getVipLevel(p.balance || 0, settingsMap);
-      userContext += `\nPROFIL DE L'UTILISATEUR ACTUEL :\n- Nom : ${p.full_name || "Non renseigné"}\n- Solde actuel : ${p.balance || 0} FCFA\n- Niveau VIP : ${vipLevel}\n- Code de parrainage : ${p.referral_code || "Non généré"}\n- Inscrit depuis : ${new Date(p.created_at).toLocaleDateString("fr-FR")}\n`;
+      userContext += `\nPROFIL COMPLET DE L'UTILISATEUR ACTUEL :
+- Nom : ${p.full_name || "Non renseigné"}
+- Téléphone : ${p.phone || "Non renseigné"}
+- Indicatif pays : ${p.country_code || "+226"}
+- Solde total (balance) : ${p.balance || 0} FCFA
+- Solde dépôt : ${p.deposit_balance || 0} FCFA
+- Solde gains : ${p.earnings_balance || 0} FCFA
+- Solde parrainage : ${p.referral_balance || 0} FCFA
+- Points cadeaux : ${p.gift_points || 0}
+- Spins (tours de roue) restants : ${p.spins_balance || 0}
+- Niveau VIP : ${p.vip_level || 0} (${vipLevel})
+- Code de parrainage : ${p.referral_code || "Non généré"}
+- Inscrit depuis : ${new Date(p.created_at).toLocaleDateString("fr-FR")}
+`;
+    }
+
+    // User's active products
+    if (userProducts?.data && (userProducts.data as any[]).length > 0) {
+      userContext += `\nPRODUITS ACTIFS DE L'UTILISATEUR :\n`;
+      (userProducts.data as any[]).forEach((up: any) => {
+        const prod = up.products;
+        userContext += `- ${prod?.name || "Produit inconnu"} : acheté le ${new Date(up.purchased_at).toLocaleDateString("fr-FR")}, expire le ${up.expires_at ? new Date(up.expires_at).toLocaleDateString("fr-FR") : "N/A"}, revenus collectés : ${up.total_collected || 0} FCFA sur ${prod?.total_revenue || "N/A"} FCFA total\n`;
+      });
+    }
+
+    // Team members
+    if (teamMembers?.data && (teamMembers.data as any[]).length > 0) {
+      const team = teamMembers.data as any[];
+      const myProfileId = userProfile?.data?.id;
+      const levelE = team.filter((m: any) => m.referred_by === myProfileId);
+      const levelEIds = new Set(levelE.map((m: any) => m.id));
+      const levelF = team.filter((m: any) => levelEIds.has(m.referred_by));
+      const levelFIds = new Set(levelF.map((m: any) => m.id));
+      const levelG = team.filter((m: any) => levelFIds.has(m.referred_by));
+
+      userContext += `\nÉQUIPE DE L'UTILISATEUR (${team.length} membres au total) :\n`;
+      
+      const formatMembers = (members: any[], level: string) => {
+        if (members.length === 0) return "";
+        let txt = `  ${level} (${members.length} membres) :\n`;
+        members.slice(0, 10).forEach((m: any) => {
+          txt += `    - ${m.full_name || "Sans nom"} | Tél: ${m.phone || "?"} | VIP ${m.vip_level || 0} | Solde: ${m.balance || 0} FCFA | Inscrit: ${new Date(m.created_at).toLocaleDateString("fr-FR")}\n`;
+        });
+        if (members.length > 10) txt += `    ... et ${members.length - 10} autres\n`;
+        return txt;
+      };
+
+      userContext += formatMembers(levelE, "Niveau E (filleuls directs)");
+      userContext += formatMembers(levelF, "Niveau F (filleuls de niveau 2)");
+      userContext += formatMembers(levelG, "Niveau G (filleuls de niveau 3)");
     }
 
     if (userRecharges?.data && userRecharges.data.length > 0) {
@@ -109,6 +168,18 @@ serve(async (req) => {
       userWithdrawals.data.forEach((w: any) => {
         userContext += `- ${w.amount} FCFA (net: ${w.net_amount} FCFA, frais: ${w.fee_amount} FCFA) via ${w.network} — statut : ${translateStatus(w.status)} — le ${new Date(w.created_at).toLocaleDateString("fr-FR")}\n`;
       });
+    }
+
+    // News / Updates
+    let newsContext = "";
+    if (infoItems?.data && (infoItems.data as any[]).length > 0) {
+      newsContext = `\n═══════════════════════════════════════
+ACTUALITÉS & MISES À JOUR RÉCENTES
+═══════════════════════════════════════\n`;
+      (infoItems.data as any[]).forEach((item: any) => {
+        newsContext += `- ${item.title} : ${item.description}\n`;
+      });
+      newsContext += `\nUtilise ces informations quand l'utilisateur demande "quoi de neuf", "actualités", "mises à jour", "nouveautés", etc.\n`;
     }
 
     const systemPrompt = `Tu es Sarah, l'assistante virtuelle officielle et exclusive de la plateforme ${siteName}.
@@ -324,6 +395,18 @@ SEUILS VIP :
 - VIP4 : ${settingsMap["vip_threshold_4"] || "N/A"} FCFA
 - VIP5 : ${settingsMap["vip_threshold_5"] || "N/A"} FCFA
 ${userContext}
+${newsContext}
+
+═══════════════════════════════════════
+COMPÉTENCES SUR LE COMPTE UTILISATEUR
+═══════════════════════════════════════
+Tu as accès au profil COMPLET de l'utilisateur (soldes détaillés, produits actifs, équipe). Quand l'utilisateur demande :
+- "mon solde", "combien j'ai" → Donne le détail : solde total, dépôt, gains, parrainage
+- "mes produits", "mes investissements" → Liste ses produits actifs avec revenus collectés et restants
+- "mon équipe", "mes filleuls", "mes membres" → Présente ses filleuls par niveau (E, F, G) avec leurs infos
+- "mon niveau VIP", "comment monter VIP" → Explique son niveau actuel et les conditions pour le prochain
+- "mon code de parrainage" → Donne son code et explique comment l'utiliser
+- "quoi de neuf", "actualités", "nouveautés" → Partage les dernières mises à jour de la plateforme
 ═══════════════════════════════════════
 INFORMATIONS OFFICIELLES
 ═══════════════════════════════════════
