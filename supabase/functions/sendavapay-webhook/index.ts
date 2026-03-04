@@ -87,15 +87,40 @@ serve(async (req) => {
       });
     }
 
-    // Find the payment log by provider_ref OR id
-    const { data: logEntry, error: findErr } = await supabase
+    // Find the payment log by provider_ref first
+    let logEntry: any = null;
+    let findErr: any = null;
+
+    // Search by provider_ref
+    const { data: byRef, error: refErr } = await supabase
       .from('payment_logs')
       .select('*')
-      .or(`provider_ref.eq.${reference},id.eq.${reference}`)
+      .eq('provider_ref', reference)
       .in('status', ['initiated', 'processing'])
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
+
+    if (byRef) {
+      logEntry = byRef;
+    } else {
+      // Try by id only if reference looks like a UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (uuidRegex.test(reference)) {
+        const { data: byId, error: idErr } = await supabase
+          .from('payment_logs')
+          .select('*')
+          .eq('id', reference)
+          .in('status', ['initiated', 'processing'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        logEntry = byId;
+        findErr = idErr;
+      } else {
+        findErr = refErr;
+      }
+    }
 
     console.log('Payment log lookup -> found:', !!logEntry, 'error:', findErr?.message || 'none');
     if (logEntry) {
