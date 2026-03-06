@@ -86,12 +86,12 @@ const Profile = () => {
                 {vipProgress.currentLevelName}
               </span>
             </div>
-            {vipProgress.nextLevelName && (
+            {displaySettings.vip_progress_bar_enabled && vipProgress.nextLevelName && (
               <p className="text-xs text-primary font-medium">
                 Suivant VIP : <span className="font-bold">{vipProgress.nextLevelName}</span>
               </p>
             )}
-            {vipProgress.nextLevelName && (
+            {displaySettings.vip_progress_bar_enabled && vipProgress.nextLevelName && (
               <div className="w-full mt-2 bg-secondary/50 rounded-xl p-4 border border-secondary">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs text-muted-foreground">Progression vers {vipProgress.nextLevelName}</span>
@@ -107,7 +107,6 @@ const Profile = () => {
                     }}
                   />
                 </div>
-                {/* Criteria breakdown */}
                 {vipProgress.criteria.length > 0 && (
                   <div className="mt-3 space-y-1.5">
                     {vipProgress.criteria.map((c, i) => (
@@ -153,7 +152,32 @@ const Profile = () => {
           ))}
         </div>
 
-        {/* Menu grid */}
+        {/* Produits actifs */}
+        {displaySettings.profile_products_display_enabled && userProducts.length > 0 && (
+          <div className="bg-card rounded-xl border border-secondary p-4 mb-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Package size={16} className="text-primary" />
+              <h3 className="text-sm font-bold text-foreground">Mes produits actifs</h3>
+              <span className="ml-auto text-xs font-bold text-primary">{vipProgress.currentLevelName}</span>
+            </div>
+            <div className="space-y-2">
+              {userProducts.map((up: any) => (
+                <div key={up.id} className="flex items-center gap-3 bg-secondary/50 rounded-lg p-3">
+                  {up.products?.image_url && (
+                    <img src={up.products.image_url} alt="" className="w-10 h-10 rounded-lg object-cover" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-medium text-foreground truncate">{up.products?.name || "Produit"}</p>
+                    <p className="text-[10px] text-muted-foreground">{up.products?.price?.toLocaleString('fr-FR')} FCFA</p>
+                  </div>
+                  <span className="text-[10px] font-medium text-success">Actif</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+
         <div className="bg-card rounded-xl border border-secondary p-4 mb-4">
           <div className="grid grid-cols-4 gap-x-2 gap-y-5">
             {menuGrid.map((item) => (
