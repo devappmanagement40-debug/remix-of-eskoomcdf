@@ -148,16 +148,28 @@ const Products = () => {
         return;
       }
 
+      // Check if user already has an active (non-expired) instance of this product
+      const { count: activeCount } = await supabase.from("user_products")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("product_id", product.id)
+        .eq("is_active", true)
+        .gt("expires_at", new Date().toISOString());
+
+      // Rule: Cannot buy same product while a previous purchase is still active
+      if ((activeCount || 0) > 0) {
+        showError("Produit encore actif", `Vous possédez déjà ce produit et il est encore actif. Vous pourrez le racheter une fois qu'il sera expiré.`);
+        return;
+      }
+
+      // Also check max_purchases lifetime limit (total purchases including expired)
       if (product.max_purchases) {
-        // Count only active (non-expired) instances of this product
-        const { count: activeCount } = await supabase.from("user_products")
+        const { count: totalCount } = await supabase.from("user_products")
           .select("*", { count: "exact", head: true })
           .eq("user_id", user.id)
-          .eq("product_id", product.id)
-          .eq("is_active", true)
-          .gt("expires_at", new Date().toISOString());
-        if ((activeCount || 0) >= product.max_purchases) {
-          showError("Produit encore actif", `Vous avez déjà ${activeCount} exemplaire(s) actif(s) de ce produit. Vous pourrez racheter après expiration.`);
+          .eq("product_id", product.id);
+        if ((totalCount || 0) >= product.max_purchases) {
+          showError("Limite atteinte", `Vous avez atteint la limite maximale de ${product.max_purchases} achat(s) pour ce produit.`);
           return;
         }
       }
