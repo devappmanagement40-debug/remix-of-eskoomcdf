@@ -1,12 +1,13 @@
-import { Wallet, Download, Clock, MessageCircle, Headphones, FileText, Smartphone, CreditCard, Lock, Gift, LogOut, Crown, ChevronRight } from "lucide-react";
+import { Wallet, Download, Clock, MessageCircle, Headphones, FileText, Smartphone, CreditCard, Lock, Gift, LogOut, Crown, ChevronRight, Package } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeProfile } from "@/hooks/useRealtimeProfile";
 import { useVipProgress } from "@/hooks/useVipProgress";
+import { useDisplaySettings } from "@/hooks/useDisplaySettings";
 import PremiumModal from "@/components/PremiumModal";
 
 const actionButtons = [
@@ -29,10 +30,26 @@ const menuGrid = [
 const Profile = () => {
   const navigate = useNavigate();
   const { profile, userId, loading } = useRealtimeProfile();
+  const { displaySettings } = useDisplaySettings();
   const { vipProgress } = useVipProgress(userId, profile.vip_level, profile.balance);
   const [showLogout, setShowLogout] = useState(false);
+  const [userProducts, setUserProducts] = useState<any[]>([]);
 
   const phone = profile.phone || "...";
+
+  // Fetch user products when display is enabled
+  useEffect(() => {
+    if (!userId || !displaySettings.profile_products_display_enabled) return;
+    const fetchProducts = async () => {
+      const { data } = await supabase
+        .from("user_products")
+        .select("id, product_id, is_active, purchased_at, products(name, image_url, price)")
+        .eq("user_id", userId)
+        .eq("is_active", true);
+      if (data) setUserProducts(data);
+    };
+    fetchProducts();
+  }, [userId, displaySettings.profile_products_display_enabled]);
 
   return (
     <div className="min-h-screen bg-background pb-20">
