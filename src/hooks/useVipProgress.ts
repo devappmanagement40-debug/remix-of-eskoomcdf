@@ -140,7 +140,7 @@ export const useVipProgress = (userId: string | null, vipLevel: number, balance:
         }
 
         const nc = next as any;
-        const logic = nc.condition_logic || "OR";
+        const logic = nc.condition_logic || "AND";
         const criteria: CriterionProgress[] = [];
 
         if (nc.min_investment > 0) criteria.push({ label: "Investissement personnel", current: personalInvestment, required: nc.min_investment, met: personalInvestment >= nc.min_investment });
