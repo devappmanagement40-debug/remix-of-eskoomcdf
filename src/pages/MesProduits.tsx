@@ -116,9 +116,11 @@ const MesProduits = () => {
 
   const canCollect = (up: UserProduct) => {
     if (getStatus(up) !== "actif") return false;
-    if (!up.last_collected_at) return true;
-    const lastCollected = new Date(up.last_collected_at);
-    const hoursSince = (now.getTime() - lastCollected.getTime()) / (1000 * 60 * 60);
+    // Use last_collected_at if available, otherwise use purchased_at
+    const referenceTime = up.last_collected_at || up.purchased_at;
+    if (!referenceTime) return true;
+    const refDate = new Date(referenceTime);
+    const hoursSince = (now.getTime() - refDate.getTime()) / (1000 * 60 * 60);
     return hoursSince >= 24;
   };
 
