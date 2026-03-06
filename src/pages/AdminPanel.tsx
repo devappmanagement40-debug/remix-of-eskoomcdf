@@ -2252,8 +2252,43 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
     vip: { label: "Seuils VIP", keys: [{ key: "vip_threshold_1", label: "VIP1 (FCFA)" }, { key: "vip_threshold_2", label: "VIP2 (FCFA)" }, { key: "vip_threshold_3", label: "VIP3 (FCFA)" }, { key: "vip_threshold_4", label: "VIP4 (FCFA)" }, { key: "vip_threshold_5", label: "VIP5 (FCFA)" }] },
   };
 
+  const toggleKeys = [
+    { key: "vip_conditions_enabled", label: "Conditions d'évolution VIP", desc: "Appliquer les règles pour passer au niveau VIP suivant" },
+    { key: "vip_progress_bar_enabled", label: "Barre de progression VIP", desc: "Afficher la barre de progression vers le prochain VIP sur le profil" },
+    { key: "profile_products_display_enabled", label: "Produits & VIP sur le profil", desc: "Afficher les produits achetés et le niveau VIP sur le profil utilisateur" },
+  ];
+
+  const getToggleValue = (key: string): boolean => {
+    if (key in edits) return edits[key] !== "false";
+    const s = settings.find((s: SiteSetting) => s.key === key);
+    return s ? s.value !== "false" : true;
+  };
+
+  const handleToggle = (key: string, checked: boolean) => {
+    setVal(key, checked ? "true" : "false");
+  };
+
   return (
     <div className="space-y-4">
+      {/* Display toggles */}
+      <div className="bg-card rounded-xl border border-secondary p-4 space-y-4">
+        <h3 className="text-sm font-bold text-foreground">Contrôles d'affichage</h3>
+        {toggleKeys.map(t => (
+          <div key={t.key} className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-foreground">{t.label}</p>
+              <p className="text-[10px] text-muted-foreground">{t.desc}</p>
+            </div>
+            <button
+              onClick={() => handleToggle(t.key, !getToggleValue(t.key))}
+              className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${getToggleValue(t.key) ? "bg-primary" : "bg-muted"}`}
+            >
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-background shadow transition-transform ${getToggleValue(t.key) ? "translate-x-5" : "translate-x-0"}`} />
+            </button>
+          </div>
+        ))}
+      </div>
+
       {Object.values(groups).map(g => (
         <div key={g.label} className="bg-card rounded-xl border border-secondary p-4 space-y-3">
           <h3 className="text-sm font-bold text-foreground">{g.label}</h3>

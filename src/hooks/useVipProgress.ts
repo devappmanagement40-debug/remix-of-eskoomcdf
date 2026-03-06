@@ -52,17 +52,20 @@ export const useVipProgress = (userId: string | null, vipLevel: number, balance:
 
     const compute = async () => {
       try {
-        // Fetch VIP conditions and user stats in parallel
-        const [conditionsRes, productsRes, teamRes, myProfileRes] = await Promise.all([
+        // Fetch VIP conditions, user stats, and display setting in parallel
+        const [conditionsRes, productsRes, teamRes, myProfileRes, settingRes] = await Promise.all([
           supabase.from("vip_conditions").select("*").order("level"),
           supabase.from("user_products").select("id, product_id, products(price)").eq("user_id", userId).eq("is_active", true),
           supabase.rpc("get_team_profile_ids", { _user_id: userId }),
           supabase.from("profiles").select("deposit_balance").eq("user_id", userId).single(),
+          supabase.from("site_settings").select("value").eq("key", "vip_conditions_enabled").single(),
         ]);
 
         if (cancelled) return;
         const conditions = conditionsRes.data;
         if (!conditions || conditions.length === 0) { setLoading(false); return; }
+
+        const vipConditionsEnabled = settingRes.data?.value !== "false";
 
         const userProducts = productsRes.data || [];
         const totalPurchases = userProducts.length;
@@ -105,11 +108,12 @@ export const useVipProgress = (userId: string | null, vipLevel: number, balance:
         const nextLevelCond = conditions.find((c: any) => c.level === vipLevel + 1);
         let effectiveLevel = vipLevel;
         
-        if (nextLevelCond && checkConditions(nextLevelCond)) {
+        // Only auto-promote if VIP conditions are enabled
+        if (vipConditionsEnabled && nextLevelCond && checkConditions(nextLevelCond)) {
           effectiveLevel = nextLevelCond.level;
         }
 
-        if (effectiveLevel > vipLevel) {
+        if (vipConditionsEnabled && effectiveLevel > vipLevel) {
           await supabase.from("profiles").update({ vip_level: effectiveLevel }).eq("user_id", userId);
           await supabase.from("vip_history").insert({
             user_id: userId,
