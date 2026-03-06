@@ -297,6 +297,9 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
   const [search, setSearch] = useState("");
   const [editingUser, setEditingUser] = useState<Profile | null>(null);
   const [editBalance, setEditBalance] = useState("");
+  const [editDepositBalance, setEditDepositBalance] = useState("");
+  const [editEarningsBalance, setEditEarningsBalance] = useState("");
+  const [editReferralBalance, setEditReferralBalance] = useState("");
   const [editName, setEditName] = useState("");
   const [editVipLevel, setEditVipLevel] = useState("0");
   const [detailUser, setDetailUser] = useState<Profile | null>(null);
@@ -315,9 +318,12 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
     await supabase.from("profiles").update({
       full_name: editName,
       balance: Number(editBalance) || 0,
+      deposit_balance: Number(editDepositBalance) || 0,
+      earnings_balance: Number(editEarningsBalance) || 0,
+      referral_balance: Number(editReferralBalance) || 0,
       vip_level: Number(editVipLevel) || 0,
     }).eq("id", editingUser.id);
-    logAction("edit_user", "profile", editingUser.id, `Balance: ${editBalance}, VIP: ${editVipLevel}, Name: ${editName}`);
+    logAction("edit_user", "profile", editingUser.id, `Balance: ${editBalance}, Deposit: ${editDepositBalance}, Earnings: ${editEarningsBalance}, Referral: ${editReferralBalance}, VIP: ${editVipLevel}, Name: ${editName}`);
     showSuccess("Utilisateur modifié", "Modifications enregistrées ✅");
     setEditingUser(null);
     reload();
@@ -475,8 +481,23 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Solde (FCFA)</label>
+            <label className="text-xs text-muted-foreground">Solde total (FCFA)</label>
             <input type="number" value={editBalance} onChange={e => setEditBalance(e.target.value)}
+              className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Solde dépôt (FCFA)</label>
+            <input type="number" value={editDepositBalance} onChange={e => setEditDepositBalance(e.target.value)}
+              className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Solde gains (FCFA)</label>
+            <input type="number" value={editEarningsBalance} onChange={e => setEditEarningsBalance(e.target.value)}
+              className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Solde parrainage (FCFA)</label>
+            <input type="number" value={editReferralBalance} onChange={e => setEditReferralBalance(e.target.value)}
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
           </div>
           <div>
@@ -525,7 +546,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
                 className="flex-1 flex items-center justify-center gap-1.5 border border-secondary text-foreground font-semibold py-2 rounded-xl text-xs hover:bg-secondary transition-colors">
                 <Eye size={12} /> Détails
               </button>
-              <button onClick={() => { setEditingUser(p); setEditBalance(String(p.balance || 0)); setEditName(p.full_name || ""); setEditVipLevel(String(p.vip_level || 0)); }}
+              <button onClick={() => { setEditingUser(p); setEditBalance(String(p.balance || 0)); setEditDepositBalance(String(p.deposit_balance || 0)); setEditEarningsBalance(String(p.earnings_balance || 0)); setEditReferralBalance(String(p.referral_balance || 0)); setEditName(p.full_name || ""); setEditVipLevel(String(p.vip_level || 0)); }}
                 className="flex-1 flex items-center justify-center gap-1.5 border border-primary text-primary font-semibold py-2 rounded-xl text-xs hover:bg-primary/10 transition-colors">
                 <Edit2 size={12} /> Modifier
               </button>

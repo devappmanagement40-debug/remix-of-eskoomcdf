@@ -126,37 +126,30 @@ const MesProduits = () => {
     if (!canCollect(up) || collecting) return;
     setCollecting(up.id);
 
-    const dailyRevenue = Number(up.products?.daily_revenue) || 0;
-    if (dailyRevenue <= 0) { setCollecting(null); return; }
+    try {
+      const { data, error } = await supabase.functions.invoke("collect-revenue", {
+        body: { user_product_id: up.id },
+      });
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { setCollecting(null); return; }
+      if (error) {
+        showError("Erreur", "Impossible de collecter les gains");
+        setCollecting(null);
+        return;
+      }
 
-    const { data: profile } = await supabase.from("profiles")
-      .select("balance, earnings_balance")
-      .eq("user_id", user.id).single();
+      if (data?.error) {
+        showError("Impossible", data.error);
+        setCollecting(null);
+        return;
+      }
 
-    if (!profile) { setCollecting(null); return; }
-
-    const { error: updateErr } = await supabase.from("profiles").update({
-      balance: (profile.balance || 0) + dailyRevenue,
-      earnings_balance: (profile.earnings_balance || 0) + dailyRevenue,
-    }).eq("user_id", user.id);
-
-    if (updateErr) {
-      showError("Erreur", "Impossible de collecter les gains");
+      showSuccess("Gains collectés", `+${Number(data.amount).toLocaleString("fr-FR")} FCFA crédités sur votre compte`);
+      load();
+    } catch (err) {
+      showError("Erreur", "Une erreur est survenue");
+    } finally {
       setCollecting(null);
-      return;
     }
-
-    await supabase.from("user_products").update({
-      last_collected_at: new Date().toISOString(),
-      total_collected: (up.total_collected || 0) + dailyRevenue,
-    }).eq("id", up.id);
-
-    showSuccess("Gains collectes", `+${dailyRevenue.toLocaleString("fr-FR")} FCFA credites sur votre compte`);
-    setCollecting(null);
-    load();
   };
 
   const filtered = userProducts.filter((up) => {

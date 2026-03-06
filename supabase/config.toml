@@ -1,5 +1,8 @@
 project_id = "vigdgbydpumkauibuxmn"
 
+[functions.collect-revenue]
+verify_jwt = false
+
 [functions.daily-profits]
 verify_jwt = false
 
