@@ -89,25 +89,24 @@ export const useVipProgress = (userId: string | null, vipLevel: number, balance:
         if (cancelled) return;
 
         const checkConditions = (cond: any) => {
-          const logic = cond.condition_logic || "OR";
+          const logic = cond.condition_logic || "AND";
           const checks: boolean[] = [];
-          if (cond.min_investment > 0) checks.push(personalInvestment >= cond.min_investment);
-          if (cond.min_active_members > 0) checks.push(activeMembers >= cond.min_active_members);
-          if (cond.min_purchases > 0) checks.push(totalPurchases >= cond.min_purchases);
-          if (cond.min_products_bought > 0) checks.push(uniqueProducts >= cond.min_products_bought);
+          if ((cond.min_investment || 0) > 0) checks.push(personalInvestment >= cond.min_investment);
+          if ((cond.min_active_members || 0) > 0) checks.push(activeMembers >= cond.min_active_members);
+          if ((cond.min_purchases || 0) > 0) checks.push(totalPurchases >= cond.min_purchases);
+          if ((cond.min_products_bought || 0) > 0) checks.push(uniqueProducts >= cond.min_products_bought);
           if ((cond.min_team_investment || 0) > 0) checks.push(teamInvestment >= cond.min_team_investment);
+          // If no criteria defined for this level, don't auto-promote
           if (checks.length === 0) return false;
           return logic === "AND" ? checks.every(Boolean) : checks.some(Boolean);
         };
 
+        // Only check the NEXT level (one level at a time, strict sequential promotion)
+        const nextLevelCond = conditions.find((c: any) => c.level === vipLevel + 1);
         let effectiveLevel = vipLevel;
-        for (const cond of conditions) {
-          if (cond.level <= vipLevel) continue;
-          if (checkConditions(cond)) {
-            effectiveLevel = cond.level;
-          } else {
-            break;
-          }
+        
+        if (nextLevelCond && checkConditions(nextLevelCond)) {
+          effectiveLevel = nextLevelCond.level;
         }
 
         if (effectiveLevel > vipLevel) {
