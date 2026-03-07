@@ -190,7 +190,7 @@ const PrizesSection = ({ prizes, reload, showSuccess, showError }: any) => {
 const WinnersSection = ({ spins, reload }: { spins: WheelSpin[]; reload: () => void }) => {
   const [profiles, setProfiles] = useState<Record<string, any>>({});
   const [refreshing, setRefreshing] = useState(false);
-
+  const [resetting, setResetting] = useState(false);
   useEffect(() => {
     const userIds: string[] = [...new Set(spins.map(s => s.user_id))] as string[];
     if (userIds.length === 0) return;
