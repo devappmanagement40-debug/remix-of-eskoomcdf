@@ -215,6 +215,17 @@ const WinnersSection = ({ spins, reload }: { spins: WheelSpin[]; reload: () => v
     }
   };
 
+  const handleReset = async () => {
+    if (!confirm("⚠️ Êtes-vous sûr de vouloir supprimer TOUS les gagnants ? Cette action est irréversible.")) return;
+    setResetting(true);
+    try {
+      await supabase.from("wheel_spins").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      reload();
+    } finally {
+      setResetting(false);
+    }
+  
+
   const completedSpins = spins.filter(s => s.status === "completed" || s.status === "vip_approved");
 
   const totalCash = completedSpins.filter(s => s.prize_type === "cash").reduce((sum, s) => sum + s.prize_value, 0);
