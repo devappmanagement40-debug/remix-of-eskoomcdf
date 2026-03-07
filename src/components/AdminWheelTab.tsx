@@ -190,7 +190,7 @@ const PrizesSection = ({ prizes, reload, showSuccess, showError }: any) => {
 const WinnersSection = ({ spins, reload }: { spins: WheelSpin[]; reload: () => void }) => {
   const [profiles, setProfiles] = useState<Record<string, any>>({});
   const [refreshing, setRefreshing] = useState(false);
-
+  const [resetting, setResetting] = useState(false);
   useEffect(() => {
     const userIds: string[] = [...new Set(spins.map(s => s.user_id))] as string[];
     if (userIds.length === 0) return;
@@ -212,6 +212,17 @@ const WinnersSection = ({ spins, reload }: { spins: WheelSpin[]; reload: () => v
       });
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const handleReset = async () => {
+    if (!confirm("⚠️ Êtes-vous sûr de vouloir supprimer TOUS les gagnants ? Cette action est irréversible.")) return;
+    setResetting(true);
+    try {
+      await supabase.from("wheel_spins").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      reload();
+    } finally {
+      setResetting(false);
     }
   };
 
@@ -245,6 +256,16 @@ const WinnersSection = ({ spins, reload }: { spins: WheelSpin[]; reload: () => v
           <><span className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" /> Actualisation...</>
         ) : (
           <>🔄 Actualiser les gagnants</>
+        )}
+      </button>
+
+      {/* Reset button */}
+      <button onClick={handleReset} disabled={resetting}
+        className="w-full bg-destructive/10 border border-destructive/30 text-destructive font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-50">
+        {resetting ? (
+          <><span className="w-4 h-4 border-2 border-destructive border-t-transparent rounded-full animate-spin" /> Suppression...</>
+        ) : (
+          <>🗑 Réinitialiser tous les gagnants</>
         )}
       </button>
 
