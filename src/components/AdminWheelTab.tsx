@@ -259,6 +259,16 @@ const WinnersSection = ({ spins, reload }: { spins: WheelSpin[]; reload: () => v
         )}
       </button>
 
+      {/* Reset button */}
+      <button onClick={handleReset} disabled={resetting}
+        className="w-full bg-destructive/10 border border-destructive/30 text-destructive font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-50">
+        {resetting ? (
+          <><span className="w-4 h-4 border-2 border-destructive border-t-transparent rounded-full animate-spin" /> Suppression...</>
+        ) : (
+          <>🗑 Réinitialiser tous les gagnants</>
+        )}
+      </button>
+
       {/* Winners list */}
       {completedSpins.length === 0 ? (
         <p className="text-center text-sm text-muted-foreground py-10">Aucun gagnant pour le moment</p>
