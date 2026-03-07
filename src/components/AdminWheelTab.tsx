@@ -224,7 +224,7 @@ const WinnersSection = ({ spins, reload }: { spins: WheelSpin[]; reload: () => v
     } finally {
       setResetting(false);
     }
-  
+  };
 
   const completedSpins = spins.filter(s => s.status === "completed" || s.status === "vip_approved");
 
