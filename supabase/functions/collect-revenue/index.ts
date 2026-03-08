@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
     // Fetch the user_product with product info - verify ownership
     const { data: up, error: upError } = await supabase
       .from("user_products")
-      .select("*, products(daily_revenue, cycles)")
+      .select("*, products(daily_revenue, cycles, total_revenue, gain_type)")
       .eq("id", user_product_id)
       .eq("user_id", user.id)
       .single();
@@ -64,10 +64,97 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check if product has expired by date
     const now = new Date();
+    const gainType = (up.products as any)?.gain_type || "daily";
+    const cycles = Number((up.products as any)?.cycles) || 365;
+    const totalCollected = Number(up.total_collected) || 0;
+
+    // ===== BLOCKED GAIN TYPE =====
+    if (gainType === "blocked") {
+      const totalRevenue = Number((up.products as any)?.total_revenue) || 0;
+      if (totalRevenue <= 0) {
+        return new Response(JSON.stringify({ error: "Gain total invalide" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Already collected?
+      if (totalCollected > 0) {
+        return new Response(JSON.stringify({ error: "Les gains de ce produit ont déjà été collectés" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Check if cycle has ended
+      const purchasedAt = up.purchased_at ? new Date(up.purchased_at) : null;
+      if (!purchasedAt) {
+        return new Response(JSON.stringify({ error: "Date d'achat introuvable" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const endDate = new Date(purchasedAt.getTime() + cycles * 24 * 60 * 60 * 1000);
+      if (now < endDate) {
+        const daysRemaining = Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+        return new Response(JSON.stringify({
+          error: `Les gains sont bloqués. Encore ${daysRemaining} jour${daysRemaining > 1 ? "s" : ""} avant la collecte.`,
+          days_remaining: daysRemaining,
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Cycle ended — credit the total revenue
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("balance, earnings_balance")
+        .eq("user_id", user.id)
+        .single();
+
+      if (!profile) {
+        return new Response(JSON.stringify({ error: "Profil non trouvé" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const { error: profileError } = await supabase.from("profiles").update({
+        balance: (profile.balance || 0) + totalRevenue,
+        earnings_balance: (profile.earnings_balance || 0) + totalRevenue,
+      }).eq("user_id", user.id);
+
+      if (profileError) {
+        return new Response(JSON.stringify({ error: "Erreur lors du crédit" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Mark product as collected and inactive
+      const serverNow = new Date().toISOString();
+      await supabase.from("user_products").update({
+        last_collected_at: serverNow,
+        total_collected: totalRevenue,
+        is_active: false,
+      }).eq("id", up.id);
+
+      return new Response(JSON.stringify({
+        success: true,
+        amount: totalRevenue,
+        message: `+${totalRevenue.toLocaleString("fr-FR")} FCFA crédités (gains débloqués)`,
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ===== DAILY GAIN TYPE (existing logic) =====
+    // Check if product has expired by date
     if (up.expires_at && new Date(up.expires_at) < now) {
-      // Mark as expired
       await supabase.from("user_products").update({ is_active: false }).eq("id", up.id);
       return new Response(JSON.stringify({ error: "Ce produit est expiré" }), {
         status: 400,
@@ -84,7 +171,6 @@ Deno.serve(async (req) => {
     }
 
     // STRICT 24h check
-    // If never collected, use purchased_at as reference
     const referenceTime = up.last_collected_at || up.purchased_at;
     if (referenceTime) {
       const refDate = new Date(referenceTime);
@@ -93,7 +179,7 @@ Deno.serve(async (req) => {
 
       if (hoursSinceRef < 24) {
         const hoursRemaining = Math.ceil(24 - hoursSinceRef);
-        return new Response(JSON.stringify({ 
+        return new Response(JSON.stringify({
           error: `Vous devez attendre encore ${hoursRemaining}h avant de collecter`,
           hours_remaining: hoursRemaining,
         }), {
@@ -103,12 +189,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Check max cycles - total_collected should not exceed total possible
-    const cycles = Number((up.products as any)?.cycles) || 365;
-    const totalCollected = Number(up.total_collected) || 0;
+    // Check max cycles
     const maxTotal = dailyRevenue * cycles;
     if (totalCollected >= maxTotal) {
-      // Product fully collected, mark as inactive
       await supabase.from("user_products").update({ is_active: false }).eq("id", up.id);
       return new Response(JSON.stringify({ error: "Tous les gains ont déjà été collectés pour ce produit" }), {
         status: 400,
@@ -116,7 +199,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // All checks passed - credit the user atomically
+    // Credit the user
     const { data: profile } = await supabase
       .from("profiles")
       .select("balance, earnings_balance")
@@ -130,7 +213,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Update profile balance
     const { error: profileError } = await supabase.from("profiles").update({
       balance: (profile.balance || 0) + dailyRevenue,
       earnings_balance: (profile.earnings_balance || 0) + dailyRevenue,
@@ -143,15 +225,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Update user_product - set last_collected_at to NOW (server time)
     const serverNow = new Date().toISOString();
     await supabase.from("user_products").update({
       last_collected_at: serverNow,
       total_collected: totalCollected + dailyRevenue,
     }).eq("id", up.id);
 
-    return new Response(JSON.stringify({ 
-      success: true, 
+    return new Response(JSON.stringify({
+      success: true,
       amount: dailyRevenue,
       message: `+${dailyRevenue.toLocaleString("fr-FR")} FCFA crédités`,
     }), {
