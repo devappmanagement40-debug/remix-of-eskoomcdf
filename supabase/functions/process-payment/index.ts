@@ -311,19 +311,20 @@ async function processOmniPay(config: any, amount: number, phone: string, countr
     const apiKey = config.api_key || Deno.env.get('OMNIPAY_API_KEY') || '';
     const baseUrl = (config.endpoint_url || 'https://omnipay.webtechci.com').replace(/\/$/, '');
 
+    // MSISDN: international prefix WITHOUT 00 or + (e.g. 2250707070707)
     const cleanPhone = phone.replace(/\D/g, '');
     const codeDigits = countryCode.replace('+', '');
     const msisdn = cleanPhone.startsWith(codeDigits) ? cleanPhone : `${codeDigits}${cleanPhone}`;
 
+    // Detect operator - only needed for Wave/MIXX (auto-detected for Orange/MTN/Moov)
     const nameLower = (methodName || '').toLowerCase();
     let operator: string | undefined;
     if (nameLower.includes('wave')) operator = 'wave';
     else if (nameLower.includes('mixx')) operator = 'mixx';
 
-    const callbackUrl = config.callback_url || `${Deno.env.get('SUPABASE_URL')}/functions/v1/omnipay-webhook`;
     const reference = `OMN${transactionId.replace(/-/g, '').slice(0, 16)}`;
 
-    const payload: any = {
+    const payload: Record<string, string> = {
       action: 'paymentrequest',
       apikey: apiKey,
       msisdn,
@@ -333,14 +334,18 @@ async function processOmniPay(config: any, amount: number, phone: string, countr
       last_name: 'Eskom',
     };
 
-    if (operator) {
-      payload.operator = operator;
-      if (operator === 'wave') payload.return_url = callbackUrl;
+    // OTP is required for Orange Money (BF and CI) — field name is "otp" per doc
+    if (otpCode) {
+      payload.otp = otpCode;
     }
 
-    // Add OTP code for Orange Money (required for BF and CI)
-    if (otpCode) {
-      payload.otp_code = otpCode;
+    // operator is only needed for Wave/MIXX (auto-detected for others)
+    if (operator) {
+      payload.operator = operator;
+      // return_url is mandatory only for Wave
+      if (operator === 'wave') {
+        payload.return_url = config.callback_url || `${Deno.env.get('SUPABASE_URL')}/functions/v1/omnipay-webhook`;
+      }
     }
 
     console.log('OmniPay payload:', JSON.stringify(payload));
@@ -354,17 +359,23 @@ async function processOmniPay(config: any, amount: number, phone: string, countr
     const data = await response.json();
     console.log('OmniPay response:', JSON.stringify(data));
 
+    // success: 1 or "1" means request accepted
     if (data.success === 1 || data.success === '1') {
       const providerRef = reference;
+
+      // Store OmniPay transaction ID and reference in payment_logs
       const supabaseAdmin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
       await supabaseAdmin.from('payment_logs').update({
         provider_ref: reference,
         provider_response: { ...data, omnipay_id: String(data.id || ''), omnipay_reference: reference },
       }).eq('id', transactionId);
 
+      // Wave returns payment_url for redirect-based payment
       if (data.payment_url) {
         return { success: true, pending: true, provider_ref: providerRef, paymentUrl: data.payment_url };
       }
+
+      // Other operators: USSD push sent, waiting for user confirmation via callback
       return { success: true, pending: true, provider_ref: providerRef };
     }
 
