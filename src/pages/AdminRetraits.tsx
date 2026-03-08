@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
-import { Search, Clock, CheckCircle2, XCircle, ArrowDown, CreditCard } from "lucide-react";
+import { Search, Clock, CheckCircle2, XCircle, ArrowDown, CreditCard, Zap, Loader2 } from "lucide-react";
 
 type Withdrawal = {
   id: string;
@@ -86,6 +86,8 @@ const AdminRetraits = () => {
     setLoading(false);
   };
 
+  const [autoPayingId, setAutoPayingId] = useState<string | null>(null);
+
   const handleAction = async (item: Withdrawal, status: "approved" | "rejected") => {
     const { error } = await supabase.from("withdrawals").update({ status }).eq("id", item.id);
     if (error) { showError("Erreur", "Erreur lors de la mise à jour"); return; }
@@ -103,6 +105,31 @@ const AdminRetraits = () => {
       status === "approved" ? "Le retrait a été validé et le solde débité ✅" : "Le retrait a été refusé ❌"
     );
     loadData();
+  };
+
+  const handleOmniPayTransfer = async (item: Withdrawal) => {
+    setAutoPayingId(item.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("process-withdrawal", {
+        body: { withdrawal_id: item.id },
+      });
+
+      if (error) {
+        showError("Erreur", "Erreur de connexion au serveur");
+        return;
+      }
+
+      if (data?.success) {
+        showSuccess("Transfert OmniPay", `Transfert initié ! Ref: ${data.reference} | Frais OmniPay: ${data.fees || 0} FCFA`);
+        loadData();
+      } else {
+        showError("Erreur OmniPay", data?.error || "Le transfert a échoué");
+      }
+    } catch {
+      showError("Erreur", "Erreur de connexion");
+    } finally {
+      setAutoPayingId(null);
+    }
   };
 
   const counts = {
@@ -247,21 +274,35 @@ const AdminRetraits = () => {
 
                 {/* Actions */}
                 {r.status === "pending" && (
-                  <div className="grid grid-cols-2 gap-3 mt-4">
+                  <div className="space-y-2 mt-4">
+                    {/* OmniPay auto transfer */}
                     <button
-                      onClick={() => handleAction(r, "approved")}
-                      className="flex items-center justify-center gap-2 border-2 border-success text-success font-bold py-2.5 rounded-xl text-sm hover:bg-success/10 transition-colors"
+                      onClick={() => handleOmniPayTransfer(r)}
+                      disabled={autoPayingId === r.id}
+                      className="w-full flex items-center justify-center gap-2 gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm disabled:opacity-50"
                     >
-                      <CheckCircle2 size={16} />
-                      Approuver
+                      {autoPayingId === r.id ? (
+                        <><Loader2 size={16} className="animate-spin" />Transfert en cours...</>
+                      ) : (
+                        <><Zap size={16} />Payer via OmniPay</>
+                      )}
                     </button>
-                    <button
-                      onClick={() => handleAction(r, "rejected")}
-                      className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10 transition-colors"
-                    >
-                      <XCircle size={16} />
-                      Rejeter
-                    </button>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        onClick={() => handleAction(r, "approved")}
+                        className="flex items-center justify-center gap-2 border-2 border-success text-success font-bold py-2.5 rounded-xl text-sm hover:bg-success/10 transition-colors"
+                      >
+                        <CheckCircle2 size={16} />
+                        Approuver
+                      </button>
+                      <button
+                        onClick={() => handleAction(r, "rejected")}
+                        className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10 transition-colors"
+                      >
+                        <XCircle size={16} />
+                        Rejeter
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
