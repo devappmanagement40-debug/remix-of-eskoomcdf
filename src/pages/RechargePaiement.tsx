@@ -97,16 +97,18 @@ const RechargePaiement = () => {
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke("process-payment", {
-        body: {
-          amount,
-          phone,
-          country_code: countryCode,
-          payment_method_id: method.id,
-          api_config_id: method.api_config_id,
-          payment_method_name: method.name,
-        },
-      });
+      const body: Record<string, unknown> = {
+        amount,
+        phone,
+        country_code: countryCode,
+        payment_method_id: method.id,
+        api_config_id: method.api_config_id,
+        payment_method_name: method.name,
+      };
+      if (otpCode.trim()) {
+        body.otp_code = otpCode.trim();
+      }
+      const { data, error } = await supabase.functions.invoke("process-payment", { body });
 
       if (error) {
         setApiStatus("failed");
