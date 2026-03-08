@@ -33,6 +33,7 @@ const AdminRecharges = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
   const [search, setSearch] = useState("");
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
   useEffect(() => {
     checkAdminAndLoad();
