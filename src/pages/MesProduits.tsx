@@ -189,7 +189,8 @@ const MesProduits = () => {
     const cycles = product?.cycles || 365;
     const daysReceived = getDaysReceived(detailProduct);
     const dailyRevenue = Number(product?.daily_revenue) || 0;
-    const totalRevenue = dailyRevenue * cycles;
+    const gainType = product?.gain_type || "daily";
+    const totalRevenue = gainType === "blocked" ? Number(product?.total_revenue) || 0 : dailyRevenue * cycles;
     const earnedSoFar = detailProduct.total_collected || 0;
     const color = getColor(detailProduct);
 
