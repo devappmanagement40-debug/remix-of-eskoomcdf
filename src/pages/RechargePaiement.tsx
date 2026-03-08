@@ -133,16 +133,13 @@ const RechargePaiement = () => {
   };
 
   const handleValidate = async () => {
-    if (!transactionRef.trim()) {
-      showError("Erreur", "Veuillez entrer la reference de la transaction");
-      return;
-    }
-    if (transactionRef.trim().length < 3) {
-      showError("Erreur", "La reference doit contenir au moins 3 caracteres");
+    if (!proofImage) {
+      showError("Erreur", "Veuillez télécharger une preuve de paiement");
       return;
     }
 
     setLoading(true);
+    setUploading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -151,21 +148,36 @@ const RechargePaiement = () => {
         return;
       }
 
+      // Upload image to storage
+      const fileExt = proofImage.name.split(".").pop();
+      const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+      const filePath = `recharge-proofs/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("site-assets")
+        .upload(filePath, proofImage, { cacheControl: "3600", upsert: false });
+
+      if (uploadError) {
+        showError("Erreur", "Erreur lors du téléchargement de l'image");
+        return;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage.from("site-assets").getPublicUrl(filePath);
+      const proofUrl = urlData?.publicUrl;
+
+      // Insert recharge with proof image URL
       const { error } = await supabase.from("recharges").insert({
         user_id: user.id,
         phone,
         country_code: countryCode,
         amount,
-        transaction_ref: transactionRef.trim(),
         payment_method: method.name,
+        proof_image_url: proofUrl,
       });
 
       if (error) {
-        if (error.message.includes("duplicate") || error.message.includes("unique")) {
-          showError("Erreur", "Cette reference de transaction a deja ete utilisee");
-        } else {
-          showError("Erreur", "Erreur lors de la soumission");
-        }
+        showError("Erreur", "Erreur lors de la soumission");
         return;
       }
 
@@ -174,6 +186,7 @@ const RechargePaiement = () => {
       showError("Erreur", "Erreur de connexion au serveur");
     } finally {
       setLoading(false);
+      setUploading(false);
     }
   };
 
