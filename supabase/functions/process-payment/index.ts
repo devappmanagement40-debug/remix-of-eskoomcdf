@@ -88,6 +88,9 @@ serve(async (req) => {
         case 'sendavapay':
           paymentResult = await processSendavaPay(apiConfig, amount, phone, country_code, logEntry.id, payment_method_name);
           break;
+        case 'omnipay':
+          paymentResult = await processOmniPay(apiConfig, amount, phone, country_code, logEntry.id, payment_method_name);
+          break;
         default:
           // Generic API call
           if (apiConfig.endpoint_url) {
