@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import PremiumModal from "@/components/PremiumModal";
-import { Copy, ExternalLink, CheckCircle, Zap, Loader2 } from "lucide-react";
+import { Copy, ExternalLink, CheckCircle, Zap, Loader2, Upload, Image as ImageIcon, X } from "lucide-react";
 import { safeClipboardWrite } from "@/lib/clipboard";
 
 type PaymentMethodInfo = {
@@ -22,12 +22,17 @@ const RechargePaiement = () => {
     method: PaymentMethodInfo; isExternal?: boolean; isApi?: boolean;
   }) || {};
 
-  const [transactionRef, setTransactionRef] = useState("");
   const [loading, setLoading] = useState(false);
   const [showRechargeSuccess, setShowRechargeSuccess] = useState(false);
   const [redirected, setRedirected] = useState(false);
   const [apiProcessing, setApiProcessing] = useState(false);
   const [apiStatus, setApiStatus] = useState<"idle" | "processing" | "success" | "pending" | "failed">("idle");
+  
+  // Image upload state
+  const [proofImage, setProofImage] = useState<File | null>(null);
+  const [proofPreview, setProofPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!amount || !method) {
@@ -46,6 +51,37 @@ const RechargePaiement = () => {
     if (method.external_url) {
       window.open(method.external_url, "_blank");
       setRedirected(true);
+    }
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      showError("Erreur", "Veuillez sélectionner une image");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showError("Erreur", "L'image ne doit pas dépasser 5 Mo");
+      return;
+    }
+
+    setProofImage(file);
+    setProofPreview(URL.createObjectURL(file));
+  };
+
+  const removeImage = () => {
+    setProofImage(null);
+    if (proofPreview) {
+      URL.revokeObjectURL(proofPreview);
+      setProofPreview(null);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -97,16 +133,13 @@ const RechargePaiement = () => {
   };
 
   const handleValidate = async () => {
-    if (!transactionRef.trim()) {
-      showError("Erreur", "Veuillez entrer la reference de la transaction");
-      return;
-    }
-    if (transactionRef.trim().length < 3) {
-      showError("Erreur", "La reference doit contenir au moins 3 caracteres");
+    if (!proofImage) {
+      showError("Erreur", "Veuillez télécharger une preuve de paiement");
       return;
     }
 
     setLoading(true);
+    setUploading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -115,21 +148,36 @@ const RechargePaiement = () => {
         return;
       }
 
+      // Upload image to storage
+      const fileExt = proofImage.name.split(".").pop();
+      const fileName = `${user.id}_${Date.now()}.${fileExt}`;
+      const filePath = `recharge-proofs/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("site-assets")
+        .upload(filePath, proofImage, { cacheControl: "3600", upsert: false });
+
+      if (uploadError) {
+        showError("Erreur", "Erreur lors du téléchargement de l'image");
+        return;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage.from("site-assets").getPublicUrl(filePath);
+      const proofUrl = urlData?.publicUrl;
+
+      // Insert recharge with proof image URL
       const { error } = await supabase.from("recharges").insert({
         user_id: user.id,
         phone,
         country_code: countryCode,
         amount,
-        transaction_ref: transactionRef.trim(),
         payment_method: method.name,
+        proof_image_url: proofUrl,
       });
 
       if (error) {
-        if (error.message.includes("duplicate") || error.message.includes("unique")) {
-          showError("Erreur", "Cette reference de transaction a deja ete utilisee");
-        } else {
-          showError("Erreur", "Erreur lors de la soumission");
-        }
+        showError("Erreur", "Erreur lors de la soumission");
         return;
       }
 
@@ -138,6 +186,7 @@ const RechargePaiement = () => {
       showError("Erreur", "Erreur de connexion au serveur");
     } finally {
       setLoading(false);
+      setUploading(false);
     }
   };
 
@@ -294,18 +343,58 @@ const RechargePaiement = () => {
         {(method.payment_type !== "api" || apiStatus === "failed") && (
           <div className="bg-card rounded-2xl border border-border/30 p-4 space-y-3">
             <p className="text-xs font-bold text-foreground">
-              {apiStatus === "failed" ? "Confirmation manuelle (secours)" : "Confirmation de transaction"}
+              {apiStatus === "failed" ? "Confirmation manuelle (secours)" : "Preuve de paiement"}
             </p>
 
+            {/* Image upload */}
             <div>
-              <label className="text-[10px] text-muted-foreground mb-1 block">ID de transaction</label>
+              <label className="text-[10px] text-muted-foreground mb-2 block">
+                Téléchargez une capture d'écran ou photo de votre transaction
+              </label>
+              
               <input
-                type="text"
-                placeholder="Entrez l'ID de la transaction"
-                value={transactionRef}
-                onChange={(e) => setTransactionRef(e.target.value)}
-                className="w-full bg-secondary/50 rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-primary"
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
               />
+
+              {!proofPreview ? (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full border-2 border-dashed border-secondary rounded-xl py-8 flex flex-col items-center justify-center gap-3 hover:border-primary/50 transition-colors"
+                >
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Upload size={24} className="text-primary" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-semibold text-foreground">Télécharger une image</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">PNG, JPG ou JPEG (max 5 Mo)</p>
+                  </div>
+                </button>
+              ) : (
+                <div className="relative">
+                  <img
+                    src={proofPreview}
+                    alt="Preuve de paiement"
+                    className="w-full h-48 object-cover rounded-xl border border-secondary"
+                  />
+                  <button
+                    onClick={removeImage}
+                    className="absolute top-2 right-2 p-1.5 bg-destructive text-destructive-foreground rounded-full shadow-lg"
+                  >
+                    <X size={14} />
+                  </button>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute bottom-2 right-2 flex items-center gap-1.5 px-3 py-1.5 bg-card/90 backdrop-blur-sm text-foreground text-xs font-semibold rounded-lg border border-secondary"
+                  >
+                    <ImageIcon size={12} />
+                    Changer
+                  </button>
+                </div>
+              )}
             </div>
 
             <div>
@@ -317,10 +406,17 @@ const RechargePaiement = () => {
 
             <button
               onClick={handleValidate}
-              disabled={loading || !transactionRef.trim()}
-              className="w-full bg-success text-success-foreground font-bold py-3.5 rounded-xl text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+              disabled={loading || !proofImage}
+              className="w-full bg-success text-success-foreground font-bold py-3.5 rounded-xl text-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {loading ? "Envoi en cours..." : "Confirmer le paiement"}
+              {loading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  {uploading ? "Téléchargement..." : "Envoi en cours..."}
+                </>
+              ) : (
+                "Confirmer le paiement"
+              )}
             </button>
           </div>
         )}

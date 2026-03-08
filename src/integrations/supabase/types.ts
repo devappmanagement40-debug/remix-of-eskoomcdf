@@ -786,6 +786,7 @@ export type Database = {
           id: string
           payment_method: string | null
           phone: string
+          proof_image_url: string | null
           status: string
           transaction_ref: string | null
           updated_at: string | null
@@ -799,6 +800,7 @@ export type Database = {
           id?: string
           payment_method?: string | null
           phone: string
+          proof_image_url?: string | null
           status?: string
           transaction_ref?: string | null
           updated_at?: string | null
@@ -812,6 +814,7 @@ export type Database = {
           id?: string
           payment_method?: string | null
           phone?: string
+          proof_image_url?: string | null
           status?: string
           transaction_ref?: string | null
           updated_at?: string | null

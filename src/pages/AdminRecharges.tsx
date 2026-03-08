@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
-import { Search, Clock, CheckCircle2, XCircle, CreditCard } from "lucide-react";
+import { Search, Clock, CheckCircle2, XCircle, CreditCard, Image as ImageIcon, X, ZoomIn } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 type Recharge = {
   id: string;
@@ -11,6 +12,7 @@ type Recharge = {
   country_code: string;
   amount: number;
   transaction_ref: string | null;
+  proof_image_url: string | null;
   payment_method: string | null;
   status: string;
   created_at: string | null;
@@ -31,6 +33,7 @@ const AdminRecharges = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
   const [search, setSearch] = useState("");
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
   useEffect(() => {
     checkAdminAndLoad();
@@ -277,6 +280,24 @@ const AdminRecharges = () => {
                     <p className="text-[10px] text-muted-foreground">Nom client :</p>
                     <p className="text-xs font-semibold text-foreground">{profile?.full_name || "—"}</p>
                   </div>
+                  {r.proof_image_url && (
+                    <div className="col-span-2">
+                      <p className="text-[10px] text-muted-foreground mb-1">Preuve de paiement :</p>
+                      <button
+                        onClick={() => setZoomedImage(r.proof_image_url)}
+                        className="relative group cursor-pointer"
+                      >
+                        <img
+                          src={r.proof_image_url}
+                          alt="Preuve de paiement"
+                          className="w-full max-w-[200px] h-24 object-cover rounded-lg border border-secondary"
+                        />
+                        <div className="absolute inset-0 max-w-[200px] bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                          <ZoomIn size={20} className="text-white" />
+                        </div>
+                      </button>
+                    </div>
+                  )}
                   <div>
                     <p className="text-[10px] text-muted-foreground">Date :</p>
                     <p className="text-xs font-semibold text-foreground">{formatDate(r.created_at)}</p>
@@ -307,6 +328,26 @@ const AdminRecharges = () => {
           );
         })}
       </div>
+
+      {/* Image zoom modal */}
+      <Dialog open={!!zoomedImage} onOpenChange={() => setZoomedImage(null)}>
+        <DialogContent className="max-w-3xl p-0 bg-black/95 border-none">
+          <DialogTitle className="sr-only">Preuve de paiement</DialogTitle>
+          <button
+            onClick={() => setZoomedImage(null)}
+            className="absolute top-3 right-3 z-10 p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors"
+          >
+            <X size={20} className="text-white" />
+          </button>
+          {zoomedImage && (
+            <img
+              src={zoomedImage}
+              alt="Preuve de paiement (agrandie)"
+              className="w-full h-auto max-h-[85vh] object-contain"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
