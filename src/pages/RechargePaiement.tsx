@@ -27,6 +27,7 @@ const RechargePaiement = () => {
   const [redirected, setRedirected] = useState(false);
   const [apiProcessing, setApiProcessing] = useState(false);
   const [apiStatus, setApiStatus] = useState<"idle" | "processing" | "success" | "pending" | "failed">("idle");
+  const [otpCode, setOtpCode] = useState("");
   
   // Image upload state
   const [proofImage, setProofImage] = useState<File | null>(null);
