@@ -575,6 +575,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
 const DepositsTab = ({ recharges, profiles, reload, showSuccess, showError, logAction }: any) => {
   const [filter, setFilter] = useState("pending");
   const [search, setSearch] = useState("");
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
   const profileMap: Record<string, Profile> = {};
   profiles.forEach((p: Profile) => { profileMap[p.user_id] = p; });
 
@@ -662,8 +663,22 @@ const DepositsTab = ({ recharges, profiles, reload, showSuccess, showError, logA
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
                 <div><p className="text-[10px] text-muted-foreground">Client</p><p className="text-xs font-semibold text-foreground">{r.country_code} {r.phone}</p></div>
                 <div><p className="text-[10px] text-muted-foreground">Solde actuel</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("fr-FR")} FCFA` : "—"}</p></div>
-                <div><p className="text-[10px] text-muted-foreground">Référence</p><p className="text-xs font-semibold text-foreground font-mono">{r.transaction_ref || "—"}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Nom client</p><p className="text-xs font-semibold text-foreground">{p?.full_name || "—"}</p></div>
                 <div><p className="text-[10px] text-muted-foreground">Date</p><p className="text-xs font-semibold text-foreground">{r.created_at ? new Date(r.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</p></div>
+                {r.proof_image_url && (
+                  <div className="col-span-2">
+                    <p className="text-[10px] text-muted-foreground mb-1">Preuve de paiement :</p>
+                    <button onClick={() => setZoomedImage(r.proof_image_url)} className="relative group cursor-pointer">
+                      <img src={r.proof_image_url} alt="Preuve de paiement" className="w-full max-w-[200px] h-24 object-cover rounded-lg border border-secondary" />
+                      <div className="absolute inset-0 max-w-[200px] bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                        <Eye size={20} className="text-white" />
+                      </div>
+                    </button>
+                  </div>
+                )}
+                {!r.proof_image_url && r.transaction_ref && (
+                  <div className="col-span-2"><p className="text-[10px] text-muted-foreground">Référence</p><p className="text-xs font-semibold text-foreground font-mono">{r.transaction_ref}</p></div>
+                )}
               </div>
               {r.status === "pending" && (
                 <div className="grid grid-cols-2 gap-3 mt-4">
@@ -674,6 +689,16 @@ const DepositsTab = ({ recharges, profiles, reload, showSuccess, showError, logA
             </div>
           );
         })}
+
+      {/* Image zoom modal */}
+      {zoomedImage && (
+        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" onClick={() => setZoomedImage(null)}>
+          <button onClick={() => setZoomedImage(null)} className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors">
+            <X size={20} className="text-white" />
+          </button>
+          <img src={zoomedImage} alt="Preuve de paiement (agrandie)" className="max-w-full max-h-[85vh] object-contain rounded-lg" />
+        </div>
+      )}
     </div>
   );
 };
