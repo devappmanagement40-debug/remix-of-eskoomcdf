@@ -23,6 +23,7 @@ type Profile = {
 type Recharge = {
   id: string; phone: string; country_code: string; amount: number;
   transaction_ref: string | null; payment_method: string | null;
+  proof_image_url: string | null;
   status: string; created_at: string | null; user_id: string;
 };
 type Withdrawal = {
