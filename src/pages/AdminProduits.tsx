@@ -413,7 +413,7 @@ const AdminProduits = () => {
                                 {p.is_new && <span className="text-[9px] bg-success/20 text-success px-1.5 py-0.5 rounded-full font-bold">NEW</span>}
                                 {p.is_featured && <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold">POP</span>}
                               </div>
-                              <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} FCFA • {p.return_percent}% • {p.cycles}j</span>
+                              <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} FCFA • {p.return_percent}% • {p.cycles}j {p.gain_type === "blocked" ? "• 🔒" : ""}</span>
                             </div>
                             <div className="flex gap-1.5">
                               <button onClick={() => toggleActive(p)} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>
