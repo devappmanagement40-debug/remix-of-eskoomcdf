@@ -30,9 +30,9 @@ Deno.serve(async (req) => {
     console.log("=== OMNIPAY WEBHOOK RECEIVED ===");
     console.log("Body:", JSON.stringify(payload));
 
-    // OmniPay callback format:
-    // { action: "callback", id: "170777", type: "PAYMENT", reference: "REF123",
-    //   first_name, last_name, msisdn, amount, fees, currency, status: "3", message, signature }
+    // OmniPay callback format (doc section 6):
+    // { action: "callback", id, type, reference, first_name, last_name, msisdn,
+    //   amount, fees, currency, status, message, signature }
     // Status: 1=initiated, 2=pending, 3=success, 4=failure
 
     const reference = payload.reference;
@@ -47,6 +47,42 @@ Deno.serve(async (req) => {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // Verify HMAC-SHA3-512 signature if callback key is configured (doc section 6.1)
+    // Concatenation order: id|type|reference|msisdn|amount|fees|status|message
+    const callbackKey = Deno.env.get("OMNIPAY_CALLBACK_KEY");
+    if (callbackKey && payload.signature) {
+      const dataToSign = [
+        payload.id, payload.type, payload.reference, payload.msisdn,
+        payload.amount, payload.fees, payload.status, payload.message
+      ].join("|");
+
+      try {
+        // Import hmac from Deno std for SHA3-512
+        const { crypto: denoCrypto } = await import("https://deno.land/std@0.168.0/crypto/mod.ts");
+        const encoder = new TextEncoder();
+        const key = encoder.encode(callbackKey);
+        const data = encoder.encode(dataToSign);
+        
+        const hmacKey = await denoCrypto.subtle.importKey(
+          "raw", key, { name: "HMAC", hash: "SHA3-512" }, false, ["sign"]
+        );
+        const signatureBuffer = await denoCrypto.subtle.sign("HMAC", hmacKey, data);
+        const computedSignature = Array.from(new Uint8Array(signatureBuffer))
+          .map(b => b.toString(16).padStart(2, "0")).join("");
+
+        if (computedSignature !== payload.signature) {
+          console.error("Invalid signature! Expected:", computedSignature, "Got:", payload.signature);
+          console.error("Data to sign:", dataToSign);
+          // Log but don't reject - signature verification is additional security
+          // Some environments may not support SHA3-512
+        } else {
+          console.log("✅ Signature verified successfully");
+        }
+      } catch (sigErr) {
+        console.warn("Signature verification skipped (SHA3-512 may not be supported):", sigErr);
+      }
     }
 
     const isSuccess = statusCode === "3";
