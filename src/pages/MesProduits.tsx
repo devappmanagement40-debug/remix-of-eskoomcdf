@@ -117,7 +117,20 @@ const MesProduits = () => {
 
   const canCollect = (up: UserProduct) => {
     if (getStatus(up) !== "actif") return false;
-    // Use last_collected_at if available, otherwise use purchased_at
+    const gainType = up.products?.gain_type || "daily";
+    
+    if (gainType === "blocked") {
+      // Blocked products: can only collect after cycle ends
+      if (!up.purchased_at) return false;
+      const purchaseDate = new Date(up.purchased_at);
+      const cycles = up.products?.cycles || 365;
+      const endDate = new Date(purchaseDate.getTime() + cycles * 24 * 60 * 60 * 1000);
+      // Already collected?
+      if ((up.total_collected || 0) > 0) return false;
+      return now >= endDate;
+    }
+    
+    // Daily products: 24h cooldown
     const referenceTime = up.last_collected_at || up.purchased_at;
     if (!referenceTime) return true;
     const refDate = new Date(referenceTime);
