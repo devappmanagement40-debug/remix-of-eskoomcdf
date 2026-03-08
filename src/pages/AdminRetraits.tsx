@@ -86,6 +86,8 @@ const AdminRetraits = () => {
     setLoading(false);
   };
 
+  const [autoPayingId, setAutoPayingId] = useState<string | null>(null);
+
   const handleAction = async (item: Withdrawal, status: "approved" | "rejected") => {
     const { error } = await supabase.from("withdrawals").update({ status }).eq("id", item.id);
     if (error) { showError("Erreur", "Erreur lors de la mise à jour"); return; }
@@ -103,6 +105,31 @@ const AdminRetraits = () => {
       status === "approved" ? "Le retrait a été validé et le solde débité ✅" : "Le retrait a été refusé ❌"
     );
     loadData();
+  };
+
+  const handleOmniPayTransfer = async (item: Withdrawal) => {
+    setAutoPayingId(item.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("process-withdrawal", {
+        body: { withdrawal_id: item.id },
+      });
+
+      if (error) {
+        showError("Erreur", "Erreur de connexion au serveur");
+        return;
+      }
+
+      if (data?.success) {
+        showSuccess("Transfert OmniPay", `Transfert initié ! Ref: ${data.reference} | Frais OmniPay: ${data.fees || 0} FCFA`);
+        loadData();
+      } else {
+        showError("Erreur OmniPay", data?.error || "Le transfert a échoué");
+      }
+    } catch {
+      showError("Erreur", "Erreur de connexion");
+    } finally {
+      setAutoPayingId(null);
+    }
   };
 
   const counts = {
