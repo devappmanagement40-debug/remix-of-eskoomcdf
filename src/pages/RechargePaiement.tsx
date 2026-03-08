@@ -222,9 +222,9 @@ const RechargePaiement = () => {
             {(method.name?.toLowerCase().includes("orange")) && apiStatus === "idle" && (
               <div className="space-y-2">
                 <div className="bg-amber-500/10 rounded-xl px-4 py-3">
-                  <p className="text-xs font-semibold text-amber-600">Code OTP requis pour Orange Money</p>
+                  <p className="text-xs font-semibold text-amber-600">Code OTP requis</p>
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    Composez #144*82# puis entrez votre code secret Orange Money pour recevoir votre code OTP.
+                    Composez <span className="font-bold text-foreground">*144*4*6*{amount}#</span> sur votre téléphone pour générer votre code OTP, puis saisissez le code reçu par SMS ci-dessous.
                   </p>
                 </div>
                 <div>
