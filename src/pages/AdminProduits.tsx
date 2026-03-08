@@ -48,6 +48,7 @@ const AdminProduits = () => {
   const [productPrice, setProductPrice] = useState("");
   const [productIsNew, setProductIsNew] = useState(false);
   const [productIsFeatured, setProductIsFeatured] = useState(false);
+  const [productGainType, setProductGainType] = useState<"daily" | "blocked">("daily");
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
