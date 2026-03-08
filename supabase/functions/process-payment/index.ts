@@ -306,7 +306,7 @@ async function processSendavaPay(config: any, amount: number, phone: string, cou
 }
 
 // OmniPay integration (API v2.0)
-async function processOmniPay(config: any, amount: number, phone: string, countryCode: string, transactionId: string, methodName?: string) {
+async function processOmniPay(config: any, amount: number, phone: string, countryCode: string, transactionId: string, methodName?: string, otpCode?: string) {
   try {
     const apiKey = config.api_key || Deno.env.get('OMNIPAY_API_KEY') || '';
     const baseUrl = (config.endpoint_url || 'https://omnipay.webtechci.com').replace(/\/$/, '');
