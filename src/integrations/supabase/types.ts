@@ -647,6 +647,7 @@ export type Database = {
           cycles: number | null
           daily_revenue: number | null
           description: string | null
+          gain_type: string
           id: string
           image_url: string | null
           is_active: boolean | null
@@ -666,6 +667,7 @@ export type Database = {
           cycles?: number | null
           daily_revenue?: number | null
           description?: string | null
+          gain_type?: string
           id?: string
           image_url?: string | null
           is_active?: boolean | null
@@ -685,6 +687,7 @@ export type Database = {
           cycles?: number | null
           daily_revenue?: number | null
           description?: string | null
+          gain_type?: string
           id?: string
           image_url?: string | null
           is_active?: boolean | null
