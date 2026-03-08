@@ -31,6 +31,7 @@ type UserProduct = {
     description: string | null;
     image_url: string | null;
     series_id: string;
+    gain_type: string;
   } | null;
 };
 
@@ -72,7 +73,7 @@ const MesProduits = () => {
       const [productsRes, seriesRes] = await Promise.all([
         supabase
           .from("user_products")
-          .select("*, products(name, price, daily_revenue, total_revenue, cycles, description, image_url, series_id)")
+          .select("*, products(name, price, daily_revenue, total_revenue, cycles, description, image_url, series_id, gain_type)")
           .eq("user_id", user.id)
           .order("purchased_at", { ascending: false }),
         supabase.from("product_series").select("id, name, color"),
@@ -116,7 +117,20 @@ const MesProduits = () => {
 
   const canCollect = (up: UserProduct) => {
     if (getStatus(up) !== "actif") return false;
-    // Use last_collected_at if available, otherwise use purchased_at
+    const gainType = up.products?.gain_type || "daily";
+    
+    if (gainType === "blocked") {
+      // Blocked products: can only collect after cycle ends
+      if (!up.purchased_at) return false;
+      const purchaseDate = new Date(up.purchased_at);
+      const cycles = up.products?.cycles || 365;
+      const endDate = new Date(purchaseDate.getTime() + cycles * 24 * 60 * 60 * 1000);
+      // Already collected?
+      if ((up.total_collected || 0) > 0) return false;
+      return now >= endDate;
+    }
+    
+    // Daily products: 24h cooldown
     const referenceTime = up.last_collected_at || up.purchased_at;
     if (!referenceTime) return true;
     const refDate = new Date(referenceTime);
@@ -175,7 +189,8 @@ const MesProduits = () => {
     const cycles = product?.cycles || 365;
     const daysReceived = getDaysReceived(detailProduct);
     const dailyRevenue = Number(product?.daily_revenue) || 0;
-    const totalRevenue = dailyRevenue * cycles;
+    const gainType = product?.gain_type || "daily";
+    const totalRevenue = gainType === "blocked" ? Number(product?.total_revenue) || 0 : dailyRevenue * cycles;
     const earnedSoFar = detailProduct.total_collected || 0;
     const color = getColor(detailProduct);
 
@@ -200,12 +215,14 @@ const MesProduits = () => {
                 <p className="text-[10px] text-muted-foreground">Prix d'achat</p>
                 <p className="text-sm font-bold text-foreground">{Number(product?.price).toLocaleString("fr-FR")} FCFA</p>
               </div>
+              {gainType === "daily" && (
+                <div className="bg-secondary/50 rounded-lg p-3">
+                  <p className="text-[10px] text-muted-foreground">Revenu quotidien</p>
+                  <p className={`text-sm font-bold ${seriesTextColors[color] || "text-success"}`}>{dailyRevenue.toLocaleString("fr-FR")} FCFA</p>
+                </div>
+              )}
               <div className="bg-secondary/50 rounded-lg p-3">
-                <p className="text-[10px] text-muted-foreground">Revenu quotidien</p>
-                <p className={`text-sm font-bold ${seriesTextColors[color] || "text-success"}`}>{dailyRevenue.toLocaleString("fr-FR")} FCFA</p>
-              </div>
-              <div className="bg-secondary/50 rounded-lg p-3">
-                <p className="text-[10px] text-muted-foreground">Revenu total</p>
+                <p className="text-[10px] text-muted-foreground">{gainType === "blocked" ? "Gain prévu" : "Revenu total"}</p>
                 <p className={`text-sm font-bold ${seriesTextColors[color] || "text-primary"}`}>{totalRevenue.toLocaleString("fr-FR")} FCFA</p>
               </div>
               <div className="bg-secondary/50 rounded-lg p-3">
@@ -216,10 +233,12 @@ const MesProduits = () => {
                 <p className="text-[10px] text-muted-foreground">Déjà collecté</p>
                 <p className="text-sm font-bold text-foreground">{Number(earnedSoFar).toLocaleString("fr-FR")} FCFA</p>
               </div>
-              <div className="bg-secondary/50 rounded-lg p-3">
-                <p className="text-[10px] text-muted-foreground">Jours reçus</p>
-                <p className="text-sm font-bold text-foreground">{daysReceived} / {cycles}</p>
-              </div>
+              {gainType === "daily" && (
+                <div className="bg-secondary/50 rounded-lg p-3">
+                  <p className="text-[10px] text-muted-foreground">Jours reçus</p>
+                  <p className="text-sm font-bold text-foreground">{daysReceived} / {cycles}</p>
+                </div>
+              )}
             </div>
             <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
               status === "actif" ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
@@ -278,7 +297,8 @@ const MesProduits = () => {
               const cycles = product.cycles || 365;
               const daysReceived = getDaysReceived(up);
               const dailyRevenue = Number(product.daily_revenue) || 0;
-              const totalRevenue = dailyRevenue * cycles;
+              const gainType = product.gain_type || "daily";
+              const totalRevenue = gainType === "blocked" ? Number(product.total_revenue) || 0 : dailyRevenue * cycles;
               const earnedSoFar = up.total_collected || 0;
               const purchaseDate = up.purchased_at
                 ? new Date(up.purchased_at).toLocaleDateString("fr-FR")
@@ -287,6 +307,17 @@ const MesProduits = () => {
               const color = getColor(up);
               const gradient = seriesGradients[color] || seriesGradients.success;
               const textColor = seriesTextColors[color] || seriesTextColors.success;
+
+              // For blocked products, calculate remaining days
+              const isBlocked = gainType === "blocked";
+              let daysRemaining = 0;
+              let cycleProgress = 0;
+              if (isBlocked && up.purchased_at) {
+                const purchaseDateObj = new Date(up.purchased_at);
+                const endDate = new Date(purchaseDateObj.getTime() + cycles * 24 * 60 * 60 * 1000);
+                daysRemaining = Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+                cycleProgress = Math.min(100, Math.round(((cycles - daysRemaining) / cycles) * 100));
+              }
 
               return (
                 <div key={up.id} className="bg-card rounded-xl border border-secondary overflow-hidden">
@@ -300,9 +331,12 @@ const MesProduits = () => {
                         <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                       </div>
                     )}
-                    <span className="text-sm font-bold text-success-foreground flex-1">{product.name}</span>
+                    <span className="text-sm font-bold text-success-foreground flex-1">
+                      {product.name}
+                      {isBlocked && <span className="ml-1.5 text-[10px] opacity-80">🔒</span>}
+                    </span>
                     <div className="text-right">
-                      <span className="text-xs text-success-foreground/80 block">Heure de réception</span>
+                      <span className="text-xs text-success-foreground/80 block">{isBlocked ? "Date d'achat" : "Heure de réception"}</span>
                       <span className="text-xs font-semibold text-success-foreground">{purchaseDate}</span>
                     </div>
                   </div>
@@ -310,43 +344,84 @@ const MesProduits = () => {
                   <div className="px-4 py-3 space-y-2.5">
                     {/* Revenu Total */}
                     <div className="flex items-center justify-between">
-                      <span className={`text-sm font-semibold ${textColor}`}>Revenu Total</span>
+                      <span className={`text-sm font-semibold ${textColor}`}>{isBlocked ? "Gain prévu" : "Revenu Total"}</span>
                       <span className="text-lg font-bold text-foreground">
                         {totalRevenue.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">CFA</span>
                       </span>
                     </div>
 
                     <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Revenu obtenu</span>
-                        <span className="text-sm text-foreground">
-                          {Number(earnedSoFar).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-xs text-muted-foreground">CFA</span>
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Période de validité</span>
-                        <span className="text-sm text-foreground">{cycles} Jour</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Nombre de fois reçu</span>
-                        <span className="text-sm text-foreground">{daysReceived} / {cycles}</span>
-                      </div>
+                      {isBlocked ? (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Durée du cycle</span>
+                            <span className="text-sm text-foreground">{cycles} jours</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Jours restants</span>
+                            <span className={`text-sm font-semibold ${daysRemaining > 0 ? "text-warning" : "text-success"}`}>
+                              {daysRemaining > 0 ? `${daysRemaining} jour${daysRemaining > 1 ? "s" : ""}` : "Terminé ✅"}
+                            </span>
+                          </div>
+                          {/* Progress bar */}
+                          <div className="relative h-2.5 w-full rounded-full bg-muted overflow-hidden mt-1">
+                            <div
+                              className="h-full rounded-full transition-all duration-700"
+                              style={{
+                                width: `${cycleProgress}%`,
+                                background: daysRemaining > 0 
+                                  ? 'linear-gradient(90deg, hsl(45 93% 47%), hsl(36 100% 50%))' 
+                                  : 'linear-gradient(90deg, hsl(142 71% 45%), hsl(142 76% 36%))',
+                              }}
+                            />
+                          </div>
+                          {earnedSoFar > 0 && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">Déjà collecté</span>
+                              <span className="text-sm text-foreground">{Number(earnedSoFar).toLocaleString("fr-FR")} CFA</span>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Revenu obtenu</span>
+                            <span className="text-sm text-foreground">
+                              {Number(earnedSoFar).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-xs text-muted-foreground">CFA</span>
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Période de validité</span>
+                            <span className="text-sm text-foreground">{cycles} Jour</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Nombre de fois reçu</span>
+                            <span className="text-sm text-foreground">{daysReceived} / {cycles}</span>
+                          </div>
+                        </>
+                      )}
                     </div>
 
-                    {/* Collect button */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleCollect(up); }}
-                      disabled={!collectible || collecting === up.id || status !== "actif"}
-                      className={`w-full py-3 rounded-xl text-sm font-semibold mt-2 transition-colors ${
-                        status !== "actif"
-                          ? "bg-secondary text-muted-foreground cursor-not-allowed"
-                          : collectible
-                            ? `bg-gradient-to-r ${gradient} text-white active:scale-[0.98] transition-transform`
-                            : "bg-secondary text-muted-foreground cursor-not-allowed"
-                      }`}
-                    >
-                      {collecting === up.id ? "Collecte..." : "Recevoir"}
-                    </button>
+                    {/* Collect button - hidden for blocked products during cycle */}
+                    {isBlocked && daysRemaining > 0 && earnedSoFar === 0 ? (
+                      <div className="w-full py-3 rounded-xl text-sm font-semibold mt-2 bg-warning/10 text-warning text-center border border-warning/20">
+                        🔒 Gains bloqués — {daysRemaining}j restants
+                      </div>
+                    ) : (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleCollect(up); }}
+                        disabled={!collectible || collecting === up.id || status !== "actif"}
+                        className={`w-full py-3 rounded-xl text-sm font-semibold mt-2 transition-colors ${
+                          status !== "actif" || (isBlocked && earnedSoFar > 0)
+                            ? "bg-secondary text-muted-foreground cursor-not-allowed"
+                            : collectible
+                              ? `bg-gradient-to-r ${gradient} text-white active:scale-[0.98] transition-transform`
+                              : "bg-secondary text-muted-foreground cursor-not-allowed"
+                        }`}
+                      >
+                        {collecting === up.id ? "Collecte..." : isBlocked && earnedSoFar > 0 ? "Déjà collecté" : isBlocked ? "Collecter les gains" : "Recevoir"}
+                      </button>
+                    )}
                   </div>
                 </div>
               );

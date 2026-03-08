@@ -1,0 +1,1 @@
+ALTER TABLE public.products ADD COLUMN gain_type text NOT NULL DEFAULT 'daily' CHECK (gain_type IN ('daily', 'blocked'));
