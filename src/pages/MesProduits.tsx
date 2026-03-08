@@ -297,7 +297,8 @@ const MesProduits = () => {
               const cycles = product.cycles || 365;
               const daysReceived = getDaysReceived(up);
               const dailyRevenue = Number(product.daily_revenue) || 0;
-              const totalRevenue = dailyRevenue * cycles;
+              const gainType = product.gain_type || "daily";
+              const totalRevenue = gainType === "blocked" ? Number(product.total_revenue) || 0 : dailyRevenue * cycles;
               const earnedSoFar = up.total_collected || 0;
               const purchaseDate = up.purchased_at
                 ? new Date(up.purchased_at).toLocaleDateString("fr-FR")
@@ -306,6 +307,17 @@ const MesProduits = () => {
               const color = getColor(up);
               const gradient = seriesGradients[color] || seriesGradients.success;
               const textColor = seriesTextColors[color] || seriesTextColors.success;
+
+              // For blocked products, calculate remaining days
+              const isBlocked = gainType === "blocked";
+              let daysRemaining = 0;
+              let cycleProgress = 0;
+              if (isBlocked && up.purchased_at) {
+                const purchaseDateObj = new Date(up.purchased_at);
+                const endDate = new Date(purchaseDateObj.getTime() + cycles * 24 * 60 * 60 * 1000);
+                daysRemaining = Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+                cycleProgress = Math.min(100, Math.round(((cycles - daysRemaining) / cycles) * 100));
+              }
 
               return (
                 <div key={up.id} className="bg-card rounded-xl border border-secondary overflow-hidden">
@@ -319,9 +331,12 @@ const MesProduits = () => {
                         <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                       </div>
                     )}
-                    <span className="text-sm font-bold text-success-foreground flex-1">{product.name}</span>
+                    <span className="text-sm font-bold text-success-foreground flex-1">
+                      {product.name}
+                      {isBlocked && <span className="ml-1.5 text-[10px] opacity-80">🔒</span>}
+                    </span>
                     <div className="text-right">
-                      <span className="text-xs text-success-foreground/80 block">Heure de réception</span>
+                      <span className="text-xs text-success-foreground/80 block">{isBlocked ? "Date d'achat" : "Heure de réception"}</span>
                       <span className="text-xs font-semibold text-success-foreground">{purchaseDate}</span>
                     </div>
                   </div>
@@ -329,43 +344,84 @@ const MesProduits = () => {
                   <div className="px-4 py-3 space-y-2.5">
                     {/* Revenu Total */}
                     <div className="flex items-center justify-between">
-                      <span className={`text-sm font-semibold ${textColor}`}>Revenu Total</span>
+                      <span className={`text-sm font-semibold ${textColor}`}>{isBlocked ? "Gain prévu" : "Revenu Total"}</span>
                       <span className="text-lg font-bold text-foreground">
                         {totalRevenue.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">CFA</span>
                       </span>
                     </div>
 
                     <div className="space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Revenu obtenu</span>
-                        <span className="text-sm text-foreground">
-                          {Number(earnedSoFar).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-xs text-muted-foreground">CFA</span>
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Période de validité</span>
-                        <span className="text-sm text-foreground">{cycles} Jour</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Nombre de fois reçu</span>
-                        <span className="text-sm text-foreground">{daysReceived} / {cycles}</span>
-                      </div>
+                      {isBlocked ? (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Durée du cycle</span>
+                            <span className="text-sm text-foreground">{cycles} jours</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Jours restants</span>
+                            <span className={`text-sm font-semibold ${daysRemaining > 0 ? "text-warning" : "text-success"}`}>
+                              {daysRemaining > 0 ? `${daysRemaining} jour${daysRemaining > 1 ? "s" : ""}` : "Terminé ✅"}
+                            </span>
+                          </div>
+                          {/* Progress bar */}
+                          <div className="relative h-2.5 w-full rounded-full bg-muted overflow-hidden mt-1">
+                            <div
+                              className="h-full rounded-full transition-all duration-700"
+                              style={{
+                                width: `${cycleProgress}%`,
+                                background: daysRemaining > 0 
+                                  ? 'linear-gradient(90deg, hsl(45 93% 47%), hsl(36 100% 50%))' 
+                                  : 'linear-gradient(90deg, hsl(142 71% 45%), hsl(142 76% 36%))',
+                              }}
+                            />
+                          </div>
+                          {earnedSoFar > 0 && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs text-muted-foreground">Déjà collecté</span>
+                              <span className="text-sm text-foreground">{Number(earnedSoFar).toLocaleString("fr-FR")} CFA</span>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Revenu obtenu</span>
+                            <span className="text-sm text-foreground">
+                              {Number(earnedSoFar).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-xs text-muted-foreground">CFA</span>
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Période de validité</span>
+                            <span className="text-sm text-foreground">{cycles} Jour</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Nombre de fois reçu</span>
+                            <span className="text-sm text-foreground">{daysReceived} / {cycles}</span>
+                          </div>
+                        </>
+                      )}
                     </div>
 
-                    {/* Collect button */}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleCollect(up); }}
-                      disabled={!collectible || collecting === up.id || status !== "actif"}
-                      className={`w-full py-3 rounded-xl text-sm font-semibold mt-2 transition-colors ${
-                        status !== "actif"
-                          ? "bg-secondary text-muted-foreground cursor-not-allowed"
-                          : collectible
-                            ? `bg-gradient-to-r ${gradient} text-white active:scale-[0.98] transition-transform`
-                            : "bg-secondary text-muted-foreground cursor-not-allowed"
-                      }`}
-                    >
-                      {collecting === up.id ? "Collecte..." : "Recevoir"}
-                    </button>
+                    {/* Collect button - hidden for blocked products during cycle */}
+                    {isBlocked && daysRemaining > 0 && earnedSoFar === 0 ? (
+                      <div className="w-full py-3 rounded-xl text-sm font-semibold mt-2 bg-warning/10 text-warning text-center border border-warning/20">
+                        🔒 Gains bloqués — {daysRemaining}j restants
+                      </div>
+                    ) : (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleCollect(up); }}
+                        disabled={!collectible || collecting === up.id || status !== "actif"}
+                        className={`w-full py-3 rounded-xl text-sm font-semibold mt-2 transition-colors ${
+                          status !== "actif" || (isBlocked && earnedSoFar > 0)
+                            ? "bg-secondary text-muted-foreground cursor-not-allowed"
+                            : collectible
+                              ? `bg-gradient-to-r ${gradient} text-white active:scale-[0.98] transition-transform`
+                              : "bg-secondary text-muted-foreground cursor-not-allowed"
+                        }`}
+                      >
+                        {collecting === up.id ? "Collecte..." : isBlocked && earnedSoFar > 0 ? "Déjà collecté" : isBlocked ? "Collecter les gains" : "Recevoir"}
+                      </button>
+                    )}
                   </div>
                 </div>
               );
