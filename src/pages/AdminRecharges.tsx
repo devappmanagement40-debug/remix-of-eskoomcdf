@@ -328,6 +328,26 @@ const AdminRecharges = () => {
           );
         })}
       </div>
+
+      {/* Image zoom modal */}
+      <Dialog open={!!zoomedImage} onOpenChange={() => setZoomedImage(null)}>
+        <DialogContent className="max-w-3xl p-0 bg-black/95 border-none">
+          <DialogTitle className="sr-only">Preuve de paiement</DialogTitle>
+          <button
+            onClick={() => setZoomedImage(null)}
+            className="absolute top-3 right-3 z-10 p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors"
+          >
+            <X size={20} className="text-white" />
+          </button>
+          {zoomedImage && (
+            <img
+              src={zoomedImage}
+              alt="Preuve de paiement (agrandie)"
+              className="w-full h-auto max-h-[85vh] object-contain"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
