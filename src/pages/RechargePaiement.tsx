@@ -27,6 +27,7 @@ const RechargePaiement = () => {
   const [redirected, setRedirected] = useState(false);
   const [apiProcessing, setApiProcessing] = useState(false);
   const [apiStatus, setApiStatus] = useState<"idle" | "processing" | "success" | "pending" | "failed">("idle");
+  const [otpCode, setOtpCode] = useState("");
   
   // Image upload state
   const [proofImage, setProofImage] = useState<File | null>(null);
@@ -96,16 +97,18 @@ const RechargePaiement = () => {
         return;
       }
 
-      const { data, error } = await supabase.functions.invoke("process-payment", {
-        body: {
-          amount,
-          phone,
-          country_code: countryCode,
-          payment_method_id: method.id,
-          api_config_id: method.api_config_id,
-          payment_method_name: method.name,
-        },
-      });
+      const body: Record<string, unknown> = {
+        amount,
+        phone,
+        country_code: countryCode,
+        payment_method_id: method.id,
+        api_config_id: method.api_config_id,
+        payment_method_name: method.name,
+      };
+      if (otpCode.trim()) {
+        body.otp_code = otpCode.trim();
+      }
+      const { data, error } = await supabase.functions.invoke("process-payment", { body });
 
       if (error) {
         setApiStatus("failed");
@@ -215,10 +218,34 @@ const RechargePaiement = () => {
               Le paiement sera traité automatiquement. Vous recevrez une notification de confirmation sur votre téléphone.
             </p>
 
+            {/* OTP field for Orange Money */}
+            {(method.name?.toLowerCase().includes("orange")) && apiStatus === "idle" && (
+              <div className="space-y-2">
+                <div className="bg-amber-500/10 rounded-xl px-4 py-3">
+                  <p className="text-xs font-semibold text-amber-600">Code OTP requis pour Orange Money</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Composez #144*82# puis entrez votre code secret Orange Money pour recevoir votre code OTP.
+                  </p>
+                </div>
+                <div>
+                  <label className="text-[10px] text-muted-foreground mb-1 block">Code OTP</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                    placeholder="Entrez le code OTP"
+                    className="w-full bg-secondary/40 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground border border-border/30 focus:outline-none focus:ring-2 focus:ring-primary/50 text-center tracking-[0.3em] font-bold"
+                  />
+                </div>
+              </div>
+            )}
+
             {apiStatus === "idle" && (
               <button
                 onClick={handleApiPayment}
-                disabled={apiProcessing}
+                disabled={apiProcessing || (method.name?.toLowerCase().includes("orange") && otpCode.length < 4)}
                 className="w-full gradient-button text-primary-foreground font-bold py-3.5 rounded-xl text-sm flex items-center justify-center gap-2"
               >
                 <Zap size={16} />

@@ -36,7 +36,7 @@ serve(async (req) => {
     // Service client for DB operations
     const supabaseAdmin = createClient(supabaseUrl, serviceKey);
 
-    const { amount, phone, country_code, payment_method_id, api_config_id, payment_method_name } = await req.json();
+    const { amount, phone, country_code, payment_method_id, api_config_id, payment_method_name, otp_code } = await req.json();
 
     if (!amount || !phone || !payment_method_id) {
       return new Response(JSON.stringify({ success: false, error: 'Paramètres manquants' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -89,7 +89,7 @@ serve(async (req) => {
           paymentResult = await processSendavaPay(apiConfig, amount, phone, country_code, logEntry.id, payment_method_name);
           break;
         case 'omnipay':
-          paymentResult = await processOmniPay(apiConfig, amount, phone, country_code, logEntry.id, payment_method_name);
+          paymentResult = await processOmniPay(apiConfig, amount, phone, country_code, logEntry.id, payment_method_name, otp_code);
           break;
         default:
           // Generic API call
@@ -306,7 +306,7 @@ async function processSendavaPay(config: any, amount: number, phone: string, cou
 }
 
 // OmniPay integration (API v2.0)
-async function processOmniPay(config: any, amount: number, phone: string, countryCode: string, transactionId: string, methodName?: string) {
+async function processOmniPay(config: any, amount: number, phone: string, countryCode: string, transactionId: string, methodName?: string, otpCode?: string) {
   try {
     const apiKey = config.api_key || Deno.env.get('OMNIPAY_API_KEY') || '';
     const baseUrl = (config.endpoint_url || 'https://omnipay.webtechci.com').replace(/\/$/, '');
@@ -336,6 +336,11 @@ async function processOmniPay(config: any, amount: number, phone: string, countr
     if (operator) {
       payload.operator = operator;
       if (operator === 'wave') payload.return_url = callbackUrl;
+    }
+
+    // Add OTP code for Orange Money (required for BF and CI)
+    if (otpCode) {
+      payload.otp_code = otpCode;
     }
 
     console.log('OmniPay payload:', JSON.stringify(payload));
