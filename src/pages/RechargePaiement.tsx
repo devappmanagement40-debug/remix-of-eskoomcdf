@@ -22,12 +22,17 @@ const RechargePaiement = () => {
     method: PaymentMethodInfo; isExternal?: boolean; isApi?: boolean;
   }) || {};
 
-  const [transactionRef, setTransactionRef] = useState("");
   const [loading, setLoading] = useState(false);
   const [showRechargeSuccess, setShowRechargeSuccess] = useState(false);
   const [redirected, setRedirected] = useState(false);
   const [apiProcessing, setApiProcessing] = useState(false);
   const [apiStatus, setApiStatus] = useState<"idle" | "processing" | "success" | "pending" | "failed">("idle");
+  
+  // Image upload state
+  const [proofImage, setProofImage] = useState<File | null>(null);
+  const [proofPreview, setProofPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!amount || !method) {
