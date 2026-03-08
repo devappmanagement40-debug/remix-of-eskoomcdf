@@ -288,6 +288,38 @@ const AdminProduits = () => {
                 </button>
               )}
             </div>
+            {/* Gain type selector */}
+            <div>
+              <label className="text-xs text-muted-foreground mb-2 block">Type de gain</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setProductGainType("daily")}
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-colors ${
+                    productGainType === "daily"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-secondary bg-secondary text-muted-foreground"
+                  }`}
+                >
+                  Gain quotidien
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProductGainType("blocked")}
+                  className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-colors ${
+                    productGainType === "blocked"
+                      ? "border-warning bg-warning/10 text-warning"
+                      : "border-secondary bg-secondary text-muted-foreground"
+                  }`}
+                >
+                  Gain bloqué
+                </button>
+              </div>
+              {productGainType === "blocked" && (
+                <p className="text-[10px] text-warning mt-1">⏳ Les gains seront bloqués jusqu'à la fin du cycle</p>
+              )}
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-muted-foreground">Prix (FCFA)</label>
@@ -300,17 +332,19 @@ const AdminProduits = () => {
                   className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground">Revenu total</label>
+                <label className="text-xs text-muted-foreground">{productGainType === "blocked" ? "Gain total prévu" : "Revenu total"}</label>
                 <input type="number" value={productTotalRevenue} onChange={e => setProductTotalRevenue(e.target.value)} placeholder="78000"
                   className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
               </div>
+              {productGainType === "daily" && (
+                <div>
+                  <label className="text-xs text-muted-foreground">Revenu quotidien</label>
+                  <input type="number" value={productDailyRevenue} onChange={e => setProductDailyRevenue(e.target.value)} placeholder="200"
+                    className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
+                </div>
+              )}
               <div>
-                <label className="text-xs text-muted-foreground">Revenu quotidien</label>
-                <input type="number" value={productDailyRevenue} onChange={e => setProductDailyRevenue(e.target.value)} placeholder="200"
-                  className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground">Cycles (jours)</label>
+                <label className="text-xs text-muted-foreground">Durée du cycle (jours)</label>
                 <input type="number" value={productCycles} onChange={e => setProductCycles(e.target.value)} placeholder="365"
                   className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
               </div>
