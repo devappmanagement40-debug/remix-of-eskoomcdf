@@ -280,6 +280,24 @@ const AdminRecharges = () => {
                     <p className="text-[10px] text-muted-foreground">Nom client :</p>
                     <p className="text-xs font-semibold text-foreground">{profile?.full_name || "—"}</p>
                   </div>
+                  {r.proof_image_url && (
+                    <div className="col-span-2">
+                      <p className="text-[10px] text-muted-foreground mb-1">Preuve de paiement :</p>
+                      <button
+                        onClick={() => setZoomedImage(r.proof_image_url)}
+                        className="relative group cursor-pointer"
+                      >
+                        <img
+                          src={r.proof_image_url}
+                          alt="Preuve de paiement"
+                          className="w-full max-w-[200px] h-24 object-cover rounded-lg border border-secondary"
+                        />
+                        <div className="absolute inset-0 max-w-[200px] bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
+                          <ZoomIn size={20} className="text-white" />
+                        </div>
+                      </button>
+                    </div>
+                  )}
                   <div>
                     <p className="text-[10px] text-muted-foreground">Date :</p>
                     <p className="text-xs font-semibold text-foreground">{formatDate(r.created_at)}</p>
