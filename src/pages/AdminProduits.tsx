@@ -125,10 +125,12 @@ const AdminProduits = () => {
       setProductPrice(String(p.price || 0));
       setProductIsNew(p.is_new || false);
       setProductIsFeatured(p.is_featured || false);
+      setProductGainType((p.gain_type as "daily" | "blocked") || "daily");
     } else {
       setEditingProduct(null);
       setProductName(""); setProductImageUrl(""); setProductReturnPercent(""); setProductTotalRevenue("");
       setProductDailyRevenue(""); setProductCycles("365"); setProductPrice(""); setProductIsNew(false); setProductIsFeatured(false);
+      setProductGainType("daily");
     }
     setShowProductForm(true);
     setShowSeriesForm(false);
