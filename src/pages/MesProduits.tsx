@@ -215,12 +215,14 @@ const MesProduits = () => {
                 <p className="text-[10px] text-muted-foreground">Prix d'achat</p>
                 <p className="text-sm font-bold text-foreground">{Number(product?.price).toLocaleString("fr-FR")} FCFA</p>
               </div>
+              {gainType === "daily" && (
+                <div className="bg-secondary/50 rounded-lg p-3">
+                  <p className="text-[10px] text-muted-foreground">Revenu quotidien</p>
+                  <p className={`text-sm font-bold ${seriesTextColors[color] || "text-success"}`}>{dailyRevenue.toLocaleString("fr-FR")} FCFA</p>
+                </div>
+              )}
               <div className="bg-secondary/50 rounded-lg p-3">
-                <p className="text-[10px] text-muted-foreground">Revenu quotidien</p>
-                <p className={`text-sm font-bold ${seriesTextColors[color] || "text-success"}`}>{dailyRevenue.toLocaleString("fr-FR")} FCFA</p>
-              </div>
-              <div className="bg-secondary/50 rounded-lg p-3">
-                <p className="text-[10px] text-muted-foreground">Revenu total</p>
+                <p className="text-[10px] text-muted-foreground">{gainType === "blocked" ? "Gain prévu" : "Revenu total"}</p>
                 <p className={`text-sm font-bold ${seriesTextColors[color] || "text-primary"}`}>{totalRevenue.toLocaleString("fr-FR")} FCFA</p>
               </div>
               <div className="bg-secondary/50 rounded-lg p-3">
@@ -231,10 +233,12 @@ const MesProduits = () => {
                 <p className="text-[10px] text-muted-foreground">Déjà collecté</p>
                 <p className="text-sm font-bold text-foreground">{Number(earnedSoFar).toLocaleString("fr-FR")} FCFA</p>
               </div>
-              <div className="bg-secondary/50 rounded-lg p-3">
-                <p className="text-[10px] text-muted-foreground">Jours reçus</p>
-                <p className="text-sm font-bold text-foreground">{daysReceived} / {cycles}</p>
-              </div>
+              {gainType === "daily" && (
+                <div className="bg-secondary/50 rounded-lg p-3">
+                  <p className="text-[10px] text-muted-foreground">Jours reçus</p>
+                  <p className="text-sm font-bold text-foreground">{daysReceived} / {cycles}</p>
+                </div>
+              )}
             </div>
             <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
               status === "actif" ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
