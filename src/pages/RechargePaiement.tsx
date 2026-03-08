@@ -114,7 +114,11 @@ const RechargePaiement = () => {
       }
 
       if (data?.success) {
-        if (data?.pending) {
+        if (data?.paymentUrl) {
+          // Wave/redirect-based payment — open URL then show pending
+          window.open(data.paymentUrl, "_blank");
+          setApiStatus("pending");
+        } else if (data?.pending) {
           setApiStatus("pending");
         } else {
           setApiStatus("success");

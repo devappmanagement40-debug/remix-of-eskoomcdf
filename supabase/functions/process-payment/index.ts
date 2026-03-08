@@ -88,6 +88,9 @@ serve(async (req) => {
         case 'sendavapay':
           paymentResult = await processSendavaPay(apiConfig, amount, phone, country_code, logEntry.id, payment_method_name);
           break;
+        case 'omnipay':
+          paymentResult = await processOmniPay(apiConfig, amount, phone, country_code, logEntry.id, payment_method_name);
+          break;
         default:
           // Generic API call
           if (apiConfig.endpoint_url) {
@@ -299,6 +302,71 @@ async function processSendavaPay(config: any, amount: number, phone: string, cou
   } catch (err) {
     console.error('SendavaPay error:', err);
     return { success: false, error: 'Erreur de connexion à SendavaPay' };
+  }
+}
+
+// OmniPay integration (API v2.0)
+async function processOmniPay(config: any, amount: number, phone: string, countryCode: string, transactionId: string, methodName?: string) {
+  try {
+    const apiKey = config.api_key || Deno.env.get('OMNIPAY_API_KEY') || '';
+    const baseUrl = (config.endpoint_url || 'https://omnipay.webtechci.com').replace(/\/$/, '');
+
+    const cleanPhone = phone.replace(/\D/g, '');
+    const codeDigits = countryCode.replace('+', '');
+    const msisdn = cleanPhone.startsWith(codeDigits) ? cleanPhone : `${codeDigits}${cleanPhone}`;
+
+    const nameLower = (methodName || '').toLowerCase();
+    let operator: string | undefined;
+    if (nameLower.includes('wave')) operator = 'wave';
+    else if (nameLower.includes('mixx')) operator = 'mixx';
+
+    const callbackUrl = config.callback_url || `${Deno.env.get('SUPABASE_URL')}/functions/v1/omnipay-webhook`;
+    const reference = `OMN${transactionId.replace(/-/g, '').slice(0, 16)}`;
+
+    const payload: any = {
+      action: 'paymentrequest',
+      apikey: apiKey,
+      msisdn,
+      amount: String(Math.round(amount)),
+      reference,
+      first_name: 'Client',
+      last_name: 'Eskom',
+    };
+
+    if (operator) {
+      payload.operator = operator;
+      if (operator === 'wave') payload.return_url = callbackUrl;
+    }
+
+    console.log('OmniPay payload:', JSON.stringify(payload));
+
+    const response = await fetch(`${baseUrl}/interface/api2`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    console.log('OmniPay response:', JSON.stringify(data));
+
+    if (data.success === 1 || data.success === '1') {
+      const providerRef = reference;
+      const supabaseAdmin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+      await supabaseAdmin.from('payment_logs').update({
+        provider_ref: reference,
+        provider_response: { ...data, omnipay_id: String(data.id || ''), omnipay_reference: reference },
+      }).eq('id', transactionId);
+
+      if (data.payment_url) {
+        return { success: true, pending: true, provider_ref: providerRef, paymentUrl: data.payment_url };
+      }
+      return { success: true, pending: true, provider_ref: providerRef };
+    }
+
+    return { success: false, error: data.message || `Erreur OmniPay (code: ${data.code})` };
+  } catch (err) {
+    console.error('OmniPay error:', err);
+    return { success: false, error: 'Erreur de connexion à OmniPay' };
   }
 }
 

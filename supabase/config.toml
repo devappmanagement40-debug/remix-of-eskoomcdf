@@ -11,3 +11,6 @@ verify_jwt = false
 
 [functions.sendavapay-webhook]
 verify_jwt = false
+
+[functions.omnipay-webhook]
+verify_jwt = false
