@@ -338,6 +338,11 @@ async function processOmniPay(config: any, amount: number, phone: string, countr
       if (operator === 'wave') payload.return_url = callbackUrl;
     }
 
+    // Add OTP code for Orange Money (required for BF and CI)
+    if (otpCode) {
+      payload.otp_code = otpCode;
+    }
+
     console.log('OmniPay payload:', JSON.stringify(payload));
 
     const response = await fetch(`${baseUrl}/interface/api2`, {
