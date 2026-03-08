@@ -73,7 +73,7 @@ const MesProduits = () => {
       const [productsRes, seriesRes] = await Promise.all([
         supabase
           .from("user_products")
-          .select("*, products(name, price, daily_revenue, total_revenue, cycles, description, image_url, series_id)")
+          .select("*, products(name, price, daily_revenue, total_revenue, cycles, description, image_url, series_id, gain_type)")
           .eq("user_id", user.id)
           .order("purchased_at", { ascending: false }),
         supabase.from("product_series").select("id, name, color"),
