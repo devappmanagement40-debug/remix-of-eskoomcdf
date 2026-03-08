@@ -36,7 +36,7 @@ serve(async (req) => {
     // Service client for DB operations
     const supabaseAdmin = createClient(supabaseUrl, serviceKey);
 
-    const { amount, phone, country_code, payment_method_id, api_config_id, payment_method_name } = await req.json();
+    const { amount, phone, country_code, payment_method_id, api_config_id, payment_method_name, otp_code } = await req.json();
 
     if (!amount || !phone || !payment_method_id) {
       return new Response(JSON.stringify({ success: false, error: 'Paramètres manquants' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
