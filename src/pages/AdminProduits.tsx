@@ -174,11 +174,12 @@ const AdminProduits = () => {
         image_url: productImageUrl || null,
         return_percent: Number(productReturnPercent) || 0,
         total_revenue: Number(productTotalRevenue) || 0,
-        daily_revenue: Number(productDailyRevenue) || 0,
+        daily_revenue: productGainType === "blocked" ? 0 : (Number(productDailyRevenue) || 0),
         cycles: Number(productCycles) || 365,
         price: Number(productPrice) || 0,
         is_new: productIsNew,
         is_featured: productIsFeatured,
+        gain_type: productGainType,
       };
       if (editingProduct) {
         const { error } = await supabase.from("products").update(payload).eq("id", editingProduct.id);
