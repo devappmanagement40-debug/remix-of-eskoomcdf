@@ -343,18 +343,58 @@ const RechargePaiement = () => {
         {(method.payment_type !== "api" || apiStatus === "failed") && (
           <div className="bg-card rounded-2xl border border-border/30 p-4 space-y-3">
             <p className="text-xs font-bold text-foreground">
-              {apiStatus === "failed" ? "Confirmation manuelle (secours)" : "Confirmation de transaction"}
+              {apiStatus === "failed" ? "Confirmation manuelle (secours)" : "Preuve de paiement"}
             </p>
 
+            {/* Image upload */}
             <div>
-              <label className="text-[10px] text-muted-foreground mb-1 block">ID de transaction</label>
+              <label className="text-[10px] text-muted-foreground mb-2 block">
+                Téléchargez une capture d'écran ou photo de votre transaction
+              </label>
+              
               <input
-                type="text"
-                placeholder="Entrez l'ID de la transaction"
-                value={transactionRef}
-                onChange={(e) => setTransactionRef(e.target.value)}
-                className="w-full bg-secondary/50 rounded-xl px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-primary"
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
               />
+
+              {!proofPreview ? (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full border-2 border-dashed border-secondary rounded-xl py-8 flex flex-col items-center justify-center gap-3 hover:border-primary/50 transition-colors"
+                >
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <Upload size={24} className="text-primary" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-sm font-semibold text-foreground">Télécharger une image</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">PNG, JPG ou JPEG (max 5 Mo)</p>
+                  </div>
+                </button>
+              ) : (
+                <div className="relative">
+                  <img
+                    src={proofPreview}
+                    alt="Preuve de paiement"
+                    className="w-full h-48 object-cover rounded-xl border border-secondary"
+                  />
+                  <button
+                    onClick={removeImage}
+                    className="absolute top-2 right-2 p-1.5 bg-destructive text-destructive-foreground rounded-full shadow-lg"
+                  >
+                    <X size={14} />
+                  </button>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute bottom-2 right-2 flex items-center gap-1.5 px-3 py-1.5 bg-card/90 backdrop-blur-sm text-foreground text-xs font-semibold rounded-lg border border-secondary"
+                  >
+                    <ImageIcon size={12} />
+                    Changer
+                  </button>
+                </div>
+              )}
             </div>
 
             <div>
@@ -366,10 +406,17 @@ const RechargePaiement = () => {
 
             <button
               onClick={handleValidate}
-              disabled={loading || !transactionRef.trim()}
-              className="w-full bg-success text-success-foreground font-bold py-3.5 rounded-xl text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+              disabled={loading || !proofImage}
+              className="w-full bg-success text-success-foreground font-bold py-3.5 rounded-xl text-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {loading ? "Envoi en cours..." : "Confirmer le paiement"}
+              {loading ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  {uploading ? "Téléchargement..." : "Envoi en cours..."}
+                </>
+              ) : (
+                "Confirmer le paiement"
+              )}
             </button>
           </div>
         )}
