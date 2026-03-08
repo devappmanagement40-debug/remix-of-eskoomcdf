@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
-import { Search, Clock, CheckCircle2, XCircle, CreditCard } from "lucide-react";
+import { Search, Clock, CheckCircle2, XCircle, CreditCard, Image as ImageIcon, X, ZoomIn } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 type Recharge = {
   id: string;
@@ -11,6 +12,7 @@ type Recharge = {
   country_code: string;
   amount: number;
   transaction_ref: string | null;
+  proof_image_url: string | null;
   payment_method: string | null;
   status: string;
   created_at: string | null;
