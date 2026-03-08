@@ -54,6 +54,37 @@ const RechargePaiement = () => {
     }
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      showError("Erreur", "Veuillez sélectionner une image");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showError("Erreur", "L'image ne doit pas dépasser 5 Mo");
+      return;
+    }
+
+    setProofImage(file);
+    setProofPreview(URL.createObjectURL(file));
+  };
+
+  const removeImage = () => {
+    setProofImage(null);
+    if (proofPreview) {
+      URL.revokeObjectURL(proofPreview);
+      setProofPreview(null);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const handleApiPayment = async () => {
     setApiProcessing(true);
     setApiStatus("processing");
