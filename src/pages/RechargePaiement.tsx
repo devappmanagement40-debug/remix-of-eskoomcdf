@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import PremiumModal from "@/components/PremiumModal";
-import { Copy, ExternalLink, CheckCircle, Zap, Loader2 } from "lucide-react";
+import { Copy, ExternalLink, CheckCircle, Zap, Loader2, Upload, Image as ImageIcon, X } from "lucide-react";
 import { safeClipboardWrite } from "@/lib/clipboard";
 
 type PaymentMethodInfo = {
