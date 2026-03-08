@@ -31,6 +31,7 @@ type UserProduct = {
     description: string | null;
     image_url: string | null;
     series_id: string;
+    gain_type: string;
   } | null;
 };
 
