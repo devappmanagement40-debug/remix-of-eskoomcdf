@@ -3091,7 +3091,7 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
 
           <div>
             <label className="text-xs text-muted-foreground">Fournisseur</label>
-            <select value={form.provider} onChange={e => setForm({ ...form, provider: e.target.value })}
+            <select value={form.provider} onChange={e => handleProviderChange(e.target.value)}
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none">
               {providers.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>
