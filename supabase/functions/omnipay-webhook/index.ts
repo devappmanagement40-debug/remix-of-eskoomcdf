@@ -96,12 +96,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Find payment log by provider_ref (our reference)
+    // Find payment log by provider_ref (our reference) — include all non-terminal statuses
     const { data: logEntry, error: findErr } = await supabase
       .from("payment_logs")
       .select("*")
       .eq("provider_ref", reference)
-      .in("status", ["initiated", "processing"])
+      .in("status", ["initiated", "processing", "failed"])
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();

@@ -54,10 +54,15 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: false, error: 'Configuration API non trouvée ou désactivée' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Create payment log entry
+    // Generate reference early so we can store it before calling the API
+    const logId = crypto.randomUUID();
+    const omnipayRef = apiConfig.provider === 'omnipay' ? `OMN${logId.replace(/-/g, '').slice(0, 16)}` : null;
+
+    // Create payment log entry with provider_ref pre-set for OmniPay
     const { data: logEntry, error: logErr } = await supabaseAdmin
       .from('payment_logs')
       .insert({
+        id: logId,
         user_id: userId,
         api_config_id: api_config_id,
         payment_method_id: payment_method_id,
@@ -65,6 +70,7 @@ serve(async (req) => {
         phone,
         country_code: country_code || '+226',
         status: 'initiated',
+        provider_ref: omnipayRef,
       })
       .select()
       .single();
@@ -106,12 +112,17 @@ serve(async (req) => {
 
     // Update log
     const logStatus = paymentResult.pending ? 'processing' : (paymentResult.success ? 'completed' : 'failed');
+    const updateData: Record<string, any> = {
+      status: logStatus,
+      error_message: paymentResult.error || null,
+    };
+    // Only overwrite provider_ref if we have a new value (preserve pre-set OmniPay ref)
+    if (paymentResult.provider_ref) {
+      updateData.provider_ref = paymentResult.provider_ref;
+    }
     await supabaseAdmin
       .from('payment_logs')
-      .update({
-        status: logStatus,
-        provider_ref: paymentResult.provider_ref || null,
-        error_message: paymentResult.error || null,
+      .update(updateData)
       })
       .eq('id', logEntry.id);
 
@@ -307,11 +318,14 @@ async function processSendavaPay(config: any, amount: number, phone: string, cou
 
 // OmniPay integration (API v2.0)
 async function processOmniPay(config: any, amount: number, phone: string, countryCode: string, transactionId: string, methodName?: string, otpCode?: string) {
+  // Use the pre-generated reference stored in payment_logs
+  const reference = `OMN${transactionId.replace(/-/g, '').slice(0, 16)}`;
+
   try {
     const apiKey = config.api_key || Deno.env.get('OMNIPAY_API_KEY') || '';
     const baseUrl = (config.endpoint_url || 'https://omnipay.webtechci.com').replace(/\/$/, '');
 
-    // MSISDN: international prefix WITHOUT 00 or + (e.g. 2250707070707)
+    // MSISDN: international prefix WITHOUT 00 or + (e.g. 2260XXXXXXXX)
     const cleanPhone = phone.replace(/\D/g, '');
     const codeDigits = countryCode.replace('+', '');
     const msisdn = cleanPhone.startsWith(codeDigits) ? cleanPhone : `${codeDigits}${cleanPhone}`;
@@ -322,13 +336,11 @@ async function processOmniPay(config: any, amount: number, phone: string, countr
     if (nameLower.includes('wave')) operator = 'wave';
     else if (nameLower.includes('mixx')) operator = 'mixx';
 
-    const reference = `OMN${transactionId.replace(/-/g, '').slice(0, 16)}`;
-
-    const payload: Record<string, string> = {
+    const payload: Record<string, any> = {
       action: 'paymentrequest',
       apikey: apiKey,
       msisdn,
-      amount: String(Math.round(amount)),
+      amount: Math.round(amount),
       reference,
       first_name: 'Client',
       last_name: 'Eskom',
@@ -359,30 +371,28 @@ async function processOmniPay(config: any, amount: number, phone: string, countr
     const data = await response.json();
     console.log('OmniPay response:', JSON.stringify(data));
 
+    // Store response in payment_logs regardless of success/failure
+    const supabaseAdmin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    await supabaseAdmin.from('payment_logs').update({
+      provider_response: { ...data, omnipay_id: String(data.id || ''), omnipay_reference: reference },
+    }).eq('id', transactionId);
+
     // success: 1 or "1" means request accepted
     if (data.success === 1 || data.success === '1') {
-      const providerRef = reference;
-
-      // Store OmniPay transaction ID and reference in payment_logs
-      const supabaseAdmin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-      await supabaseAdmin.from('payment_logs').update({
-        provider_ref: reference,
-        provider_response: { ...data, omnipay_id: String(data.id || ''), omnipay_reference: reference },
-      }).eq('id', transactionId);
-
       // Wave returns payment_url for redirect-based payment
       if (data.payment_url) {
-        return { success: true, pending: true, provider_ref: providerRef, paymentUrl: data.payment_url };
+        return { success: true, pending: true, provider_ref: reference, paymentUrl: data.payment_url };
       }
 
       // Other operators: USSD push sent, waiting for user confirmation via callback
-      return { success: true, pending: true, provider_ref: providerRef };
+      return { success: true, pending: true, provider_ref: reference };
     }
 
-    return { success: false, error: data.message || `Erreur OmniPay (code: ${data.code})` };
+    // Always return provider_ref so webhook can still match even if initial call "failed"
+    return { success: false, provider_ref: reference, error: data.message || `Erreur OmniPay (code: ${data.code})` };
   } catch (err) {
     console.error('OmniPay error:', err);
-    return { success: false, error: 'Erreur de connexion à OmniPay' };
+    return { success: false, provider_ref: reference, error: 'Erreur de connexion à OmniPay' };
   }
 }
 
