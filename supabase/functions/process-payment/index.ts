@@ -125,22 +125,29 @@ serve(async (req) => {
       .update(updateData)
       .eq('id', logEntry.id);
 
-    // If pending (SendavaPay PROCESSING), don't credit yet — webhook will handle it
-    // If immediately successful, create recharge entry and credit
-    if (paymentResult.success && !paymentResult.pending) {
-      const { data: pm } = await supabaseAdmin.from('payment_methods').select('name').eq('id', payment_method_id).single();
-      
-      await supabaseAdmin.from('recharges').insert({
-        user_id: userId,
-        phone,
-        country_code: country_code || '+226',
-        amount,
-        transaction_ref: paymentResult.provider_ref || `API-${logEntry.id.slice(0, 8)}`,
-        payment_method: pm?.name || 'API',
-        status: 'approved',
-      });
+    // Always create a recharge record so the user has a receipt
+    const { data: pm } = await supabaseAdmin.from('payment_methods').select('name').eq('id', payment_method_id).single();
+    const ref = paymentResult.provider_ref || `API-${logEntry.id.slice(0, 8)}`;
 
-      // Credit user balance
+    let rechargeStatus = 'pending';
+    if (paymentResult.success && !paymentResult.pending) {
+      rechargeStatus = 'approved';
+    } else if (!paymentResult.success && !paymentResult.pending) {
+      rechargeStatus = 'pending'; // failed API but still create receipt for manual review
+    }
+
+    await supabaseAdmin.from('recharges').insert({
+      user_id: userId,
+      phone,
+      country_code: country_code || '+226',
+      amount,
+      transaction_ref: ref,
+      payment_method: pm?.name || 'API',
+      status: rechargeStatus,
+    });
+
+    // If immediately successful, credit user balance
+    if (paymentResult.success && !paymentResult.pending) {
       const { data: profile } = await supabaseAdmin.from('profiles').select('balance, deposit_balance').eq('user_id', userId).single();
       if (profile) {
         await supabaseAdmin.from('profiles').update({
