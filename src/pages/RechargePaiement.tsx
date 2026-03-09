@@ -269,16 +269,16 @@ const RechargePaiement = () => {
 
             {apiStatus === "pending" && (
               <div className="space-y-3">
-                <div className="bg-amber-500/10 text-amber-600 rounded-xl px-4 py-3">
+                <div className="bg-success/10 text-success rounded-xl px-4 py-3">
                    <p className="text-xs font-semibold flex items-center gap-2">
-                     <Loader2 size={14} className="animate-spin" />
-                     En attente de validation USSD
+                     <CheckCircle size={14} />
+                     Paiement envoyé avec succès !
                    </p>
                    <p className="text-[10px] mt-1">
-                     Une demande de paiement a été envoyée sur votre téléphone. Composez votre code PIN pour confirmer.
+                     Votre demande de paiement a été envoyée. Composez votre code PIN sur votre téléphone pour confirmer. Votre compte sera crédité automatiquement.
                    </p>
                  </div>
-                 <button onClick={() => navigate("/portefeuille")} className="w-full bg-secondary text-foreground font-bold py-3 rounded-xl text-sm">
+                 <button onClick={() => navigate("/portefeuille")} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">
                    Retour au portefeuille
                  </button>
               </div>
