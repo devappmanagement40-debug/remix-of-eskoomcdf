@@ -54,10 +54,15 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: false, error: 'Configuration API non trouvée ou désactivée' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // Create payment log entry
+    // Generate reference early so we can store it before calling the API
+    const logId = crypto.randomUUID();
+    const omnipayRef = apiConfig.provider === 'omnipay' ? `OMN${logId.replace(/-/g, '').slice(0, 16)}` : null;
+
+    // Create payment log entry with provider_ref pre-set for OmniPay
     const { data: logEntry, error: logErr } = await supabaseAdmin
       .from('payment_logs')
       .insert({
+        id: logId,
         user_id: userId,
         api_config_id: api_config_id,
         payment_method_id: payment_method_id,
@@ -65,6 +70,7 @@ serve(async (req) => {
         phone,
         country_code: country_code || '+226',
         status: 'initiated',
+        provider_ref: omnipayRef,
       })
       .select()
       .single();
