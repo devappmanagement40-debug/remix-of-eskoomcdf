@@ -130,21 +130,39 @@ Deno.serve(async (req) => {
 
     // If successful, credit user
     if (isSuccess) {
-      const { data: pm } = await supabase
-        .from("payment_methods")
-        .select("name")
-        .eq("id", logEntry.payment_method_id)
-        .single();
+      // Update existing recharge record (created by process-payment) to 'approved'
+      const { data: existingRecharge } = await supabase
+        .from("recharges")
+        .select("id")
+        .eq("user_id", logEntry.user_id)
+        .eq("transaction_ref", reference)
+        .in("status", ["pending", "processing"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      await supabase.from("recharges").insert({
-        user_id: logEntry.user_id,
-        phone: logEntry.phone,
-        country_code: logEntry.country_code,
-        amount: logEntry.amount,
-        transaction_ref: reference,
-        payment_method: pm?.name || "OmniPay",
-        status: "approved",
-      });
+      if (existingRecharge) {
+        await supabase.from("recharges").update({ status: "approved" }).eq("id", existingRecharge.id);
+        console.log("Updated existing recharge", existingRecharge.id, "to approved");
+      } else {
+        // Fallback: create new recharge if none found (e.g. old transactions)
+        const { data: pm } = await supabase
+          .from("payment_methods")
+          .select("name")
+          .eq("id", logEntry.payment_method_id)
+          .single();
+
+        await supabase.from("recharges").insert({
+          user_id: logEntry.user_id,
+          phone: logEntry.phone,
+          country_code: logEntry.country_code,
+          amount: logEntry.amount,
+          transaction_ref: reference,
+          payment_method: pm?.name || "OmniPay",
+          status: "approved",
+        });
+        console.log("Created new recharge record (no existing pending found)");
+      }
 
       const { data: profile } = await supabase
         .from("profiles")
