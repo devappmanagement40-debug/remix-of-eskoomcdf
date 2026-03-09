@@ -123,7 +123,6 @@ serve(async (req) => {
     await supabaseAdmin
       .from('payment_logs')
       .update(updateData)
-      })
       .eq('id', logEntry.id);
 
     // If pending (SendavaPay PROCESSING), don't credit yet — webhook will handle it
