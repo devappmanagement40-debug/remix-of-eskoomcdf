@@ -3040,6 +3040,7 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
   };
 
   const providers = [
+    { value: "omnipay", label: "OmniPay" },
     { value: "sendavapay", label: "SendavaPay" },
     { value: "cinetpay", label: "CinetPay" },
     { value: "fedapay", label: "FedaPay" },
@@ -3047,6 +3048,20 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
     { value: "flutterwave", label: "Flutterwave" },
     { value: "custom", label: "Personnalisé" },
   ];
+
+  // Auto-fill defaults when provider changes
+  const handleProviderChange = (provider: string) => {
+    const updates: any = { provider };
+    if (provider === "omnipay") {
+      updates.endpoint_url = form.endpoint_url || "https://omnipay.webtechci.com";
+      updates.callback_url = form.callback_url || `https://vigdgbydpumkauibuxmn.supabase.co/functions/v1/omnipay-webhook`;
+      updates.secret_key = ""; // OmniPay n'utilise pas de secret key
+    } else if (provider === "sendavapay") {
+      updates.endpoint_url = form.endpoint_url || "https://sendavapay.com";
+      updates.callback_url = form.callback_url || `https://vigdgbydpumkauibuxmn.supabase.co/functions/v1/sendavapay-webhook`;
+    }
+    setForm({ ...form, ...updates });
+  };
 
   return (
     <div className="space-y-3">
@@ -3076,7 +3091,7 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
 
           <div>
             <label className="text-xs text-muted-foreground">Fournisseur</label>
-            <select value={form.provider} onChange={e => setForm({ ...form, provider: e.target.value })}
+            <select value={form.provider} onChange={e => handleProviderChange(e.target.value)}
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none">
               {providers.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
             </select>
@@ -3112,10 +3127,12 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
             <input type="password" value={form.api_key} onChange={e => setForm({ ...form, api_key: e.target.value })} placeholder="Clé API" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
           </div>
 
+          {form.provider !== "omnipay" && (
           <div>
             <label className="text-xs text-muted-foreground">Secret Key</label>
             <input type="password" value={form.secret_key} onChange={e => setForm({ ...form, secret_key: e.target.value })} placeholder="Clé secrète" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
           </div>
+          )}
 
           <div>
             <label className="text-xs text-muted-foreground">URL Endpoint</label>
