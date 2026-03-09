@@ -3127,10 +3127,12 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
             <input type="password" value={form.api_key} onChange={e => setForm({ ...form, api_key: e.target.value })} placeholder="Clé API" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
           </div>
 
+          {form.provider !== "omnipay" && (
           <div>
             <label className="text-xs text-muted-foreground">Secret Key</label>
             <input type="password" value={form.secret_key} onChange={e => setForm({ ...form, secret_key: e.target.value })} placeholder="Clé secrète" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
           </div>
+          )}
 
           <div>
             <label className="text-xs text-muted-foreground">URL Endpoint</label>
