@@ -3040,6 +3040,7 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
   };
 
   const providers = [
+    { value: "omnipay", label: "OmniPay" },
     { value: "sendavapay", label: "SendavaPay" },
     { value: "cinetpay", label: "CinetPay" },
     { value: "fedapay", label: "FedaPay" },
@@ -3047,6 +3048,20 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
     { value: "flutterwave", label: "Flutterwave" },
     { value: "custom", label: "Personnalisé" },
   ];
+
+  // Auto-fill defaults when provider changes
+  const handleProviderChange = (provider: string) => {
+    const updates: any = { provider };
+    if (provider === "omnipay") {
+      updates.endpoint_url = form.endpoint_url || "https://omnipay.webtechci.com";
+      updates.callback_url = form.callback_url || `https://vigdgbydpumkauibuxmn.supabase.co/functions/v1/omnipay-webhook`;
+      updates.secret_key = ""; // OmniPay n'utilise pas de secret key
+    } else if (provider === "sendavapay") {
+      updates.endpoint_url = form.endpoint_url || "https://sendavapay.com";
+      updates.callback_url = form.callback_url || `https://vigdgbydpumkauibuxmn.supabase.co/functions/v1/sendavapay-webhook`;
+    }
+    setForm({ ...form, ...updates });
+  };
 
   return (
     <div className="space-y-3">
