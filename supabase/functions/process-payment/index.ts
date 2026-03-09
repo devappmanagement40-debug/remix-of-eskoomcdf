@@ -112,12 +112,17 @@ serve(async (req) => {
 
     // Update log
     const logStatus = paymentResult.pending ? 'processing' : (paymentResult.success ? 'completed' : 'failed');
+    const updateData: Record<string, any> = {
+      status: logStatus,
+      error_message: paymentResult.error || null,
+    };
+    // Only overwrite provider_ref if we have a new value (preserve pre-set OmniPay ref)
+    if (paymentResult.provider_ref) {
+      updateData.provider_ref = paymentResult.provider_ref;
+    }
     await supabaseAdmin
       .from('payment_logs')
-      .update({
-        status: logStatus,
-        provider_ref: paymentResult.provider_ref || null,
-        error_message: paymentResult.error || null,
+      .update(updateData)
       })
       .eq('id', logEntry.id);
 
