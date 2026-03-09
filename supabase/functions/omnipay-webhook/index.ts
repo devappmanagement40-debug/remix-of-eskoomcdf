@@ -181,6 +181,19 @@ Deno.serve(async (req) => {
         console.log(`✅ User ${logEntry.user_id} credited: +${logEntry.amount} FCFA (balance: ${newBalance})`);
       }
     } else {
+      // Update existing recharge to 'rejected' on failure
+      const { data: existingRecharge } = await supabase
+        .from("recharges")
+        .select("id")
+        .eq("user_id", logEntry.user_id)
+        .eq("transaction_ref", reference)
+        .in("status", ["pending", "processing"])
+        .limit(1)
+        .maybeSingle();
+
+      if (existingRecharge) {
+        await supabase.from("recharges").update({ status: "rejected" }).eq("id", existingRecharge.id);
+      }
       console.log(`❌ Payment ${reference} failed: ${payload.message || "unknown"}`);
     }
 
