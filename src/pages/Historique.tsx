@@ -63,11 +63,12 @@ const Historique = () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const [depositsRes, withdrawalsRes, purchasesRes, exchangesRes] = await Promise.all([
+        const [depositsRes, withdrawalsRes, purchasesRes, exchangesRes, commissionsRes] = await Promise.all([
           supabase.from("recharges").select("id, amount, status, created_at, payment_method, phone, country_code, transaction_ref").eq("user_id", user.id).order("created_at", { ascending: false }),
           supabase.from("withdrawals").select("id, amount, net_amount, fee_amount, status, created_at, network, phone, country_code").eq("user_id", user.id).order("created_at", { ascending: false }),
           supabase.from("user_products").select("id, purchased_at, total_collected, products(name, price, daily_revenue, cycles)").eq("user_id", user.id).order("purchased_at", { ascending: false }),
           supabase.from("point_exchanges").select("id, points_spent, money_credited, reward_name, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
+          supabase.from("referral_commissions").select("id, product_price, commission_rate, commission_amount, level, created_at").eq("beneficiary_id", user.id).order("created_at", { ascending: false }),
         ]);
 
         const ops: Operation[] = [];
