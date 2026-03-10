@@ -89,20 +89,14 @@ const AdminRetraits = () => {
   const [autoPayingId, setAutoPayingId] = useState<string | null>(null);
 
   const handleAction = async (item: Withdrawal, status: "approved" | "rejected") => {
+    // Note: balance was already deducted on withdrawal creation (DB trigger).
+    // Setting status to "rejected" triggers refund via handle_withdrawal_status_change.
     const { error } = await supabase.from("withdrawals").update({ status }).eq("id", item.id);
     if (error) { showError("Erreur", "Erreur lors de la mise à jour"); return; }
 
-    if (status === "approved") {
-      const { data: profile } = await supabase.from("profiles").select("balance").eq("user_id", item.user_id).single();
-      if (profile) {
-        const newBal = Math.max(0, (profile.balance || 0) - item.amount);
-        await supabase.from("profiles").update({ balance: newBal }).eq("user_id", item.user_id);
-      }
-    }
-
     showSuccess(
       status === "approved" ? "Retrait approuvé" : "Retrait refusé",
-      status === "approved" ? "Le retrait a été validé et le solde débité ✅" : "Le retrait a été refusé ❌"
+      status === "approved" ? "Le retrait a été validé ✅" : "Le retrait a été refusé et le montant recrédité ❌"
     );
     loadData();
   };
@@ -120,10 +114,12 @@ const AdminRetraits = () => {
       }
 
       if (data?.success) {
-        showSuccess("Transfert OmniPay", `Transfert initié ! Ref: ${data.reference} | Frais OmniPay: ${data.fees || 0} FCFA`);
+        showSuccess("Transfert OmniPay", `Transfert initié ✅ | Ref: ${data.reference} | Opérateur: ${data.operator || 'auto'} | Frais: ${data.fees || 0} FCFA`);
         loadData();
       } else {
-        showError("Erreur OmniPay", data?.error || "Le transfert a échoué");
+        const refundMsg = data?.refunded ? "\nLe montant a été recrédité au compte." : "";
+        showError("Erreur OmniPay", (data?.error || "Le transfert a échoué") + refundMsg);
+        loadData();
       }
     } catch {
       showError("Erreur", "Erreur de connexion");
