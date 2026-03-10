@@ -856,9 +856,11 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
                 <div><p className="text-[10px] text-muted-foreground">ID</p><p className="text-[10px] font-mono text-muted-foreground break-all">{detailW.id}</p></div>
               </div>
 
-              {detailW.status === "pending" && (
+               {detailW.status === "pending" && (
                 <div className="grid grid-cols-2 gap-3">
-                  <button onClick={() => { handleAction(detailW, "approved"); setDetailW(null); }} className="flex items-center justify-center gap-2 border-2 border-success text-success font-bold py-2.5 rounded-xl text-sm hover:bg-success/10"><CheckCircle2 size={16} /> Approuver</button>
+                  <button onClick={() => { handleAction(detailW, "approved"); setDetailW(null); }} disabled={autoPayingId === detailW.id} className="flex items-center justify-center gap-2 bg-success text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50">
+                    {autoPayingId === detailW.id ? <><Loader2 size={16} className="animate-spin" /> Envoi...</> : <><CheckCircle2 size={16} /> Valider</>}
+                  </button>
                   <button onClick={() => { handleAction(detailW, "rejected"); setDetailW(null); }} className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10"><XCircle size={16} /> Rejeter</button>
                 </div>
               )}
