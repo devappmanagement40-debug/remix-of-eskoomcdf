@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { History, ArrowDownLeft, ArrowUpRight, ShoppingBag, TrendingUp, Gift, X, Copy, CheckCircle2 } from "lucide-react";
+import { History, ArrowDownLeft, ArrowUpRight, ShoppingBag, TrendingUp, Gift, Users, X, Copy, CheckCircle2 } from "lucide-react";
 import { safeClipboardWrite } from "@/lib/clipboard";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
