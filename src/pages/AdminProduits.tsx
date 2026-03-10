@@ -229,8 +229,22 @@ const AdminProduits = () => {
   };
 
   const deleteProduct = async (id: string) => {
+    // Check if any user has ever purchased this product
+    const { count } = await supabase.from("user_products")
+      .select("*", { count: "exact", head: true })
+      .eq("product_id", id);
+
+    if ((count || 0) > 0) {
+      // Users have purchased this product — soft delete (deactivate) instead
+      await supabase.from("products").update({ is_active: false }).eq("id", id);
+      showSuccess("Produit désactivé", "Ce produit a été désactivé car des utilisateurs l'ont déjà acheté. Leurs revenus continuent normalement.");
+      loadAll();
+      return;
+    }
+
+    // No purchases — safe to hard delete
     await supabase.from("products").delete().eq("id", id);
-    showSuccess("Supprimé", "Le produit a été supprimé");
+    showSuccess("Supprimé", "Le produit a été supprimé définitivement");
     loadAll();
   };
 
