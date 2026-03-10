@@ -270,35 +270,31 @@ const AdminRetraits = () => {
 
                 {/* Actions */}
                 {r.status === "pending" && (
-                  <div className="space-y-2 mt-4">
-                    {/* OmniPay auto transfer */}
+                  <div className="grid grid-cols-2 gap-3 mt-4">
                     <button
                       onClick={() => handleOmniPayTransfer(r)}
                       disabled={autoPayingId === r.id}
-                      className="w-full flex items-center justify-center gap-2 gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm disabled:opacity-50"
+                      className="flex items-center justify-center gap-2 bg-success text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50"
                     >
                       {autoPayingId === r.id ? (
-                        <><Loader2 size={16} className="animate-spin" />Transfert en cours...</>
+                        <><Loader2 size={16} className="animate-spin" />Envoi...</>
                       ) : (
-                        <><Zap size={16} />Payer via OmniPay</>
+                        <><CheckCircle2 size={16} />Valider</>
                       )}
                     </button>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        onClick={() => handleAction(r, "approved")}
-                        className="flex items-center justify-center gap-2 border-2 border-success text-success font-bold py-2.5 rounded-xl text-sm hover:bg-success/10 transition-colors"
-                      >
-                        <CheckCircle2 size={16} />
-                        Approuver
-                      </button>
-                      <button
-                        onClick={() => handleAction(r, "rejected")}
-                        className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10 transition-colors"
-                      >
-                        <XCircle size={16} />
-                        Rejeter
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => handleAction(r, "rejected")}
+                      className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10 transition-colors"
+                    >
+                      <XCircle size={16} />
+                      Rejeter
+                    </button>
+                  </div>
+                )}
+                {r.status === "processing" && (
+                  <div className="mt-3 flex items-center gap-2 text-warning text-xs font-semibold">
+                    <Loader2 size={14} className="animate-spin" />
+                    Transfert OmniPay en cours...
                   </div>
                 )}
               </div>
