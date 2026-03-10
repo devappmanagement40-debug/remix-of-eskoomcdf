@@ -197,6 +197,7 @@ const Historique = () => {
       .on("postgres_changes", { event: "*", schema: "public", table: "recharges" }, () => load())
       .on("postgres_changes", { event: "*", schema: "public", table: "withdrawals" }, () => load())
       .on("postgres_changes", { event: "*", schema: "public", table: "user_products" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "referral_commissions" }, () => load())
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
