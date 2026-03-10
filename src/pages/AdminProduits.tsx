@@ -107,6 +107,35 @@ const AdminProduits = () => {
   };
 
   const deleteSeries = async (id: string) => {
+    // Check if any products in this series have active user purchases
+    const seriesProductIds = products.filter(p => p.series_id === id).map(p => p.id);
+    if (seriesProductIds.length > 0) {
+      const { count } = await supabase.from("user_products")
+        .select("*", { count: "exact", head: true })
+        .in("product_id", seriesProductIds)
+        .eq("is_active", true);
+      if ((count || 0) > 0) {
+        showError("Impossible", "Des utilisateurs possèdent encore des produits actifs dans cette série. Désactivez les produits au lieu de les supprimer.");
+        return;
+      }
+    }
+    // Check if any products exist in this series at all (with past purchases)
+    if (seriesProductIds.length > 0) {
+      const { count: totalPurchases } = await supabase.from("user_products")
+        .select("*", { count: "exact", head: true })
+        .in("product_id", seriesProductIds);
+      if ((totalPurchases || 0) > 0) {
+        // Soft delete: deactivate all products instead of deleting
+        for (const pid of seriesProductIds) {
+          await supabase.from("products").update({ is_active: false }).eq("id", pid);
+        }
+        showSuccess("Série désactivée", "Les produits ont été désactivés car des utilisateurs les ont déjà achetés. Leurs revenus continuent normalement.");
+        loadAll();
+        return;
+      }
+    }
+    // No purchases ever — safe to hard delete
+    await supabase.from("products").delete().in("id", seriesProductIds);
     await supabase.from("product_series").delete().eq("id", id);
     showSuccess("Supprimé", "La série a été supprimée");
     loadAll();
