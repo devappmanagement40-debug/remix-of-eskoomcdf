@@ -741,10 +741,38 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
       return w.phone.includes(s) || w.network.toLowerCase().includes(s) || (p?.full_name?.toLowerCase().includes(s));
     });
 
+  const [autoPayingId, setAutoPayingId] = useState<string | null>(null);
+
   const handleAction = async (w: Withdrawal, status: "approved" | "rejected") => {
+    if (status === "approved") {
+      // Use OmniPay for automatic transfer
+      setAutoPayingId(w.id);
+      try {
+        const { data, error } = await supabase.functions.invoke("process-withdrawal", {
+          body: { withdrawal_id: w.id },
+        });
+        if (error) {
+          showError("Erreur", "Erreur de connexion au serveur");
+          return;
+        }
+        if (data?.success) {
+          showSuccess("Transfert OmniPay", `Transfert initié ✅ | Ref: ${data.reference} | Op: ${data.operator || 'auto'}`);
+        } else {
+          const refundMsg = data?.refunded ? "\nMontant recrédité." : "";
+          showError("Erreur OmniPay", (data?.error || "Le transfert a échoué") + refundMsg);
+        }
+      } catch {
+        showError("Erreur", "Erreur de connexion");
+      } finally {
+        setAutoPayingId(null);
+        reload();
+      }
+      return;
+    }
+    // Rejected = direct update (trigger refunds)
     await supabase.from("withdrawals").update({ status }).eq("id", w.id);
     logAction(`withdrawal_${status}`, "withdrawal", w.id, `${w.amount} FCFA`);
-    showSuccess(status === "approved" ? "Retrait approuve" : "Retrait refuse — montant restitue", "");
+    showSuccess("Retrait refusé — montant restitué", "");
     reload();
   };
 
