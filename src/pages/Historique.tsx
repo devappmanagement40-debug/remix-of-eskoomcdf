@@ -162,6 +162,25 @@ const Historique = () => {
           });
         });
 
+        ((commissionsRes.data as any[]) || []).forEach((c: any) => {
+          const levelLabel = c.level === 'B' ? 'Niveau E (direct)' : c.level === 'C' ? 'Niveau F' : 'Niveau G';
+          ops.push({
+            id: `ref-${c.id}`, rawId: c.id, type: "parrainage", amount: c.commission_amount, date: c.created_at,
+            status: "completed", description: `Bonus parrainage ${levelLabel}`,
+            icon: Users, color: "text-success",
+            details: {
+              "N° de commande": c.id.substring(0, 8).toUpperCase(),
+              "Type": "Bonus de parrainage",
+              "Niveau": levelLabel,
+              "Prix du produit": `${Number(c.product_price).toLocaleString("fr-FR")} F`,
+              "Taux": `${c.commission_rate}%`,
+              "Bonus reçu": `${Number(c.commission_amount).toLocaleString("fr-FR")} F`,
+              "Statut": "Validé",
+              "Date": fmtDateFull(c.created_at),
+            },
+          });
+        });
+
         ops.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setOperations(ops);
       } catch (err) {
