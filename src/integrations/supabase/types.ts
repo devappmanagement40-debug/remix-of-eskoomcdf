@@ -1237,6 +1237,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      credit_referral_commissions: {
+        Args: { _buyer_profile_id: string; _product_price: number }
+        Returns: undefined
+      }
       get_recent_winners: {
         Args: { lim?: number }
         Returns: {
