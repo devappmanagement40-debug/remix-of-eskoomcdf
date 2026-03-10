@@ -114,10 +114,12 @@ const AdminRetraits = () => {
       }
 
       if (data?.success) {
-        showSuccess("Transfert OmniPay", `Transfert initié ! Ref: ${data.reference} | Frais OmniPay: ${data.fees || 0} FCFA`);
+        showSuccess("Transfert OmniPay", `Transfert initié ✅ | Ref: ${data.reference} | Opérateur: ${data.operator || 'auto'} | Frais: ${data.fees || 0} FCFA`);
         loadData();
       } else {
-        showError("Erreur OmniPay", data?.error || "Le transfert a échoué");
+        const refundMsg = data?.refunded ? "\nLe montant a été recrédité au compte." : "";
+        showError("Erreur OmniPay", (data?.error || "Le transfert a échoué") + refundMsg);
+        loadData();
       }
     } catch {
       showError("Erreur", "Erreur de connexion");
