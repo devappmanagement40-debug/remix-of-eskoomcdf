@@ -10,7 +10,7 @@ import {
   Clock, ArrowDown, Edit2, Trash2, Plus, X, Save, ChevronDown, ChevronUp,
   Layers, Eye, EyeOff, Ban, UserCheck, Pencil, TrendingUp, Activity,
   Globe, ImageIcon, UploadIcon, Bot, Power, ArrowLeft, Send, Star, Gift,
-  HelpCircle, Info, Smartphone, Wallet, FileText
+  HelpCircle, Info, Smartphone, Wallet, FileText, Loader2
 } from "lucide-react";
 
 // ==================== TYPES ====================
