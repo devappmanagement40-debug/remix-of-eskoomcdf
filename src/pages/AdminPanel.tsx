@@ -10,7 +10,7 @@ import {
   Clock, ArrowDown, Edit2, Trash2, Plus, X, Save, ChevronDown, ChevronUp,
   Layers, Eye, EyeOff, Ban, UserCheck, Pencil, TrendingUp, Activity,
   Globe, ImageIcon, UploadIcon, Bot, Power, ArrowLeft, Send, Star, Gift,
-  HelpCircle, Info, Smartphone, Wallet, FileText
+  HelpCircle, Info, Smartphone, Wallet, FileText, Loader2
 } from "lucide-react";
 
 // ==================== TYPES ====================
@@ -741,10 +741,38 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
       return w.phone.includes(s) || w.network.toLowerCase().includes(s) || (p?.full_name?.toLowerCase().includes(s));
     });
 
+  const [autoPayingId, setAutoPayingId] = useState<string | null>(null);
+
   const handleAction = async (w: Withdrawal, status: "approved" | "rejected") => {
+    if (status === "approved") {
+      // Use OmniPay for automatic transfer
+      setAutoPayingId(w.id);
+      try {
+        const { data, error } = await supabase.functions.invoke("process-withdrawal", {
+          body: { withdrawal_id: w.id },
+        });
+        if (error) {
+          showError("Erreur", "Erreur de connexion au serveur");
+          return;
+        }
+        if (data?.success) {
+          showSuccess("Transfert OmniPay", `Transfert initié ✅ | Ref: ${data.reference} | Op: ${data.operator || 'auto'}`);
+        } else {
+          const refundMsg = data?.refunded ? "\nMontant recrédité." : "";
+          showError("Erreur OmniPay", (data?.error || "Le transfert a échoué") + refundMsg);
+        }
+      } catch {
+        showError("Erreur", "Erreur de connexion");
+      } finally {
+        setAutoPayingId(null);
+        reload();
+      }
+      return;
+    }
+    // Rejected = direct update (trigger refunds)
     await supabase.from("withdrawals").update({ status }).eq("id", w.id);
     logAction(`withdrawal_${status}`, "withdrawal", w.id, `${w.amount} FCFA`);
-    showSuccess(status === "approved" ? "Retrait approuve" : "Retrait refuse — montant restitue", "");
+    showSuccess("Retrait refusé — montant restitué", "");
     reload();
   };
 
@@ -828,9 +856,11 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
                 <div><p className="text-[10px] text-muted-foreground">ID</p><p className="text-[10px] font-mono text-muted-foreground break-all">{detailW.id}</p></div>
               </div>
 
-              {detailW.status === "pending" && (
+               {detailW.status === "pending" && (
                 <div className="grid grid-cols-2 gap-3">
-                  <button onClick={() => { handleAction(detailW, "approved"); setDetailW(null); }} className="flex items-center justify-center gap-2 border-2 border-success text-success font-bold py-2.5 rounded-xl text-sm hover:bg-success/10"><CheckCircle2 size={16} /> Approuver</button>
+                  <button onClick={() => { handleAction(detailW, "approved"); setDetailW(null); }} disabled={autoPayingId === detailW.id} className="flex items-center justify-center gap-2 bg-success text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50">
+                    {autoPayingId === detailW.id ? <><Loader2 size={16} className="animate-spin" /> Envoi...</> : <><CheckCircle2 size={16} /> Valider</>}
+                  </button>
                   <button onClick={() => { handleAction(detailW, "rejected"); setDetailW(null); }} className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10"><XCircle size={16} /> Rejeter</button>
                 </div>
               )}
@@ -870,7 +900,9 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
               <p className="text-[10px] text-muted-foreground mt-2 text-right">Cliquez pour voir les détails →</p>
               {w.status === "pending" && (
                 <div className="grid grid-cols-2 gap-3 mt-4" onClick={e => e.stopPropagation()}>
-                  <button onClick={() => handleAction(w, "approved")} className="flex items-center justify-center gap-2 border-2 border-success text-success font-bold py-2.5 rounded-xl text-sm hover:bg-success/10"><CheckCircle2 size={16} /> Approuver</button>
+                  <button onClick={() => handleAction(w, "approved")} disabled={autoPayingId === w.id} className="flex items-center justify-center gap-2 bg-success text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50">
+                    {autoPayingId === w.id ? <><Loader2 size={16} className="animate-spin" /> Envoi...</> : <><CheckCircle2 size={16} /> Valider</>}
+                  </button>
                   <button onClick={() => handleAction(w, "rejected")} className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10"><XCircle size={16} /> Rejeter</button>
                 </div>
               )}
