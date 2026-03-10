@@ -591,9 +591,9 @@ RÈGLES DE RÉPONSE STRICTES
       if (!response.ok) {
         const t = await response.text();
         console.error("Gemini API error:", response.status, t);
-        if (response.status === 429) {
-          // Fallback to Lovable AI when Gemini quota exceeded
-          console.log("Gemini rate limited, falling back to Lovable AI...");
+        if (response.status === 429 || response.status === 503) {
+          // Fallback to Lovable AI when Gemini quota exceeded or unavailable
+          console.log(`Gemini error ${response.status}, falling back to Lovable AI...`);
           const fallbackResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
             method: "POST",
             headers: {
