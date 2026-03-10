@@ -89,8 +89,41 @@ serve(async (req) => {
     const withdrawalHourEnd = settingsMap["withdrawal_hour_end"] || "24";
     const withdrawalDays = settingsMap["withdrawal_days"] || "1,2,3,4,5,6,7";
 
-    const paymentInfo = (paymentMethods || []).map((m: any) => `- ${m.name} (${m.country}): ${m.phone || "N/A"}, bénéficiaire: ${m.holder_name || "N/A"}${m.instructions ? `, instructions: ${m.instructions}` : ""}`).join("\n");
+    const paymentInfo = (paymentMethods || []).map((m: any) => `- ${m.name} (${m.country}): ${m.phone || "N/A"}, bénéficiaire: ${m.holder_name || "N/A"}, type: ${m.payment_type || "manual"}${m.instructions ? `, instructions: ${m.instructions}` : ""}`).join("\n");
     const productInfo = (products || []).map((p: any) => `- ${p.name}: prix ${p.price} FCFA, revenu journalier ${p.daily_revenue} FCFA, durée ${p.cycles} jours, revenu total ${p.total_revenue} FCFA, rendement ${p.return_percent}%`).join("\n");
+
+    // Build country map for lookup
+    const countryList = (countries || []) as any[];
+    const countryById: Record<string, any> = {};
+    const countryByCode: Record<string, any> = {};
+    countryList.forEach((c: any) => {
+      countryById[c.id] = c;
+      countryByCode[c.country_code] = c;
+    });
+
+    // Detect user's country
+    let userCountry: any = null;
+    let userCountryName = "Non détecté";
+    if (userProfile?.data?.country_code) {
+      userCountry = countryByCode[userProfile.data.country_code];
+      if (userCountry) userCountryName = userCountry.name;
+    }
+
+    // Build payment methods per country
+    const paymentsByCountry: Record<string, string[]> = {};
+    (paymentMethods || []).forEach((m: any) => {
+      const cName = m.country || "Autre";
+      if (!paymentsByCountry[cName]) paymentsByCountry[cName] = [];
+      paymentsByCountry[cName].push(m.name);
+    });
+    let paymentsByCountryText = "";
+    for (const [cName, methods] of Object.entries(paymentsByCountry)) {
+      paymentsByCountryText += `- ${cName} : ${[...new Set(methods)].join(", ")}\n`;
+    }
+
+    // Detect if user's country has API-enabled deposits
+    const userCountryHasApi = userCountry?.api_enabled === true;
+    const userCountryDepositType = userCountryHasApi ? "automatique" : "manuel";
 
     // Build official documents context
     let officialDocsContext = "";
