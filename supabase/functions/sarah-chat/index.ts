@@ -549,7 +549,77 @@ RÈGLES DE RÉPONSE STRICTES
       userMessage,
     ];
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    // Determine AI provider from settings
+    const { data: providerSetting } = await supabase
+      .from("site_settings")
+      .select("value")
+      .eq("key", "sarah_ai_provider")
+      .single();
+    const aiProvider = providerSetting?.value || "lovable";
+
+    let response: Response;
+
+    if (aiProvider === "gemini") {
+      // Direct Google Gemini API
+      const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
+      if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY not configured");
+
+      // Convert OpenAI format to Gemini format
+      const geminiContents = messages_payload.map((m: any) => {
+        const role = m.role === "assistant" ? "model" : (m.role === "system" ? "user" : "user");
+        if (typeof m.content === "string") {
+          return { role, parts: [{ text: m.content }] };
+        }
+        // Multimodal content
+        const parts = m.content.map((c: any) => {
+          if (c.type === "text") return { text: c.text };
+          if (c.type === "image_url") return { text: `[Image: ${c.image_url.url}]` };
+          return { text: "" };
+        });
+        return { role, parts };
+      });
+
+      response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contents: geminiContents }),
+        }
+      );
+
+      if (!response.ok) {
+        const t = await response.text();
+        console.error("Gemini API error:", response.status, t);
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: "rate_limit", reply: "Le service est temporairement surchargé. Veuillez réessayer dans quelques instants." }), {
+            status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        throw new Error("Gemini API error");
+      }
+
+      const geminiData = await response.json();
+      const reply = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || "Je suis désolée, je n'ai pas pu traiter votre demande. Veuillez réessayer.";
+
+      // Save AI reply to DB
+      let savedReplyId = null;
+      if (userId) {
+        const { data: savedReply } = await supabase
+          .from("chat_messages")
+          .insert({ user_id: userId, sender: "support", message: reply, is_ai: true })
+          .select("id, created_at")
+          .single();
+        savedReplyId = savedReply?.id;
+      }
+
+      return new Response(JSON.stringify({ reply, savedReplyId }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Default: Lovable AI (Gemini via gateway)
+    response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
