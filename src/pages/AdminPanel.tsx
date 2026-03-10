@@ -1679,6 +1679,8 @@ const SupportTab = ({ adminId }: { adminId: string }) => {
 const SarahTab = ({ settings, reload, showSuccess }: any) => {
   const sarahSetting = settings.find((s: SiteSetting) => s.key === "sarah_enabled");
   const isEnabled = sarahSetting?.value === "true";
+  const providerSetting = settings.find((s: SiteSetting) => s.key === "sarah_ai_provider");
+  const currentProvider = providerSetting?.value || "lovable";
 
   const toggle = async () => {
     const newVal = isEnabled ? "false" : "true";
@@ -1687,6 +1689,17 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
       newVal === "true" ? "Sarah activée ✅" : "Sarah désactivée",
       newVal === "true" ? "L'IA prend le contrôle du chat" : "Le support humain est actif"
     );
+    reload();
+  };
+
+  const changeProvider = async (provider: string) => {
+    const existing = settings.find((s: SiteSetting) => s.key === "sarah_ai_provider");
+    if (existing) {
+      await supabase.from("site_settings").update({ value: provider }).eq("key", "sarah_ai_provider");
+    } else {
+      await supabase.from("site_settings").insert({ key: "sarah_ai_provider", value: provider, category: "sarah" });
+    }
+    showSuccess("Moteur IA mis à jour", provider === "lovable" ? "Sarah utilise maintenant Lovable AI" : "Sarah utilise maintenant Google Gemini");
     reload();
   };
 
@@ -1718,6 +1731,57 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
         </button>
       </div>
 
+      {/* Configuration IA */}
+      <div className="bg-card rounded-xl border border-secondary p-4">
+        <h4 className="text-xs font-bold text-muted-foreground mb-3">⚙️ CONFIGURATION IA</h4>
+        <p className="text-xs text-muted-foreground mb-4">Choisissez le moteur d'intelligence artificielle utilisé par Sarah :</p>
+        <div className="space-y-3">
+          <button
+            onClick={() => changeProvider("lovable")}
+            className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
+              currentProvider === "lovable"
+                ? "border-primary bg-primary/10"
+                : "border-secondary hover:border-muted-foreground"
+            }`}
+          >
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+              currentProvider === "lovable" ? "border-primary" : "border-muted-foreground"
+            }`}>
+              {currentProvider === "lovable" && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-bold text-foreground">Lovable AI</p>
+              <p className="text-[10px] text-muted-foreground">IA intégrée • Gemini Pro via gateway • Pas de clé API requise</p>
+            </div>
+            {currentProvider === "lovable" && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-success/20 text-success">Actif</span>
+            )}
+          </button>
+
+          <button
+            onClick={() => changeProvider("gemini")}
+            className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
+              currentProvider === "gemini"
+                ? "border-primary bg-primary/10"
+                : "border-secondary hover:border-muted-foreground"
+            }`}
+          >
+            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+              currentProvider === "gemini" ? "border-primary" : "border-muted-foreground"
+            }`}>
+              {currentProvider === "gemini" && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+            </div>
+            <div className="flex-1 text-left">
+              <p className="text-sm font-bold text-foreground">Google Gemini</p>
+              <p className="text-[10px] text-muted-foreground">API directe Google • Clé API GEMINI_API_KEY requise</p>
+            </div>
+            {currentProvider === "gemini" && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-success/20 text-success">Actif</span>
+            )}
+          </button>
+        </div>
+      </div>
+
       {/* Statut */}
       <div className="bg-card rounded-xl border border-secondary p-4">
         <h4 className="text-xs font-bold text-muted-foreground mb-3">STATUT</h4>
@@ -1731,6 +1795,10 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
           <div className="flex items-center justify-between">
             <span className="text-xs text-foreground">Mode support</span>
             <span className="text-xs text-muted-foreground">{isEnabled ? "Automatique (IA)" : "Manuel (Humain)"}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-foreground">Moteur IA</span>
+            <span className="text-xs font-bold text-primary">{currentProvider === "lovable" ? "Lovable AI" : "Google Gemini"}</span>
           </div>
         </div>
       </div>
