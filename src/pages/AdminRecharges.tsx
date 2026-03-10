@@ -103,7 +103,7 @@ const AdminRecharges = () => {
 
     showSuccess(
       status === "approved" ? "Recharge approuvée" : "Recharge refusée",
-      status === "approved" ? "La recharge a été validée, le solde crédité et les bonus de parrainage distribués ✅" : "La recharge a été refusée ❌"
+      status === "approved" ? "La recharge a été validée et le solde crédité ✅" : "La recharge a été refusée ❌"
     );
     loadRecharges();
   };

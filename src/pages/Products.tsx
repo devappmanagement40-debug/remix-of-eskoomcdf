@@ -226,6 +226,59 @@ const Products = () => {
             }).eq("id", buyerProfile.referred_by);
           }
         }
+
+        // === REFERRAL BONUS on product purchase ===
+        if (buyerProfile.referred_by) {
+          const { data: settingsData } = await supabase.from("site_settings")
+            .select("key, value")
+            .in("key", ["referral_bonus_level_b", "referral_bonus_level_c", "referral_bonus_level_d"]);
+          const settingsMap: Record<string, string> = {};
+          (settingsData || []).forEach((s: any) => { if (s.value) settingsMap[s.key] = s.value; });
+          
+          const pctB = Number(settingsMap.referral_bonus_level_b || "10") / 100;
+          const pctC = Number(settingsMap.referral_bonus_level_c || "5") / 100;
+          const pctD = Number(settingsMap.referral_bonus_level_d || "1") / 100;
+
+          // Level B (direct referrer)
+          const bonusB = Math.round(price * pctB);
+          const { data: parentB } = await supabase.from("profiles")
+            .select("id, user_id, balance, referral_balance, referred_by")
+            .eq("id", buyerProfile.referred_by).single();
+          if (parentB && bonusB > 0) {
+            await supabase.from("profiles").update({
+              balance: (parentB.balance || 0) + bonusB,
+              referral_balance: (parentB.referral_balance || 0) + bonusB,
+            }).eq("id", parentB.id);
+
+            // Level C
+            if (parentB.referred_by) {
+              const bonusC = Math.round(price * pctC);
+              const { data: parentC } = await supabase.from("profiles")
+                .select("id, balance, referral_balance, referred_by")
+                .eq("id", parentB.referred_by).single();
+              if (parentC && bonusC > 0) {
+                await supabase.from("profiles").update({
+                  balance: (parentC.balance || 0) + bonusC,
+                  referral_balance: (parentC.referral_balance || 0) + bonusC,
+                }).eq("id", parentC.id);
+
+                // Level D
+                if (parentC.referred_by) {
+                  const bonusD = Math.round(price * pctD);
+                  const { data: parentD } = await supabase.from("profiles")
+                    .select("id, balance, referral_balance")
+                    .eq("id", parentC.referred_by).single();
+                  if (parentD && bonusD > 0) {
+                    await supabase.from("profiles").update({
+                      balance: (parentD.balance || 0) + bonusD,
+                      referral_balance: (parentD.referral_balance || 0) + bonusD,
+                    }).eq("id", parentD.id);
+                  }
+                }
+              }
+            }
+          }
+        }
       }
 
       setPurchasedName(product.name);
