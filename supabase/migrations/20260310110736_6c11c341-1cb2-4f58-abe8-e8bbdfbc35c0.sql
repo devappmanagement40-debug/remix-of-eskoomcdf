@@ -1,0 +1,1 @@
+UPDATE site_settings SET value = 'gemini' WHERE key = 'sarah_ai_provider';
