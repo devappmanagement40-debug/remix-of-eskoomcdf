@@ -34,13 +34,15 @@ serve(async (req) => {
       );
     }
 
-    // Fetch all site data in parallel including official documents, team, user products, news
+    // Fetch all site data in parallel including official documents, team, user products, news, countries
     const [
       { data: settings },
       { data: paymentMethods },
       { data: products },
       { data: officialDocs },
       { data: infoItems },
+      { data: countries },
+      { data: withdrawalMethods },
       userProfile,
       userRecharges,
       userWithdrawals,
@@ -48,10 +50,12 @@ serve(async (req) => {
       teamMembers,
     ] = await Promise.all([
       supabase.from("site_settings").select("key, value"),
-      supabase.from("payment_methods").select("name, phone, country, holder_name, instructions, is_active").eq("is_active", true),
+      supabase.from("payment_methods").select("name, phone, country, holder_name, instructions, is_active, payment_type, country_id, external_url").eq("is_active", true).order("sort_order"),
       supabase.from("products").select("name, price, daily_revenue, cycles, total_revenue, return_percent, is_active").eq("is_active", true),
       supabase.from("official_documents").select("title, description, doc_type, file_url").eq("is_active", true).order("sort_order"),
       supabase.from("info_items").select("title, description").eq("is_active", true).order("sort_order").limit(10),
+      supabase.from("countries").select("id, name, country_code, phone_digits, api_enabled, is_active, flag_emoji").eq("is_active", true).order("sort_order"),
+      supabase.from("withdrawal_methods").select("name, payment_type, api_provider, country_id, is_active").eq("is_active", true).order("sort_order"),
       userId ? supabase.from("profiles").select("*").eq("user_id", userId).single() : Promise.resolve({ data: null }),
       userId ? supabase.from("recharges").select("amount, status, created_at, payment_method").eq("user_id", userId).order("created_at", { ascending: false }).limit(5) : Promise.resolve({ data: [] }),
       userId ? supabase.from("withdrawals").select("amount, status, created_at, network, phone, net_amount, fee_amount").eq("user_id", userId).order("created_at", { ascending: false }).limit(5) : Promise.resolve({ data: [] }),
