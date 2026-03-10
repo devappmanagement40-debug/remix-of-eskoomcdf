@@ -86,7 +86,7 @@ const LierCarte = () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/connexion"); return; }
     const { error } = await supabase.from("user_wallets").insert({
-      user_id: user.id, phone, country_code: countryCode, network,
+      user_id: user.id, phone, country_code: countryCode.replace('+', ''), network,
       label: `${network}`,
       holder_name: holderName.trim(),
     });
