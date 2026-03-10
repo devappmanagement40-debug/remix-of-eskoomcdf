@@ -592,6 +592,36 @@ RÈGLES DE RÉPONSE STRICTES
         const t = await response.text();
         console.error("Gemini API error:", response.status, t);
         if (response.status === 429) {
+          // Fallback to Lovable AI when Gemini quota exceeded
+          console.log("Gemini rate limited, falling back to Lovable AI...");
+          const fallbackResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "google/gemini-2.5-flash",
+              messages: messages_payload,
+              stream: false,
+            }),
+          });
+          if (fallbackResponse.ok) {
+            const fallbackData = await fallbackResponse.json();
+            const fallbackReply = fallbackData.choices?.[0]?.message?.content || "Je suis désolée, veuillez réessayer.";
+            let savedReplyId = null;
+            if (userId) {
+              const { data: savedReply } = await supabase
+                .from("chat_messages")
+                .insert({ user_id: userId, sender: "support", message: fallbackReply, is_ai: true })
+                .select("id, created_at")
+                .single();
+              savedReplyId = savedReply?.id;
+            }
+            return new Response(JSON.stringify({ reply: fallbackReply, savedReplyId }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
           return new Response(JSON.stringify({ error: "rate_limit", reply: "Le service est temporairement surchargé. Veuillez réessayer dans quelques instants." }), {
             status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
