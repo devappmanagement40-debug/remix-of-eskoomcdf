@@ -109,18 +109,19 @@ const Team = () => {
 
       let bonusMap = new Map<string, number>();
       if (allUserIds.length > 0) {
-        const { data: recharges } = await supabase
-          .from("recharges")
-          .select("user_id, amount")
-          .in("user_id", allUserIds)
-          .eq("status", "approved");
-        if (recharges) {
+        // Bonus is calculated on product purchases (price), not deposits
+        const { data: userProds } = await supabase
+          .from("user_products")
+          .select("user_id, product_id, products(price)")
+          .in("user_id", allUserIds);
+        if (userProds) {
           const bUserIds = new Set(bRaw.map(m => m.user_id));
           const cUserIds = new Set(cRaw.map(m => m.user_id));
           const dUserIds = new Set(dRaw.map(m => m.user_id));
-          for (const r of recharges) {
-            const rate = bUserIds.has(r.user_id) ? 0.10 : cUserIds.has(r.user_id) ? 0.05 : dUserIds.has(r.user_id) ? 0.01 : 0;
-            bonusMap.set(r.user_id, (bonusMap.get(r.user_id) || 0) + r.amount * rate);
+          for (const up of userProds) {
+            const price = Number((up as any).products?.price) || 0;
+            const rate = bUserIds.has(up.user_id) ? 0.10 : cUserIds.has(up.user_id) ? 0.05 : dUserIds.has(up.user_id) ? 0.01 : 0;
+            bonusMap.set(up.user_id, (bonusMap.get(up.user_id) || 0) + price * rate);
           }
         }
       }
