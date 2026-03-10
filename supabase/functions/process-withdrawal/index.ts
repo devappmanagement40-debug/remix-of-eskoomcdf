@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
-// Map network names to OmniPay operator values
+// Map network names to OmniPay operator values (lowercase)
 function detectOperator(network: string): string | undefined {
   const n = network.toLowerCase().trim();
   if (n.includes('wave')) return 'wave';
@@ -13,6 +13,7 @@ function detectOperator(network: string): string | undefined {
   if (n.includes('orange')) return 'orange';
   if (n.includes('moov')) return 'moov';
   if (n.includes('tmoney') || n.includes('t-money') || n.includes('t money')) return 'tmoney';
+  if (n.includes('free')) return 'free';
   return undefined;
 }
 
@@ -82,27 +83,48 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get user profile for name
-    const { data: profile } = await supabaseAdmin
-      .from('profiles')
-      .select('full_name')
-      .eq('user_id', withdrawal.user_id)
-      .single();
+    // Get wallet info for holder_name
+    let holderFirstName = 'Client';
+    let holderLastName = 'Eskom';
 
-    const fullName = profile?.full_name || 'Client Eskom';
-    const nameParts = fullName.trim().split(' ');
-    const firstName = nameParts[0] || 'Client';
-    const lastName = nameParts.slice(1).join(' ') || 'Eskom';
+    if (withdrawal.wallet_id) {
+      const { data: wallet } = await supabaseAdmin
+        .from('user_wallets')
+        .select('holder_name')
+        .eq('id', withdrawal.wallet_id)
+        .single();
+      if (wallet?.holder_name) {
+        const parts = wallet.holder_name.trim().split(' ');
+        holderFirstName = parts[0] || 'Client';
+        holderLastName = parts.slice(1).join(' ') || 'Eskom';
+      }
+    } else {
+      // Fallback to profile name
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('full_name')
+        .eq('user_id', withdrawal.user_id)
+        .single();
+      if (profile?.full_name) {
+        const parts = profile.full_name.trim().split(' ');
+        holderFirstName = parts[0] || 'Client';
+        holderLastName = parts.slice(1).join(' ') || 'Eskom';
+      }
+    }
 
-    // Format MSISDN: country code + number, NO "+" prefix
-    const cleanPhone = withdrawal.phone.replace(/\D/g, '');
+    // Format MSISDN: country code digits + local number, NO "+" prefix
+    // withdrawal.phone = local number (e.g. "70123456")
+    // withdrawal.country_code = e.g. "+226"
+    const localPhone = withdrawal.phone.replace(/\D/g, '');
     const codeDigits = (withdrawal.country_code || '+226').replace('+', '');
-    const msisdn = cleanPhone.startsWith(codeDigits) ? cleanPhone : `${codeDigits}${cleanPhone}`;
+    
+    // If the local phone already starts with the country code, don't double it
+    const msisdn = localPhone.startsWith(codeDigits) ? localPhone : `${codeDigits}${localPhone}`;
 
     // Detect operator from network name
     const operator = detectOperator(withdrawal.network || '');
 
-    // Generate unique reference
+    // Generate unique reference with WDR prefix for webhook routing
     const reference = `WDR${withdrawal.id.replace(/-/g, '').slice(0, 16)}`;
 
     // Build OmniPay transfer payload
@@ -112,8 +134,8 @@ Deno.serve(async (req) => {
       msisdn,
       amount: String(Math.round(withdrawal.net_amount)),
       reference,
-      first_name: firstName,
-      last_name: lastName,
+      first_name: holderFirstName,
+      last_name: holderLastName,
     };
 
     // Always include operator if detected
@@ -126,7 +148,7 @@ Deno.serve(async (req) => {
     // Mark as processing to prevent duplicate sends
     await supabaseAdmin.from('withdrawals').update({
       status: 'processing',
-      admin_note: `OmniPay envoi en cours | Ref: ${reference}`,
+      admin_note: `OmniPay envoi en cours | Ref: ${reference} | MSISDN: ${msisdn} | Op: ${operator || 'auto'}`,
     }).eq('id', withdrawal.id);
 
     const response = await fetch('https://omnipay.webtechci.com/interface/api2', {
@@ -142,7 +164,7 @@ Deno.serve(async (req) => {
       // Transfer initiated successfully
       await supabaseAdmin.from('withdrawals').update({
         status: 'approved',
-        admin_note: `OmniPay auto-transfer ✅ | ID: ${data.id || ''} | Ref: ${reference} | Opérateur: ${operator || 'auto'} | Frais: ${data.fees || 0}`,
+        admin_note: `OmniPay ✅ | ID: ${data.id || ''} | Ref: ${reference} | Op: ${operator || 'auto'} | MSISDN: ${msisdn} | Frais: ${data.fees || 0}`,
       }).eq('id', withdrawal.id);
 
       return new Response(JSON.stringify({
@@ -157,11 +179,11 @@ Deno.serve(async (req) => {
 
     // Transfer failed — mark as rejected so the DB trigger refunds the user
     const errorMsg = data.message || `Erreur OmniPay (code: ${data.code})`;
-    console.error('OmniPay transfer failed:', errorMsg);
+    console.error('OmniPay transfer failed:', errorMsg, JSON.stringify(data));
 
     await supabaseAdmin.from('withdrawals').update({
       status: 'rejected',
-      admin_note: `OmniPay échec ❌ | ${errorMsg} | Code: ${data.code || 'N/A'} | Ref: ${reference}`,
+      admin_note: `OmniPay ❌ | ${errorMsg} | Code: ${data.code || 'N/A'} | Ref: ${reference} | MSISDN: ${msisdn}`,
     }).eq('id', withdrawal.id);
 
     return new Response(JSON.stringify({
@@ -169,7 +191,7 @@ Deno.serve(async (req) => {
       error: errorMsg,
       code: data.code,
       refunded: true,
-      message: 'Le transfert a échoué. Le montant a été recrédité au compte de l\'utilisateur.',
+      message: 'Le transfert a échoué. Le montant a été recrédité au compte.',
     }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   } catch (err) {
