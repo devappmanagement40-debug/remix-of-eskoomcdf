@@ -5,7 +5,7 @@ import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 
-type TabKey = "tous" | "depots" | "retraits" | "achats" | "gains" | "points";
+type TabKey = "tous" | "depots" | "retraits" | "achats" | "gains" | "parrainage" | "points";
 
 const tabs: { key: TabKey; label: string }[] = [
   { key: "tous", label: "Tous" },
@@ -13,6 +13,7 @@ const tabs: { key: TabKey; label: string }[] = [
   { key: "retraits", label: "Retraits" },
   { key: "achats", label: "Achats" },
   { key: "gains", label: "Gains" },
+  { key: "parrainage", label: "Parrainage" },
   { key: "points", label: "Points" },
 ];
 
