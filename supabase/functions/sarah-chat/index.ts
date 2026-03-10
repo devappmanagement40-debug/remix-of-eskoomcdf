@@ -34,13 +34,15 @@ serve(async (req) => {
       );
     }
 
-    // Fetch all site data in parallel including official documents, team, user products, news
+    // Fetch all site data in parallel including official documents, team, user products, news, countries
     const [
       { data: settings },
       { data: paymentMethods },
       { data: products },
       { data: officialDocs },
       { data: infoItems },
+      { data: countries },
+      { data: withdrawalMethods },
       userProfile,
       userRecharges,
       userWithdrawals,
@@ -48,10 +50,12 @@ serve(async (req) => {
       teamMembers,
     ] = await Promise.all([
       supabase.from("site_settings").select("key, value"),
-      supabase.from("payment_methods").select("name, phone, country, holder_name, instructions, is_active").eq("is_active", true),
+      supabase.from("payment_methods").select("name, phone, country, holder_name, instructions, is_active, payment_type, country_id, external_url").eq("is_active", true).order("sort_order"),
       supabase.from("products").select("name, price, daily_revenue, cycles, total_revenue, return_percent, is_active").eq("is_active", true),
       supabase.from("official_documents").select("title, description, doc_type, file_url").eq("is_active", true).order("sort_order"),
       supabase.from("info_items").select("title, description").eq("is_active", true).order("sort_order").limit(10),
+      supabase.from("countries").select("id, name, country_code, phone_digits, api_enabled, is_active, flag_emoji").eq("is_active", true).order("sort_order"),
+      supabase.from("withdrawal_methods").select("name, payment_type, api_provider, country_id, is_active").eq("is_active", true).order("sort_order"),
       userId ? supabase.from("profiles").select("*").eq("user_id", userId).single() : Promise.resolve({ data: null }),
       userId ? supabase.from("recharges").select("amount, status, created_at, payment_method").eq("user_id", userId).order("created_at", { ascending: false }).limit(5) : Promise.resolve({ data: [] }),
       userId ? supabase.from("withdrawals").select("amount, status, created_at, network, phone, net_amount, fee_amount").eq("user_id", userId).order("created_at", { ascending: false }).limit(5) : Promise.resolve({ data: [] }),
@@ -85,8 +89,41 @@ serve(async (req) => {
     const withdrawalHourEnd = settingsMap["withdrawal_hour_end"] || "24";
     const withdrawalDays = settingsMap["withdrawal_days"] || "1,2,3,4,5,6,7";
 
-    const paymentInfo = (paymentMethods || []).map((m: any) => `- ${m.name} (${m.country}): ${m.phone || "N/A"}, bénéficiaire: ${m.holder_name || "N/A"}${m.instructions ? `, instructions: ${m.instructions}` : ""}`).join("\n");
+    const paymentInfo = (paymentMethods || []).map((m: any) => `- ${m.name} (${m.country}): ${m.phone || "N/A"}, bénéficiaire: ${m.holder_name || "N/A"}, type: ${m.payment_type || "manual"}${m.instructions ? `, instructions: ${m.instructions}` : ""}`).join("\n");
     const productInfo = (products || []).map((p: any) => `- ${p.name}: prix ${p.price} FCFA, revenu journalier ${p.daily_revenue} FCFA, durée ${p.cycles} jours, revenu total ${p.total_revenue} FCFA, rendement ${p.return_percent}%`).join("\n");
+
+    // Build country map for lookup
+    const countryList = (countries || []) as any[];
+    const countryById: Record<string, any> = {};
+    const countryByCode: Record<string, any> = {};
+    countryList.forEach((c: any) => {
+      countryById[c.id] = c;
+      countryByCode[c.country_code] = c;
+    });
+
+    // Detect user's country
+    let userCountry: any = null;
+    let userCountryName = "Non détecté";
+    if (userProfile?.data?.country_code) {
+      userCountry = countryByCode[userProfile.data.country_code];
+      if (userCountry) userCountryName = userCountry.name;
+    }
+
+    // Build payment methods per country
+    const paymentsByCountry: Record<string, string[]> = {};
+    (paymentMethods || []).forEach((m: any) => {
+      const cName = m.country || "Autre";
+      if (!paymentsByCountry[cName]) paymentsByCountry[cName] = [];
+      paymentsByCountry[cName].push(m.name);
+    });
+    let paymentsByCountryText = "";
+    for (const [cName, methods] of Object.entries(paymentsByCountry)) {
+      paymentsByCountryText += `- ${cName} : ${[...new Set(methods)].join(", ")}\n`;
+    }
+
+    // Detect if user's country has API-enabled deposits
+    const userCountryHasApi = userCountry?.api_enabled === true;
+    const userCountryDepositType = userCountryHasApi ? "automatique" : "manuel";
 
     // Build official documents context
     let officialDocsContext = "";
@@ -281,6 +318,62 @@ COMPÉTENCES PRINCIPALES
 - Si le statut est "pending" → Rassure et indique le délai normal (24-48h pour les retraits, 24h pour les dépôts)
 - Si le délai semble dépassé → Présente tes excuses avec empathie et propose de transmettre au service humain
 - Horaires de retrait : ${withdrawalHourStart}h00 à ${withdrawalHourEnd}h00, jours autorisés : ${withdrawalDays}
+
+═══════════════════════════════════════
+DÉTECTION AUTOMATIQUE DU PAYS
+═══════════════════════════════════════
+Le pays de l'utilisateur est détecté automatiquement via son indicatif téléphonique (${userProfile?.data?.country_code || "non renseigné"}).
+- Pays détecté : ${userCountryName} ${userCountry?.flag_emoji || ""}
+- Type de dépôt dans ce pays : ${userCountryDepositType}
+- Adapte TOUJOURS tes réponses en fonction du pays détecté (moyens de paiement, procédures, etc.)
+
+═══════════════════════════════════════
+FONCTIONNEMENT DES DÉPÔTS (PAR PAYS)
+═══════════════════════════════════════
+Les dépôts fonctionnent de DEUX manières selon le pays :
+
+💳 PAIEMENT AUTOMATIQUE (pays avec API activée) :
+- L'utilisateur sélectionne un montant et un moyen de paiement
+- Il effectue le paiement via Mobile Money
+- Le système vérifie automatiquement la transaction
+- Le montant est crédité automatiquement sur le compte
+- Le crédit peut être immédiat ou prendre quelques minutes selon le réseau
+- Si l'utilisateur demande pourquoi son dépôt n'est pas crédité, explique que cela peut prendre quelques minutes et de patienter
+
+📋 PAIEMENT MANUEL (pays sans API automatique) :
+- L'utilisateur effectue un transfert Mobile Money vers le numéro indiqué
+- Il doit OBLIGATOIREMENT envoyer une preuve de paiement (capture d'écran ou photo du reçu)
+- Un administrateur vérifie la preuve de paiement
+- Le dépôt est ensuite validé et crédité manuellement
+- Délai normal : jusqu'à 24h pour la validation
+- Sarah doit expliquer clairement ce processus si l'utilisateur est dans un pays à paiement manuel
+
+PAYS ET TYPE DE DÉPÔT :
+${countryList.map((c: any) => `- ${c.name} (${c.country_code}) ${c.flag_emoji || ""} : dépôt ${c.api_enabled ? "AUTOMATIQUE" : "MANUEL"}`).join("\n")}
+
+═══════════════════════════════════════
+FONCTIONNEMENT DES RETRAITS
+═══════════════════════════════════════
+- Les retraits sont traités AUTOMATIQUEMENT par le système après validation admin
+- Le paiement est envoyé directement vers le compte Mobile Money renseigné par l'utilisateur
+- Des frais de ${withdrawalFee}% sont prélevés sur le montant demandé
+- Le montant minimum de retrait est de ${minWithdrawal} FCFA
+- IMPORTANT : L'utilisateur DOIT renseigner correctement son numéro de téléphone et son opérateur
+- Si les informations sont incorrectes, le retrait PEUT ÉCHOUER
+- En cas d'échec, le montant est automatiquement recrédité sur le compte
+- Conseille toujours à l'utilisateur de vérifier ses informations avant de confirmer un retrait
+
+═══════════════════════════════════════
+MOYENS DE PAIEMENT PAR PAYS
+═══════════════════════════════════════
+Voici les moyens de paiement disponibles selon le pays :
+${paymentsByCountryText || "Aucun moyen de paiement configuré par pays"}
+
+RÈGLES :
+- Quand un utilisateur demande "quels moyens de paiement sont disponibles" → Réponds avec les moyens de SON pays (${userCountryName})
+- Quand un utilisateur demande "comment faire un dépôt" → Explique la procédure selon le type (${userCountryDepositType}) de son pays
+- Quand un utilisateur demande "comment faire un retrait" → Explique la procédure de retrait automatique
+- Si l'utilisateur demande pour un AUTRE pays → Donne les infos de ce pays spécifique
 
 📌 QUESTIONS INSTITUTIONNELLES & LÉGALITÉ :
 Quand quelqu'un pose des questions sur la légitimité, l'adresse, les documents officiels, ou demande des preuves :
