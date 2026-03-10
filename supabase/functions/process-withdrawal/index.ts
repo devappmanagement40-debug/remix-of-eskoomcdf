@@ -40,6 +40,7 @@ Deno.serve(async (req) => {
     });
     const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
     if (userError || !user) {
+      console.error('Auth error:', userError);
       return new Response(JSON.stringify({ success: false, error: 'Non autorisé' }), {
         status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -54,7 +55,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { withdrawal_id } = await req.json();
+    const body = await req.json();
+    const withdrawal_id = body?.withdrawal_id;
+    console.log('Processing withdrawal:', withdrawal_id);
+
     if (!withdrawal_id) {
       return new Response(JSON.stringify({ success: false, error: 'withdrawal_id manquant' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -70,6 +74,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (wErr || !withdrawal) {
+      console.error('Withdrawal not found or not pending:', wErr);
       return new Response(JSON.stringify({ success: false, error: 'Retrait non trouvé ou déjà traité' }), {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -99,7 +104,6 @@ Deno.serve(async (req) => {
         holderLastName = parts.slice(1).join(' ') || 'Eskom';
       }
     } else {
-      // Fallback to profile name
       const { data: profile } = await supabaseAdmin
         .from('profiles')
         .select('full_name')
@@ -113,8 +117,7 @@ Deno.serve(async (req) => {
     }
 
     // Format MSISDN: country code digits + local number, NO "+" prefix
-    // withdrawal.phone = local number (e.g. "70123456")
-    // withdrawal.country_code = e.g. "+226"
+    // Example: country_code="+225", phone="0595857098" → msisdn="2250595857098"
     const localPhone = withdrawal.phone.replace(/\D/g, '');
     const codeDigits = (withdrawal.country_code || '+226').replace('+', '');
     
@@ -151,16 +154,48 @@ Deno.serve(async (req) => {
       admin_note: `OmniPay envoi en cours | Ref: ${reference} | MSISDN: ${msisdn} | Op: ${operator || 'auto'}`,
     }).eq('id', withdrawal.id);
 
-    const response = await fetch('https://omnipay.webtechci.com/interface/api2', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    let data: any;
+    try {
+      const response = await fetch('https://omnipay.webtechci.com/interface/api2', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
 
-    const data = await response.json();
+      const responseText = await response.text();
+      console.log('OmniPay raw response:', responseText);
+
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        console.error('OmniPay returned non-JSON response:', responseText);
+        // Mark as rejected so refund trigger fires
+        await supabaseAdmin.from('withdrawals').update({
+          status: 'rejected',
+          admin_note: `OmniPay ❌ | Réponse invalide | Status HTTP: ${response.status} | Ref: ${reference}`,
+        }).eq('id', withdrawal.id);
+        return new Response(JSON.stringify({
+          success: false,
+          error: `Réponse OmniPay invalide (HTTP ${response.status})`,
+          refunded: true,
+        }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
+    } catch (fetchErr) {
+      console.error('OmniPay fetch error:', fetchErr);
+      await supabaseAdmin.from('withdrawals').update({
+        status: 'rejected',
+        admin_note: `OmniPay ❌ | Erreur réseau | Ref: ${reference}`,
+      }).eq('id', withdrawal.id);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Erreur de connexion à OmniPay',
+        refunded: true,
+      }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     console.log('OmniPay transfer response:', JSON.stringify(data));
 
-    if (data.success === 1 || data.success === '1') {
+    if (data.success === 1 || data.success === '1' || data.success === true) {
       // Transfer initiated successfully
       await supabaseAdmin.from('withdrawals').update({
         status: 'approved',
@@ -178,7 +213,7 @@ Deno.serve(async (req) => {
     }
 
     // Transfer failed — mark as rejected so the DB trigger refunds the user
-    const errorMsg = data.message || `Erreur OmniPay (code: ${data.code})`;
+    const errorMsg = data.message || data.error || `Erreur OmniPay (code: ${data.code || 'N/A'})`;
     console.error('OmniPay transfer failed:', errorMsg, JSON.stringify(data));
 
     await supabaseAdmin.from('withdrawals').update({
@@ -196,7 +231,7 @@ Deno.serve(async (req) => {
 
   } catch (err) {
     console.error('Process withdrawal error:', err);
-    return new Response(JSON.stringify({ success: false, error: 'Erreur serveur' }), {
+    return new Response(JSON.stringify({ success: false, error: 'Erreur serveur: ' + String(err) }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
