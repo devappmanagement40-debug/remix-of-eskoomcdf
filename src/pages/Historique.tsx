@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { History, ArrowDownLeft, ArrowUpRight, ShoppingBag, TrendingUp, Gift, X, Copy, CheckCircle2 } from "lucide-react";
+import { History, ArrowDownLeft, ArrowUpRight, ShoppingBag, TrendingUp, Gift, Users, X, Copy, CheckCircle2 } from "lucide-react";
 import { safeClipboardWrite } from "@/lib/clipboard";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 
-type TabKey = "tous" | "depots" | "retraits" | "achats" | "gains" | "points";
+type TabKey = "tous" | "depots" | "retraits" | "achats" | "gains" | "parrainage" | "points";
 
 const tabs: { key: TabKey; label: string }[] = [
   { key: "tous", label: "Tous" },
@@ -13,6 +13,7 @@ const tabs: { key: TabKey; label: string }[] = [
   { key: "retraits", label: "Retraits" },
   { key: "achats", label: "Achats" },
   { key: "gains", label: "Gains" },
+  { key: "parrainage", label: "Parrainage" },
   { key: "points", label: "Points" },
 ];
 
@@ -62,11 +63,12 @@ const Historique = () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        const [depositsRes, withdrawalsRes, purchasesRes, exchangesRes] = await Promise.all([
+        const [depositsRes, withdrawalsRes, purchasesRes, exchangesRes, commissionsRes] = await Promise.all([
           supabase.from("recharges").select("id, amount, status, created_at, payment_method, phone, country_code, transaction_ref").eq("user_id", user.id).order("created_at", { ascending: false }),
           supabase.from("withdrawals").select("id, amount, net_amount, fee_amount, status, created_at, network, phone, country_code").eq("user_id", user.id).order("created_at", { ascending: false }),
           supabase.from("user_products").select("id, purchased_at, total_collected, products(name, price, daily_revenue, cycles)").eq("user_id", user.id).order("purchased_at", { ascending: false }),
           supabase.from("point_exchanges").select("id, points_spent, money_credited, reward_name, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
+          supabase.from("referral_commissions").select("id, product_price, commission_rate, commission_amount, level, created_at").eq("beneficiary_id", user.id).order("created_at", { ascending: false }),
         ]);
 
         const ops: Operation[] = [];
@@ -160,6 +162,25 @@ const Historique = () => {
           });
         });
 
+        ((commissionsRes.data as any[]) || []).forEach((c: any) => {
+          const levelLabel = c.level === 'B' ? 'Niveau E (direct)' : c.level === 'C' ? 'Niveau F' : 'Niveau G';
+          ops.push({
+            id: `ref-${c.id}`, rawId: c.id, type: "parrainage", amount: c.commission_amount, date: c.created_at,
+            status: "completed", description: `Bonus parrainage ${levelLabel}`,
+            icon: Users, color: "text-success",
+            details: {
+              "N° de commande": c.id.substring(0, 8).toUpperCase(),
+              "Type": "Bonus de parrainage",
+              "Niveau": levelLabel,
+              "Prix du produit": `${Number(c.product_price).toLocaleString("fr-FR")} F`,
+              "Taux": `${c.commission_rate}%`,
+              "Bonus reçu": `${Number(c.commission_amount).toLocaleString("fr-FR")} F`,
+              "Statut": "Validé",
+              "Date": fmtDateFull(c.created_at),
+            },
+          });
+        });
+
         ops.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         setOperations(ops);
       } catch (err) {
@@ -176,6 +197,7 @@ const Historique = () => {
       .on("postgres_changes", { event: "*", schema: "public", table: "recharges" }, () => load())
       .on("postgres_changes", { event: "*", schema: "public", table: "withdrawals" }, () => load())
       .on("postgres_changes", { event: "*", schema: "public", table: "user_products" }, () => load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "referral_commissions" }, () => load())
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };

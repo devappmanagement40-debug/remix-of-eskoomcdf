@@ -825,6 +825,39 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_commissions: {
+        Row: {
+          beneficiary_id: string
+          buyer_id: string
+          commission_amount: number
+          commission_rate: number
+          created_at: string
+          id: string
+          level: string
+          product_price: number
+        }
+        Insert: {
+          beneficiary_id: string
+          buyer_id: string
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          level?: string
+          product_price?: number
+        }
+        Update: {
+          beneficiary_id?: string
+          buyer_id?: string
+          commission_amount?: number
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          level?: string
+          product_price?: number
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           category: string
