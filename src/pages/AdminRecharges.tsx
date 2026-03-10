@@ -96,58 +96,8 @@ const AdminRecharges = () => {
           ...(earnedPoints > 0 ? { gift_points: (profile.gift_points || 0) + earnedPoints } : {}),
         }).eq("user_id", userId);
 
-        // Load referral bonus percentages from site_settings
-        const { data: settingsData } = await supabase.from("site_settings")
-          .select("key, value")
-          .in("key", ["referral_bonus_level_b", "referral_bonus_level_c", "referral_bonus_level_d"]);
-        const settingsMap: Record<string, string> = {};
-        (settingsData || []).forEach((s: any) => { if (s.value) settingsMap[s.key] = s.value; });
-        
-        const pctB = Number(settingsMap.referral_bonus_level_b || "10") / 100;
-        const pctC = Number(settingsMap.referral_bonus_level_c || "5") / 100;
-        const pctD = Number(settingsMap.referral_bonus_level_d || "1") / 100;
-
-        // Auto referral bonus
-        if (profile.referred_by) {
-          const bonusB = Math.round(amount * pctB);
-          const { data: parentB } = await supabase.from("profiles")
-            .select("id, user_id, balance, referral_balance, referred_by")
-            .eq("id", profile.referred_by).single();
-          if (parentB) {
-            await supabase.from("profiles").update({
-              balance: (parentB.balance || 0) + bonusB,
-              referral_balance: (parentB.referral_balance || 0) + bonusB,
-            }).eq("id", parentB.id);
-
-            // Level C
-            if (parentB.referred_by) {
-              const bonusC = Math.round(amount * pctC);
-              const { data: parentC } = await supabase.from("profiles")
-                .select("id, balance, referral_balance, referred_by")
-                .eq("id", parentB.referred_by).single();
-              if (parentC) {
-                await supabase.from("profiles").update({
-                  balance: (parentC.balance || 0) + bonusC,
-                  referral_balance: (parentC.referral_balance || 0) + bonusC,
-                }).eq("id", parentC.id);
-
-                // Level D
-                if (parentC.referred_by) {
-                  const bonusD = Math.round(amount * pctD);
-                  const { data: parentD } = await supabase.from("profiles")
-                    .select("id, balance, referral_balance")
-                    .eq("id", parentC.referred_by).single();
-                  if (parentD) {
-                    await supabase.from("profiles").update({
-                      balance: (parentD.balance || 0) + bonusD,
-                      referral_balance: (parentD.referral_balance || 0) + bonusD,
-                    }).eq("id", parentD.id);
-                  }
-                }
-              }
-            }
-          }
-        }
+        // Note: Referral bonus is NOT given on deposit.
+        // It is given only when the user purchases a product.
       }
     }
 
