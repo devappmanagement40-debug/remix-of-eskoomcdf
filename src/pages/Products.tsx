@@ -299,8 +299,18 @@ const Products = () => {
                     {product.image_url ? (
                       <div className="relative w-24 h-28 rounded-lg overflow-hidden flex-shrink-0">
                         <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
-                        {product.is_new && (
+                        {product.is_new && !isUnavailable && (
                           <Badge className="absolute top-1.5 left-1.5 bg-success text-success-foreground text-[9px] px-1.5 py-0.5">nouveau</Badge>
+                        )}
+                        {isSoldOut && (
+                          <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                            <Badge className="bg-warning text-warning-foreground text-[10px] px-2 py-1 font-bold">Épuisé</Badge>
+                          </div>
+                        )}
+                        {isTerminated && (
+                          <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                            <Badge className="bg-destructive text-destructive-foreground text-[10px] px-2 py-1 font-bold">Terminé</Badge>
+                          </div>
                         )}
                       </div>
                     ) : (
