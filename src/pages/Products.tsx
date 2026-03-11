@@ -227,13 +227,8 @@ const Products = () => {
           }
         }
 
-        // === REFERRAL BONUS on product purchase (server-side via SECURITY DEFINER) ===
-        if (buyerProfile.referred_by) {
-          await supabase.rpc("credit_referral_commissions", {
-            _buyer_profile_id: buyerProfile.id,
-            _product_price: price,
-          });
-        }
+        // Referral commissions are now handled automatically by database trigger
+        // on user_products INSERT — no client-side RPC needed
       }
 
       setPurchasedName(product.name);
