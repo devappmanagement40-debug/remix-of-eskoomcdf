@@ -5,7 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ClipboardList, ShoppingCart, Package, Lock } from "lucide-react";
+import { ClipboardList, ShoppingCart, Package, Lock, Ban } from "lucide-react";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PremiumModal from "@/components/PremiumModal";
 import {
@@ -22,7 +22,7 @@ type Product = {
   id: string; series_id: string; name: string; image_url: string | null;
   return_percent: number | null; total_revenue: number | null; daily_revenue: number | null;
   cycles: number | null; price: number | null; is_new: boolean | null; is_active: boolean | null;
-  max_purchases: number | null;
+  max_purchases: number | null; stock_status: string;
 };
 
 const colorMap: Record<string, string> = {
@@ -289,22 +289,45 @@ const Products = () => {
               const seriesColor = productSeries?.color || "primary";
               const missingConditions = productSeries ? checkSeriesAccess(productSeries) : [];
               const isLocked = missingConditions.length > 0;
+              const isSoldOut = product.stock_status === "sold_out";
+              const isTerminated = product.stock_status === "terminated";
+              const isUnavailable = isSoldOut || isTerminated;
 
               return (
-                <div key={product.id} className={`bg-card rounded-xl border border-secondary overflow-hidden ${isLocked ? "opacity-80" : ""}`}>
+                <div key={product.id} className={`bg-card rounded-xl border border-secondary overflow-hidden ${isLocked || isUnavailable ? "opacity-80" : ""}`}>
                   <div className="flex gap-3 p-3">
                     {product.image_url ? (
                       <div className="relative w-24 h-28 rounded-lg overflow-hidden flex-shrink-0">
                         <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
-                        {product.is_new && (
+                        {product.is_new && !isUnavailable && (
                           <Badge className="absolute top-1.5 left-1.5 bg-success text-success-foreground text-[9px] px-1.5 py-0.5">nouveau</Badge>
+                        )}
+                        {isSoldOut && (
+                          <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                            <Badge className="bg-warning text-warning-foreground text-[10px] px-2 py-1 font-bold">Épuisé</Badge>
+                          </div>
+                        )}
+                        {isTerminated && (
+                          <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                            <Badge className="bg-destructive text-destructive-foreground text-[10px] px-2 py-1 font-bold">Terminé</Badge>
+                          </div>
                         )}
                       </div>
                     ) : (
                       <div className="relative w-24 h-28 rounded-lg overflow-hidden flex-shrink-0 bg-secondary/30 flex items-center justify-center">
                         <Package size={28} className="text-muted-foreground/30" />
-                        {product.is_new && (
+                        {product.is_new && !isUnavailable && (
                           <Badge className="absolute top-1.5 left-1.5 bg-success text-success-foreground text-[9px] px-1.5 py-0.5">nouveau</Badge>
+                        )}
+                        {isSoldOut && (
+                          <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                            <Badge className="bg-warning text-warning-foreground text-[10px] px-2 py-1 font-bold">Épuisé</Badge>
+                          </div>
+                        )}
+                        {isTerminated && (
+                          <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                            <Badge className="bg-destructive text-destructive-foreground text-[10px] px-2 py-1 font-bold">Terminé</Badge>
+                          </div>
                         )}
                       </div>
                     )}
@@ -351,7 +374,15 @@ const Products = () => {
                     </div>
                   </div>
                   <div className="px-3 pb-3">
-                    {isLocked ? (
+                    {isUnavailable ? (
+                      <Button
+                        className="w-full h-8 text-xs font-semibold gap-1.5 bg-secondary text-muted-foreground hover:bg-secondary cursor-not-allowed"
+                        disabled
+                      >
+                        <Ban size={14} />
+                        {isSoldOut ? "Rupture de stock" : "Produit terminé"}
+                      </Button>
+                    ) : isLocked ? (
                       <Button
                         className="w-full h-8 text-xs font-semibold gap-1.5 bg-secondary text-muted-foreground hover:bg-secondary"
                         onClick={() => showError("Conditions non remplies", missingConditions.join("\n• "))}

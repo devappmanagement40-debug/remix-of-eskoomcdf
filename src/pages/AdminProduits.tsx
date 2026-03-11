@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
-import { Plus, Edit2, Trash2, Package, Layers, ChevronDown, ChevronUp, X, Upload, ImageIcon } from "lucide-react";
+import { Plus, Edit2, Trash2, Package, Layers, ChevronDown, ChevronUp, X, Upload, ImageIcon, Ban, AlertTriangle } from "lucide-react";
 
 type Series = { id: string; name: string; color: string | null; sort_order: number | null; created_at: string | null };
 type Product = {
@@ -11,7 +11,7 @@ type Product = {
   return_percent: number | null; total_revenue: number | null; daily_revenue: number | null;
   cycles: number | null; price: number | null; is_new: boolean | null; is_active: boolean | null;
   sort_order: number | null; max_purchases: number | null; is_featured: boolean | null;
-  gain_type: string;
+  gain_type: string; stock_status: string;
 };
 
 const colorOptions = [
@@ -254,6 +254,17 @@ const AdminProduits = () => {
     loadAll();
   };
 
+  const setStockStatus = async (p: Product, status: string) => {
+    await supabase.from("products").update({ stock_status: status }).eq("id", p.id);
+    const labels: Record<string, string> = {
+      available: "Produit disponible ✅",
+      sold_out: "Produit marqué en rupture de stock",
+      terminated: "Produit marqué comme terminé",
+    };
+    showSuccess("Mis à jour", labels[status] || "Statut mis à jour");
+    loadAll();
+  };
+
   if (loading) return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3">
       <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -449,24 +460,49 @@ const AdminProduits = () => {
                         {seriesProducts.length === 0 ? (
                           <p className="text-xs text-muted-foreground text-center py-3">Aucun produit</p>
                         ) : seriesProducts.map(p => (
-                          <div key={p.id} className={`flex items-center justify-between py-2.5 px-3 rounded-lg ${p.is_active ? "bg-secondary/50" : "bg-secondary/20 opacity-60"}`}>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-semibold text-foreground">{p.name}</span>
-                                {p.is_new && <span className="text-[9px] bg-success/20 text-success px-1.5 py-0.5 rounded-full font-bold">NEW</span>}
-                                {p.is_featured && <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold">POP</span>}
+                          <div key={p.id} className={`py-2.5 px-3 rounded-lg ${p.is_active ? "bg-secondary/50" : "bg-secondary/20 opacity-60"}`}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span className="text-sm font-semibold text-foreground">{p.name}</span>
+                                  {p.is_new && <span className="text-[9px] bg-success/20 text-success px-1.5 py-0.5 rounded-full font-bold">NEW</span>}
+                                  {p.is_featured && <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold">POP</span>}
+                                  {p.stock_status === "sold_out" && <span className="text-[9px] bg-warning/20 text-warning px-1.5 py-0.5 rounded-full font-bold">ÉPUISÉ</span>}
+                                  {p.stock_status === "terminated" && <span className="text-[9px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full font-bold">TERMINÉ</span>}
+                                </div>
+                                <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} FCFA • {p.return_percent}% • {p.cycles}j {p.gain_type === "blocked" ? "• 🔒" : ""}</span>
                               </div>
-                              <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} FCFA • {p.return_percent}% • {p.cycles}j {p.gain_type === "blocked" ? "• 🔒" : ""}</span>
+                              <div className="flex gap-1.5">
+                                <button onClick={() => toggleActive(p)} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>
+                                  {p.is_active ? "ON" : "OFF"}
+                                </button>
+                                <button onClick={() => openProductForm(s.id, p)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center">
+                                  <Edit2 size={10} className="text-primary" />
+                                </button>
+                                <button onClick={() => deleteProduct(p.id)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center">
+                                  <Trash2 size={10} className="text-destructive" />
+                                </button>
+                              </div>
                             </div>
-                            <div className="flex gap-1.5">
-                              <button onClick={() => toggleActive(p)} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>
-                                {p.is_active ? "ON" : "OFF"}
+                            {/* Stock status controls */}
+                            <div className="flex gap-1.5 mt-2">
+                              <button
+                                onClick={() => setStockStatus(p, "available")}
+                                className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "available" ? "bg-success/20 text-success border border-success/30" : "bg-secondary text-muted-foreground"}`}
+                              >
+                                Disponible
                               </button>
-                              <button onClick={() => openProductForm(s.id, p)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center">
-                                <Edit2 size={10} className="text-primary" />
+                              <button
+                                onClick={() => setStockStatus(p, "sold_out")}
+                                className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "sold_out" ? "bg-warning/20 text-warning border border-warning/30" : "bg-secondary text-muted-foreground"}`}
+                              >
+                                Épuisé
                               </button>
-                              <button onClick={() => deleteProduct(p.id)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center">
-                                <Trash2 size={10} className="text-destructive" />
+                              <button
+                                onClick={() => setStockStatus(p, "terminated")}
+                                className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "terminated" ? "bg-destructive/20 text-destructive border border-destructive/30" : "bg-secondary text-muted-foreground"}`}
+                              >
+                                Terminé
                               </button>
                             </div>
                           </div>

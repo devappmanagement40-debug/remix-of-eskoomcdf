@@ -659,6 +659,7 @@ export type Database = {
           return_percent: number | null
           series_id: string
           sort_order: number | null
+          stock_status: string
           total_revenue: number | null
           updated_at: string | null
         }
@@ -679,6 +680,7 @@ export type Database = {
           return_percent?: number | null
           series_id: string
           sort_order?: number | null
+          stock_status?: string
           total_revenue?: number | null
           updated_at?: string | null
         }
@@ -699,6 +701,7 @@ export type Database = {
           return_percent?: number | null
           series_id?: string
           sort_order?: number | null
+          stock_status?: string
           total_revenue?: number | null
           updated_at?: string | null
         }
