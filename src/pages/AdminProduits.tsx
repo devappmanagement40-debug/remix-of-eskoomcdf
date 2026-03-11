@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
-import { Plus, Edit2, Trash2, Package, Layers, ChevronDown, ChevronUp, X, Upload, ImageIcon } from "lucide-react";
+import { Plus, Edit2, Trash2, Package, Layers, ChevronDown, ChevronUp, X, Upload, ImageIcon, Ban, AlertTriangle } from "lucide-react";
 
 type Series = { id: string; name: string; color: string | null; sort_order: number | null; created_at: string | null };
 type Product = {
