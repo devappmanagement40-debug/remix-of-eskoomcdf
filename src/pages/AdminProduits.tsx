@@ -11,7 +11,7 @@ type Product = {
   return_percent: number | null; total_revenue: number | null; daily_revenue: number | null;
   cycles: number | null; price: number | null; is_new: boolean | null; is_active: boolean | null;
   sort_order: number | null; max_purchases: number | null; is_featured: boolean | null;
-  gain_type: string;
+  gain_type: string; stock_status: string;
 };
 
 const colorOptions = [
