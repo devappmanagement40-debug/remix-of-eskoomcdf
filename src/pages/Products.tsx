@@ -5,7 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ClipboardList, ShoppingCart, Package, Lock } from "lucide-react";
+import { ClipboardList, ShoppingCart, Package, Lock, Ban } from "lucide-react";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PremiumModal from "@/components/PremiumModal";
 import {
