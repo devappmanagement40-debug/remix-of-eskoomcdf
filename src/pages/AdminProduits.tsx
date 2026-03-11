@@ -254,6 +254,17 @@ const AdminProduits = () => {
     loadAll();
   };
 
+  const setStockStatus = async (p: Product, status: string) => {
+    await supabase.from("products").update({ stock_status: status }).eq("id", p.id);
+    const labels: Record<string, string> = {
+      available: "Produit disponible ✅",
+      sold_out: "Produit marqué en rupture de stock",
+      terminated: "Produit marqué comme terminé",
+    };
+    showSuccess("Mis à jour", labels[status] || "Statut mis à jour");
+    loadAll();
+  };
+
   if (loading) return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3">
       <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
