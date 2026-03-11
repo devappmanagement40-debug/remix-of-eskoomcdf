@@ -289,6 +289,9 @@ const Products = () => {
               const seriesColor = productSeries?.color || "primary";
               const missingConditions = productSeries ? checkSeriesAccess(productSeries) : [];
               const isLocked = missingConditions.length > 0;
+              const isSoldOut = product.stock_status === "sold_out";
+              const isTerminated = product.stock_status === "terminated";
+              const isUnavailable = isSoldOut || isTerminated;
 
               return (
                 <div key={product.id} className={`bg-card rounded-xl border border-secondary overflow-hidden ${isLocked ? "opacity-80" : ""}`}>
