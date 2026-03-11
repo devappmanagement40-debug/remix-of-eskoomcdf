@@ -294,7 +294,7 @@ const Products = () => {
               const isUnavailable = isSoldOut || isTerminated;
 
               return (
-                <div key={product.id} className={`bg-card rounded-xl border border-secondary overflow-hidden ${isLocked ? "opacity-80" : ""}`}>
+                <div key={product.id} className={`bg-card rounded-xl border border-secondary overflow-hidden ${isLocked || isUnavailable ? "opacity-80" : ""}`}>
                   <div className="flex gap-3 p-3">
                     {product.image_url ? (
                       <div className="relative w-24 h-28 rounded-lg overflow-hidden flex-shrink-0">
