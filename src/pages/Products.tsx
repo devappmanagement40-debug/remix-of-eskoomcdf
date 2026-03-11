@@ -374,7 +374,15 @@ const Products = () => {
                     </div>
                   </div>
                   <div className="px-3 pb-3">
-                    {isLocked ? (
+                    {isUnavailable ? (
+                      <Button
+                        className="w-full h-8 text-xs font-semibold gap-1.5 bg-secondary text-muted-foreground hover:bg-secondary cursor-not-allowed"
+                        disabled
+                      >
+                        <Ban size={14} />
+                        {isSoldOut ? "Rupture de stock" : "Produit terminé"}
+                      </Button>
+                    ) : isLocked ? (
                       <Button
                         className="w-full h-8 text-xs font-semibold gap-1.5 bg-secondary text-muted-foreground hover:bg-secondary"
                         onClick={() => showError("Conditions non remplies", missingConditions.join("\n• "))}
