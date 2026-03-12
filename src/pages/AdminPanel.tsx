@@ -1002,7 +1002,29 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
     setShowSeriesForm(false); reload();
   };
 
-  return (
+  const setStockStatus = async (p: Product, status: "available" | "sold_out" | "terminated") => {
+    try {
+      const { error } = await supabase
+        .from("products")
+        .update({ stock_status: status, is_active: true })
+        .eq("id", p.id);
+      if (error) throw error;
+      showSuccess(
+        "Mis à jour",
+        status === "available"
+          ? "Produit disponible ✅"
+          : status === "sold_out"
+          ? "Produit marqué en rupture"
+          : "Produit marqué terminé"
+      );
+      reload();
+    } catch (err) {
+      console.error("setStockStatus error:", err);
+      showError("Erreur", "Impossible de changer l'état du produit");
+    }
+  };
+
+
     <div className="space-y-3">
       <button onClick={() => { setEditingSeries(null); setSeriesName(""); setSeriesColor("primary"); setSeriesConditions({ min_vip_level: "", min_personal_investment: "", min_team_investment: "", min_active_members: "" }); setShowSeriesForm(true); setShowForm(false); }}
         className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
