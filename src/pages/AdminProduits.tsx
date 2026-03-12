@@ -254,15 +254,36 @@ const AdminProduits = () => {
     loadAll();
   };
 
-  const setStockStatus = async (p: Product, status: string) => {
-    await supabase.from("products").update({ stock_status: status }).eq("id", p.id);
-    const labels: Record<string, string> = {
-      available: "Produit disponible ✅",
-      sold_out: "Produit marqué en rupture de stock",
-      terminated: "Produit marqué comme terminé",
-    };
-    showSuccess("Mis à jour", labels[status] || "Statut mis à jour");
-    loadAll();
+  const setStockStatus = async (p: Product, status: "available" | "sold_out" | "terminated") => {
+    try {
+      const updatePayload = {
+        stock_status: status,
+        // A sold_out/terminated product must stay visible but non-purchasable
+        is_active: true,
+      };
+
+      const { error } = await supabase
+        .from("products")
+        .update(updatePayload)
+        .eq("id", p.id);
+
+      if (error) throw error;
+
+      setProducts((prev) =>
+        prev.map((item) => (item.id === p.id ? { ...item, ...updatePayload } : item))
+      );
+
+      const labels: Record<string, string> = {
+        available: "Produit disponible ✅",
+        sold_out: "Produit marqué en rupture de stock",
+        terminated: "Produit marqué comme terminé",
+      };
+
+      showSuccess("Mis à jour", labels[status] || "Statut mis à jour");
+    } catch (err) {
+      console.error("Set stock status error:", err);
+      showError("Erreur", "Impossible de mettre à jour l'état du produit");
+    }
   };
 
   if (loading) return (
