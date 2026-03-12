@@ -36,7 +36,7 @@ type Product = {
   id: string; series_id: string; name: string; image_url: string | null;
   return_percent: number | null; total_revenue: number | null; daily_revenue: number | null;
   cycles: number | null; price: number | null; is_new: boolean | null; is_active: boolean | null;
-  sort_order: number | null; max_purchases: number | null;
+  sort_order: number | null; max_purchases: number | null; stock_status: string;
 };
 type PaymentMethod = {
   id: string; name: string; country: string; phone: string | null;
