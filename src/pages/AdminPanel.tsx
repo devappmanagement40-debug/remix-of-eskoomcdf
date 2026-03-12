@@ -1120,18 +1120,42 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
               <div className="border-t border-secondary px-4 py-3 space-y-2">
                 {sp.length === 0 ? <p className="text-xs text-muted-foreground text-center py-3">Aucun produit</p> :
                   sp.map((p: Product) => (
-                    <div key={p.id} className={`flex items-center justify-between py-2.5 px-3 rounded-lg ${p.is_active ? "bg-secondary/50" : "bg-secondary/20 opacity-60"}`}>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-foreground">{p.name}</span>
-                          {p.is_new && <span className="text-[9px] bg-success/20 text-success px-1.5 py-0.5 rounded-full font-bold">NEW</span>}
+                    <div key={p.id} className={`py-2.5 px-3 rounded-lg ${p.is_active ? "bg-secondary/50" : "bg-secondary/20 opacity-60"}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-semibold text-foreground">{p.name}</span>
+                            {p.is_new && <span className="text-[9px] bg-success/20 text-success px-1.5 py-0.5 rounded-full font-bold">NEW</span>}
+                            {p.stock_status === "sold_out" && <span className="text-[9px] bg-warning/20 text-warning px-1.5 py-0.5 rounded-full font-bold">ÉPUISÉ</span>}
+                            {p.stock_status === "terminated" && <span className="text-[9px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full font-bold">TERMINÉ</span>}
+                          </div>
+                          <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} FCFA • {p.return_percent}%</span>
                         </div>
-                        <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} FCFA • {p.return_percent}%</span>
+                        <div className="flex gap-1.5">
+                          <button onClick={async () => { await supabase.from("products").update({ is_active: !p.is_active }).eq("id", p.id); reload(); }} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{p.is_active ? "ON" : "OFF"}</button>
+                          <button onClick={() => openProductForm(s.id, p)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
+                          <button onClick={async () => { await supabase.from("products").delete().eq("id", p.id); showSuccess("Supprimé", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+                        </div>
                       </div>
-                      <div className="flex gap-1.5">
-                        <button onClick={async () => { await supabase.from("products").update({ is_active: !p.is_active }).eq("id", p.id); reload(); }} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{p.is_active ? "ON" : "OFF"}</button>
-                        <button onClick={() => openProductForm(s.id, p)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
-                        <button onClick={async () => { await supabase.from("products").delete().eq("id", p.id); showSuccess("Supprimé", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+                      <div className="flex gap-1.5 mt-2">
+                        <button
+                          onClick={() => setStockStatus(p, "available")}
+                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "available" ? "bg-success/20 text-success border border-success/30" : "bg-secondary text-muted-foreground"}`}
+                        >
+                          Disponible
+                        </button>
+                        <button
+                          onClick={() => setStockStatus(p, "sold_out")}
+                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "sold_out" ? "bg-warning/20 text-warning border border-warning/30" : "bg-secondary text-muted-foreground"}`}
+                        >
+                          Épuisé
+                        </button>
+                        <button
+                          onClick={() => setStockStatus(p, "terminated")}
+                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "terminated" ? "bg-destructive/20 text-destructive border border-destructive/30" : "bg-secondary text-muted-foreground"}`}
+                        >
+                          Terminé
+                        </button>
                       </div>
                     </div>
                   ))}
