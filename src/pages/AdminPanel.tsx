@@ -1024,7 +1024,7 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
     }
   };
 
-
+  return (
     <div className="space-y-3">
       <button onClick={() => { setEditingSeries(null); setSeriesName(""); setSeriesColor("primary"); setSeriesConditions({ min_vip_level: "", min_personal_investment: "", min_team_investment: "", min_active_members: "" }); setShowSeriesForm(true); setShowForm(false); }}
         className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
