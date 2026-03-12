@@ -36,7 +36,7 @@ type Product = {
   id: string; series_id: string; name: string; image_url: string | null;
   return_percent: number | null; total_revenue: number | null; daily_revenue: number | null;
   cycles: number | null; price: number | null; is_new: boolean | null; is_active: boolean | null;
-  sort_order: number | null; max_purchases: number | null;
+  sort_order: number | null; max_purchases: number | null; stock_status: string;
 };
 type PaymentMethod = {
   id: string; name: string; country: string; phone: string | null;
@@ -1002,6 +1002,28 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
     setShowSeriesForm(false); reload();
   };
 
+  const setStockStatus = async (p: Product, status: "available" | "sold_out" | "terminated") => {
+    try {
+      const { error } = await supabase
+        .from("products")
+        .update({ stock_status: status, is_active: true })
+        .eq("id", p.id);
+      if (error) throw error;
+      showSuccess(
+        "Mis à jour",
+        status === "available"
+          ? "Produit disponible ✅"
+          : status === "sold_out"
+          ? "Produit marqué en rupture"
+          : "Produit marqué terminé"
+      );
+      reload();
+    } catch (err) {
+      console.error("setStockStatus error:", err);
+      showError("Erreur", "Impossible de changer l'état du produit");
+    }
+  };
+
   return (
     <div className="space-y-3">
       <button onClick={() => { setEditingSeries(null); setSeriesName(""); setSeriesColor("primary"); setSeriesConditions({ min_vip_level: "", min_personal_investment: "", min_team_investment: "", min_active_members: "" }); setShowSeriesForm(true); setShowForm(false); }}
@@ -1059,7 +1081,7 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
             </button>
           )}
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-xs text-muted-foreground">Prix</label><input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
+            <div><label className="text-xs text-muted-foreground">Prix / Budget (FCFA)</label><input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
             <div><label className="text-xs text-muted-foreground">Retour (%)</label><input type="number" value={form.return_percent} onChange={e => setForm({ ...form, return_percent: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
             <div><label className="text-xs text-muted-foreground">Revenu total</label><input type="number" value={form.total_revenue} onChange={e => setForm({ ...form, total_revenue: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
             <div><label className="text-xs text-muted-foreground">Revenu quotidien</label><input type="number" value={form.daily_revenue} onChange={e => setForm({ ...form, daily_revenue: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
@@ -1098,18 +1120,42 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
               <div className="border-t border-secondary px-4 py-3 space-y-2">
                 {sp.length === 0 ? <p className="text-xs text-muted-foreground text-center py-3">Aucun produit</p> :
                   sp.map((p: Product) => (
-                    <div key={p.id} className={`flex items-center justify-between py-2.5 px-3 rounded-lg ${p.is_active ? "bg-secondary/50" : "bg-secondary/20 opacity-60"}`}>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-foreground">{p.name}</span>
-                          {p.is_new && <span className="text-[9px] bg-success/20 text-success px-1.5 py-0.5 rounded-full font-bold">NEW</span>}
+                    <div key={p.id} className={`py-2.5 px-3 rounded-lg ${p.is_active ? "bg-secondary/50" : "bg-secondary/20 opacity-60"}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-semibold text-foreground">{p.name}</span>
+                            {p.is_new && <span className="text-[9px] bg-success/20 text-success px-1.5 py-0.5 rounded-full font-bold">NEW</span>}
+                            {p.stock_status === "sold_out" && <span className="text-[9px] bg-warning/20 text-warning px-1.5 py-0.5 rounded-full font-bold">ÉPUISÉ</span>}
+                            {p.stock_status === "terminated" && <span className="text-[9px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full font-bold">TERMINÉ</span>}
+                          </div>
+                          <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} FCFA • {p.return_percent}%</span>
                         </div>
-                        <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} FCFA • {p.return_percent}%</span>
+                        <div className="flex gap-1.5">
+                          <button onClick={async () => { await supabase.from("products").update({ is_active: !p.is_active }).eq("id", p.id); reload(); }} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{p.is_active ? "ON" : "OFF"}</button>
+                          <button onClick={() => openProductForm(s.id, p)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
+                          <button onClick={async () => { await supabase.from("products").delete().eq("id", p.id); showSuccess("Supprimé", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+                        </div>
                       </div>
-                      <div className="flex gap-1.5">
-                        <button onClick={async () => { await supabase.from("products").update({ is_active: !p.is_active }).eq("id", p.id); reload(); }} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{p.is_active ? "ON" : "OFF"}</button>
-                        <button onClick={() => openProductForm(s.id, p)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
-                        <button onClick={async () => { await supabase.from("products").delete().eq("id", p.id); showSuccess("Supprimé", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+                      <div className="flex gap-1.5 mt-2">
+                        <button
+                          onClick={() => setStockStatus(p, "available")}
+                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "available" ? "bg-success/20 text-success border border-success/30" : "bg-secondary text-muted-foreground"}`}
+                        >
+                          Disponible
+                        </button>
+                        <button
+                          onClick={() => setStockStatus(p, "sold_out")}
+                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "sold_out" ? "bg-warning/20 text-warning border border-warning/30" : "bg-secondary text-muted-foreground"}`}
+                        >
+                          Épuisé
+                        </button>
+                        <button
+                          onClick={() => setStockStatus(p, "terminated")}
+                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "terminated" ? "bg-destructive/20 text-destructive border border-destructive/30" : "bg-secondary text-muted-foreground"}`}
+                        >
+                          Terminé
+                        </button>
                       </div>
                     </div>
                   ))}
