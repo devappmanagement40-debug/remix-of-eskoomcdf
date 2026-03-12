@@ -397,7 +397,7 @@ const AdminProduits = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-muted-foreground">Prix (FCFA)</label>
+                <label className="text-xs text-muted-foreground">Prix / Budget (FCFA)</label>
                 <input type="number" value={productPrice} onChange={e => setProductPrice(e.target.value)} placeholder="5000"
                   className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
               </div>
