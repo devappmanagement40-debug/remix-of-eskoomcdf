@@ -425,6 +425,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
             <div><p className="text-[10px] text-muted-foreground">Dépôt</p><p className="text-xs font-bold text-foreground">{(detailUser.deposit_balance || 0).toLocaleString("fr-FR")} F</p></div>
             <div><p className="text-[10px] text-muted-foreground">Gains</p><p className="text-xs font-bold text-success">{(detailUser.earnings_balance || 0).toLocaleString("fr-FR")} F</p></div>
             <div><p className="text-[10px] text-muted-foreground">Parrainage</p><p className="text-xs font-bold text-primary">{(detailUser.referral_balance || 0).toLocaleString("fr-FR")} F</p></div>
+            <div><p className="text-[10px] text-muted-foreground">ESK Points</p><p className="text-xs font-bold text-warning">{(detailUser.gift_points || 0).toLocaleString("fr-FR")} ESK</p></div>
             <div><p className="text-[10px] text-muted-foreground">Code</p><p className="text-xs font-semibold text-foreground">{detailUser.referral_code || "—"}</p></div>
           </div>
         </div>
