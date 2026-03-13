@@ -323,6 +323,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
   const [editReferralBalance, setEditReferralBalance] = useState("");
   const [editName, setEditName] = useState("");
   const [editVipLevel, setEditVipLevel] = useState("0");
+  const [editGiftPoints, setEditGiftPoints] = useState("0");
   const [detailUser, setDetailUser] = useState<Profile | null>(null);
   const [userProducts, setUserProducts] = useState<any[]>([]);
   const [teamMembers, setTeamMembers] = useState<{b: Profile[], c: Profile[], d: Profile[]}>({ b: [], c: [], d: [] });
