@@ -142,8 +142,27 @@ const AdminPanel = () => {
 
   const loadAll = async () => {
     try {
-      const [p, r, w, s, pr, pm, sl, ss, pop, logs, ctrs, vipc, bn, wm, apic, plogs] = await Promise.all([
-        supabase.from("profiles").select("*").order("created_at", { ascending: false }),
+      // Fetch ALL profiles with pagination (bypass 1000 row limit)
+      const fetchAllProfiles = async () => {
+        const allProfiles: Profile[] = [];
+        const pageSize = 1000;
+        let from = 0;
+        let hasMore = true;
+        while (hasMore) {
+          const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false }).range(from, from + pageSize - 1);
+          if (data && data.length > 0) {
+            allProfiles.push(...(data as Profile[]));
+            from += pageSize;
+            hasMore = data.length === pageSize;
+          } else {
+            hasMore = false;
+          }
+        }
+        return allProfiles;
+      };
+
+      const [allProfiles, r, w, s, pr, pm, sl, ss, pop, logs, ctrs, vipc, bn, wm, apic, plogs] = await Promise.all([
+        fetchAllProfiles(),
         supabase.from("recharges").select("*").order("created_at", { ascending: false }),
         supabase.from("withdrawals").select("*").order("created_at", { ascending: false }),
         supabase.from("product_series").select("*").order("sort_order"),
@@ -160,7 +179,7 @@ const AdminPanel = () => {
         supabase.from("payment_api_configs").select("*").order("created_at", { ascending: false }),
         supabase.from("payment_logs").select("*").order("created_at", { ascending: false }).limit(100),
       ]);
-      if (p.data) setProfiles(p.data as Profile[]);
+      setProfiles(allProfiles);
       if (r.data) setRecharges(r.data);
       if (w.data) setWithdrawals(w.data);
       if (s.data) setSeries(s.data);
