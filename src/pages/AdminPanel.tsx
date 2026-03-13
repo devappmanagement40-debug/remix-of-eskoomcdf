@@ -575,7 +575,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
                 className="flex-1 flex items-center justify-center gap-1.5 border border-secondary text-foreground font-semibold py-2 rounded-xl text-xs hover:bg-secondary transition-colors">
                 <Eye size={12} /> Détails
               </button>
-              <button onClick={() => { setEditingUser(p); setEditBalance(String(p.balance || 0)); setEditDepositBalance(String(p.deposit_balance || 0)); setEditEarningsBalance(String(p.earnings_balance || 0)); setEditReferralBalance(String(p.referral_balance || 0)); setEditName(p.full_name || ""); setEditVipLevel(String(p.vip_level || 0)); }}
+              <button onClick={() => { setEditingUser(p); setEditBalance(String(p.balance || 0)); setEditDepositBalance(String(p.deposit_balance || 0)); setEditEarningsBalance(String(p.earnings_balance || 0)); setEditReferralBalance(String(p.referral_balance || 0)); setEditName(p.full_name || ""); setEditVipLevel(String(p.vip_level || 0)); setEditGiftPoints(String(p.gift_points || 0)); }}
                 className="flex-1 flex items-center justify-center gap-1.5 border border-primary text-primary font-semibold py-2 rounded-xl text-xs hover:bg-primary/10 transition-colors">
                 <Edit2 size={12} /> Modifier
               </button>
