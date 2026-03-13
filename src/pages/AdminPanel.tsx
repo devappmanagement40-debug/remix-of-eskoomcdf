@@ -1134,7 +1134,20 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
                         <div className="flex gap-1.5">
                           <button onClick={async () => { await supabase.from("products").update({ is_active: !p.is_active }).eq("id", p.id); reload(); }} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{p.is_active ? "ON" : "OFF"}</button>
                           <button onClick={() => openProductForm(s.id, p)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
-                          <button onClick={async () => { await supabase.from("products").delete().eq("id", p.id); showSuccess("Supprimé", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+                          <button onClick={async () => {
+                            // Check if product has been purchased by users
+                            const { count } = await supabase.from("user_products").select("id", { count: "exact", head: true }).eq("product_id", p.id);
+                            if (count && count > 0) {
+                              // Soft delete: deactivate for new purchases but keep existing investors safe
+                              await supabase.from("products").update({ is_active: false, stock_status: "terminated" }).eq("id", p.id);
+                              showSuccess("Produit désactivé", `${count} utilisateur(s) conservent leurs gains actifs`);
+                            } else {
+                              // No purchases: safe to hard delete
+                              await supabase.from("products").delete().eq("id", p.id);
+                              showSuccess("Produit supprimé", "");
+                            }
+                            reload();
+                          }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
                         </div>
                       </div>
                       <div className="flex gap-1.5 mt-2">
