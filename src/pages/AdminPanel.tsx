@@ -344,8 +344,9 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
       earnings_balance: Number(editEarningsBalance) || 0,
       referral_balance: Number(editReferralBalance) || 0,
       vip_level: Number(editVipLevel) || 0,
+      gift_points: Number(editGiftPoints) || 0,
     }).eq("id", editingUser.id);
-    logAction("edit_user", "profile", editingUser.id, `Balance: ${editBalance}, Deposit: ${editDepositBalance}, Earnings: ${editEarningsBalance}, Referral: ${editReferralBalance}, VIP: ${editVipLevel}, Name: ${editName}`);
+    logAction("edit_user", "profile", editingUser.id, `Balance: ${editBalance}, Deposit: ${editDepositBalance}, Earnings: ${editEarningsBalance}, Referral: ${editReferralBalance}, VIP: ${editVipLevel}, ESK: ${editGiftPoints}, Name: ${editName}`);
     showSuccess("Utilisateur modifié", "Modifications enregistrées ✅");
     setEditingUser(null);
     reload();
