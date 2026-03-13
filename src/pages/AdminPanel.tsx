@@ -531,6 +531,11 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
               {[0,1,2,3,4,5].map(v => <option key={v} value={v}>VIP{v}</option>)}
             </select>
           </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Points ESK (Monnaie Eskom)</label>
+            <input type="number" value={editGiftPoints} onChange={e => setEditGiftPoints(e.target.value)}
+              className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
+          </div>
           <button onClick={saveUser} className="w-full gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2">
             <Save size={14} /> Sauvegarder
           </button>
