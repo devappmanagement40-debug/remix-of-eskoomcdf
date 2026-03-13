@@ -19,6 +19,7 @@ type Profile = {
   balance: number | null; deposit_balance: number | null; earnings_balance: number | null;
   referral_balance: number | null; country_code: string | null; referral_code: string | null;
   is_suspended: boolean | null; created_at: string | null; vip_level: number | null;
+  gift_points: number | null;
 };
 type Recharge = {
   id: string; phone: string; country_code: string; amount: number;
