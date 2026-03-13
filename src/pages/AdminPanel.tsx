@@ -19,6 +19,7 @@ type Profile = {
   balance: number | null; deposit_balance: number | null; earnings_balance: number | null;
   referral_balance: number | null; country_code: string | null; referral_code: string | null;
   is_suspended: boolean | null; created_at: string | null; vip_level: number | null;
+  gift_points: number | null;
 };
 type Recharge = {
   id: string; phone: string; country_code: string; amount: number;
@@ -322,6 +323,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
   const [editReferralBalance, setEditReferralBalance] = useState("");
   const [editName, setEditName] = useState("");
   const [editVipLevel, setEditVipLevel] = useState("0");
+  const [editGiftPoints, setEditGiftPoints] = useState("0");
   const [detailUser, setDetailUser] = useState<Profile | null>(null);
   const [userProducts, setUserProducts] = useState<any[]>([]);
   const [teamMembers, setTeamMembers] = useState<{b: Profile[], c: Profile[], d: Profile[]}>({ b: [], c: [], d: [] });
@@ -342,8 +344,9 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
       earnings_balance: Number(editEarningsBalance) || 0,
       referral_balance: Number(editReferralBalance) || 0,
       vip_level: Number(editVipLevel) || 0,
+      gift_points: Number(editGiftPoints) || 0,
     }).eq("id", editingUser.id);
-    logAction("edit_user", "profile", editingUser.id, `Balance: ${editBalance}, Deposit: ${editDepositBalance}, Earnings: ${editEarningsBalance}, Referral: ${editReferralBalance}, VIP: ${editVipLevel}, Name: ${editName}`);
+    logAction("edit_user", "profile", editingUser.id, `Balance: ${editBalance}, Deposit: ${editDepositBalance}, Earnings: ${editEarningsBalance}, Referral: ${editReferralBalance}, VIP: ${editVipLevel}, ESK: ${editGiftPoints}, Name: ${editName}`);
     showSuccess("Utilisateur modifié", "Modifications enregistrées ✅");
     setEditingUser(null);
     reload();
@@ -422,6 +425,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
             <div><p className="text-[10px] text-muted-foreground">Dépôt</p><p className="text-xs font-bold text-foreground">{(detailUser.deposit_balance || 0).toLocaleString("fr-FR")} F</p></div>
             <div><p className="text-[10px] text-muted-foreground">Gains</p><p className="text-xs font-bold text-success">{(detailUser.earnings_balance || 0).toLocaleString("fr-FR")} F</p></div>
             <div><p className="text-[10px] text-muted-foreground">Parrainage</p><p className="text-xs font-bold text-primary">{(detailUser.referral_balance || 0).toLocaleString("fr-FR")} F</p></div>
+            <div><p className="text-[10px] text-muted-foreground">ESK Points</p><p className="text-xs font-bold text-warning">{(detailUser.gift_points || 0).toLocaleString("fr-FR")} ESK</p></div>
             <div><p className="text-[10px] text-muted-foreground">Code</p><p className="text-xs font-semibold text-foreground">{detailUser.referral_code || "—"}</p></div>
           </div>
         </div>
@@ -527,6 +531,11 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
               {[0,1,2,3,4,5].map(v => <option key={v} value={v}>VIP{v}</option>)}
             </select>
           </div>
+          <div>
+            <label className="text-xs text-muted-foreground">Points ESK (Monnaie Eskom)</label>
+            <input type="number" value={editGiftPoints} onChange={e => setEditGiftPoints(e.target.value)}
+              className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
+          </div>
           <button onClick={saveUser} className="w-full gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2">
             <Save size={14} /> Sauvegarder
           </button>
@@ -566,7 +575,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
                 className="flex-1 flex items-center justify-center gap-1.5 border border-secondary text-foreground font-semibold py-2 rounded-xl text-xs hover:bg-secondary transition-colors">
                 <Eye size={12} /> Détails
               </button>
-              <button onClick={() => { setEditingUser(p); setEditBalance(String(p.balance || 0)); setEditDepositBalance(String(p.deposit_balance || 0)); setEditEarningsBalance(String(p.earnings_balance || 0)); setEditReferralBalance(String(p.referral_balance || 0)); setEditName(p.full_name || ""); setEditVipLevel(String(p.vip_level || 0)); }}
+              <button onClick={() => { setEditingUser(p); setEditBalance(String(p.balance || 0)); setEditDepositBalance(String(p.deposit_balance || 0)); setEditEarningsBalance(String(p.earnings_balance || 0)); setEditReferralBalance(String(p.referral_balance || 0)); setEditName(p.full_name || ""); setEditVipLevel(String(p.vip_level || 0)); setEditGiftPoints(String(p.gift_points || 0)); }}
                 className="flex-1 flex items-center justify-center gap-1.5 border border-primary text-primary font-semibold py-2 rounded-xl text-xs hover:bg-primary/10 transition-colors">
                 <Edit2 size={12} /> Modifier
               </button>
