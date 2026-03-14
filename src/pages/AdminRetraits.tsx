@@ -121,7 +121,7 @@ const AdminRetraits = () => {
       }
 
       if (data?.success) {
-        showSuccess("Transfert OmniPay", `Transfert initié ✅ | Ref: ${data.reference} | Opérateur: ${data.operator || 'auto'} | Frais: ${data.fees || 0} FCFA`);
+        showSuccess("Transfert OmniPay", `Transfert envoyé ⏳ | Ref: ${data.reference} | En attente de confirmation OmniPay | Opérateur: ${data.operator || 'auto'} | Frais: ${data.fees || 0} FCFA`);
         loadData();
       } else {
         const refundMsg = data?.refunded ? "\nLe montant a été recrédité au compte." : "";
