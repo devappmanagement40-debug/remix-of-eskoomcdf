@@ -39,7 +39,7 @@ const AdminRetraits = () => {
   const [profiles, setProfiles] = useState<Record<string, ProfileInfo>>({});
   const [wallets, setWallets] = useState<Record<string, WalletInfo>>({});
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
+  const [filter, setFilter] = useState<"all" | "pending" | "processing" | "approved" | "rejected">("pending");
   const [search, setSearch] = useState("");
   const [isAutoMode, setIsAutoMode] = useState(true);
 
