@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
-import { Search, Clock, CheckCircle2, XCircle, ArrowDown, CreditCard, Loader2 } from "lucide-react";
+import { Search, Clock, CheckCircle2, XCircle, ArrowDown, CreditCard, Loader2, Zap, Hand } from "lucide-react";
 
 type Withdrawal = {
   id: string;
@@ -41,6 +41,7 @@ const AdminRetraits = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
   const [search, setSearch] = useState("");
+  const [isAutoMode, setIsAutoMode] = useState(true);
 
   useEffect(() => {
     checkAdminAndLoad();
@@ -57,6 +58,12 @@ const AdminRetraits = () => {
     const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
     if (!data) { showError("Accès refusé", "Vous n'avez pas les droits d'administrateur"); navigate("/"); return; }
     loadData();
+    loadWithdrawalMode();
+  };
+
+  const loadWithdrawalMode = async () => {
+    const { data } = await supabase.from("site_settings").select("value").eq("key", "withdrawal_mode_auto").single();
+    setIsAutoMode(data?.value !== "false");
   };
 
   const loadData = async () => {
@@ -268,20 +275,37 @@ const AdminRetraits = () => {
                   </div>
                 </div>
 
+                {/* Mode indicator */}
+                {r.status === "pending" && (
+                  <div className={`flex items-center gap-1.5 text-[10px] font-semibold mt-3 mb-2 ${isAutoMode ? "text-primary" : "text-warning"}`}>
+                    {isAutoMode ? <Zap size={12} /> : <Hand size={12} />}
+                    Mode : {isAutoMode ? "Automatique (OmniPay)" : "Manuel"}
+                  </div>
+                )}
+
                 {/* Actions */}
                 {r.status === "pending" && (
-                  <div className="grid grid-cols-2 gap-3 mt-4">
-                    <button
-                      onClick={() => handleOmniPayTransfer(r)}
-                      disabled={autoPayingId === r.id}
-                      className="flex items-center justify-center gap-2 bg-success text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50"
-                    >
-                      {autoPayingId === r.id ? (
-                        <><Loader2 size={16} className="animate-spin" />Envoi...</>
-                      ) : (
-                        <><CheckCircle2 size={16} />Valider</>
-                      )}
-                    </button>
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    {isAutoMode ? (
+                      <button
+                        onClick={() => handleOmniPayTransfer(r)}
+                        disabled={autoPayingId === r.id}
+                        className="flex items-center justify-center gap-2 bg-success text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50"
+                      >
+                        {autoPayingId === r.id ? (
+                          <><Loader2 size={16} className="animate-spin" />Envoi...</>
+                        ) : (
+                          <><Zap size={16} />Auto Valider</>
+                        )}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleAction(r, "approved")}
+                        className="flex items-center justify-center gap-2 bg-success text-white font-bold py-2.5 rounded-xl text-sm"
+                      >
+                        <CheckCircle2 size={16} />Valider
+                      </button>
+                    )}
                     <button
                       onClick={() => handleAction(r, "rejected")}
                       className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10 transition-colors"
