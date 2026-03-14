@@ -41,6 +41,7 @@ const AdminRetraits = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
   const [search, setSearch] = useState("");
+  const [isAutoMode, setIsAutoMode] = useState(true);
 
   useEffect(() => {
     checkAdminAndLoad();
