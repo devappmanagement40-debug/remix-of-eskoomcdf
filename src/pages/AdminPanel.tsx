@@ -270,7 +270,7 @@ const AdminPanel = () => {
         {activeTab === "infos" && <InfoItemsTab showSuccess={showSuccess} showError={showError} />}
         {activeTab === "app" && <AppSettingsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "settings" && <SettingsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
-        {activeTab === "security" && <SecurityTab logs={adminLogs} />}
+        {activeTab === "security" && <SecurityTab logs={adminLogs} settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
       </div>
     </div>
   );
