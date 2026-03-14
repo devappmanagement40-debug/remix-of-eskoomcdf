@@ -137,6 +137,7 @@ const AdminRetraits = () => {
 
   const counts = {
     pending: items.filter(r => r.status === "pending").length,
+    processing: items.filter(r => r.status === "processing").length,
     approved: items.filter(r => r.status === "approved").length,
     rejected: items.filter(r => r.status === "rejected").length,
   };
