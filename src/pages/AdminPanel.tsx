@@ -270,7 +270,7 @@ const AdminPanel = () => {
         {activeTab === "infos" && <InfoItemsTab showSuccess={showSuccess} showError={showError} />}
         {activeTab === "app" && <AppSettingsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "settings" && <SettingsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
-        {activeTab === "security" && <SecurityTab logs={adminLogs} />}
+        {activeTab === "security" && <SecurityTab logs={adminLogs} settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
       </div>
     </div>
   );
@@ -2720,23 +2720,103 @@ const OfficialDocsTab = ({ showSuccess, showError }: { showSuccess: (t: string, 
 };
 
 
-const SecurityTab = ({ logs }: { logs: AdminLog[] }) => (
-  <div className="space-y-3">
-    <h3 className="text-sm font-bold text-foreground">Historique des actions</h3>
-    {logs.length === 0 ? <p className="text-xs text-muted-foreground text-center py-10">Aucune action enregistrée</p> :
-      logs.map(l => (
-        <div key={l.id} className="bg-card rounded-xl border border-secondary px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold text-foreground">{l.action}</p>
-              {l.details && <p className="text-[10px] text-muted-foreground">{l.details}</p>}
-            </div>
-            <span className="text-[10px] text-muted-foreground">{l.created_at ? new Date(l.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}</span>
-          </div>
+const SecurityTab = ({ logs, settings, reload, showSuccess, showError }: { logs: AdminLog[]; settings: SiteSetting[]; reload: () => void; showSuccess: (t: string, m: string) => void; showError: (t: string, m: string) => void }) => {
+  const existing = settings.find(s => s.key === "admin_phones");
+  const [phones, setPhones] = useState<string[]>(() => {
+    try { return existing?.value ? JSON.parse(existing.value) : []; } catch { return []; }
+  });
+  const [newPhone, setNewPhone] = useState("");
+
+  useEffect(() => {
+    try {
+      const val = settings.find(s => s.key === "admin_phones")?.value;
+      setPhones(val ? JSON.parse(val) : []);
+    } catch { /* ignore */ }
+  }, [settings]);
+
+  const savePhones = async (updated: string[]) => {
+    const val = JSON.stringify(updated);
+    if (existing) {
+      await supabase.from("site_settings").update({ value: val }).eq("id", existing.id);
+    } else {
+      await supabase.from("site_settings").insert({ key: "admin_phones", value: val, category: "security" });
+    }
+    setPhones(updated);
+    reload();
+  };
+
+  const addPhone = async () => {
+    const clean = newPhone.replace(/\s/g, "").trim();
+    if (!clean) { showError("Erreur", "Veuillez entrer un numéro"); return; }
+    if (phones.includes(clean)) { showError("Erreur", "Ce numéro existe déjà"); return; }
+    await savePhones([...phones, clean]);
+    setNewPhone("");
+    showSuccess("Ajouté", `Numéro ${clean} ajouté`);
+  };
+
+  const removePhone = async (p: string) => {
+    await savePhones(phones.filter(x => x !== p));
+    showSuccess("Supprimé", `Numéro ${p} retiré`);
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Admin Phones Section */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Smartphone size={16} /> Numéros administrateur</h3>
+        <p className="text-[11px] text-muted-foreground">Ajoutez les numéros de téléphone des administrateurs pour le support et les notifications.</p>
+
+        <div className="flex gap-2">
+          <input
+            type="tel"
+            placeholder="Ex: +22670000000"
+            value={newPhone}
+            onChange={e => setNewPhone(e.target.value)}
+            className="flex-1 bg-input border border-secondary rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
+          />
+          <button onClick={addPhone} className="gradient-button text-foreground px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1">
+            <Plus size={14} /> Ajouter
+          </button>
         </div>
-      ))}
-  </div>
-);
+
+        {phones.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-4">Aucun numéro administrateur enregistré</p>
+        ) : (
+          <div className="space-y-2">
+            {phones.map((p, i) => (
+              <div key={i} className="bg-card rounded-xl border border-secondary px-4 py-3 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Shield size={14} className="text-primary" />
+                  <span className="text-sm font-medium text-foreground">{p}</span>
+                </div>
+                <button onClick={() => removePhone(p)} className="text-destructive hover:opacity-70">
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Logs Section */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-bold text-foreground">Historique des actions</h3>
+        {logs.length === 0 ? <p className="text-xs text-muted-foreground text-center py-10">Aucune action enregistrée</p> :
+          logs.map(l => (
+            <div key={l.id} className="bg-card rounded-xl border border-secondary px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-foreground">{l.action}</p>
+                  {l.details && <p className="text-[10px] text-muted-foreground">{l.details}</p>}
+                </div>
+                <span className="text-[10px] text-muted-foreground">{l.created_at ? new Date(l.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}</span>
+              </div>
+            </div>
+          ))}
+      </div>
+    </div>
+  );
+};
 
 // ==================== WITHDRAWAL METHODS ====================
 const WithdrawalMethodsTab = ({ methods, countries, reload, showSuccess, showError }: any) => {
