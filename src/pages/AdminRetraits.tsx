@@ -316,9 +316,28 @@ const AdminRetraits = () => {
                   </div>
                 )}
                 {r.status === "processing" && (
-                  <div className="mt-3 flex items-center gap-2 text-warning text-xs font-semibold">
-                    <Loader2 size={14} className="animate-spin" />
-                    Transfert OmniPay en cours...
+                  <div className="mt-3 p-3 rounded-lg bg-warning/10 border border-warning/20">
+                    <div className="flex items-center gap-2 text-warning text-xs font-semibold">
+                      <Loader2 size={14} className="animate-spin" />
+                      Transfert OmniPay envoyé — En attente de confirmation
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Le statut sera mis à jour automatiquement par le callback OmniPay
+                    </p>
+                    <div className="grid grid-cols-2 gap-3 mt-2">
+                      <button
+                        onClick={() => handleAction(r, "approved")}
+                        className="flex items-center justify-center gap-1 bg-success/10 text-success font-semibold py-2 rounded-lg text-[11px] border border-success/20"
+                      >
+                        <CheckCircle2 size={12} />Forcer Succès
+                      </button>
+                      <button
+                        onClick={() => handleAction(r, "rejected")}
+                        className="flex items-center justify-center gap-1 bg-destructive/10 text-destructive font-semibold py-2 rounded-lg text-[11px] border border-destructive/20"
+                      >
+                        <XCircle size={12} />Forcer Échec
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

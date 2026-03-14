@@ -96,6 +96,66 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Route by reference prefix: WDR = withdrawal, OMN/other = payment
+    const isWithdrawal = reference.startsWith("WDR");
+
+    if (isWithdrawal) {
+      // === WITHDRAWAL (TRANSFER) HANDLING ===
+      console.log("Processing as WITHDRAWAL callback");
+
+      // Extract withdrawal ID from reference: WDR + first 16 chars of uuid without dashes
+      // Find withdrawal by admin_note containing the reference
+      const { data: withdrawal, error: wErr } = await supabase
+        .from("withdrawals")
+        .select("*")
+        .eq("status", "processing")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      let matchedWithdrawal: any = null;
+      if (withdrawal) {
+        matchedWithdrawal = withdrawal.find((w: any) =>
+          w.admin_note && w.admin_note.includes(`Ref: ${reference}`)
+        );
+      }
+
+      if (!matchedWithdrawal) {
+        console.error("Withdrawal not found for reference:", reference, "error:", wErr?.message);
+        return new Response(JSON.stringify({ received: true, error: "Withdrawal not found" }), {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      console.log("Found withdrawal:", matchedWithdrawal.id, "user:", matchedWithdrawal.user_id, "amount:", matchedWithdrawal.amount);
+
+      if (isSuccess) {
+        // OmniPay confirmed success — mark as approved
+        await supabase.from("withdrawals").update({
+          status: "approved",
+          admin_note: `OmniPay ✅ Confirmé | ID: ${omnipayId} | Ref: ${reference} | ${payload.message || "Transaction successful"}`,
+        }).eq("id", matchedWithdrawal.id);
+
+        console.log(`✅ Withdrawal ${matchedWithdrawal.id} confirmed by OmniPay — approved`);
+      } else {
+        // OmniPay confirmed failure — mark as rejected (triggers refund via DB trigger)
+        await supabase.from("withdrawals").update({
+          status: "rejected",
+          admin_note: `OmniPay ❌ Échoué | ID: ${omnipayId} | Ref: ${reference} | ${payload.message || "Transaction failed"} | Remboursement auto`,
+        }).eq("id", matchedWithdrawal.id);
+
+        console.log(`❌ Withdrawal ${matchedWithdrawal.id} failed by OmniPay — rejected & refunded`);
+      }
+
+      return new Response(JSON.stringify({ received: true, status: isSuccess ? "approved" : "rejected", type: "withdrawal" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // === PAYMENT (RECHARGE) HANDLING ===
+    console.log("Processing as PAYMENT callback");
+
     // Find payment log by provider_ref (our reference) — include all non-terminal statuses
     const { data: logEntry, error: findErr } = await supabase
       .from("payment_logs")
