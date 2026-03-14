@@ -238,11 +238,12 @@ const AdminRetraits = () => {
                   </div>
                   <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
                     r.status === "pending" ? "bg-warning/15 text-warning" :
+                    r.status === "processing" ? "bg-primary/15 text-primary" :
                     r.status === "approved" ? "bg-success/15 text-success" :
                     "bg-destructive/15 text-destructive"
                   }`}>
-                    {r.status === "pending" ? <Clock size={12} /> : r.status === "approved" ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
-                    {r.status === "pending" ? "En attente" : r.status === "approved" ? "Approuvé" : "Rejeté"}
+                    {r.status === "pending" ? <Clock size={12} /> : r.status === "processing" ? <Loader2 size={12} className="animate-spin" /> : r.status === "approved" ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                    {r.status === "pending" ? "En attente" : r.status === "processing" ? "En cours" : r.status === "approved" ? "Approuvé" : "Rejeté"}
                   </div>
                 </div>
 
