@@ -39,7 +39,7 @@ const AdminRetraits = () => {
   const [profiles, setProfiles] = useState<Record<string, ProfileInfo>>({});
   const [wallets, setWallets] = useState<Record<string, WalletInfo>>({});
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
+  const [filter, setFilter] = useState<"all" | "pending" | "processing" | "approved" | "rejected">("pending");
   const [search, setSearch] = useState("");
   const [isAutoMode, setIsAutoMode] = useState(true);
 
@@ -121,7 +121,7 @@ const AdminRetraits = () => {
       }
 
       if (data?.success) {
-        showSuccess("Transfert OmniPay", `Transfert initié ✅ | Ref: ${data.reference} | Opérateur: ${data.operator || 'auto'} | Frais: ${data.fees || 0} FCFA`);
+        showSuccess("Transfert OmniPay", `Transfert envoyé ⏳ | Ref: ${data.reference} | En attente de confirmation OmniPay | Opérateur: ${data.operator || 'auto'} | Frais: ${data.fees || 0} FCFA`);
         loadData();
       } else {
         const refundMsg = data?.refunded ? "\nLe montant a été recrédité au compte." : "";
@@ -137,6 +137,7 @@ const AdminRetraits = () => {
 
   const counts = {
     pending: items.filter(r => r.status === "pending").length,
+    processing: items.filter(r => r.status === "processing").length,
     approved: items.filter(r => r.status === "approved").length,
     rejected: items.filter(r => r.status === "rejected").length,
   };
@@ -170,27 +171,34 @@ const AdminRetraits = () => {
 
       <div className="px-4 pt-4 space-y-4">
         {/* Stats cards */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-2">
           <button
             onClick={() => setFilter("pending")}
-            className={`bg-card rounded-xl border p-4 flex flex-col items-center gap-1 transition-colors ${filter === "pending" ? "border-warning" : "border-secondary"}`}
+            className={`bg-card rounded-xl border p-3 flex flex-col items-center gap-1 transition-colors ${filter === "pending" ? "border-warning" : "border-secondary"}`}
           >
-            <span className="text-2xl font-bold text-warning">{counts.pending}</span>
-            <span className="text-[10px] text-muted-foreground">En attente</span>
+            <span className="text-xl font-bold text-warning">{counts.pending}</span>
+            <span className="text-[9px] text-muted-foreground">En attente</span>
+          </button>
+          <button
+            onClick={() => setFilter("processing")}
+            className={`bg-card rounded-xl border p-3 flex flex-col items-center gap-1 transition-colors ${filter === "processing" ? "border-primary" : "border-secondary"}`}
+          >
+            <span className="text-xl font-bold text-primary">{counts.processing}</span>
+            <span className="text-[9px] text-muted-foreground">En cours</span>
           </button>
           <button
             onClick={() => setFilter("approved")}
-            className={`bg-card rounded-xl border p-4 flex flex-col items-center gap-1 transition-colors ${filter === "approved" ? "border-success" : "border-secondary"}`}
+            className={`bg-card rounded-xl border p-3 flex flex-col items-center gap-1 transition-colors ${filter === "approved" ? "border-success" : "border-secondary"}`}
           >
-            <span className="text-2xl font-bold text-success">{counts.approved}</span>
-            <span className="text-[10px] text-muted-foreground">Approuvés</span>
+            <span className="text-xl font-bold text-success">{counts.approved}</span>
+            <span className="text-[9px] text-muted-foreground">Approuvés</span>
           </button>
           <button
             onClick={() => setFilter("rejected")}
-            className={`bg-card rounded-xl border p-4 flex flex-col items-center gap-1 transition-colors ${filter === "rejected" ? "border-destructive" : "border-secondary"}`}
+            className={`bg-card rounded-xl border p-3 flex flex-col items-center gap-1 transition-colors ${filter === "rejected" ? "border-destructive" : "border-secondary"}`}
           >
-            <span className="text-2xl font-bold text-destructive">{counts.rejected}</span>
-            <span className="text-[10px] text-muted-foreground">Rejetés</span>
+            <span className="text-xl font-bold text-destructive">{counts.rejected}</span>
+            <span className="text-[9px] text-muted-foreground">Rejetés</span>
           </button>
         </div>
 
@@ -230,11 +238,12 @@ const AdminRetraits = () => {
                   </div>
                   <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
                     r.status === "pending" ? "bg-warning/15 text-warning" :
+                    r.status === "processing" ? "bg-primary/15 text-primary" :
                     r.status === "approved" ? "bg-success/15 text-success" :
                     "bg-destructive/15 text-destructive"
                   }`}>
-                    {r.status === "pending" ? <Clock size={12} /> : r.status === "approved" ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
-                    {r.status === "pending" ? "En attente" : r.status === "approved" ? "Approuvé" : "Rejeté"}
+                    {r.status === "pending" ? <Clock size={12} /> : r.status === "processing" ? <Loader2 size={12} className="animate-spin" /> : r.status === "approved" ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+                    {r.status === "pending" ? "En attente" : r.status === "processing" ? "En cours" : r.status === "approved" ? "Approuvé" : "Rejeté"}
                   </div>
                 </div>
 
@@ -316,9 +325,28 @@ const AdminRetraits = () => {
                   </div>
                 )}
                 {r.status === "processing" && (
-                  <div className="mt-3 flex items-center gap-2 text-warning text-xs font-semibold">
-                    <Loader2 size={14} className="animate-spin" />
-                    Transfert OmniPay en cours...
+                  <div className="mt-3 p-3 rounded-lg bg-warning/10 border border-warning/20">
+                    <div className="flex items-center gap-2 text-warning text-xs font-semibold">
+                      <Loader2 size={14} className="animate-spin" />
+                      Transfert OmniPay envoyé — En attente de confirmation
+                    </div>
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Le statut sera mis à jour automatiquement par le callback OmniPay
+                    </p>
+                    <div className="grid grid-cols-2 gap-3 mt-2">
+                      <button
+                        onClick={() => handleAction(r, "approved")}
+                        className="flex items-center justify-center gap-1 bg-success/10 text-success font-semibold py-2 rounded-lg text-[11px] border border-success/20"
+                      >
+                        <CheckCircle2 size={12} />Forcer Succès
+                      </button>
+                      <button
+                        onClick={() => handleAction(r, "rejected")}
+                        className="flex items-center justify-center gap-1 bg-destructive/10 text-destructive font-semibold py-2 rounded-lg text-[11px] border border-destructive/20"
+                      >
+                        <XCircle size={12} />Forcer Échec
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

@@ -198,10 +198,9 @@ Deno.serve(async (req) => {
     console.log('OmniPay transfer response:', JSON.stringify(data));
 
     if (data.success === 1 || data.success === '1' || data.success === true) {
-      // Transfer initiated successfully
+      // Transfer initiated — keep status as "processing" until OmniPay callback confirms
       await supabaseAdmin.from('withdrawals').update({
-        status: 'approved',
-        admin_note: `OmniPay ✅ | ID: ${data.id || ''} | Ref: ${reference} | Op: ${operator || 'auto'} | MSISDN: ${msisdn} | Frais: ${data.fees || 0}`,
+        admin_note: `OmniPay ⏳ Envoyé | ID: ${data.id || ''} | Ref: ${reference} | Op: ${operator || 'auto'} | MSISDN: ${msisdn} | Frais: ${data.fees || 0} | En attente callback`,
       }).eq('id', withdrawal.id);
 
       return new Response(JSON.stringify({
@@ -210,7 +209,7 @@ Deno.serve(async (req) => {
         reference,
         fees: data.fees,
         operator: operator || 'auto',
-        message: 'Transfert initié avec succès',
+        message: 'Transfert envoyé — en attente de confirmation OmniPay',
       }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
