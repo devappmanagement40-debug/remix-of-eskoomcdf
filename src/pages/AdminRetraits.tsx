@@ -171,27 +171,34 @@ const AdminRetraits = () => {
 
       <div className="px-4 pt-4 space-y-4">
         {/* Stats cards */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-2">
           <button
             onClick={() => setFilter("pending")}
-            className={`bg-card rounded-xl border p-4 flex flex-col items-center gap-1 transition-colors ${filter === "pending" ? "border-warning" : "border-secondary"}`}
+            className={`bg-card rounded-xl border p-3 flex flex-col items-center gap-1 transition-colors ${filter === "pending" ? "border-warning" : "border-secondary"}`}
           >
-            <span className="text-2xl font-bold text-warning">{counts.pending}</span>
-            <span className="text-[10px] text-muted-foreground">En attente</span>
+            <span className="text-xl font-bold text-warning">{counts.pending}</span>
+            <span className="text-[9px] text-muted-foreground">En attente</span>
+          </button>
+          <button
+            onClick={() => setFilter("processing")}
+            className={`bg-card rounded-xl border p-3 flex flex-col items-center gap-1 transition-colors ${filter === "processing" ? "border-primary" : "border-secondary"}`}
+          >
+            <span className="text-xl font-bold text-primary">{counts.processing}</span>
+            <span className="text-[9px] text-muted-foreground">En cours</span>
           </button>
           <button
             onClick={() => setFilter("approved")}
-            className={`bg-card rounded-xl border p-4 flex flex-col items-center gap-1 transition-colors ${filter === "approved" ? "border-success" : "border-secondary"}`}
+            className={`bg-card rounded-xl border p-3 flex flex-col items-center gap-1 transition-colors ${filter === "approved" ? "border-success" : "border-secondary"}`}
           >
-            <span className="text-2xl font-bold text-success">{counts.approved}</span>
-            <span className="text-[10px] text-muted-foreground">Approuvés</span>
+            <span className="text-xl font-bold text-success">{counts.approved}</span>
+            <span className="text-[9px] text-muted-foreground">Approuvés</span>
           </button>
           <button
             onClick={() => setFilter("rejected")}
-            className={`bg-card rounded-xl border p-4 flex flex-col items-center gap-1 transition-colors ${filter === "rejected" ? "border-destructive" : "border-secondary"}`}
+            className={`bg-card rounded-xl border p-3 flex flex-col items-center gap-1 transition-colors ${filter === "rejected" ? "border-destructive" : "border-secondary"}`}
           >
-            <span className="text-2xl font-bold text-destructive">{counts.rejected}</span>
-            <span className="text-[10px] text-muted-foreground">Rejetés</span>
+            <span className="text-xl font-bold text-destructive">{counts.rejected}</span>
+            <span className="text-[9px] text-muted-foreground">Rejetés</span>
           </button>
         </div>
 
