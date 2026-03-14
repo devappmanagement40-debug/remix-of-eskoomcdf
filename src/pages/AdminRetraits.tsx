@@ -58,6 +58,12 @@ const AdminRetraits = () => {
     const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
     if (!data) { showError("Accès refusé", "Vous n'avez pas les droits d'administrateur"); navigate("/"); return; }
     loadData();
+    loadWithdrawalMode();
+  };
+
+  const loadWithdrawalMode = async () => {
+    const { data } = await supabase.from("site_settings").select("value").eq("key", "withdrawal_mode_auto").single();
+    setIsAutoMode(data?.value !== "false");
   };
 
   const loadData = async () => {
