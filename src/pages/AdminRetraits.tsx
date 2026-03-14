@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
-import { Search, Clock, CheckCircle2, XCircle, ArrowDown, CreditCard, Loader2 } from "lucide-react";
+import { Search, Clock, CheckCircle2, XCircle, ArrowDown, CreditCard, Loader2, Zap, Hand } from "lucide-react";
 
 type Withdrawal = {
   id: string;

@@ -2469,6 +2469,7 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
     { key: "vip_conditions_enabled", label: "Conditions d'évolution VIP", desc: "Appliquer les règles pour passer au niveau VIP suivant" },
     { key: "vip_progress_bar_enabled", label: "Barre de progression VIP", desc: "Afficher la barre de progression vers le prochain VIP sur le profil" },
     { key: "profile_products_display_enabled", label: "Produits & VIP sur le profil", desc: "Afficher les produits achetés et le niveau VIP sur le profil utilisateur" },
+    { key: "withdrawal_mode_auto", label: "Mode retrait automatique (OmniPay)", desc: "Activé = retraits envoyés automatiquement via OmniPay. Désactivé = retraits manuels sans appel API" },
   ];
 
   const getToggleValue = (key: string): boolean => {
