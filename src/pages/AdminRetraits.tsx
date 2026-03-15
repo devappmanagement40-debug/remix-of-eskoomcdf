@@ -292,6 +292,14 @@ const AdminRetraits = () => {
                   </div>
                 )}
 
+                {/* Admin note / OmniPay callback details */}
+                {r.admin_note && (
+                  <div className="mt-3 p-2.5 rounded-lg bg-muted/50 border border-secondary">
+                    <p className="text-[10px] font-semibold text-muted-foreground mb-1">📋 Note OmniPay :</p>
+                    <p className="text-[11px] text-foreground leading-relaxed break-all">{r.admin_note}</p>
+                  </div>
+                )}
+
                 {/* Actions */}
                 {r.status === "pending" && (
                   <div className="grid grid-cols-2 gap-3 mt-2">
