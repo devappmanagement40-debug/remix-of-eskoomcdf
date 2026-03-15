@@ -32,12 +32,25 @@ type WalletInfo = {
   network: string;
 };
 
+type CallbackLog = {
+  id: string;
+  withdrawal_id: string | null;
+  reference: string;
+  omnipay_id: string | null;
+  status_code: string | null;
+  status_result: string;
+  message: string | null;
+  created_at: string;
+};
+
 const AdminRetraits = () => {
   const navigate = useNavigate();
   const { showSuccess, showError } = useActionPopup();
   const [items, setItems] = useState<Withdrawal[]>([]);
   const [profiles, setProfiles] = useState<Record<string, ProfileInfo>>({});
   const [wallets, setWallets] = useState<Record<string, WalletInfo>>({});
+  const [callbacks, setCallbacks] = useState<Record<string, CallbackLog[]>>({});
+  const [expandedCallbacks, setExpandedCallbacks] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "processing" | "approved" | "rejected">("pending");
   const [search, setSearch] = useState("");
