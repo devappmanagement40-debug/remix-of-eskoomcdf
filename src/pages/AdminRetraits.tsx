@@ -332,6 +332,44 @@ const AdminRetraits = () => {
                   </div>
                 )}
 
+                {/* Callback history */}
+                {callbacks[r.id] && callbacks[r.id].length > 0 && (
+                  <div className="mt-2">
+                    <button
+                      onClick={() => {
+                        const s = new Set(expandedCallbacks);
+                        s.has(r.id) ? s.delete(r.id) : s.add(r.id);
+                        setExpandedCallbacks(s);
+                      }}
+                      className="flex items-center gap-1.5 text-[11px] font-semibold text-primary"
+                    >
+                      <History size={12} />
+                      Historique callbacks ({callbacks[r.id].length})
+                      {expandedCallbacks.has(r.id) ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                    </button>
+                    {expandedCallbacks.has(r.id) && (
+                      <div className="mt-2 space-y-2">
+                        {callbacks[r.id].map(cb => (
+                          <div key={cb.id} className={`p-2 rounded-lg border text-[10px] ${cb.status_result === "success" ? "bg-success/5 border-success/20" : "bg-destructive/5 border-destructive/20"}`}>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className={`font-bold ${cb.status_result === "success" ? "text-success" : "text-destructive"}`}>
+                                {cb.status_result === "success" ? "✅ Succès" : "❌ Échec"}
+                              </span>
+                              <span className="text-muted-foreground">{formatDate(cb.created_at)}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-1 text-muted-foreground">
+                              <span>ID: {cb.omnipay_id || "—"}</span>
+                              <span>Ref: {cb.reference}</span>
+                              <span>Code: {cb.status_code || "—"}</span>
+                              <span>Msg: {cb.message || "—"}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Actions */}
                 {r.status === "pending" && (
                   <div className="grid grid-cols-2 gap-3 mt-2">
