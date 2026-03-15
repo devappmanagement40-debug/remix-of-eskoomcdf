@@ -340,6 +340,50 @@ export type Database = {
         }
         Relationships: []
       }
+      omnipay_callbacks: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          omnipay_id: string | null
+          raw_payload: Json | null
+          reference: string
+          status_code: string | null
+          status_result: string
+          withdrawal_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          omnipay_id?: string | null
+          raw_payload?: Json | null
+          reference: string
+          status_code?: string | null
+          status_result: string
+          withdrawal_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          omnipay_id?: string | null
+          raw_payload?: Json | null
+          reference?: string
+          status_code?: string | null
+          status_result?: string
+          withdrawal_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "omnipay_callbacks_withdrawal_id_fkey"
+            columns: ["withdrawal_id"]
+            isOneToOne: false
+            referencedRelation: "withdrawals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_api_configs: {
         Row: {
           api_key: string | null
