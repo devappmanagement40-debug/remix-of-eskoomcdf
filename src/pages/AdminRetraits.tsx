@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
-import { Search, Clock, CheckCircle2, XCircle, ArrowDown, CreditCard, Loader2, Zap, Hand } from "lucide-react";
+import { Search, Clock, CheckCircle2, XCircle, ArrowDown, CreditCard, Loader2, Zap, Hand, ChevronDown, ChevronUp, History } from "lucide-react";
 
 type Withdrawal = {
   id: string;
@@ -32,12 +32,25 @@ type WalletInfo = {
   network: string;
 };
 
+type CallbackLog = {
+  id: string;
+  withdrawal_id: string | null;
+  reference: string;
+  omnipay_id: string | null;
+  status_code: string | null;
+  status_result: string;
+  message: string | null;
+  created_at: string;
+};
+
 const AdminRetraits = () => {
   const navigate = useNavigate();
   const { showSuccess, showError } = useActionPopup();
   const [items, setItems] = useState<Withdrawal[]>([]);
   const [profiles, setProfiles] = useState<Record<string, ProfileInfo>>({});
   const [wallets, setWallets] = useState<Record<string, WalletInfo>>({});
+  const [callbacks, setCallbacks] = useState<Record<string, CallbackLog[]>>({});
+  const [expandedCallbacks, setExpandedCallbacks] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "processing" | "approved" | "rejected">("pending");
   const [search, setSearch] = useState("");
@@ -87,6 +100,25 @@ const AdminRetraits = () => {
           const wmap: Record<string, WalletInfo> = {};
           walletsData.forEach(w => { wmap[w.id] = w; });
           setWallets(wmap);
+        }
+      }
+      // Load callback logs
+      const withdrawalIds = data.map(d => d.id);
+      if (withdrawalIds.length > 0) {
+        const { data: cbData } = await supabase
+          .from("omnipay_callbacks")
+          .select("*")
+          .in("withdrawal_id", withdrawalIds)
+          .order("created_at", { ascending: false });
+        if (cbData) {
+          const cbMap: Record<string, CallbackLog[]> = {};
+          (cbData as any[]).forEach((cb: any) => {
+            if (cb.withdrawal_id) {
+              if (!cbMap[cb.withdrawal_id]) cbMap[cb.withdrawal_id] = [];
+              cbMap[cb.withdrawal_id].push(cb);
+            }
+          });
+          setCallbacks(cbMap);
         }
       }
     }
@@ -289,6 +321,52 @@ const AdminRetraits = () => {
                   <div className={`flex items-center gap-1.5 text-[10px] font-semibold mt-3 mb-2 ${isAutoMode ? "text-primary" : "text-warning"}`}>
                     {isAutoMode ? <Zap size={12} /> : <Hand size={12} />}
                     Mode : {isAutoMode ? "Automatique (OmniPay)" : "Manuel"}
+                  </div>
+                )}
+
+                {/* Admin note / OmniPay callback details */}
+                {r.admin_note && (
+                  <div className="mt-3 p-2.5 rounded-lg bg-muted/50 border border-secondary">
+                    <p className="text-[10px] font-semibold text-muted-foreground mb-1">📋 Note OmniPay :</p>
+                    <p className="text-[11px] text-foreground leading-relaxed break-all">{r.admin_note}</p>
+                  </div>
+                )}
+
+                {/* Callback history */}
+                {callbacks[r.id] && callbacks[r.id].length > 0 && (
+                  <div className="mt-2">
+                    <button
+                      onClick={() => {
+                        const s = new Set(expandedCallbacks);
+                        s.has(r.id) ? s.delete(r.id) : s.add(r.id);
+                        setExpandedCallbacks(s);
+                      }}
+                      className="flex items-center gap-1.5 text-[11px] font-semibold text-primary"
+                    >
+                      <History size={12} />
+                      Historique callbacks ({callbacks[r.id].length})
+                      {expandedCallbacks.has(r.id) ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                    </button>
+                    {expandedCallbacks.has(r.id) && (
+                      <div className="mt-2 space-y-2">
+                        {callbacks[r.id].map(cb => (
+                          <div key={cb.id} className={`p-2 rounded-lg border text-[10px] ${cb.status_result === "success" ? "bg-success/5 border-success/20" : "bg-destructive/5 border-destructive/20"}`}>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className={`font-bold ${cb.status_result === "success" ? "text-success" : "text-destructive"}`}>
+                                {cb.status_result === "success" ? "✅ Succès" : "❌ Échec"}
+                              </span>
+                              <span className="text-muted-foreground">{formatDate(cb.created_at)}</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-1 text-muted-foreground">
+                              <span>ID: {cb.omnipay_id || "—"}</span>
+                              <span>Ref: {cb.reference}</span>
+                              <span>Code: {cb.status_code || "—"}</span>
+                              <span>Msg: {cb.message || "—"}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 

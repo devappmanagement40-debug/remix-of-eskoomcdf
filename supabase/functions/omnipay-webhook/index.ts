@@ -121,6 +121,15 @@ Deno.serve(async (req) => {
 
       if (!matchedWithdrawal) {
         console.error("Withdrawal not found for reference:", reference, "error:", wErr?.message);
+        // Log callback even if withdrawal not found
+        await supabase.from("omnipay_callbacks").insert({
+          reference,
+          omnipay_id: omnipayId,
+          status_code: statusCode,
+          status_result: isSuccess ? "success" : "failed",
+          message: payload.message || null,
+          raw_payload: payload,
+        });
         return new Response(JSON.stringify({ received: true, error: "Withdrawal not found" }), {
           status: 200,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -128,6 +137,17 @@ Deno.serve(async (req) => {
       }
 
       console.log("Found withdrawal:", matchedWithdrawal.id, "user:", matchedWithdrawal.user_id, "amount:", matchedWithdrawal.amount);
+
+      // Log callback to omnipay_callbacks table
+      await supabase.from("omnipay_callbacks").insert({
+        withdrawal_id: matchedWithdrawal.id,
+        reference,
+        omnipay_id: omnipayId,
+        status_code: statusCode,
+        status_result: isSuccess ? "success" : "failed",
+        message: payload.message || null,
+        raw_payload: payload,
+      });
 
       if (isSuccess) {
         // OmniPay confirmed success — mark as approved
