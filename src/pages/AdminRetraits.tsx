@@ -102,6 +102,25 @@ const AdminRetraits = () => {
           setWallets(wmap);
         }
       }
+      // Load callback logs
+      const withdrawalIds = data.map(d => d.id);
+      if (withdrawalIds.length > 0) {
+        const { data: cbData } = await supabase
+          .from("omnipay_callbacks")
+          .select("*")
+          .in("withdrawal_id", withdrawalIds)
+          .order("created_at", { ascending: false });
+        if (cbData) {
+          const cbMap: Record<string, CallbackLog[]> = {};
+          (cbData as any[]).forEach((cb: any) => {
+            if (cb.withdrawal_id) {
+              if (!cbMap[cb.withdrawal_id]) cbMap[cb.withdrawal_id] = [];
+              cbMap[cb.withdrawal_id].push(cb);
+            }
+          });
+          setCallbacks(cbMap);
+        }
+      }
     }
     setLoading(false);
   };
