@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminWheelTab from "@/components/AdminWheelTab";
+import AdminTeamTab from "@/components/AdminTeamTab";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
