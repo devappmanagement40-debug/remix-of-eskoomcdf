@@ -105,6 +105,8 @@ const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [loading, setLoading] = useState(true);
   const [adminId, setAdminId] = useState("");
+  const [isFullAdmin, setIsFullAdmin] = useState(false);
+  const [moderatorPerms, setModeratorPerms] = useState<string[]>([]);
 
   // Data states
   const [profiles, setProfiles] = useState<Profile[]>([]);
