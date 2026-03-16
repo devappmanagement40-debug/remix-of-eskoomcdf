@@ -87,6 +87,7 @@ const tabs = [
   { key: "app", icon: Smartphone, label: "App" },
   { key: "settings", icon: Settings, label: "Site" },
   { key: "security", icon: Shield, label: "Sécurité" },
+  { key: "team", icon: Users, label: "Équipe" },
 ];
 
 const colorOptions = [
