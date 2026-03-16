@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminWheelTab from "@/components/AdminWheelTab";
+import AdminTeamTab from "@/components/AdminTeamTab";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
@@ -86,6 +87,7 @@ const tabs = [
   { key: "app", icon: Smartphone, label: "App" },
   { key: "settings", icon: Settings, label: "Site" },
   { key: "security", icon: Shield, label: "Sécurité" },
+  { key: "team", icon: Users, label: "Équipe" },
 ];
 
 const colorOptions = [
@@ -103,6 +105,8 @@ const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [loading, setLoading] = useState(true);
   const [adminId, setAdminId] = useState("");
+  const [isFullAdmin, setIsFullAdmin] = useState(false);
+  const [moderatorPerms, setModeratorPerms] = useState<string[]>([]);
 
   // Data states
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -130,9 +134,17 @@ const AdminPanel = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { navigate("/connexion"); return; }
-      const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
-      if (!data) { showError("Accès refusé", "Droits admin requis"); navigate("/"); return; }
+      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      const { data: isMod } = await supabase.rpc("has_role", { _user_id: user.id, _role: "moderator" });
+      if (!isAdmin && !isMod) { showError("Accès refusé", "Droits admin requis"); navigate("/"); return; }
       setAdminId(user.id);
+      setIsFullAdmin(!!isAdmin);
+      if (isMod && !isAdmin) {
+        const { data: perms } = await supabase.from("admin_permissions").select("permission").eq("user_id", user.id);
+        setModeratorPerms((perms || []).map((p: any) => p.permission));
+      } else {
+        setModeratorPerms(["all"]);
+      }
       await loadAll();
     } catch (err) {
       console.error("Admin check error:", err);
@@ -220,6 +232,23 @@ const AdminPanel = () => {
     </div>
   );
 
+  // Permission-based tab filtering for moderators
+  const permToTabs: Record<string, string[]> = {
+    manage_deposits: ["deposits"],
+    manage_withdrawals: ["withdrawals"],
+    manage_users: ["users"],
+    manage_products: ["products"],
+  };
+
+  const visibleTabs = isFullAdmin
+    ? tabs
+    : tabs.filter(t => {
+        // Always show dashboard
+        if (t.key === "dashboard") return true;
+        // Check if any permission grants access to this tab
+        return moderatorPerms.some(perm => permToTabs[perm]?.includes(t.key));
+      });
+
   return (
     <div className="min-h-screen bg-background pb-6">
       <PageHeader title="Administration" showBack />
@@ -228,7 +257,7 @@ const AdminPanel = () => {
       <div className="px-4 pt-4">
         <div className="bg-card rounded-xl border border-secondary p-3">
           <div className="grid grid-cols-5 gap-2">
-            {tabs.map(t => (
+            {visibleTabs.map(t => (
               <button
                 key={t.key}
                 onClick={() => setActiveTab(t.key)}
@@ -271,6 +300,7 @@ const AdminPanel = () => {
         {activeTab === "app" && <AppSettingsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "settings" && <SettingsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "security" && <SecurityTab logs={adminLogs} settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
+        {activeTab === "team" && <AdminTeamTab showSuccess={showSuccess} showError={showError} logAction={logAction} adminId={adminId} />}
       </div>
     </div>
   );
