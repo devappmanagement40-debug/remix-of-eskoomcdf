@@ -232,6 +232,23 @@ const AdminPanel = () => {
     </div>
   );
 
+  // Permission-based tab filtering for moderators
+  const permToTabs: Record<string, string[]> = {
+    manage_deposits: ["deposits"],
+    manage_withdrawals: ["withdrawals"],
+    manage_users: ["users"],
+    manage_products: ["products"],
+  };
+
+  const visibleTabs = isFullAdmin
+    ? tabs
+    : tabs.filter(t => {
+        // Always show dashboard
+        if (t.key === "dashboard") return true;
+        // Check if any permission grants access to this tab
+        return moderatorPerms.some(perm => permToTabs[perm]?.includes(t.key));
+      });
+
   return (
     <div className="min-h-screen bg-background pb-6">
       <PageHeader title="Administration" showBack />
@@ -240,7 +257,7 @@ const AdminPanel = () => {
       <div className="px-4 pt-4">
         <div className="bg-card rounded-xl border border-secondary p-3">
           <div className="grid grid-cols-5 gap-2">
-            {tabs.map(t => (
+            {visibleTabs.map(t => (
               <button
                 key={t.key}
                 onClick={() => setActiveTab(t.key)}
@@ -283,6 +300,7 @@ const AdminPanel = () => {
         {activeTab === "app" && <AppSettingsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "settings" && <SettingsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "security" && <SecurityTab logs={adminLogs} settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
+        {activeTab === "team" && <AdminTeamTab showSuccess={showSuccess} showError={showError} logAction={logAction} adminId={adminId} />}
       </div>
     </div>
   );
