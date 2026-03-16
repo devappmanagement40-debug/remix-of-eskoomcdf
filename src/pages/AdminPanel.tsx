@@ -134,9 +134,17 @@ const AdminPanel = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { navigate("/connexion"); return; }
-      const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
-      if (!data) { showError("Accès refusé", "Droits admin requis"); navigate("/"); return; }
+      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
+      const { data: isMod } = await supabase.rpc("has_role", { _user_id: user.id, _role: "moderator" });
+      if (!isAdmin && !isMod) { showError("Accès refusé", "Droits admin requis"); navigate("/"); return; }
       setAdminId(user.id);
+      setIsFullAdmin(!!isAdmin);
+      if (isMod && !isAdmin) {
+        const { data: perms } = await supabase.from("admin_permissions").select("permission").eq("user_id", user.id);
+        setModeratorPerms((perms || []).map((p: any) => p.permission));
+      } else {
+        setModeratorPerms(["all"]);
+      }
       await loadAll();
     } catch (err) {
       console.error("Admin check error:", err);
