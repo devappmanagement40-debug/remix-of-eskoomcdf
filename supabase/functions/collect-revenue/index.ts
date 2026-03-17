@@ -170,18 +170,31 @@ Deno.serve(async (req) => {
       });
     }
 
-    // STRICT 24h check
+    // STRICT 24h check (hours, minutes, seconds precision)
     const referenceTime = up.last_collected_at || up.purchased_at;
     if (referenceTime) {
       const refDate = new Date(referenceTime);
       const msSinceRef = now.getTime() - refDate.getTime();
-      const hoursSinceRef = msSinceRef / (1000 * 60 * 60);
+      const msRequired = 24 * 60 * 60 * 1000; // exactly 24h in ms
 
-      if (hoursSinceRef < 24) {
-        const hoursRemaining = Math.ceil(24 - hoursSinceRef);
+      if (msSinceRef < msRequired) {
+        const msRemaining = msRequired - msSinceRef;
+        const totalSecondsRemaining = Math.ceil(msRemaining / 1000);
+        const h = Math.floor(totalSecondsRemaining / 3600);
+        const m = Math.floor((totalSecondsRemaining % 3600) / 60);
+        const s = totalSecondsRemaining % 60;
+
+        let timeStr = "";
+        if (h > 0) timeStr += `${h}h `;
+        if (m > 0 || h > 0) timeStr += `${String(m).padStart(2, "0")}min `;
+        timeStr += `${String(s).padStart(2, "0")}s`;
+
         return new Response(JSON.stringify({
-          error: `Vous devez attendre encore ${hoursRemaining}h avant de collecter`,
-          hours_remaining: hoursRemaining,
+          error: `Vous devez attendre encore ${timeStr.trim()} avant de collecter`,
+          hours_remaining: h,
+          minutes_remaining: m,
+          seconds_remaining: s,
+          ms_remaining: msRemaining,
         }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
