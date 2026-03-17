@@ -384,7 +384,8 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
 
   const toggleSuspend = async (p: Profile) => {
     const newVal = !p.is_suspended;
-    await supabase.from("profiles").update({ is_suspended: newVal }).eq("id", p.id);
+    const { error } = await supabase.from("profiles").update({ is_suspended: newVal }).eq("id", p.id);
+    if (error) { showError("Erreur", error.message); return; }
     logAction(newVal ? "suspend_user" : "unsuspend_user", "profile", p.id);
     showSuccess(newVal ? "Compte suspendu" : "Compte réactivé", "");
     reload();
@@ -392,10 +393,15 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
 
   const deleteUser = async (p: Profile) => {
     if (!confirm(`Supprimer définitivement ${p.full_name || p.phone} ?`)) return;
-    // Delete user products, then profile (cascade will handle some)
+    // Delete related data first, then profile
     await supabase.from("user_products").delete().eq("user_id", p.user_id);
     await supabase.from("chat_messages").delete().eq("user_id", p.user_id);
-    await supabase.from("profiles").delete().eq("id", p.id);
+    await supabase.from("withdrawals").delete().eq("user_id", p.user_id);
+    await supabase.from("recharges").delete().eq("user_id", p.user_id);
+    await supabase.from("wheel_spins").delete().eq("user_id", p.user_id);
+    await supabase.from("point_exchanges").delete().eq("user_id", p.user_id);
+    const { error } = await supabase.from("profiles").delete().eq("id", p.id);
+    if (error) { showError("Erreur suppression", error.message); return; }
     logAction("delete_user", "profile", p.id, p.full_name || p.phone || "");
     showSuccess("Compte supprimé", "L'utilisateur a été supprimé définitivement");
     reload();
