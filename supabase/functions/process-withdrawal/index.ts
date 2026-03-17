@@ -51,7 +51,8 @@ Deno.serve(async (req) => {
     const supabaseAdmin = createClient(supabaseUrl, serviceKey);
 
     const { data: isAdmin } = await supabaseAdmin.rpc('has_role', { _user_id: userId, _role: 'admin' });
-    if (!isAdmin) {
+    const { data: hasWithdrawalPerm } = await supabaseAdmin.rpc('has_permission', { _user_id: userId, _permission: 'manage_withdrawals' });
+    if (!isAdmin && !hasWithdrawalPerm) {
       return new Response(JSON.stringify({ success: false, error: 'Accès refusé' }), {
         status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
