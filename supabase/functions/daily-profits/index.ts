@@ -61,34 +61,29 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const dailyRevenue = (up.products as any)?.daily_revenue || 0;
-      if (dailyRevenue <= 0) continue;
-
-      // Credit daily revenue to earnings_balance and balance
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("balance, earnings_balance, vip_level, gift_points")
-        .eq("user_id", up.user_id)
-        .single();
-
-      if (profile) {
-        const updates: any = {
-          balance: (profile.balance || 0) + dailyRevenue,
-          earnings_balance: (profile.earnings_balance || 0) + dailyRevenue,
-        };
+      // Track user for VIP points (do NOT auto-credit revenue — users collect manually)
+      if (!processedUsers.has(up.user_id)) {
+        const dailyRevenue = (up.products as any)?.daily_revenue || 0;
+        if (dailyRevenue > 0) credited++;
 
         // Grant VIP points daily (once per user)
-        if (!processedUsers.has(up.user_id) && pointsPerVipPerDay > 0 && (profile.vip_level || 0) > 0) {
-          const vipPoints = (profile.vip_level || 0) * pointsPerVipPerDay;
-          updates.gift_points = (profile.gift_points || 0) + vipPoints;
-          processedUsers.add(up.user_id);
+        if (pointsPerVipPerDay > 0) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("vip_level, gift_points")
+            .eq("user_id", up.user_id)
+            .single();
+
+          if (profile && (profile.vip_level || 0) > 0) {
+            const vipPoints = (profile.vip_level || 0) * pointsPerVipPerDay;
+            await supabase.from("profiles").update({
+              gift_points: (profile.gift_points || 0) + vipPoints,
+            }).eq("user_id", up.user_id);
+          }
         }
 
-        await supabase.from("profiles").update(updates).eq("user_id", up.user_id);
-        credited++;
+        processedUsers.add(up.user_id);
       }
-
-      if (!processedUsers.has(up.user_id)) processedUsers.add(up.user_id);
     }
 
     // Grant VIP points to users with VIP level who weren't already processed
