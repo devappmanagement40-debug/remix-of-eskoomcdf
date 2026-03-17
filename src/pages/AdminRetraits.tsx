@@ -68,8 +68,13 @@ const AdminRetraits = () => {
   const checkAdminAndLoad = async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { navigate("/connexion"); return; }
-    const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
-    if (!data) { showError("Accès refusé", "Vous n'avez pas les droits d'administrateur"); navigate("/"); return; }
+    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
+    const { data: isMod } = await supabase.rpc("has_role", { _user_id: user.id, _role: "moderator" });
+    if (!isAdmin && !isMod) { showError("Accès refusé", "Vous n'avez pas les droits d'administrateur"); navigate("/"); return; }
+    if (isMod && !isAdmin) {
+      const { data: hasPerm } = await supabase.rpc("has_permission", { _user_id: user.id, _permission: "manage_withdrawals" });
+      if (!hasPerm) { showError("Accès refusé", "Vous n'avez pas la permission de gérer les retraits"); navigate("/"); return; }
+    }
     loadData();
     loadWithdrawalMode();
   };
