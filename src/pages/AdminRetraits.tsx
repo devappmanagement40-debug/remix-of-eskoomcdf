@@ -388,7 +388,8 @@ const AdminRetraits = () => {
                 {/* Actions */}
                 {r.status === "pending" && (
                   <div className="grid grid-cols-2 gap-3 mt-2">
-                    {isAutoMode ? (
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    {isAutoForWithdrawal(r) ? (
                       <button
                         onClick={() => handleOmniPayTransfer(r)}
                         disabled={autoPayingId === r.id}
@@ -415,6 +416,7 @@ const AdminRetraits = () => {
                       <XCircle size={16} />
                       Rejeter
                     </button>
+                  </div>
                   </div>
                 )}
                 {r.status === "processing" && (
