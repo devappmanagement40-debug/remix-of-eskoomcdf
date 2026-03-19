@@ -135,12 +135,15 @@ const AdminRetraits = () => {
   const handleAction = async (item: Withdrawal, status: "approved" | "rejected") => {
     // Note: balance was already deducted on withdrawal creation (DB trigger).
     // Setting status to "rejected" triggers refund via handle_withdrawal_status_change.
-    const { error } = await supabase.from("withdrawals").update({ status }).eq("id", item.id);
-    if (error) { showError("Erreur", "Erreur lors de la mise à jour"); return; }
+    const note = status === "approved"
+      ? `✅ Validé manuellement par l'admin`
+      : `❌ Rejeté manuellement par l'admin`;
+    const { error } = await supabase.from("withdrawals").update({ status, admin_note: note }).eq("id", item.id);
+    if (error) { showError("Erreur", error.message || "Erreur lors de la mise à jour"); return; }
 
     showSuccess(
       status === "approved" ? "Retrait approuvé" : "Retrait refusé",
-      status === "approved" ? "Le retrait a été validé ✅" : "Le retrait a été refusé et le montant recrédité ❌"
+      status === "approved" ? "Le retrait a été validé manuellement ✅" : "Le retrait a été refusé et le montant recrédité ❌"
     );
     loadData();
   };
