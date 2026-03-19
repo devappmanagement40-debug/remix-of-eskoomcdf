@@ -333,9 +333,9 @@ const AdminRetraits = () => {
 
                 {/* Mode indicator */}
                 {r.status === "pending" && (
-                  <div className={`flex items-center gap-1.5 text-[10px] font-semibold mt-3 mb-2 ${isAutoMode ? "text-primary" : "text-warning"}`}>
-                    {isAutoMode ? <Zap size={12} /> : <Hand size={12} />}
-                    Mode : {isAutoMode ? "Automatique (OmniPay)" : "Manuel"}
+                  <div className={`flex items-center gap-1.5 text-[10px] font-semibold mt-3 mb-2 ${isAutoForWithdrawal(r) ? "text-primary" : "text-warning"}`}>
+                    {isAutoForWithdrawal(r) ? <Zap size={12} /> : <Hand size={12} />}
+                    Mode : {isAutoForWithdrawal(r) ? "Automatique (OmniPay)" : "Manuel"} — {r.country_code}
                   </div>
                 )}
 
