@@ -54,7 +54,10 @@ const AdminRetraits = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "processing" | "approved" | "rejected">("pending");
   const [search, setSearch] = useState("");
-  const [isAutoMode, setIsAutoMode] = useState(true);
+  // Map country_code -> api_enabled (per-country auto/manual mode)
+  const [countryAutoMap, setCountryAutoMap] = useState<Record<string, boolean>>({});
+
+  const isAutoForWithdrawal = (w: Withdrawal) => countryAutoMap[w.country_code] ?? false;
 
   useEffect(() => {
     checkAdminAndLoad();
@@ -76,12 +79,16 @@ const AdminRetraits = () => {
       if (!hasPerm) { showError("Accès refusé", "Vous n'avez pas la permission de gérer les retraits"); navigate("/"); return; }
     }
     loadData();
-    loadWithdrawalMode();
+    loadCountryModes();
   };
 
-  const loadWithdrawalMode = async () => {
-    const { data } = await supabase.from("site_settings").select("value").eq("key", "withdrawal_mode_auto").single();
-    setIsAutoMode(data?.value !== "false");
+  const loadCountryModes = async () => {
+    const { data } = await supabase.from("countries").select("country_code, api_enabled");
+    if (data) {
+      const map: Record<string, boolean> = {};
+      data.forEach((c: any) => { map[c.country_code] = c.api_enabled; });
+      setCountryAutoMap(map);
+    }
   };
 
   const loadData = async () => {
@@ -326,9 +333,9 @@ const AdminRetraits = () => {
 
                 {/* Mode indicator */}
                 {r.status === "pending" && (
-                  <div className={`flex items-center gap-1.5 text-[10px] font-semibold mt-3 mb-2 ${isAutoMode ? "text-primary" : "text-warning"}`}>
-                    {isAutoMode ? <Zap size={12} /> : <Hand size={12} />}
-                    Mode : {isAutoMode ? "Automatique (OmniPay)" : "Manuel"}
+                  <div className={`flex items-center gap-1.5 text-[10px] font-semibold mt-3 mb-2 ${isAutoForWithdrawal(r) ? "text-primary" : "text-warning"}`}>
+                    {isAutoForWithdrawal(r) ? <Zap size={12} /> : <Hand size={12} />}
+                    Mode : {isAutoForWithdrawal(r) ? "Automatique (OmniPay)" : "Manuel"} — {r.country_code}
                   </div>
                 )}
 
@@ -381,7 +388,8 @@ const AdminRetraits = () => {
                 {/* Actions */}
                 {r.status === "pending" && (
                   <div className="grid grid-cols-2 gap-3 mt-2">
-                    {isAutoMode ? (
+                  <div className="grid grid-cols-2 gap-3 mt-2">
+                    {isAutoForWithdrawal(r) ? (
                       <button
                         onClick={() => handleOmniPayTransfer(r)}
                         disabled={autoPayingId === r.id}
@@ -408,6 +416,7 @@ const AdminRetraits = () => {
                       <XCircle size={16} />
                       Rejeter
                     </button>
+                  </div>
                   </div>
                 )}
                 {r.status === "processing" && (
