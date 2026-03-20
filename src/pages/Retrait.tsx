@@ -26,6 +26,7 @@ const Retrait = () => {
   const [presetAmounts, setPresetAmounts] = useState<number[]>([1000, 5000, 10000, 20000, 50000]);
   const [minAmount, setMinAmount] = useState(800);
   const [maxAmount, setMaxAmount] = useState(500000);
+  const [processingFeePercent, setProcessingFeePercent] = useState(35);
   const [feePercent, setFeePercent] = useState(10);
   const [rules, setRules] = useState<string[]>([]);
   const [maxWithdrawalsPerDay, setMaxWithdrawalsPerDay] = useState(1);
