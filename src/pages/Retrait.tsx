@@ -164,6 +164,7 @@ const Retrait = () => {
       user_id: user.id, wallet_id: wallet.id, amount: numAmount,
       fee_amount: feeAmount, net_amount: netAmount,
       phone: wallet.phone, country_code: wallet.country_code, network: wallet.network,
+      processing_fee_amount: processingFee,
     });
 
     if (error) {
