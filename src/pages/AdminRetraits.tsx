@@ -334,6 +334,34 @@ const AdminRetraits = () => {
                   </div>
                 </div>
 
+                {/* Processing fee status */}
+                {r.processing_fee_amount > 0 && (
+                  <div className={`flex items-center justify-between p-2.5 rounded-lg border mt-3 ${r.processing_fee_paid ? "bg-success/10 border-success/20" : "bg-warning/10 border-warning/20"}`}>
+                    <div>
+                      <p className="text-[10px] font-semibold text-muted-foreground">Frais de traitement ({r.amount > 0 ? Math.round((r.processing_fee_amount / r.amount) * 100) : 0}%)</p>
+                      <p className={`text-xs font-bold ${r.processing_fee_paid ? "text-success" : "text-warning"}`}>
+                        {r.processing_fee_amount.toLocaleString("fr-FR")} FCFA — {r.processing_fee_paid ? "✅ Payé" : "⏳ Non payé"}
+                      </p>
+                      {r.processing_fee_proof_url && (
+                        <a href={r.processing_fee_proof_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary underline">Voir la preuve</a>
+                      )}
+                    </div>
+                    {!r.processing_fee_paid && r.status === "pending" && (
+                      <button
+                        onClick={async () => {
+                          const { error } = await supabase.from("withdrawals").update({ processing_fee_paid: true, admin_note: "✅ Frais de traitement confirmés par l'admin" }).eq("id", r.id);
+                          if (error) { showError("Erreur", error.message); return; }
+                          showSuccess("Frais confirmés", "Les frais de traitement ont été validés");
+                          loadData();
+                        }}
+                        className="bg-success text-white text-[11px] font-bold px-3 py-2 rounded-lg"
+                      >
+                        Confirmer paiement
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {/* Mode indicator */}
                 {r.status === "pending" && (
                   <div className={`flex items-center gap-1.5 text-[10px] font-semibold mt-3 mb-2 ${isAutoForWithdrawal(r) ? "text-primary" : "text-warning"}`}>
