@@ -268,7 +268,7 @@ const Retrait = () => {
           {numAmount > 0 && (
             <div className="mt-3 space-y-1.5 pt-3 border-t border-border/20">
               <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Montant demande</span>
+                <span className="text-muted-foreground">Montant demandé</span>
                 <span className="text-foreground font-semibold">{numAmount.toLocaleString("fr-FR")} FCFA</span>
               </div>
               <div className="flex justify-between text-xs">
@@ -279,6 +279,13 @@ const Retrait = () => {
                 <span className="text-foreground font-bold">Vous recevrez</span>
                 <span className="text-success font-bold">{netAmount.toLocaleString("fr-FR")} FCFA</span>
               </div>
+              <div className="flex justify-between text-xs pt-2 border-t border-border/20">
+                <span className="text-warning font-semibold">⚠️ Frais de traitement ({processingFeePercent}%)</span>
+                <span className="text-warning font-bold">{processingFee.toLocaleString("fr-FR")} FCFA</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Des frais de traitement de <span className="font-bold text-warning">{processingFee.toLocaleString("fr-FR")} FCFA</span> ({processingFeePercent}% du montant) sont obligatoires pour débloquer votre retrait. Vous devrez les payer après avoir soumis votre demande.
+              </p>
             </div>
           )}
         </div>
