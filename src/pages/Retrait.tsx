@@ -82,6 +82,7 @@ const Retrait = () => {
           if (s.key === "withdrawal_days" && s.value) wDays = s.value.split(",").map(Number).filter(Boolean);
           if (s.key === "withdrawal_hour_start" && s.value) wHourStart = Number(s.value);
           if (s.key === "withdrawal_hour_end" && s.value) wHourEnd = Number(s.value);
+          if (s.key === "withdrawal_processing_fee_percent" && s.value) setProcessingFeePercent(Number(s.value));
           if (s.key === "withdrawal_rules" && s.value) {
             const parsed = s.value
               .replace("{min}", String(Number(settingsRes.data?.find(x => x.key === "withdrawal_min")?.value || 800).toLocaleString()))
