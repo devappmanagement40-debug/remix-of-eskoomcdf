@@ -56,7 +56,8 @@ const Retrait = () => {
           "deposit_not_withdrawable", "withdrawal_amounts", "withdrawal_min",
           "withdrawal_max", "withdrawal_fee_percent", "withdrawal_rules",
           "max_withdrawals_per_day", "max_withdrawals_enabled",
-          "withdrawal_enabled", "withdrawal_days", "withdrawal_hour_start", "withdrawal_hour_end"
+          "withdrawal_enabled", "withdrawal_days", "withdrawal_hour_start", "withdrawal_hour_end",
+          "withdrawal_processing_fee_percent"
         ]),
         supabase.from("withdrawals").select("id").eq("user_id", user.id).gte("created_at", todayStart.toISOString()),
       ]);
