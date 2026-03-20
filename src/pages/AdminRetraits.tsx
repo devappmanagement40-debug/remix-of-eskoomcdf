@@ -418,36 +418,42 @@ const AdminRetraits = () => {
 
                 {/* Actions */}
                 {r.status === "pending" && (
-                  <div className="grid grid-cols-2 gap-3 mt-2">
-                  <div className="grid grid-cols-2 gap-3 mt-2">
-                    {isAutoForWithdrawal(r) ? (
-                      <button
-                        onClick={() => handleOmniPayTransfer(r)}
-                        disabled={autoPayingId === r.id}
-                        className="flex items-center justify-center gap-2 bg-success text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50"
-                      >
-                        {autoPayingId === r.id ? (
-                          <><Loader2 size={16} className="animate-spin" />Envoi...</>
-                        ) : (
-                          <><Zap size={16} />Auto Valider</>
-                        )}
-                      </button>
+                  <div className="mt-2">
+                    {r.processing_fee_amount > 0 && !r.processing_fee_paid ? (
+                      <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 text-center">
+                        <p className="text-xs text-warning font-semibold">⚠️ En attente du paiement des frais de traitement</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">L'utilisateur doit payer {r.processing_fee_amount.toLocaleString("fr-FR")} FCFA avant validation</p>
+                      </div>
                     ) : (
-                      <button
-                        onClick={() => handleAction(r, "approved")}
-                        className="flex items-center justify-center gap-2 bg-success text-white font-bold py-2.5 rounded-xl text-sm"
-                      >
-                        <CheckCircle2 size={16} />Valider
-                      </button>
+                      <div className="grid grid-cols-2 gap-3">
+                        {isAutoForWithdrawal(r) ? (
+                          <button
+                            onClick={() => handleOmniPayTransfer(r)}
+                            disabled={autoPayingId === r.id}
+                            className="flex items-center justify-center gap-2 bg-success text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50"
+                          >
+                            {autoPayingId === r.id ? (
+                              <><Loader2 size={16} className="animate-spin" />Envoi...</>
+                            ) : (
+                              <><Zap size={16} />Auto Valider</>
+                            )}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleAction(r, "approved")}
+                            className="flex items-center justify-center gap-2 bg-success text-white font-bold py-2.5 rounded-xl text-sm"
+                          >
+                            <CheckCircle2 size={16} />Valider
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleAction(r, "rejected")}
+                          className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10 transition-colors"
+                        >
+                          <XCircle size={16} />Rejeter
+                        </button>
+                      </div>
                     )}
-                    <button
-                      onClick={() => handleAction(r, "rejected")}
-                      className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10 transition-colors"
-                    >
-                      <XCircle size={16} />
-                      Rejeter
-                    </button>
-                  </div>
                   </div>
                 )}
                 {r.status === "processing" && (
