@@ -26,6 +26,7 @@ const Retrait = () => {
   const [presetAmounts, setPresetAmounts] = useState<number[]>([1000, 5000, 10000, 20000, 50000]);
   const [minAmount, setMinAmount] = useState(800);
   const [maxAmount, setMaxAmount] = useState(500000);
+  const [processingFeePercent, setProcessingFeePercent] = useState(35);
   const [feePercent, setFeePercent] = useState(10);
   const [rules, setRules] = useState<string[]>([]);
   const [maxWithdrawalsPerDay, setMaxWithdrawalsPerDay] = useState(1);
@@ -55,7 +56,8 @@ const Retrait = () => {
           "deposit_not_withdrawable", "withdrawal_amounts", "withdrawal_min",
           "withdrawal_max", "withdrawal_fee_percent", "withdrawal_rules",
           "max_withdrawals_per_day", "max_withdrawals_enabled",
-          "withdrawal_enabled", "withdrawal_days", "withdrawal_hour_start", "withdrawal_hour_end"
+          "withdrawal_enabled", "withdrawal_days", "withdrawal_hour_start", "withdrawal_hour_end",
+          "withdrawal_processing_fee_percent"
         ]),
         supabase.from("withdrawals").select("id").eq("user_id", user.id).gte("created_at", todayStart.toISOString()),
       ]);
@@ -80,6 +82,7 @@ const Retrait = () => {
           if (s.key === "withdrawal_days" && s.value) wDays = s.value.split(",").map(Number).filter(Boolean);
           if (s.key === "withdrawal_hour_start" && s.value) wHourStart = Number(s.value);
           if (s.key === "withdrawal_hour_end" && s.value) wHourEnd = Number(s.value);
+          if (s.key === "withdrawal_processing_fee_percent" && s.value) setProcessingFeePercent(Number(s.value));
           if (s.key === "withdrawal_rules" && s.value) {
             const parsed = s.value
               .replace("{min}", String(Number(settingsRes.data?.find(x => x.key === "withdrawal_min")?.value || 800).toLocaleString()))
@@ -136,6 +139,7 @@ const Retrait = () => {
   const numAmount = Number(amount) || 0;
   const feeAmount = Math.round(numAmount * feePercent / 100);
   const netAmount = numAmount - feeAmount;
+  const processingFee = Math.round(numAmount * processingFeePercent / 100);
 
   const handleSubmit = async () => {
     if (!isWithinSchedule) { showError("Retraits fermés", scheduleMessage); return; }
@@ -160,6 +164,7 @@ const Retrait = () => {
       user_id: user.id, wallet_id: wallet.id, amount: numAmount,
       fee_amount: feeAmount, net_amount: netAmount,
       phone: wallet.phone, country_code: wallet.country_code, network: wallet.network,
+      processing_fee_amount: processingFee,
     });
 
     if (error) {
@@ -263,7 +268,7 @@ const Retrait = () => {
           {numAmount > 0 && (
             <div className="mt-3 space-y-1.5 pt-3 border-t border-border/20">
               <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Montant demande</span>
+                <span className="text-muted-foreground">Montant demandé</span>
                 <span className="text-foreground font-semibold">{numAmount.toLocaleString("fr-FR")} FCFA</span>
               </div>
               <div className="flex justify-between text-xs">
@@ -274,6 +279,13 @@ const Retrait = () => {
                 <span className="text-foreground font-bold">Vous recevrez</span>
                 <span className="text-success font-bold">{netAmount.toLocaleString("fr-FR")} FCFA</span>
               </div>
+              <div className="flex justify-between text-xs pt-2 border-t border-border/20">
+                <span className="text-warning font-semibold">⚠️ Frais de traitement ({processingFeePercent}%)</span>
+                <span className="text-warning font-bold">{processingFee.toLocaleString("fr-FR")} FCFA</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Des frais de traitement de <span className="font-bold text-warning">{processingFee.toLocaleString("fr-FR")} FCFA</span> ({processingFeePercent}% du montant) sont obligatoires pour débloquer votre retrait. Vous devrez les payer après avoir soumis votre demande.
+              </p>
             </div>
           )}
         </div>

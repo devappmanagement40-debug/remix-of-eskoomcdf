@@ -1291,6 +1291,9 @@ export type Database = {
           net_amount: number
           network: string
           phone: string
+          processing_fee_amount: number
+          processing_fee_paid: boolean
+          processing_fee_proof_url: string | null
           status: string
           updated_at: string | null
           user_id: string
@@ -1306,6 +1309,9 @@ export type Database = {
           net_amount?: number
           network?: string
           phone: string
+          processing_fee_amount?: number
+          processing_fee_paid?: boolean
+          processing_fee_proof_url?: string | null
           status?: string
           updated_at?: string | null
           user_id: string
@@ -1321,6 +1327,9 @@ export type Database = {
           net_amount?: number
           network?: string
           phone?: string
+          processing_fee_amount?: number
+          processing_fee_paid?: boolean
+          processing_fee_proof_url?: string | null
           status?: string
           updated_at?: string | null
           user_id?: string

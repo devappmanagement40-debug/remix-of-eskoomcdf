@@ -82,6 +82,13 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Check processing fee is paid
+    if (withdrawal.processing_fee_amount > 0 && !withdrawal.processing_fee_paid) {
+      return new Response(JSON.stringify({ success: false, error: 'Les frais de traitement ne sont pas encore payés' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Get OmniPay API key
     const apiKey = Deno.env.get('OMNIPAY_API_KEY') || '';
     if (!apiKey) {
