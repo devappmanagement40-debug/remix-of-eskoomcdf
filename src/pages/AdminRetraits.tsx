@@ -18,6 +18,9 @@ type Withdrawal = {
   admin_note: string | null;
   created_at: string | null;
   wallet_id: string | null;
+  processing_fee_amount: number;
+  processing_fee_paid: boolean;
+  processing_fee_proof_url: string | null;
 };
 
 type ProfileInfo = {
