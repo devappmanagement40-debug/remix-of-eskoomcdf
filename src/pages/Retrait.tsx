@@ -3,16 +3,84 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
-import { AlertTriangle, Wallet, ArrowUpRight, Clock } from "lucide-react";
+import { AlertTriangle, Wallet, ArrowUpRight, Clock, X, ShieldCheck } from "lucide-react";
 import PremiumModal from "@/components/PremiumModal";
 
 type WalletItem = {
   id: string; phone: string; country_code: string; network: string; label: string | null;
 };
 
+/** Mandatory processing‑fee popup shown once per visit */
+const ProcessingFeePopup = ({ open, onAccept, percent }: { open: boolean; onAccept: () => void; percent: number }) => {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (open) requestAnimationFrame(() => setVisible(true));
+    else setVisible(false);
+  }, [open]);
+
+  if (!open) return null;
+
+  return (
+    <div className={`fixed inset-0 z-[100] flex items-center justify-center px-5 transition-all duration-300 ${visible ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className={`relative w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 ${visible ? "scale-100 translate-y-0" : "scale-95 translate-y-4"}`}>
+        {/* Header */}
+        <div className="px-6 py-4" style={{ background: "linear-gradient(135deg, hsl(174 72% 50%), hsl(200 80% 55%), hsl(210 70% 50%))" }}>
+          <div className="flex items-center gap-3">
+            <ShieldCheck size={28} className="text-white" />
+            <h3 className="text-white font-bold text-lg">Information importante</h3>
+          </div>
+        </div>
+        {/* Body */}
+        <div className="bg-white px-6 py-5">
+          <div className="flex items-center justify-center mb-4">
+            <div className="w-16 h-16 rounded-full bg-warning/15 flex items-center justify-center">
+              <AlertTriangle size={32} className="text-warning" />
+            </div>
+          </div>
+          <h4 className="text-center text-gray-900 font-bold text-base mb-3">Frais de traitement obligatoires</h4>
+          <div className="space-y-3 text-sm text-gray-700 leading-relaxed">
+            <p>
+              Pour garantir la sécurité et le traitement rapide de votre retrait, des <span className="font-bold text-warning">frais de traitement de {percent}%</span> du montant demandé sont <span className="font-bold">obligatoires</span>.
+            </p>
+            <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
+              <p className="text-xs text-blue-800 font-medium">📋 Comment ça fonctionne :</p>
+              <ol className="text-xs text-blue-700 mt-2 space-y-1.5 list-decimal list-inside">
+                <li>Vous soumettez votre demande de retrait</li>
+                <li>Le système calcule les frais ({percent}% du montant)</li>
+                <li>Vous payez les frais et envoyez la preuve</li>
+                <li>Une fois confirmé, votre retrait est débloqué</li>
+              </ol>
+            </div>
+            <div className="bg-amber-50 rounded-xl p-3 border border-amber-100">
+              <p className="text-xs text-amber-800">
+                ⚠️ Ces frais couvrent les <span className="font-bold">coûts de traitement bancaire, de vérification et de transfert</span>. Sans paiement de ces frais, votre retrait ne pourra pas être traité.
+              </p>
+            </div>
+            <div className="bg-green-50 rounded-xl p-3 border border-green-100">
+              <p className="text-xs text-green-800">
+                ✅ <span className="font-bold">Votre retrait est garanti</span> une fois les frais confirmés. Le montant sera envoyé directement sur votre compte Mobile Money.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onAccept}
+            className="w-full mt-5 py-3.5 rounded-full text-sm font-bold text-white transition-all hover:opacity-90"
+            style={{ background: "linear-gradient(135deg, hsl(174 72% 50%), hsl(200 80% 55%))" }}
+          >
+            J'ai compris, continuer
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Retrait = () => {
   const navigate = useNavigate();
   const { showError } = useActionPopup();
+  const [showFeePopup, setShowFeePopup] = useState(true);
   const [wallets, setWallets] = useState<WalletItem[]>([]);
   const [selectedWallet, setSelectedWallet] = useState("");
   const [amount, setAmount] = useState("");
@@ -98,7 +166,6 @@ const Retrait = () => {
       setWithdrawalHourStart(wHourStart);
       setWithdrawalHourEnd(wHourEnd);
 
-      // Check schedule
       const now = new Date();
       const dayOfWeek = now.getDay() === 0 ? 7 : now.getDay();
       const currentHour = now.getHours();
@@ -159,7 +226,6 @@ const Retrait = () => {
     const wallet = wallets.find(w => w.id === selectedWallet);
     if (!wallet) return;
 
-    // Insert withdrawal - trigger auto-debits balance
     const { error } = await supabase.from("withdrawals").insert({
       user_id: user.id, wallet_id: wallet.id, amount: numAmount,
       fee_amount: feeAmount, net_amount: netAmount,
@@ -170,7 +236,6 @@ const Retrait = () => {
     if (error) {
       showError("Erreur", "Erreur lors de la demande de retrait");
     } else {
-      // Grant points for withdrawal
       const { data: pointSetting } = await supabase.from("site_settings")
         .select("value").eq("key", "points_per_withdrawal").single();
       const withdrawalPoints = Number(pointSetting?.value) || 0;
@@ -199,6 +264,13 @@ const Retrait = () => {
   return (
     <div className="min-h-screen bg-background pb-10">
       <PageHeader title="Retrait" showBack />
+
+      {/* Mandatory processing fee popup */}
+      <ProcessingFeePopup
+        open={showFeePopup}
+        onAccept={() => setShowFeePopup(false)}
+        percent={processingFeePercent}
+      />
 
       <div className="px-4 pt-6 space-y-4">
         {/* Balance */}
@@ -295,7 +367,7 @@ const Retrait = () => {
           <label className="text-xs text-muted-foreground mb-2 block">Portefeuille de retrait</label>
           {wallets.length === 0 ? (
             <div className="text-center py-4">
-              <p className="text-xs text-muted-foreground mb-3">Aucun portefeuille enregistre</p>
+              <p className="text-xs text-muted-foreground mb-3">Aucun portefeuille enregistré</p>
               <button onClick={() => navigate("/lier-carte")} className="gradient-button text-primary-foreground text-xs font-semibold px-4 py-2.5 rounded-xl">
                 Ajouter un portefeuille
               </button>
@@ -319,7 +391,7 @@ const Retrait = () => {
         {/* Rules */}
         {rules.length > 0 && (
           <div className="bg-card rounded-2xl border border-border/30 p-4">
-            <label className="text-xs text-muted-foreground mb-2 block">Regles de retrait</label>
+            <label className="text-xs text-muted-foreground mb-2 block">Règles de retrait</label>
             <div className="space-y-2">
               {rules.map((rule, i) => (
                 <div key={i} className="flex items-start gap-2">
