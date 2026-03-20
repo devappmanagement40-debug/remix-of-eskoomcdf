@@ -139,6 +139,7 @@ const Retrait = () => {
   const numAmount = Number(amount) || 0;
   const feeAmount = Math.round(numAmount * feePercent / 100);
   const netAmount = numAmount - feeAmount;
+  const processingFee = Math.round(numAmount * processingFeePercent / 100);
 
   const handleSubmit = async () => {
     if (!isWithinSchedule) { showError("Retraits fermés", scheduleMessage); return; }
