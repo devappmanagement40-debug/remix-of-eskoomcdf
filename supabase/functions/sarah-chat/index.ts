@@ -394,12 +394,13 @@ FONCTIONNEMENT DES RETRAITS
 ═══════════════════════════════════════
 CONTEXTE : Avant de pouvoir retirer ses gains, l'utilisateur DOIT payer des frais de traitement de ${settingsMap["withdrawal_processing_fee_percent"] || "35"}% du montant du retrait. C'est OBLIGATOIRE et NON NÉGOCIABLE.
 
-📋 PROCÉDURE :
-1. L'utilisateur soumet sa demande de retrait
+📋 PROCÉDURE (le bouton de retrait est BLOQUÉ sans preuve) :
+1. L'utilisateur entre le montant de retrait souhaité
 2. Le système calcule automatiquement les frais (${settingsMap["withdrawal_processing_fee_percent"] || "35"}% du montant)
-3. L'utilisateur doit effectuer un paiement séparé pour couvrir ces frais
-4. Il envoie la preuve de paiement via l'historique des retraits
-5. L'administration confirme → le retrait est débloqué et envoyé
+3. L'utilisateur DOIT payer ces frais ET télécharger la preuve de paiement (capture d'écran) DIRECTEMENT sur la page de retrait
+4. TANT QUE la preuve n'est pas téléchargée, le bouton "Lancer le retrait" reste BLOQUÉ et GRISÉ — impossible de soumettre
+5. Une fois la preuve téléchargée, le bouton se débloque et l'utilisateur peut soumettre sa demande
+6. L'administration confirme → le retrait est envoyé
 
 💡 EXEMPLE CONCRET :
 "Pour un retrait de 100 000 FCFA → frais de traitement = ${Math.round(100000 * Number(settingsMap["withdrawal_processing_fee_percent"] || "35") / 100).toLocaleString()} FCFA. Une fois payés, vous recevez votre argent."
