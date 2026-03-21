@@ -3,14 +3,24 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
-import { AlertTriangle, Wallet, ArrowUpRight, Clock, X, ShieldCheck, Upload, CheckCircle2, Image } from "lucide-react";
+import { AlertTriangle, Wallet, ArrowUpRight, Clock, X, ShieldCheck, Upload, CheckCircle2, Image, Lock, Loader2 } from "lucide-react";
 import PremiumModal from "@/components/PremiumModal";
 
 type WalletItem = {
   id: string; phone: string; country_code: string; network: string; label: string | null;
 };
 
-/** Mandatory processing‑fee popup shown once per visit */
+type FeePayment = {
+  id: string;
+  fee_amount: number;
+  capital_amount: number;
+  proof_url: string | null;
+  status: string;
+  admin_note: string | null;
+  created_at: string;
+};
+
+/** Mandatory processing-fee popup shown once per visit */
 const ProcessingFeePopup = ({ open, onAccept, percent }: { open: boolean; onAccept: () => void; percent: number }) => {
   const [visible, setVisible] = useState(false);
 
@@ -41,24 +51,21 @@ const ProcessingFeePopup = ({ open, onAccept, percent }: { open: boolean; onAcce
           <div className="space-y-3 text-sm text-gray-700 leading-relaxed">
             <div className="bg-red-50 rounded-xl p-3 border border-red-200">
               <p className="text-xs text-red-800 font-bold">
-                🚫 AUCUN RETRAIT ne sera traité sans le paiement préalable des frais de traitement de {percent}%.
+                🚫 AUCUN RETRAIT ne sera possible sans le paiement préalable des frais de traitement de {percent}%.
               </p>
             </div>
-            <p>
-              Vous devez <span className="font-bold text-destructive">payer les frais de traitement ({percent}%)</span> et <span className="font-bold">télécharger la preuve de paiement</span> avant de pouvoir soumettre votre demande de retrait.
-            </p>
             <div className="bg-blue-50 rounded-xl p-3 border border-blue-100">
               <p className="text-xs text-blue-800 font-medium">📋 Étapes obligatoires :</p>
               <ol className="text-xs text-blue-700 mt-2 space-y-1.5 list-decimal list-inside">
-                <li>Entrez le montant de retrait souhaité</li>
-                <li>Le système calcule les frais ({percent}%)</li>
-                <li><span className="font-bold">Payez les frais et téléchargez la preuve</span></li>
-                <li>Le bouton de retrait se débloque</li>
+                <li>Payez les frais de traitement ({percent}% de votre capital)</li>
+                <li>Téléchargez la preuve de paiement</li>
+                <li><span className="font-bold">Attendez la confirmation de l'administration</span></li>
+                <li>Une fois confirmé, le formulaire de retrait se débloque</li>
               </ol>
             </div>
             <div className="bg-amber-50 rounded-xl p-3 border border-amber-100">
               <p className="text-xs text-amber-800">
-                ⚠️ Sans preuve de paiement, le bouton « Lancer le retrait » restera <span className="font-bold">bloqué</span>.
+                ⚠️ Sans confirmation admin, le formulaire de retrait restera <span className="font-bold">verrouillé</span>.
               </p>
             </div>
           </div>
@@ -77,7 +84,7 @@ const ProcessingFeePopup = ({ open, onAccept, percent }: { open: boolean; onAcce
 
 const Retrait = () => {
   const navigate = useNavigate();
-  const { showError } = useActionPopup();
+  const { showError, showSuccess: showSuccessPopup } = useActionPopup();
   const [showFeePopup, setShowFeePopup] = useState(true);
   const [wallets, setWallets] = useState<WalletItem[]>([]);
   const [selectedWallet, setSelectedWallet] = useState("");
@@ -105,9 +112,12 @@ const Retrait = () => {
   const [isWithinSchedule, setIsWithinSchedule] = useState(true);
   const [scheduleMessage, setScheduleMessage] = useState("");
 
-  // Proof upload state
-  const [proofUrl, setProofUrl] = useState<string | null>(null);
+  // Fee payment state
+  const [feePayment, setFeePayment] = useState<FeePayment | null>(null);
+  const [feeUnlocked, setFeeUnlocked] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [feeProofUrl, setFeeProofUrl] = useState<string | null>(null);
+  const [submittingFee, setSubmittingFee] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => { loadData(); }, []);
@@ -120,7 +130,7 @@ const Retrait = () => {
       const todayStart = new Date();
       todayStart.setHours(0, 0, 0, 0);
 
-      const [walletsRes, profileRes, settingsRes, todayRes] = await Promise.all([
+      const [walletsRes, profileRes, settingsRes, todayRes, feeRes] = await Promise.all([
         supabase.from("user_wallets").select("*").eq("user_id", user.id),
         supabase.from("profiles").select("balance, deposit_balance, earnings_balance, referral_balance").eq("user_id", user.id).single(),
         supabase.from("site_settings").select("key, value").in("key", [
@@ -131,9 +141,21 @@ const Retrait = () => {
           "withdrawal_processing_fee_percent"
         ]),
         supabase.from("withdrawals").select("id").eq("user_id", user.id).gte("created_at", todayStart.toISOString()),
+        // Check for existing fee payment (latest one)
+        supabase.from("withdrawal_fee_payments").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(1),
       ]);
 
       if (walletsRes.data) setWallets(walletsRes.data);
+
+      // Check fee payment status
+      if (feeRes.data && feeRes.data.length > 0) {
+        const latest = feeRes.data[0] as any;
+        setFeePayment(latest);
+        setFeeUnlocked(latest.status === "approved");
+      } else {
+        setFeePayment(null);
+        setFeeUnlocked(false);
+      }
 
       let dnw = true;
       let wEnabled = true;
@@ -209,9 +231,10 @@ const Retrait = () => {
   const numAmount = Number(amount) || 0;
   const feeAmount = Math.round(numAmount * feePercent / 100);
   const netAmount = numAmount - feeAmount;
-  const processingFee = Math.round(numAmount * processingFeePercent / 100);
+  const processingFee = Math.round(withdrawableBalance * processingFeePercent / 100);
 
-  const handleProofUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Upload fee proof
+  const handleFeeProofUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
@@ -219,22 +242,47 @@ const Retrait = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const ext = file.name.split(".").pop();
-      const path = `withdrawal-proofs/${user.id}/${Date.now()}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("site-assets").upload(path, file);
+      const path = `withdrawal-fee-proofs/${user.id}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("chat-images").upload(path, file, { upsert: true });
       if (upErr) throw upErr;
-      const { data: urlData } = supabase.storage.from("site-assets").getPublicUrl(path);
-      setProofUrl(urlData.publicUrl);
+      const { data: urlData } = supabase.storage.from("chat-images").getPublicUrl(path);
+      setFeeProofUrl(urlData.publicUrl);
     } catch {
-      showError("Erreur", "Échec du téléchargement de la preuve");
+      showError("Erreur", "Échec du téléchargement");
     } finally {
       setUploading(false);
     }
   };
 
+  // Submit fee payment
+  const handleSubmitFee = async () => {
+    if (!feeProofUrl) { showError("Erreur", "Téléchargez la preuve de paiement"); return; }
+    setSubmittingFee(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { error } = await supabase.from("withdrawal_fee_payments").insert({
+        user_id: user.id,
+        fee_amount: processingFee,
+        capital_amount: withdrawableBalance,
+        proof_url: feeProofUrl,
+        status: "pending",
+      });
+      if (error) throw error;
+      showSuccessPopup("Preuve envoyée", "Votre preuve de paiement a été soumise. Attendez la confirmation de l'administration.");
+      setFeeProofUrl(null);
+      loadData();
+    } catch {
+      showError("Erreur", "Impossible de soumettre le paiement");
+    } finally {
+      setSubmittingFee(false);
+    }
+  };
+
   const handleSubmit = async () => {
+    if (!feeUnlocked) { showError("Frais non confirmés", "L'administration n'a pas encore confirmé votre paiement des frais de traitement."); return; }
     if (!isWithinSchedule) { showError("Retraits fermés", scheduleMessage); return; }
     if (!selectedWallet) { showError("Erreur", "Selectionnez un portefeuille"); return; }
-    if (!proofUrl) { showError("Paiement requis", "Vous devez payer les frais de traitement et télécharger la preuve avant de pouvoir retirer."); return; }
     if (maxWithdrawalsEnabled && todayWithdrawals >= maxWithdrawalsPerDay) {
       showError("Limite atteinte", "Vous avez atteint le nombre maximum de retraits autorises aujourd'hui.");
       return;
@@ -255,7 +303,8 @@ const Retrait = () => {
       fee_amount: feeAmount, net_amount: netAmount,
       phone: wallet.phone, country_code: wallet.country_code, network: wallet.network,
       processing_fee_amount: processingFee,
-      processing_fee_proof_url: proofUrl,
+      processing_fee_paid: true,
+      processing_fee_proof_url: feePayment?.proof_url || null,
     });
 
     if (error) {
@@ -278,8 +327,7 @@ const Retrait = () => {
     setSubmitting(false);
   };
 
-  const proofRequired = numAmount >= minAmount;
-  const canSubmit = !submitting && wallets.length > 0 && numAmount >= minAmount && numAmount <= withdrawableBalance && isWithinSchedule && !!proofUrl;
+  const canSubmit = !submitting && feeUnlocked && wallets.length > 0 && numAmount >= minAmount && numAmount <= withdrawableBalance && isWithinSchedule;
 
   if (loading) {
     return (
@@ -288,6 +336,11 @@ const Retrait = () => {
       </div>
     );
   }
+
+  // Determine current step
+  const hasPendingFee = feePayment && feePayment.status === "pending";
+  const hasRejectedFee = feePayment && feePayment.status === "rejected";
+  const showFeeForm = !feeUnlocked; // Show fee form if not unlocked
 
   return (
     <div className="min-h-screen bg-background pb-10">
@@ -312,203 +365,281 @@ const Retrait = () => {
           )}
         </div>
 
-        {/* Schedule info */}
-        <div className="bg-card rounded-2xl border border-border/30 p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Clock size={14} className="text-primary" />
-            <label className="text-xs font-semibold text-foreground">Horaires de retrait</label>
-          </div>
-          <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">
-              Heures : <span className="font-semibold text-foreground">{withdrawalHourStart}h00 – {withdrawalHourEnd}h00</span>
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Jours : <span className="font-semibold text-foreground">
-                {withdrawalDays.length === 7 ? "Lundi à Dimanche" : withdrawalDays.map(d => ["", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"][d]).join(", ")}
-              </span>
-            </p>
-          </div>
-          {!isWithinSchedule && (
-            <div className="flex items-center gap-2 bg-destructive/10 text-destructive rounded-xl px-3 py-2.5 mt-3">
-              <AlertTriangle size={14} />
-              <p className="text-xs font-medium">{scheduleMessage}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Amount */}
-        <div className="bg-card rounded-2xl border border-border/30 p-4">
-          <label className="text-xs text-muted-foreground mb-2 block">Montant du retrait (FCFA)</label>
-          <input
-            type="number"
-            value={amount}
-            onChange={(e) => { setAmount(e.target.value); setProofUrl(null); }}
-            placeholder={`Min. ${minAmount.toLocaleString()}`}
-            className="w-full bg-secondary/50 text-foreground rounded-xl px-4 py-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-primary"
-          />
-
-          <div className="grid grid-cols-3 gap-2 mt-3">
-            {presetAmounts.map((preset) => (
-              <button
-                key={preset}
-                onClick={() => { setAmount(String(preset)); setProofUrl(null); }}
-                className={`py-2 rounded-xl text-xs font-bold transition-all ${
-                  amount === String(preset)
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary/60 text-foreground hover:bg-secondary"
-                }`}
-              >
-                {preset.toLocaleString()}
-              </button>
-            ))}
-          </div>
-
-          {numAmount > 0 && (
-            <div className="mt-3 space-y-1.5 pt-3 border-t border-border/20">
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Montant demandé</span>
-                <span className="text-foreground font-semibold">{numAmount.toLocaleString("fr-FR")} FCFA</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Frais ({feePercent}%)</span>
-                <span className="text-destructive font-semibold">- {feeAmount.toLocaleString("fr-FR")} FCFA</span>
-              </div>
-              <div className="flex justify-between text-sm pt-1">
-                <span className="text-foreground font-bold">Vous recevrez</span>
-                <span className="text-success font-bold">{netAmount.toLocaleString("fr-FR")} FCFA</span>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* MANDATORY: Processing fee payment + proof upload */}
-        {proofRequired && (
-          <div className="bg-card rounded-2xl border-2 border-warning/50 p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle size={16} className="text-warning" />
-              <label className="text-xs font-bold text-warning">⚠️ FRAIS DE TRAITEMENT OBLIGATOIRES</label>
-            </div>
-
-            <div className="bg-warning/10 rounded-xl p-3 mb-3">
-              <p className="text-sm text-foreground font-bold text-center">
-                {processingFee.toLocaleString("fr-FR")} FCFA
-              </p>
-              <p className="text-[10px] text-muted-foreground text-center mt-1">
-                ({processingFeePercent}% de {numAmount.toLocaleString("fr-FR")} FCFA)
-              </p>
-            </div>
-
-            <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
-              Payez <span className="font-bold text-warning">{processingFee.toLocaleString("fr-FR")} FCFA</span> via Mobile Money puis téléchargez la capture d'écran de votre paiement ci-dessous. <span className="font-bold text-destructive">Sans cette preuve, votre retrait ne pourra pas être soumis.</span>
-            </p>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleProofUpload}
-              className="hidden"
-            />
-
-            {proofUrl ? (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 bg-success/10 text-success rounded-xl px-3 py-2.5">
-                  <CheckCircle2 size={16} />
-                  <p className="text-xs font-bold">Preuve téléchargée ✓</p>
+        {/* ========== STEP 1: FEE PAYMENT (if not unlocked) ========== */}
+        {showFeeForm && (
+          <>
+            {/* Pending fee - waiting for admin */}
+            {hasPendingFee && (
+              <div className="bg-card rounded-2xl border-2 border-warning/50 p-5">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="w-16 h-16 rounded-full bg-warning/15 flex items-center justify-center">
+                    <Loader2 size={32} className="text-warning animate-spin" />
+                  </div>
                 </div>
-                <div className="relative rounded-xl overflow-hidden border border-border/30">
-                  <img src={proofUrl} alt="Preuve" className="w-full h-32 object-cover" />
+                <h3 className="text-center text-foreground font-bold text-base mb-2">⏳ En attente de confirmation</h3>
+                <p className="text-center text-xs text-muted-foreground mb-3">
+                  Votre preuve de paiement des frais de traitement a été envoyée. L'administration va vérifier et confirmer votre paiement.
+                </p>
+                <div className="bg-warning/10 rounded-xl p-3 text-center">
+                  <p className="text-sm font-bold text-warning">{feePayment!.fee_amount.toLocaleString("fr-FR")} FCFA</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Frais soumis le {new Date(feePayment!.created_at).toLocaleDateString("fr-FR")}</p>
+                </div>
+                {feePayment!.proof_url && (
+                  <div className="mt-3 rounded-xl overflow-hidden border border-border/30">
+                    <img src={feePayment!.proof_url} alt="Preuve" className="w-full h-32 object-cover" />
+                  </div>
+                )}
+                <div className="mt-4 flex items-center gap-2 bg-primary/10 rounded-xl px-4 py-3">
+                  <Lock size={14} className="text-primary" />
+                  <p className="text-xs text-primary font-semibold">Le formulaire de retrait sera débloqué après confirmation</p>
+                </div>
+              </div>
+            )}
+
+            {/* Rejected fee */}
+            {hasRejectedFee && (
+              <div className="bg-card rounded-2xl border-2 border-destructive/50 p-5">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="w-16 h-16 rounded-full bg-destructive/15 flex items-center justify-center">
+                    <X size={32} className="text-destructive" />
+                  </div>
+                </div>
+                <h3 className="text-center text-foreground font-bold text-base mb-2">❌ Paiement refusé</h3>
+                <p className="text-center text-xs text-muted-foreground mb-2">
+                  Votre preuve de paiement a été refusée par l'administration.
+                </p>
+                {feePayment!.admin_note && (
+                  <div className="bg-destructive/10 rounded-xl p-3 mb-3">
+                    <p className="text-xs text-destructive font-medium">Raison : {feePayment!.admin_note}</p>
+                  </div>
+                )}
+                <p className="text-center text-xs text-muted-foreground">Veuillez soumettre une nouvelle preuve ci-dessous.</p>
+              </div>
+            )}
+
+            {/* Fee upload form (show if no pending payment or if rejected) */}
+            {(!hasPendingFee) && (
+              <div className="bg-card rounded-2xl border-2 border-warning/50 p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <AlertTriangle size={18} className="text-warning" />
+                  <h3 className="text-foreground font-bold text-sm">⚠️ ÉTAPE 1 : Paiement des frais de traitement</h3>
+                </div>
+
+                <div className="bg-warning/10 rounded-xl p-4 mb-4 text-center">
+                  <p className="text-[10px] text-muted-foreground mb-1">Frais de traitement ({processingFeePercent}% de votre capital)</p>
+                  <p className="text-2xl font-bold text-warning">{processingFee.toLocaleString("fr-FR")} FCFA</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Capital : {withdrawableBalance.toLocaleString("fr-FR")} FCFA × {processingFeePercent}%
+                  </p>
+                </div>
+
+                <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+                  Payez <span className="font-bold text-warning">{processingFee.toLocaleString("fr-FR")} FCFA</span> via Mobile Money, puis téléchargez la capture d'écran de votre paiement. <span className="font-bold text-destructive">L'administration confirmera votre paiement avant de débloquer le retrait.</span>
+                </p>
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFeeProofUpload}
+                  className="hidden"
+                />
+
+                {feeProofUrl ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 bg-success/10 text-success rounded-xl px-3 py-2.5">
+                      <CheckCircle2 size={16} />
+                      <p className="text-xs font-bold">Preuve téléchargée ✓</p>
+                    </div>
+                    <div className="relative rounded-xl overflow-hidden border border-border/30">
+                      <img src={feeProofUrl} alt="Preuve" className="w-full h-32 object-cover" />
+                      <button
+                        onClick={() => { setFeeProofUrl(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                        className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <button
+                      onClick={handleSubmitFee}
+                      disabled={submittingFee}
+                      className="w-full gradient-button text-primary-foreground font-bold py-3.5 rounded-xl text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {submittingFee ? (
+                        <><Loader2 size={16} className="animate-spin" />Envoi en cours...</>
+                      ) : (
+                        <><Upload size={16} />Soumettre la preuve de paiement</>
+                      )}
+                    </button>
+                  </div>
+                ) : (
                   <button
-                    onClick={() => { setProofUrl(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
-                    className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="w-full py-4 rounded-xl border-2 border-dashed border-warning/40 bg-warning/5 text-warning font-bold text-xs flex items-center justify-center gap-2 hover:bg-warning/10 transition-all"
                   >
-                    <X size={14} />
+                    {uploading ? (
+                      <><Loader2 size={16} className="animate-spin" />Téléchargement...</>
+                    ) : (
+                      <><Upload size={18} />Télécharger la preuve de paiement</>
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Locked withdrawal form message */}
+            <div className="bg-card rounded-2xl border border-border/30 p-5 opacity-50">
+              <div className="flex items-center justify-center gap-3 py-6">
+                <Lock size={24} className="text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-bold text-muted-foreground">Formulaire de retrait verrouillé</p>
+                  <p className="text-[10px] text-muted-foreground">Payez les frais et attendez la confirmation pour débloquer</p>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
+
+        {/* ========== STEP 2: WITHDRAWAL FORM (only if fee is approved) ========== */}
+        {feeUnlocked && (
+          <>
+            {/* Fee confirmed banner */}
+            <div className="bg-success/10 border border-success/30 rounded-2xl p-4 flex items-center gap-3">
+              <CheckCircle2 size={24} className="text-success flex-shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-success">✅ Frais de traitement confirmés</p>
+                <p className="text-[10px] text-muted-foreground">Vous pouvez maintenant effectuer votre retrait</p>
+              </div>
+            </div>
+
+            {/* Schedule info */}
+            <div className="bg-card rounded-2xl border border-border/30 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock size={14} className="text-primary" />
+                <label className="text-xs font-semibold text-foreground">Horaires de retrait</label>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-muted-foreground">
+                  Heures : <span className="font-semibold text-foreground">{withdrawalHourStart}h00 – {withdrawalHourEnd}h00</span>
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Jours : <span className="font-semibold text-foreground">
+                    {withdrawalDays.length === 7 ? "Lundi à Dimanche" : withdrawalDays.map(d => ["", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"][d]).join(", ")}
+                  </span>
+                </p>
+              </div>
+              {!isWithinSchedule && (
+                <div className="flex items-center gap-2 bg-destructive/10 text-destructive rounded-xl px-3 py-2.5 mt-3">
+                  <AlertTriangle size={14} />
+                  <p className="text-xs font-medium">{scheduleMessage}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Amount */}
+            <div className="bg-card rounded-2xl border border-border/30 p-4">
+              <label className="text-xs text-muted-foreground mb-2 block">Montant du retrait (FCFA)</label>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder={`Min. ${minAmount.toLocaleString()}`}
+                className="w-full bg-secondary/50 text-foreground rounded-xl px-4 py-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-primary"
+              />
+
+              <div className="grid grid-cols-3 gap-2 mt-3">
+                {presetAmounts.map((preset) => (
+                  <button
+                    key={preset}
+                    onClick={() => setAmount(String(preset))}
+                    className={`py-2 rounded-xl text-xs font-bold transition-all ${
+                      amount === String(preset)
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary/60 text-foreground hover:bg-secondary"
+                    }`}
+                  >
+                    {preset.toLocaleString()}
+                  </button>
+                ))}
+              </div>
+
+              {numAmount > 0 && (
+                <div className="mt-3 space-y-1.5 pt-3 border-t border-border/20">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Montant demandé</span>
+                    <span className="text-foreground font-semibold">{numAmount.toLocaleString("fr-FR")} FCFA</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-muted-foreground">Frais ({feePercent}%)</span>
+                    <span className="text-destructive font-semibold">- {feeAmount.toLocaleString("fr-FR")} FCFA</span>
+                  </div>
+                  <div className="flex justify-between text-sm pt-1">
+                    <span className="text-foreground font-bold">Vous recevrez</span>
+                    <span className="text-success font-bold">{netAmount.toLocaleString("fr-FR")} FCFA</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Select wallet */}
+            <div className="bg-card rounded-2xl border border-border/30 p-4">
+              <label className="text-xs text-muted-foreground mb-2 block">Portefeuille de retrait</label>
+              {wallets.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-xs text-muted-foreground mb-3">Aucun portefeuille enregistré</p>
+                  <button onClick={() => navigate("/lier-carte")} className="gradient-button text-primary-foreground text-xs font-semibold px-4 py-2.5 rounded-xl">
+                    Ajouter un portefeuille
                   </button>
                 </div>
-              </div>
-            ) : (
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="w-full py-3 rounded-xl border-2 border-dashed border-warning/40 bg-warning/5 text-warning font-bold text-xs flex items-center justify-center gap-2 hover:bg-warning/10 transition-all"
-              >
-                {uploading ? (
-                  "Téléchargement..."
-                ) : (
-                  <>
-                    <Upload size={16} />
-                    Télécharger la preuve de paiement
-                  </>
-                )}
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Select wallet */}
-        <div className="bg-card rounded-2xl border border-border/30 p-4">
-          <label className="text-xs text-muted-foreground mb-2 block">Portefeuille de retrait</label>
-          {wallets.length === 0 ? (
-            <div className="text-center py-4">
-              <p className="text-xs text-muted-foreground mb-3">Aucun portefeuille enregistré</p>
-              <button onClick={() => navigate("/lier-carte")} className="gradient-button text-primary-foreground text-xs font-semibold px-4 py-2.5 rounded-xl">
-                Ajouter un portefeuille
-              </button>
+              ) : (
+                <select
+                  value={selectedWallet}
+                  onChange={(e) => setSelectedWallet(e.target.value)}
+                  className="w-full bg-secondary/50 text-foreground rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-primary"
+                >
+                  <option value="">-- Choisir --</option>
+                  {wallets.map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.network} — {w.country_code} ****{w.phone.slice(-4)}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
-          ) : (
-            <select
-              value={selectedWallet}
-              onChange={(e) => setSelectedWallet(e.target.value)}
-              className="w-full bg-secondary/50 text-foreground rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="">-- Choisir --</option>
-              {wallets.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.network} — {w.country_code} ****{w.phone.slice(-4)}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
 
-        {/* Rules */}
-        {rules.length > 0 && (
-          <div className="bg-card rounded-2xl border border-border/30 p-4">
-            <label className="text-xs text-muted-foreground mb-2 block">Règles de retrait</label>
-            <div className="space-y-2">
-              {rules.map((rule, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <span className="text-[10px] text-muted-foreground mt-0.5">{i + 1}.</span>
-                  <p className="text-xs text-muted-foreground">{rule}</p>
+            {/* Rules */}
+            {rules.length > 0 && (
+              <div className="bg-card rounded-2xl border border-border/30 p-4">
+                <label className="text-xs text-muted-foreground mb-2 block">Règles de retrait</label>
+                <div className="space-y-2">
+                  {rules.map((rule, i) => (
+                    <div key={i} className="flex items-start gap-2">
+                      <span className="text-[10px] text-muted-foreground mt-0.5">{i + 1}.</span>
+                      <p className="text-xs text-muted-foreground">{rule}</p>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              </div>
+            )}
 
-        {numAmount > withdrawableBalance && (
-          <div className="flex items-center gap-2 bg-destructive/10 text-destructive rounded-xl px-4 py-3">
-            <AlertTriangle size={16} />
-            <p className="text-xs font-medium">Solde retirable insuffisant</p>
-          </div>
-        )}
+            {numAmount > withdrawableBalance && (
+              <div className="flex items-center gap-2 bg-destructive/10 text-destructive rounded-xl px-4 py-3">
+                <AlertTriangle size={16} />
+                <p className="text-xs font-medium">Solde retirable insuffisant</p>
+              </div>
+            )}
 
-        {/* Blocked message when no proof */}
-        {proofRequired && !proofUrl && (
-          <div className="flex items-center gap-2 bg-destructive/10 text-destructive rounded-xl px-4 py-3">
-            <ShieldCheck size={16} />
-            <p className="text-xs font-bold">🔒 Téléchargez la preuve de paiement des frais pour débloquer le retrait</p>
-          </div>
+            <button
+              onClick={handleSubmit}
+              disabled={!canSubmit}
+              className="w-full gradient-button text-primary-foreground font-bold py-4 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <ArrowUpRight size={16} />
+              {submitting ? "Envoi en cours..." : !isWithinSchedule ? "Retraits fermés" : "Lancer le retrait"}
+            </button>
+          </>
         )}
-
-        <button
-          onClick={handleSubmit}
-          disabled={!canSubmit}
-          className="w-full gradient-button text-primary-foreground font-bold py-4 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-        >
-          <ArrowUpRight size={16} />
-          {submitting ? "Envoi en cours..." : !isWithinSchedule ? "Retraits fermés" : !proofUrl && proofRequired ? "🔒 Paiement des frais requis" : "Lancer le retrait"}
-        </button>
 
         <PremiumModal
           triggerKey="withdrawal_sent"
