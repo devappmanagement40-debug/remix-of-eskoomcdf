@@ -1236,6 +1236,42 @@ export type Database = {
           },
         ]
       }
+      withdrawal_fee_payments: {
+        Row: {
+          admin_note: string | null
+          capital_amount: number
+          created_at: string
+          fee_amount: number
+          id: string
+          proof_url: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string | null
+          capital_amount?: number
+          created_at?: string
+          fee_amount?: number
+          id?: string
+          proof_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_note?: string | null
+          capital_amount?: number
+          created_at?: string
+          fee_amount?: number
+          id?: string
+          proof_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       withdrawal_methods: {
         Row: {
           api_provider: string | null
