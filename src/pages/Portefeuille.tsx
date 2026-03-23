@@ -148,16 +148,20 @@ const Portefeuille = () => {
         <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Statistiques</h3>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { label: "Revenu d'aujourd'hui", value: fmt(todayEarnings), icon: TrendingUp },
-            { label: "Revenu total", value: fmt(profile.earnings_balance), icon: TrendingUp },
-            { label: "Recharge totale", value: fmt(totalDeposits), icon: ArrowDownLeft },
-            { label: "Total retraits", value: fmt(totalWithdrawals), icon: ArrowUpRight },
+            { label: "Revenu d'aujourd'hui", value: fmt(todayEarnings), bg: bgTodayEarnings },
+            { label: "Revenu total", value: fmt(profile.earnings_balance), bg: bgTotalRevenue },
+            { label: "Recharge totale", value: fmt(totalDeposits), bg: bgTotalDeposit },
+            { label: "Total retraits", value: fmt(totalWithdrawals), bg: bgTotalWithdraw },
           ].map((stat) => (
-            <div key={stat.label} className="bg-card rounded-2xl border border-border/30 p-4 text-center">
-              <p className="text-lg font-bold text-foreground">
-                {stat.value} <span className="text-[10px] font-normal text-muted-foreground">XAF</span>
-              </p>
-              <p className="text-[10px] text-muted-foreground mt-1">{stat.label}</p>
+            <div key={stat.label} className="relative rounded-2xl overflow-hidden min-h-[100px]">
+              <img src={stat.bg} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <div className="absolute inset-0 bg-black/55" />
+              <div className="relative z-10 p-4 text-center flex flex-col justify-center h-full">
+                <p className="text-lg font-bold text-white">
+                  {stat.value} <span className="text-[10px] font-normal text-white/70">XAF</span>
+                </p>
+                <p className="text-[10px] text-white/70 mt-1">{stat.label}</p>
+              </div>
             </div>
           ))}
         </div>
