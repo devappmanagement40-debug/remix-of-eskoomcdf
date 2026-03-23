@@ -143,8 +143,8 @@ const Retrait = () => {
       showError("Limite atteinte", "Vous avez atteint le nombre maximum de retraits autorises aujourd'hui.");
       return;
     }
-    if (numAmount < minAmount) { showError("Erreur", `Montant minimum : ${minAmount} FCFA`); return; }
-    if (numAmount > maxAmount) { showError("Erreur", `Montant maximum : ${maxAmount.toLocaleString()} FCFA`); return; }
+    if (numAmount < minAmount) { showError("Erreur", `Montant minimum : ${minAmount} XAF`); return; }
+    if (numAmount > maxAmount) { showError("Erreur", `Montant maximum : ${maxAmount.toLocaleString()} XAF`); return; }
     if (numAmount > withdrawableBalance) { showError("Erreur", "Solde retirable insuffisant"); return; }
 
     setSubmitting(true);
@@ -198,7 +198,7 @@ const Retrait = () => {
         {/* Balance */}
         <div className="bg-card rounded-2xl border border-border/30 p-5 text-center">
           <p className="text-xs text-muted-foreground mb-1">Solde retirable</p>
-          <p className="text-3xl font-bold text-foreground">{withdrawableBalance.toLocaleString("fr-FR")} <span className="text-sm font-normal text-muted-foreground">FCFA</span></p>
+          <p className="text-3xl font-bold text-foreground">{withdrawableBalance.toLocaleString("fr-FR")} <span className="text-sm font-normal text-muted-foreground">XAF</span></p>
           {depositNotWithdrawable && (
             <div className="flex justify-center gap-3 mt-3">
               <span className="text-[10px] bg-success/10 text-success px-2.5 py-1 rounded-full">Gains: {earningsBalance.toLocaleString("fr-FR")} F</span>
@@ -233,7 +233,7 @@ const Retrait = () => {
 
         {/* Amount */}
         <div className="bg-card rounded-2xl border border-border/30 p-4">
-          <label className="text-xs text-muted-foreground mb-2 block">Montant du retrait (FCFA)</label>
+          <label className="text-xs text-muted-foreground mb-2 block">Montant du retrait (XAF)</label>
           <input
             type="number"
             value={amount}
@@ -262,15 +262,15 @@ const Retrait = () => {
             <div className="mt-3 space-y-1.5 pt-3 border-t border-border/20">
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">Montant demandé</span>
-                <span className="text-foreground font-semibold">{numAmount.toLocaleString("fr-FR")} FCFA</span>
+                <span className="text-foreground font-semibold">{numAmount.toLocaleString("fr-FR")} XAF</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">Frais ({feePercent}%)</span>
-                <span className="text-destructive font-semibold">- {feeAmount.toLocaleString("fr-FR")} FCFA</span>
+                <span className="text-destructive font-semibold">- {feeAmount.toLocaleString("fr-FR")} XAF</span>
               </div>
               <div className="flex justify-between text-sm pt-1">
                 <span className="text-foreground font-bold">Vous recevrez</span>
-                <span className="text-success font-bold">{netAmount.toLocaleString("fr-FR")} FCFA</span>
+                <span className="text-success font-bold">{netAmount.toLocaleString("fr-FR")} XAF</span>
               </div>
             </div>
           )}
