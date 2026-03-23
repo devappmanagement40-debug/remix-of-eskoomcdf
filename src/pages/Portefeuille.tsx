@@ -8,6 +8,10 @@ import PageHeader from "@/components/PageHeader";
 import bgDepot from "@/assets/bg-depot.png";
 import bgGains from "@/assets/bg-gains.png";
 import bgParrainage from "@/assets/bg-parrainage.png";
+import bgTodayEarnings from "@/assets/bg-today-earnings.png";
+import bgTotalRevenue from "@/assets/bg-total-revenue.png";
+import bgTotalDeposit from "@/assets/bg-total-deposit.png";
+import bgTotalWithdraw from "@/assets/bg-total-withdraw.png";
 
 const menuItems = [
   { label: "Historique des retraits", path: "/historique-retraits", hasChevron: true },
