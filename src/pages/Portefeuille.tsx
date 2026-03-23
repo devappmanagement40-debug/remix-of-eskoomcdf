@@ -145,7 +145,7 @@ const Portefeuille = () => {
         </div>
 
         {/* Statistics */}
-        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Statistiques</h3>
+        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Actifs</h3>
         <div className="grid grid-cols-2 gap-3">
           {[
             { label: "Revenu d'aujourd'hui", value: fmt(todayEarnings), bg: bgTodayEarnings },
