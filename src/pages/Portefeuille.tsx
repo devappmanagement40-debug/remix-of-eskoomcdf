@@ -5,6 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeProfile } from "@/hooks/useRealtimeProfile";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
+import bgDepot from "@/assets/bg-depot.png";
+import bgGains from "@/assets/bg-gains.png";
+import bgParrainage from "@/assets/bg-parrainage.png";
 
 const menuItems = [
   { label: "Historique des retraits", path: "/historique-retraits", hasChevron: true },
@@ -68,20 +71,32 @@ const Portefeuille = () => {
 
           {/* Split balances */}
           <div className="grid grid-cols-3 gap-2 mt-5">
-            <div className="bg-secondary/40 rounded-xl p-3 text-center">
-              <p className="text-[10px] text-muted-foreground mb-0.5">Depot</p>
-              <p className="text-xs font-bold text-foreground">{profile.deposit_balance.toLocaleString("fr-FR")} F</p>
-              {depositNotWithdrawable && <p className="text-[8px] text-destructive mt-0.5">Non retirable</p>}
+            <div className="relative rounded-xl overflow-hidden min-h-[100px]">
+              <img src={bgDepot} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <div className="absolute inset-0 bg-black/50" />
+              <div className="relative z-10 p-3 text-center flex flex-col justify-center h-full">
+                <p className="text-[10px] text-white/80 mb-0.5">Depot</p>
+                <p className="text-xs font-bold text-white">{profile.deposit_balance.toLocaleString("fr-FR")} F</p>
+                {depositNotWithdrawable && <p className="text-[8px] text-red-400 mt-0.5">Non retirable</p>}
+              </div>
             </div>
-            <div className="bg-secondary/40 rounded-xl p-3 text-center">
-              <p className="text-[10px] text-muted-foreground mb-0.5">Gains</p>
-              <p className="text-xs font-bold text-success">{profile.earnings_balance.toLocaleString("fr-FR")} F</p>
-              <p className="text-[8px] text-success mt-0.5">Retirable</p>
+            <div className="relative rounded-xl overflow-hidden min-h-[100px]">
+              <img src={bgGains} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <div className="absolute inset-0 bg-black/50" />
+              <div className="relative z-10 p-3 text-center flex flex-col justify-center h-full">
+                <p className="text-[10px] text-white/80 mb-0.5">Gains</p>
+                <p className="text-xs font-bold text-emerald-300">{profile.earnings_balance.toLocaleString("fr-FR")} F</p>
+                <p className="text-[8px] text-emerald-400 mt-0.5">Retirable</p>
+              </div>
             </div>
-            <div className="bg-secondary/40 rounded-xl p-3 text-center">
-              <p className="text-[10px] text-muted-foreground mb-0.5">Parrainage</p>
-              <p className="text-xs font-bold text-primary">{profile.referral_balance.toLocaleString("fr-FR")} F</p>
-              <p className="text-[8px] text-primary mt-0.5">Retirable</p>
+            <div className="relative rounded-xl overflow-hidden min-h-[100px]">
+              <img src={bgParrainage} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              <div className="absolute inset-0 bg-black/50" />
+              <div className="relative z-10 p-3 text-center flex flex-col justify-center h-full">
+                <p className="text-[10px] text-white/80 mb-0.5">Parrainage</p>
+                <p className="text-xs font-bold text-purple-300">{profile.referral_balance.toLocaleString("fr-FR")} F</p>
+                <p className="text-[8px] text-purple-400 mt-0.5">Retirable</p>
+              </div>
             </div>
           </div>
 
