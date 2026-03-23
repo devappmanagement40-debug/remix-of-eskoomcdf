@@ -5,6 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeProfile } from "@/hooks/useRealtimeProfile";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
+import bgDepot from "@/assets/bg-depot.png";
+import bgGains from "@/assets/bg-gains.png";
+import bgParrainage from "@/assets/bg-parrainage.png";
 
 const menuItems = [
   { label: "Historique des retraits", path: "/historique-retraits", hasChevron: true },
