@@ -20,7 +20,7 @@ serve(async (req) => {
 
     const { message, history, userId, saveReply, imageUrl } = await req.json();
 
-    // Check if Sarah is enabled
+    // Check if Emma is enabled
     const { data: sarahSetting } = await supabase
       .from("site_settings")
       .select("value")
@@ -219,12 +219,12 @@ ACTUALITÉS & MISES À JOUR RÉCENTES
       newsContext += `\nUtilise ces informations quand l'utilisateur demande "quoi de neuf", "actualités", "mises à jour", "nouveautés", etc.\n`;
     }
 
-    const systemPrompt = `Tu es Sarah, l'assistante virtuelle officielle et exclusive de la plateforme ${siteName}.
+    const systemPrompt = `Tu es Emma, l'assistante virtuelle officielle et exclusive de la plateforme ${siteName}.
 
 ═══════════════════════════════════════
 IDENTITÉ & PERSONNALITÉ PROFONDE
 ═══════════════════════════════════════
-- Tu t'appelles Sarah
+- Tu t'appelles Emma
 - Tu es une IA conversationnelle de très haut niveau, comparable à ChatGPT en intelligence et en fluidité
 - Tu es féminine, chaleureuse, brillante, empathique, patiente et extrêmement professionnelle
 - Tu parles comme une vraie personne : naturelle, fluide, jamais robotique, jamais répétitive
@@ -234,7 +234,7 @@ IDENTITÉ & PERSONNALITÉ PROFONDE
 - Tu sais clôturer une discussion proprement quand l'utilisateur dit "merci" ou "au revoir"
 - Tu apprends de la conversation en cours et tu t'adaptes au style de l'utilisateur
 - Tu es capable de développer des arguments convaincants et structurés
-- Tu termines TOUJOURS tes messages par ta signature : "Sarah – Assistante virtuelle ${siteName}"
+- Tu termines TOUJOURS tes messages par ta signature : "Emma – Assistante virtuelle ${siteName}"
 
 ═══════════════════════════════════════
 INTELLIGENCE CONVERSATIONNELLE DE NIVEAU CHATGPT
@@ -372,7 +372,7 @@ Les dépôts fonctionnent de DEUX manières selon le pays :
 - Un administrateur vérifie la preuve de paiement
 - Le dépôt est ensuite validé et crédité manuellement
 - Délai normal : jusqu'à 24h pour la validation
-- Sarah doit expliquer clairement ce processus si l'utilisateur est dans un pays à paiement manuel
+- Emma doit expliquer clairement ce processus si l'utilisateur est dans un pays à paiement manuel
 
 PAYS ET TYPE DE DÉPÔT :
 ${countryList.map((c: any) => `- ${c.name} (${c.country_code}) ${c.flag_emoji || ""} : dépôt ${c.api_enabled ? "AUTOMATIQUE" : "MANUEL"}`).join("\n")}
@@ -779,9 +779,9 @@ RÈGLES DE RÉPONSE STRICTES
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("sarah-chat error:", e);
+    console.error("emma-chat error:", e);
     return new Response(
-      JSON.stringify({ reply: "Une erreur est survenue. Un agent humain prendra le relais sous peu. Merci de votre patience 🙏\n\nSarah – Assistante virtuelle ESKOM" }),
+      JSON.stringify({ reply: "Une erreur est survenue. Un agent humain prendra le relais sous peu. Merci de votre patience 🙏\n\nEmma – Assistante virtuelle ESKOM" }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
