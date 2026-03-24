@@ -1737,7 +1737,7 @@ const SupportTab = ({ adminId }: { adminId: string }) => {
                 {m.sender === "support" && (
                   <div className="flex items-center gap-1 mb-0.5">
                     {m.is_ai ? <Bot size={10} className="text-primary" /> : <Shield size={10} className="text-primary" />}
-                    <span className="text-[9px] font-semibold text-primary">{m.is_ai ? "Sarah IA" : "Admin"}</span>
+                    <span className="text-[9px] font-semibold text-primary">{m.is_ai ? "Emma IA" : "Admin"}</span>
                   </div>
                 )}
                 <p className="text-xs text-foreground whitespace-pre-line">{m.message}</p>
