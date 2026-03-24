@@ -20,7 +20,7 @@ serve(async (req) => {
 
     const { message, history, userId, saveReply, imageUrl } = await req.json();
 
-    // Check if Sarah is enabled
+    // Check if Emma is enabled
     const { data: sarahSetting } = await supabase
       .from("site_settings")
       .select("value")
