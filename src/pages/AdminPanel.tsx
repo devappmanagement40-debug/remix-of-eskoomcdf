@@ -1828,7 +1828,6 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
 
   return (
     <div className="space-y-4">
-      {/* Toggle principal */}
       <div className="bg-card rounded-xl border border-secondary p-5">
         <div className="flex items-center gap-4">
           <div className={`w-14 h-14 rounded-full flex items-center justify-center ${isEnabled ? "bg-success/20" : "bg-secondary"}`}>
@@ -1840,18 +1839,20 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
               {isEnabled ? "Emma répond aux messages des utilisateurs" : "Le support est géré manuellement"}
             </p>
           </div>
-...
-        <button
-          className={`
-            ...
-          `}
-        >
-          <Power size={16} />
-          {isEnabled ? "Désactiver Emma" : "Activer Emma"}
-        </button>
+          <button
+            onClick={toggle}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-colors ${
+              isEnabled
+                ? "bg-secondary text-foreground hover:bg-secondary/80"
+                : "bg-primary text-primary-foreground hover:opacity-90"
+            }`}
+          >
+            <Power size={16} />
+            {isEnabled ? "Désactiver Emma" : "Activer Emma"}
+          </button>
+        </div>
       </div>
 
-      {/* Configuration IA */}
       <div className="bg-card rounded-xl border border-secondary p-4">
         <h4 className="text-xs font-bold text-muted-foreground mb-3">⚙️ CONFIGURATION IA</h4>
         <p className="text-xs text-muted-foreground mb-4">Choisissez le moteur d'intelligence artificielle utilisé par Emma :</p>
@@ -1902,7 +1903,6 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
         </div>
       </div>
 
-      {/* Statut */}
       <div className="bg-card rounded-xl border border-secondary p-4">
         <h4 className="text-xs font-bold text-muted-foreground mb-3">STATUT</h4>
         <div className="space-y-3">
@@ -1923,9 +1923,8 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
         </div>
       </div>
 
-      {/* Capacités */}
       <div className="bg-card rounded-xl border border-secondary p-4">
-        <h4 className="text-xs font-bold text-muted-foreground mb-3">CAPACITÉS DE SARAH</h4>
+        <h4 className="text-xs font-bold text-muted-foreground mb-3">CAPACITÉS D'EMMA</h4>
         <div className="space-y-2">
           {[
             "Répond aux questions sur les produits",
@@ -1943,10 +1942,9 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
         </div>
       </div>
 
-      {/* Info */}
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
         <p className="text-xs text-muted-foreground">
-          💡 Quand Sarah est activée, elle utilise automatiquement les paramètres du site (frais, seuils VIP, produits) pour répondre aux utilisateurs dans le chat support.
+          💡 Quand Emma est activée, elle utilise automatiquement les paramètres du site (frais, seuils VIP, produits) pour répondre aux utilisateurs dans le chat support.
         </p>
       </div>
     </div>
@@ -2597,7 +2595,7 @@ const OfficialInfoTab = ({ settings, reload, showSuccess }: { settings: SiteSett
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
         <h3 className="text-sm font-bold text-foreground mb-1">📋 Gestion des Informations Officielles</h3>
         <p className="text-xs text-muted-foreground">
-          Ces informations sont utilisées par Sarah IA pour répondre aux questions des utilisateurs. Mettez-les à jour ici, elles seront prises en compte immédiatement.
+          Ces informations sont utilisées par Emma IA pour répondre aux questions des utilisateurs. Mettez-les à jour ici, elles seront prises en compte immédiatement.
         </p>
       </div>
 
@@ -2674,7 +2672,7 @@ const OfficialDocsTab = ({ showSuccess, showError }: { showSuccess: (t: string, 
     });
 
     setTitle(""); setDescription(""); setDocType("image");
-    showSuccess("Document ajouté", "Le document est maintenant disponible pour Sarah IA ✅");
+    showSuccess("Document ajouté", "Le document est maintenant disponible pour Emma IA ✅");
     loadDocs();
     setUploading(false);
   };
