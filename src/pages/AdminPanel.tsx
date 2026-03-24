@@ -1798,7 +1798,7 @@ const SupportTab = ({ adminId }: { adminId: string }) => {
   );
 };
 
-// ==================== SARAH IA ====================
+// ==================== EMMA IA ====================
 const SarahTab = ({ settings, reload, showSuccess }: any) => {
   const sarahSetting = settings.find((s: SiteSetting) => s.key === "sarah_enabled");
   const isEnabled = sarahSetting?.value === "true";
@@ -1809,7 +1809,7 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
     const newVal = isEnabled ? "false" : "true";
     await supabase.from("site_settings").update({ value: newVal }).eq("key", "sarah_enabled");
     showSuccess(
-      newVal === "true" ? "Sarah activée ✅" : "Sarah désactivée",
+      newVal === "true" ? "Emma activée ✅" : "Emma désactivée",
       newVal === "true" ? "L'IA prend le contrôle du chat" : "Le support humain est actif"
     );
     reload();
@@ -1822,7 +1822,7 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
     } else {
       await supabase.from("site_settings").insert({ key: "sarah_ai_provider", value: provider, category: "sarah" });
     }
-    showSuccess("Moteur IA mis à jour", provider === "lovable" ? "Sarah utilise maintenant Lovable AI" : "Sarah utilise maintenant Google Gemini");
+    showSuccess("Moteur IA mis à jour", provider === "lovable" ? "Emma utilise maintenant Lovable AI" : "Emma utilise maintenant Google Gemini");
     reload();
   };
 
@@ -1835,29 +1835,26 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
             <Bot size={28} className={isEnabled ? "text-success" : "text-muted-foreground"} />
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-bold text-foreground">Assistante Sarah</h3>
+            <h3 className="text-sm font-bold text-foreground">Assistante Emma</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {isEnabled ? "Sarah répond aux messages des utilisateurs" : "Le support est géré manuellement"}
+              {isEnabled ? "Emma répond aux messages des utilisateurs" : "Le support est géré manuellement"}
             </p>
           </div>
-        </div>
+...
         <button
-          onClick={toggle}
-          className={`w-full mt-4 flex items-center justify-center gap-2 font-bold py-3 rounded-xl text-sm transition-all ${
-            isEnabled
-              ? "bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20"
-              : "gradient-button text-primary-foreground"
-          }`}
+          className={`
+            ...
+          `}
         >
           <Power size={16} />
-          {isEnabled ? "Désactiver Sarah" : "Activer Sarah"}
+          {isEnabled ? "Désactiver Emma" : "Activer Emma"}
         </button>
       </div>
 
       {/* Configuration IA */}
       <div className="bg-card rounded-xl border border-secondary p-4">
         <h4 className="text-xs font-bold text-muted-foreground mb-3">⚙️ CONFIGURATION IA</h4>
-        <p className="text-xs text-muted-foreground mb-4">Choisissez le moteur d'intelligence artificielle utilisé par Sarah :</p>
+        <p className="text-xs text-muted-foreground mb-4">Choisissez le moteur d'intelligence artificielle utilisé par Emma :</p>
         <div className="space-y-3">
           <button
             onClick={() => changeProvider("lovable")}
