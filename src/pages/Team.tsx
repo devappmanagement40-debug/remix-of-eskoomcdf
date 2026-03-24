@@ -220,7 +220,7 @@ const Team = () => {
                   <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-2">
                     <span className="flex items-center gap-1"><Calendar size={12} /> {formatDate(member.created_at)}</span>
                     <span className="flex items-center gap-1 font-semibold text-primary">
-                      <DollarSign size={12} /> Bonus: {member.bonusEarned.toLocaleString()} XAF
+                      <DollarSign size={12} /> Bonus: {member.bonusEarned.toLocaleString()} FCFA
                     </span>
                   </div>
 
@@ -268,7 +268,7 @@ const Team = () => {
               <DollarSign size={28} className="text-amber-400" />
             </div>
             <span className="text-xs text-muted-foreground mb-1">Revenu Total</span>
-            <span className="text-lg font-bold text-primary">{totalRevenue.toLocaleString()} <span className="text-xs font-normal text-muted-foreground">XAF</span></span>
+            <span className="text-lg font-bold text-primary">{totalRevenue.toLocaleString()} <span className="text-xs font-normal text-muted-foreground">FCFA</span></span>
           </div>
           <div className="bg-card border border-border rounded-xl p-5 flex flex-col items-center">
             <div className="w-14 h-14 rounded-full bg-cyan-500/20 flex items-center justify-center mb-3">
@@ -301,7 +301,7 @@ const Team = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Revenu</span>
-                  <span className="text-sm text-foreground">{level.revenue.toLocaleString()} XAF</span>
+                  <span className="text-sm text-foreground">{level.revenue.toLocaleString()} FCFA</span>
                 </div>
               </div>
             </div>

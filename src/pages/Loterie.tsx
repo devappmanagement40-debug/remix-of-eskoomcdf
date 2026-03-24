@@ -113,7 +113,7 @@ const Loterie = () => {
           showPopup({
             type: "success",
             title: "Félicitations !",
-            message: `Vous avez gagné ${Number(prize.value).toLocaleString("fr-FR")} XAF ! Le montant a été crédité sur votre compte.`,
+            message: `Vous avez gagné ${Number(prize.value).toLocaleString("fr-FR")} FCFA ! Le montant a été crédité sur votre compte.`,
           });
         } else {
           showPopup({
@@ -264,7 +264,7 @@ const Loterie = () => {
         {/* Stats */}
         <div className="bg-card rounded-xl border border-secondary p-4 flex">
           <div className="flex-1 text-center border-r border-secondary">
-            <p className="text-xl font-bold text-foreground">{totalWon.toLocaleString("fr-FR")} <span className="text-sm font-normal text-muted-foreground">XAF</span></p>
+            <p className="text-xl font-bold text-foreground">{totalWon.toLocaleString("fr-FR")} <span className="text-sm font-normal text-muted-foreground">FCFA</span></p>
             <p className="text-xs text-muted-foreground mt-1">Montant gagné</p>
           </div>
           <div className="flex-1 text-center border-r border-secondary">
@@ -332,7 +332,7 @@ const Loterie = () => {
                     </span>
                     <span className="font-bold text-foreground">{s.masked_phone}</span>
                     <span className="text-right font-bold text-warning">
-                      {s.prize_type === "vip" ? `VIP${s.vip_level || ""}` : `${Number(s.prize_value).toLocaleString("fr-FR")} XAF`}
+                      {s.prize_type === "vip" ? `VIP${s.vip_level || ""}` : `${Number(s.prize_value).toLocaleString("fr-FR")} FCFA`}
                     </span>
                   </div>
                 ))}

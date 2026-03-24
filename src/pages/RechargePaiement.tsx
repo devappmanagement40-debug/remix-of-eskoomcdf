@@ -205,7 +205,7 @@ const RechargePaiement = () => {
         {/* Amount Card */}
         <div className="bg-card rounded-2xl border border-border/30 p-5 text-center">
           <p className="text-xs text-muted-foreground mb-1">Montant a payer</p>
-          <p className="text-3xl font-bold text-foreground">{amount.toLocaleString()}<span className="text-sm font-normal text-muted-foreground ml-1">XAF</span></p>
+          <p className="text-3xl font-bold text-foreground">{amount.toLocaleString()}<span className="text-sm font-normal text-muted-foreground ml-1">FCFA</span></p>
           <p className="text-xs text-muted-foreground mt-2">via {method.name}</p>
           {isApi && <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold mt-1 inline-block">⚡ Paiement automatique</span>}
         </div>
@@ -255,7 +255,7 @@ const RechargePaiement = () => {
                 className="w-full gradient-button text-primary-foreground font-bold py-3.5 rounded-xl text-sm flex items-center justify-center gap-2"
               >
                 <Zap size={16} />
-                Payer {amount.toLocaleString()} XAF
+                Payer {amount.toLocaleString()} FCFA
               </button>
             )}
 
@@ -337,7 +337,7 @@ const RechargePaiement = () => {
             <div className="bg-secondary/40 rounded-xl px-4 py-3 flex items-center justify-between">
               <div>
                 <p className="text-[10px] text-muted-foreground">Montant</p>
-                <p className="text-sm font-semibold text-foreground">{amount.toLocaleString()} XAF</p>
+                <p className="text-sm font-semibold text-foreground">{amount.toLocaleString()} FCFA</p>
               </div>
               <button onClick={() => copyToClipboard(String(amount), "Montant")} className="p-2 rounded-lg bg-secondary hover:bg-secondary/80">
                 <Copy size={14} className="text-primary" />
