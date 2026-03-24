@@ -2695,7 +2695,7 @@ const OfficialDocsTab = ({ showSuccess, showError }: { showSuccess: (t: string, 
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
         <h3 className="text-sm font-bold text-foreground mb-1">📄 Documents Officiels & Preuves</h3>
         <p className="text-xs text-muted-foreground">
-          Ajoutez vos certificats, documents légaux et images de preuve. Sarah les utilisera automatiquement pour rassurer les utilisateurs.
+          Ajoutez vos certificats, documents légaux et images de preuve. Emma les utilisera automatiquement pour rassurer les utilisateurs.
         </p>
       </div>
 
