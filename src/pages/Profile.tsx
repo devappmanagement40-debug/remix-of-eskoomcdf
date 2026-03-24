@@ -138,7 +138,7 @@ const Profile = () => {
           {loading ? (
             <div className="h-8 w-32 bg-secondary/50 rounded animate-pulse" />
           ) : (
-            <p className="text-2xl font-bold text-primary">{profile.balance.toLocaleString('fr-FR')} XAF</p>
+            <p className="text-2xl font-bold text-primary">{profile.balance.toLocaleString('fr-FR')} FCFA</p>
           )}
         </div>
 
@@ -168,7 +168,7 @@ const Profile = () => {
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-foreground truncate">{up.products?.name || "Produit"}</p>
-                    <p className="text-[10px] text-muted-foreground">{up.products?.price?.toLocaleString('fr-FR')} XAF</p>
+                    <p className="text-[10px] text-muted-foreground">{up.products?.price?.toLocaleString('fr-FR')} FCFA</p>
                   </div>
                   <span className="text-[10px] font-medium text-success">Actif</span>
                 </div>

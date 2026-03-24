@@ -137,7 +137,7 @@ const PointsCadeaux = () => {
         created_at: new Date().toISOString(),
       }, ...prev]);
 
-      showSuccess("Conversion réussie ✅", `${reward.points_required} ESK convertis en ${reward.money_value.toLocaleString("fr-FR")} XAF. Le montant a été crédité sur votre compte.`);
+      showSuccess("Conversion réussie ✅", `${reward.points_required} ESK convertis en ${reward.money_value.toLocaleString("fr-FR")} FCFA. Le montant a été crédité sur votre compte.`);
     } finally {
       setExchanging(null);
     }
@@ -227,7 +227,7 @@ const PointsCadeaux = () => {
                     )}
                     <div>
                       <p className="text-sm font-medium text-foreground">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">{item.points_required} ESK → <span className="text-success font-semibold">{item.money_value.toLocaleString("fr-FR")} XAF</span></p>
+                      <p className="text-xs text-muted-foreground">{item.points_required} ESK → <span className="text-success font-semibold">{item.money_value.toLocaleString("fr-FR")} FCFA</span></p>
                     </div>
                   </div>
                   <button
