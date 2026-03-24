@@ -78,7 +78,7 @@ const tabs = [
   { key: "links", icon: Link2, label: "Liens" },
   { key: "popups", icon: Bell, label: "Popups" },
   { key: "vip", icon: TrendingUp, label: "Niveaux" },
-  { key: "sarah", icon: Bot, label: "Sarah IA" },
+  { key: "sarah", icon: Bot, label: "Emma IA" },
   { key: "officialdocs", icon: FileText, label: "Docs Off." },
   { key: "officialinfo", icon: Globe, label: "Infos Off." },
   { key: "support", icon: MessageSquare, label: "Support" },
