@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Send, Image, Paperclip, Smile, Check, CheckCheck, MoreVertical, Phone, Video, Bot } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import sarahAvatar from "@/assets/sarah-avatar.jpg";
+import emmaAvatar from "@/assets/emma-avatar.jpg";
 
 /** Renders text with auto-linked URLs */
 const LinkedText = ({ text }: { text: string }) => {
@@ -54,7 +54,7 @@ const ServiceChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [sarahEnabled, setSarahEnabled] = useState(false);
+  const [emmaEnabled, setEmmaEnabled] = useState(false);
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -70,14 +70,14 @@ const ServiceChat = () => {
     if (!user) { navigate("/connexion"); return; }
     setUserId(user.id);
 
-    // Check Sarah status
+    // Check Emma status
     const { data: setting } = await supabase
       .from("site_settings")
       .select("value")
       .eq("key", "sarah_enabled")
       .single();
     const enabled = setting?.value === "true";
-    setSarahEnabled(enabled);
+    setEmmaEnabled(enabled);
 
     // Load existing messages
     const { data: existingMsgs } = await supabase
@@ -99,7 +99,7 @@ const ServiceChat = () => {
     } else {
       // First visit greeting
       const greetingText = enabled
-        ? "Bonjour ! 👋 Je suis Sarah, votre assistante virtuelle ESKOM. Comment puis-je vous aider aujourd'hui ?\n\nSarah – Assistante virtuelle ESKOM"
+        ? "Bonjour ! 👋 Je suis Emma, votre assistante virtuelle ESKOM. Comment puis-je vous aider aujourd'hui ?\n\nEmma – Assistante virtuelle ESKOM"
         : "Bonjour ! Bienvenue sur le support ESKOM. Comment pouvons-nous vous aider aujourd'hui ?";
 
       await supabase.from("chat_messages").insert({
@@ -194,7 +194,7 @@ const ServiceChat = () => {
       setMessages((prev) => [...prev, newMsg]);
     }
 
-    if (sarahEnabled) {
+    if (emmaEnabled) {
       try {
         const history = messages.slice(-10).map((m) => ({ sender: m.sender, text: m.text }));
         const { data } = await supabase.functions.invoke("sarah-chat", {
@@ -221,12 +221,12 @@ const ServiceChat = () => {
         ]);
       } catch {
         setIsTyping(false);
-        const errText = "Une erreur est survenue. Un agent humain prendra le relais bientôt. 🙏\n\nSarah – Assistante virtuelle ESKOM";
+        const errText = "Une erreur est survenue. Un agent humain prendra le relais bientôt. 🙏\n\nEmma – Assistante virtuelle ESKOM";
         await supabase.from("chat_messages").insert({ user_id: userId, sender: "support", message: errText, is_ai: true });
       }
     } else {
       setIsTyping(false);
-      // No auto-reply when Sarah is off - admin will reply from the panel
+      // No auto-reply when Emma is off - admin will reply from the panel
     }
   };
 
@@ -267,8 +267,8 @@ const ServiceChat = () => {
       }]);
     }
 
-    // Send image to Sarah for analysis if enabled
-    if (sarahEnabled) {
+    // Send image to Emma for analysis if enabled
+    if (emmaEnabled) {
       try {
         const history = messages.slice(-10).map((m) => ({ sender: m.sender, text: m.text }));
         const { data } = await supabase.functions.invoke("sarah-chat", {
@@ -314,8 +314,8 @@ const ServiceChat = () => {
           <ArrowLeft size={22} className="text-foreground" />
         </button>
         <div className="relative">
-          {sarahEnabled ? (
-            <img src={sarahAvatar} alt="Sarah" className="w-10 h-10 rounded-full object-cover border-2 border-primary" />
+          {emmaEnabled ? (
+            <img src={emmaAvatar} alt="Emma" className="w-10 h-10 rounded-full object-cover border-2 border-primary" />
           ) : (
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-bold text-sm">
               ES
@@ -325,15 +325,15 @@ const ServiceChat = () => {
         </div>
         <div className="flex-1 min-w-0">
           <h1 className="text-sm font-bold text-foreground truncate flex items-center gap-1.5">
-            {sarahEnabled ? "Sarah" : "ESKOM Support"}
-            {sarahEnabled && (
+            {emmaEnabled ? "Emma" : "ESKOM Support"}
+            {emmaEnabled && (
               <span className="inline-flex items-center gap-0.5 text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-semibold">
                 <Bot size={10} /> IA
               </span>
             )}
           </h1>
           <p className="text-xs text-[#25D366] font-medium">
-            {sarahEnabled ? "Assistante IA • En ligne" : "En ligne"}
+            {emmaEnabled ? "Assistante IA • En ligne" : "En ligne"}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -362,8 +362,8 @@ const ServiceChat = () => {
 
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
-            {msg.sender === "support" && sarahEnabled && (
-              <img src={sarahAvatar} alt="Sarah" className="w-7 h-7 rounded-full object-cover mr-1.5 mt-1 flex-shrink-0" />
+            {msg.sender === "support" && emmaEnabled && (
+              <img src={emmaAvatar} alt="Emma" className="w-7 h-7 rounded-full object-cover mr-1.5 mt-1 flex-shrink-0" />
             )}
             <div className={`max-w-[75%] rounded-2xl px-3 py-2 relative ${
               msg.sender === "user"
@@ -373,7 +373,7 @@ const ServiceChat = () => {
               {msg.sender === "support" && msg.isAI && (
                 <div className="flex items-center gap-1 mb-1">
                   <Bot size={10} className="text-primary" />
-                  <span className="text-[9px] text-primary font-semibold">Sarah IA</span>
+                  <span className="text-[9px] text-primary font-semibold">Emma IA</span>
                 </div>
               )}
               {msg.image && (
@@ -392,7 +392,7 @@ const ServiceChat = () => {
 
         {isTyping && (
           <div className="flex justify-start items-end gap-1.5">
-            {sarahEnabled && <img src={sarahAvatar} alt="Sarah" className="w-7 h-7 rounded-full object-cover" />}
+            {emmaEnabled && <img src={emmaAvatar} alt="Emma" className="w-7 h-7 rounded-full object-cover" />}
             <div className="bg-card border border-secondary rounded-2xl rounded-bl-md px-4 py-3">
               <div className="flex gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "0ms" }} />
