@@ -78,7 +78,7 @@ const tabs = [
   { key: "links", icon: Link2, label: "Liens" },
   { key: "popups", icon: Bell, label: "Popups" },
   { key: "vip", icon: TrendingUp, label: "Niveaux" },
-  { key: "sarah", icon: Bot, label: "Sarah IA" },
+  { key: "sarah", icon: Bot, label: "Emma IA" },
   { key: "officialdocs", icon: FileText, label: "Docs Off." },
   { key: "officialinfo", icon: Globe, label: "Infos Off." },
   { key: "support", icon: MessageSquare, label: "Support" },
@@ -1737,7 +1737,7 @@ const SupportTab = ({ adminId }: { adminId: string }) => {
                 {m.sender === "support" && (
                   <div className="flex items-center gap-1 mb-0.5">
                     {m.is_ai ? <Bot size={10} className="text-primary" /> : <Shield size={10} className="text-primary" />}
-                    <span className="text-[9px] font-semibold text-primary">{m.is_ai ? "Sarah IA" : "Admin"}</span>
+                    <span className="text-[9px] font-semibold text-primary">{m.is_ai ? "Emma IA" : "Admin"}</span>
                   </div>
                 )}
                 <p className="text-xs text-foreground whitespace-pre-line">{m.message}</p>
@@ -1798,7 +1798,7 @@ const SupportTab = ({ adminId }: { adminId: string }) => {
   );
 };
 
-// ==================== SARAH IA ====================
+// ==================== EMMA IA ====================
 const SarahTab = ({ settings, reload, showSuccess }: any) => {
   const sarahSetting = settings.find((s: SiteSetting) => s.key === "sarah_enabled");
   const isEnabled = sarahSetting?.value === "true";
@@ -1809,7 +1809,7 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
     const newVal = isEnabled ? "false" : "true";
     await supabase.from("site_settings").update({ value: newVal }).eq("key", "sarah_enabled");
     showSuccess(
-      newVal === "true" ? "Sarah activée ✅" : "Sarah désactivée",
+      newVal === "true" ? "Emma activée ✅" : "Emma désactivée",
       newVal === "true" ? "L'IA prend le contrôle du chat" : "Le support humain est actif"
     );
     reload();
@@ -1822,42 +1822,40 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
     } else {
       await supabase.from("site_settings").insert({ key: "sarah_ai_provider", value: provider, category: "sarah" });
     }
-    showSuccess("Moteur IA mis à jour", provider === "lovable" ? "Sarah utilise maintenant Lovable AI" : "Sarah utilise maintenant Google Gemini");
+    showSuccess("Moteur IA mis à jour", provider === "lovable" ? "Emma utilise maintenant Lovable AI" : "Emma utilise maintenant Google Gemini");
     reload();
   };
 
   return (
     <div className="space-y-4">
-      {/* Toggle principal */}
       <div className="bg-card rounded-xl border border-secondary p-5">
         <div className="flex items-center gap-4">
           <div className={`w-14 h-14 rounded-full flex items-center justify-center ${isEnabled ? "bg-success/20" : "bg-secondary"}`}>
             <Bot size={28} className={isEnabled ? "text-success" : "text-muted-foreground"} />
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-bold text-foreground">Assistante Sarah</h3>
+            <h3 className="text-sm font-bold text-foreground">Assistante Emma</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {isEnabled ? "Sarah répond aux messages des utilisateurs" : "Le support est géré manuellement"}
+              {isEnabled ? "Emma répond aux messages des utilisateurs" : "Le support est géré manuellement"}
             </p>
           </div>
+          <button
+            onClick={toggle}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-colors ${
+              isEnabled
+                ? "bg-secondary text-foreground hover:bg-secondary/80"
+                : "bg-primary text-primary-foreground hover:opacity-90"
+            }`}
+          >
+            <Power size={16} />
+            {isEnabled ? "Désactiver Emma" : "Activer Emma"}
+          </button>
         </div>
-        <button
-          onClick={toggle}
-          className={`w-full mt-4 flex items-center justify-center gap-2 font-bold py-3 rounded-xl text-sm transition-all ${
-            isEnabled
-              ? "bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20"
-              : "gradient-button text-primary-foreground"
-          }`}
-        >
-          <Power size={16} />
-          {isEnabled ? "Désactiver Sarah" : "Activer Sarah"}
-        </button>
       </div>
 
-      {/* Configuration IA */}
       <div className="bg-card rounded-xl border border-secondary p-4">
         <h4 className="text-xs font-bold text-muted-foreground mb-3">⚙️ CONFIGURATION IA</h4>
-        <p className="text-xs text-muted-foreground mb-4">Choisissez le moteur d'intelligence artificielle utilisé par Sarah :</p>
+        <p className="text-xs text-muted-foreground mb-4">Choisissez le moteur d'intelligence artificielle utilisé par Emma :</p>
         <div className="space-y-3">
           <button
             onClick={() => changeProvider("lovable")}
@@ -1905,7 +1903,6 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
         </div>
       </div>
 
-      {/* Statut */}
       <div className="bg-card rounded-xl border border-secondary p-4">
         <h4 className="text-xs font-bold text-muted-foreground mb-3">STATUT</h4>
         <div className="space-y-3">
@@ -1926,9 +1923,8 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
         </div>
       </div>
 
-      {/* Capacités */}
       <div className="bg-card rounded-xl border border-secondary p-4">
-        <h4 className="text-xs font-bold text-muted-foreground mb-3">CAPACITÉS DE SARAH</h4>
+        <h4 className="text-xs font-bold text-muted-foreground mb-3">CAPACITÉS D'EMMA</h4>
         <div className="space-y-2">
           {[
             "Répond aux questions sur les produits",
@@ -1946,10 +1942,9 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
         </div>
       </div>
 
-      {/* Info */}
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
         <p className="text-xs text-muted-foreground">
-          💡 Quand Sarah est activée, elle utilise automatiquement les paramètres du site (frais, seuils VIP, produits) pour répondre aux utilisateurs dans le chat support.
+          💡 Quand Emma est activée, elle utilise automatiquement les paramètres du site (frais, seuils VIP, produits) pour répondre aux utilisateurs dans le chat support.
         </p>
       </div>
     </div>
@@ -2600,7 +2595,7 @@ const OfficialInfoTab = ({ settings, reload, showSuccess }: { settings: SiteSett
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
         <h3 className="text-sm font-bold text-foreground mb-1">📋 Gestion des Informations Officielles</h3>
         <p className="text-xs text-muted-foreground">
-          Ces informations sont utilisées par Sarah IA pour répondre aux questions des utilisateurs. Mettez-les à jour ici, elles seront prises en compte immédiatement.
+          Ces informations sont utilisées par Emma IA pour répondre aux questions des utilisateurs. Mettez-les à jour ici, elles seront prises en compte immédiatement.
         </p>
       </div>
 
@@ -2677,7 +2672,7 @@ const OfficialDocsTab = ({ showSuccess, showError }: { showSuccess: (t: string, 
     });
 
     setTitle(""); setDescription(""); setDocType("image");
-    showSuccess("Document ajouté", "Le document est maintenant disponible pour Sarah IA ✅");
+    showSuccess("Document ajouté", "Le document est maintenant disponible pour Emma IA ✅");
     loadDocs();
     setUploading(false);
   };
@@ -2700,7 +2695,7 @@ const OfficialDocsTab = ({ showSuccess, showError }: { showSuccess: (t: string, 
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
         <h3 className="text-sm font-bold text-foreground mb-1">📄 Documents Officiels & Preuves</h3>
         <p className="text-xs text-muted-foreground">
-          Ajoutez vos certificats, documents légaux et images de preuve. Sarah les utilisera automatiquement pour rassurer les utilisateurs.
+          Ajoutez vos certificats, documents légaux et images de preuve. Emma les utilisera automatiquement pour rassurer les utilisateurs.
         </p>
       </div>
 
