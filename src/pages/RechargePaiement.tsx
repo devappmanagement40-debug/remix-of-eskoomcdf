@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import PremiumModal from "@/components/PremiumModal";
-import { Copy, ExternalLink, CheckCircle, Zap, Loader2, Upload, Image as ImageIcon, X } from "lucide-react";
+import { Copy, ExternalLink, CheckCircle, Zap, Loader2, Upload, Image as ImageIcon, X, CreditCard, Shield } from "lucide-react";
 import { safeClipboardWrite } from "@/lib/clipboard";
 
 type PaymentMethodInfo = {
@@ -29,7 +29,6 @@ const RechargePaiement = () => {
   const [apiStatus, setApiStatus] = useState<"idle" | "processing" | "success" | "pending" | "failed">("idle");
   const [otpCode, setOtpCode] = useState("");
   
-  // Image upload state
   const [proofImage, setProofImage] = useState<File | null>(null);
   const [proofPreview, setProofPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -45,7 +44,7 @@ const RechargePaiement = () => {
 
   const copyToClipboard = async (text: string, label: string) => {
     await safeClipboardWrite(text);
-    showCopy(`${label} copie`);
+    showCopy(`${label} copié`);
   };
 
   const handleExternalRedirect = () => {
@@ -58,19 +57,14 @@ const RechargePaiement = () => {
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // Validate file type
     if (!file.type.startsWith("image/")) {
       showError("Erreur", "Veuillez sélectionner une image");
       return;
     }
-
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       showError("Erreur", "L'image ne doit pas dépasser 5 Mo");
       return;
     }
-
     setProofImage(file);
     setProofPreview(URL.createObjectURL(file));
   };
@@ -81,9 +75,7 @@ const RechargePaiement = () => {
       URL.revokeObjectURL(proofPreview);
       setProofPreview(null);
     }
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleApiPayment = async () => {
@@ -92,33 +84,24 @@ const RechargePaiement = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        showError("Erreur", "Vous devez etre connecte");
+        showError("Erreur", "Vous devez être connecté");
         navigate("/connexion");
         return;
       }
-
       const body: Record<string, unknown> = {
-        amount,
-        phone,
-        country_code: countryCode,
-        payment_method_id: method.id,
-        api_config_id: method.api_config_id,
+        amount, phone, country_code: countryCode,
+        payment_method_id: method.id, api_config_id: method.api_config_id,
         payment_method_name: method.name,
       };
-      if (otpCode.trim()) {
-        body.otp_code = otpCode.trim();
-      }
+      if (otpCode.trim()) body.otp_code = otpCode.trim();
       const { data, error } = await supabase.functions.invoke("process-payment", { body });
-
       if (error) {
         setApiStatus("failed");
         showError("Erreur", "Le paiement a échoué. Réessayez ou utilisez le paiement manuel.");
         return;
       }
-
       if (data?.success) {
         if (data?.paymentUrl) {
-          // Wave/redirect-based payment — open URL then show pending
           window.open(data.paymentUrl, "_blank");
           setApiStatus("pending");
         } else if (data?.pending) {
@@ -144,50 +127,35 @@ const RechargePaiement = () => {
       showError("Erreur", "Veuillez télécharger une preuve de paiement");
       return;
     }
-
     setLoading(true);
     setUploading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        showError("Erreur", "Vous devez etre connecte");
+        showError("Erreur", "Vous devez être connecté");
         navigate("/connexion");
         return;
       }
-
-      // Upload image to storage
       const fileExt = proofImage.name.split(".").pop();
       const fileName = `${user.id}_${Date.now()}.${fileExt}`;
       const filePath = `recharge-proofs/${fileName}`;
-
       const { error: uploadError } = await supabase.storage
         .from("site-assets")
         .upload(filePath, proofImage, { cacheControl: "3600", upsert: false });
-
       if (uploadError) {
         showError("Erreur", "Erreur lors du téléchargement de l'image");
         return;
       }
-
-      // Get public URL
       const { data: urlData } = supabase.storage.from("site-assets").getPublicUrl(filePath);
       const proofUrl = urlData?.publicUrl;
-
-      // Insert recharge with proof image URL
       const { error } = await supabase.from("recharges").insert({
-        user_id: user.id,
-        phone,
-        country_code: countryCode,
-        amount,
-        payment_method: method.name,
-        proof_image_url: proofUrl,
+        user_id: user.id, phone, country_code: countryCode,
+        amount, payment_method: method.name, proof_image_url: proofUrl,
       });
-
       if (error) {
         showError("Erreur", "Erreur lors de la soumission");
         return;
       }
-
       setShowRechargeSuccess(true);
     } catch {
       showError("Erreur", "Erreur de connexion au serveur");
@@ -199,52 +167,60 @@ const RechargePaiement = () => {
 
   return (
     <div className="min-h-screen bg-background pb-10">
-      <PageHeader title="Confirmation" showBack />
+      <PageHeader title="Paiement" showBack />
 
-      <div className="px-4 pt-6 space-y-4">
-        {/* Amount Card */}
-        <div className="bg-card rounded-2xl border border-border/30 p-5 text-center">
-          <p className="text-xs text-muted-foreground mb-1">Montant a payer</p>
-          <p className="text-3xl font-bold text-foreground">{amount.toLocaleString()}<span className="text-sm font-normal text-muted-foreground ml-1">CDF</span></p>
-          <p className="text-xs text-muted-foreground mt-2">via {method.name}</p>
-          {isApi && <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold mt-1 inline-block">⚡ Paiement automatique</span>}
+      <div className="px-4 pt-4 space-y-5">
+        {/* Hero amount section */}
+        <div className="relative rounded-2xl overflow-hidden"
+          style={{ background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))" }}
+        >
+          <div className="absolute inset-0 opacity-10"
+            style={{ backgroundImage: "radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)", backgroundSize: "40px 40px" }}
+          />
+          <div className="relative px-6 py-8 text-center">
+            <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-3">
+              <CreditCard size={26} className="text-primary-foreground" />
+            </div>
+            <p className="text-xs text-primary-foreground/70 mb-1">Montant à payer</p>
+            <p className="text-4xl font-black text-primary-foreground tracking-tight">
+              {amount.toLocaleString("fr-FR")}
+              <span className="text-base font-medium ml-1.5 opacity-80">CDF</span>
+            </p>
+            <div className="mt-3 inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1">
+              <Shield size={12} className="text-primary-foreground/80" />
+              <span className="text-[11px] font-medium text-primary-foreground/90">{method.name}</span>
+            </div>
+          </div>
         </div>
 
-        {/* API payment */}
+        {/* API Payment Section */}
         {isApi && (
-          <div className="bg-card rounded-2xl border border-border/30 p-4 space-y-3">
-            <p className="text-xs font-bold text-foreground flex items-center gap-2"><Zap size={14} className="text-primary" /> Paiement automatique</p>
-            <p className="text-xs text-muted-foreground">
-              Le paiement sera traité automatiquement. Vous recevrez une notification de confirmation sur votre téléphone.
-            </p>
-
-            {/* OTP field for Orange Money */}
-            {(method.name?.toLowerCase().includes("orange")) && apiStatus === "idle" && (
-              <div className="space-y-2">
-                <div className="bg-amber-500/10 rounded-xl px-4 py-3">
-                  <p className="text-xs font-semibold text-amber-600">Code OTP requis</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    {countryCode === "+225" ? (
-                      <>Composez <span className="font-bold text-foreground">#144*82#</span> sur votre téléphone pour générer votre code OTP, puis saisissez-le ci-dessous.</>
-                    ) : countryCode === "+223" ? (
-                      <>Composez <span className="font-bold text-foreground">#144*82#</span> sur votre téléphone pour générer votre code OTP, puis saisissez-le ci-dessous.</>
-                    ) : (
-                      <>Composez <span className="font-bold text-foreground">*144*4*6*{amount}#</span> sur votre téléphone pour générer votre code OTP, puis saisissez le code reçu par SMS ci-dessous.</>
-                    )}
-                  </p>
+          <div className="space-y-4">
+            {/* OTP for Orange Money */}
+            {method.name?.toLowerCase().includes("orange") && apiStatus === "idle" && (
+              <div className="bg-card rounded-2xl border border-secondary p-5 space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                    <Zap size={16} className="text-amber-500" />
+                  </div>
+                  <p className="text-sm font-bold text-foreground">Code OTP requis</p>
                 </div>
-                <div>
-                  <label className="text-[10px] text-muted-foreground mb-1 block">Code OTP</label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
-                    placeholder="Entrez le code OTP"
-                    className="w-full bg-secondary/40 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground border border-border/30 focus:outline-none focus:ring-2 focus:ring-primary/50 text-center tracking-[0.3em] font-bold"
-                  />
-                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {countryCode === "+225" || countryCode === "+223" ? (
+                    <>Composez <span className="font-bold text-foreground">#144*82#</span> pour générer votre code OTP.</>
+                  ) : (
+                    <>Composez <span className="font-bold text-foreground">*144*4*6*{amount}#</span> pour recevoir votre code OTP par SMS.</>
+                  )}
+                </p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                  placeholder="• • • • • •"
+                  className="w-full bg-secondary/50 rounded-xl px-4 py-4 text-lg text-foreground placeholder:text-muted-foreground/40 border border-secondary focus:outline-none focus:ring-2 focus:ring-primary/50 text-center tracking-[0.5em] font-bold"
+                />
               </div>
             )}
 
@@ -252,209 +228,212 @@ const RechargePaiement = () => {
               <button
                 onClick={handleApiPayment}
                 disabled={apiProcessing || (method.name?.toLowerCase().includes("orange") && otpCode.length < 4)}
-                className="w-full gradient-button text-primary-foreground font-bold py-3.5 rounded-xl text-sm flex items-center justify-center gap-2"
+                className="w-full gradient-button text-primary-foreground font-bold py-4 rounded-2xl text-sm flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
               >
-                <Zap size={16} />
-                Payer {amount.toLocaleString()} CDF
+                <Zap size={18} />
+                Payer {amount.toLocaleString("fr-FR")} CDF
               </button>
             )}
 
             {apiStatus === "processing" && (
-              <div className="flex flex-col items-center gap-3 py-4">
-                <Loader2 size={32} className="text-primary animate-spin" />
-                <p className="text-sm font-semibold text-foreground">Traitement en cours...</p>
-                <p className="text-xs text-muted-foreground">Veuillez patienter, ne fermez pas cette page.</p>
+              <div className="bg-card rounded-2xl border border-secondary p-8 flex flex-col items-center gap-4">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Loader2 size={32} className="text-primary animate-spin" />
+                </div>
+                <div className="text-center">
+                  <p className="text-base font-bold text-foreground">Traitement en cours</p>
+                  <p className="text-xs text-muted-foreground mt-1">Ne fermez pas cette page...</p>
+                </div>
               </div>
             )}
 
             {apiStatus === "pending" && (
-              <div className="space-y-3">
-                <div className="bg-success/10 text-success rounded-xl px-4 py-3">
-                   <p className="text-xs font-semibold flex items-center gap-2">
-                     <CheckCircle size={14} />
-                     Paiement envoyé avec succès !
-                   </p>
-                   <p className="text-[10px] mt-1">
-                     Votre demande de paiement a été envoyée. Composez votre code PIN sur votre téléphone pour confirmer. Votre compte sera crédité automatiquement.
-                   </p>
-                 </div>
-                 <button onClick={() => navigate("/portefeuille")} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">
-                   Retour au portefeuille
-                 </button>
+              <div className="bg-card rounded-2xl border border-success/30 p-5 space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0">
+                    <CheckCircle size={20} className="text-success" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-foreground">Demande envoyée !</p>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                      Confirmez le paiement avec votre code PIN sur votre téléphone. Votre compte sera crédité automatiquement.
+                    </p>
+                  </div>
+                </div>
+                <button onClick={() => navigate("/portefeuille")} className="w-full gradient-button text-primary-foreground font-bold py-3.5 rounded-xl text-sm">
+                  Retour au portefeuille
+                </button>
               </div>
             )}
 
             {apiStatus === "failed" && (
-              <div className="space-y-3">
-                <div className="bg-destructive/10 text-destructive rounded-xl px-4 py-3">
-                  <p className="text-xs font-semibold">Le paiement automatique a échoué</p>
-                  <p className="text-[10px] mt-1">Vous pouvez réessayer ou utiliser le paiement manuel ci-dessous.</p>
+              <div className="bg-card rounded-2xl border border-destructive/30 p-5 space-y-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
+                    <X size={20} className="text-destructive" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-foreground">Paiement échoué</p>
+                    <p className="text-xs text-muted-foreground mt-1">Réessayez ou utilisez le mode manuel ci-dessous.</p>
+                  </div>
                 </div>
-                <button onClick={handleApiPayment} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">
+                <button onClick={handleApiPayment} className="w-full gradient-button text-primary-foreground font-bold py-3.5 rounded-xl text-sm">
                   Réessayer
                 </button>
               </div>
             )}
 
             {apiStatus === "success" && (
-              <div className="flex items-center gap-2 bg-success/10 text-success rounded-xl px-4 py-3">
-                <CheckCircle size={16} />
-                <p className="text-xs font-semibold">Paiement confirmé avec succès !</p>
+              <div className="bg-card rounded-2xl border border-success/30 p-5 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle size={20} className="text-success" />
+                </div>
+                <p className="text-sm font-bold text-foreground">Paiement confirmé avec succès !</p>
               </div>
             )}
           </div>
         )}
 
-        {/* Manual payment info */}
+        {/* Manual payment details */}
         {method.payment_type === "manual" && (
-          <div className="bg-card rounded-2xl border border-border/30 p-4 space-y-3">
-            <p className="text-xs font-bold text-foreground">Informations de paiement</p>
-
-            {method.holder_name && (
-              <div className="bg-secondary/40 rounded-xl px-4 py-3 flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] text-muted-foreground">Nom du beneficiaire</p>
-                  <p className="text-sm font-semibold text-foreground">{method.holder_name}</p>
-                </div>
-                <button onClick={() => copyToClipboard(method.holder_name!, "Nom")} className="p-2 rounded-lg bg-secondary hover:bg-secondary/80">
-                  <Copy size={14} className="text-primary" />
-                </button>
-              </div>
-            )}
-
-            {method.phone && (
-              <div className="bg-secondary/40 rounded-xl px-4 py-3 flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] text-muted-foreground">Numero</p>
-                  <p className="text-sm font-semibold text-foreground">{method.phone}</p>
-                </div>
-                <button onClick={() => copyToClipboard(method.phone!, "Numero")} className="p-2 rounded-lg bg-secondary hover:bg-secondary/80">
-                  <Copy size={14} className="text-primary" />
-                </button>
-              </div>
-            )}
-
-            <div className="bg-secondary/40 rounded-xl px-4 py-3 flex items-center justify-between">
-              <div>
-                <p className="text-[10px] text-muted-foreground">Montant</p>
-                <p className="text-sm font-semibold text-foreground">{amount.toLocaleString()} CDF</p>
-              </div>
-              <button onClick={() => copyToClipboard(String(amount), "Montant")} className="p-2 rounded-lg bg-secondary hover:bg-secondary/80">
-                <Copy size={14} className="text-primary" />
-              </button>
+          <div className="bg-card rounded-2xl border border-secondary overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-secondary bg-secondary/20">
+              <p className="text-sm font-bold text-foreground">Détails du paiement</p>
             </div>
+            <div className="p-4 space-y-3">
+              {method.holder_name && (
+                <div className="flex items-center justify-between bg-secondary/30 rounded-xl px-4 py-3.5">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Bénéficiaire</p>
+                    <p className="text-sm font-bold text-foreground mt-0.5 truncate">{method.holder_name}</p>
+                  </div>
+                  <button onClick={() => copyToClipboard(method.holder_name!, "Nom")} className="p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors">
+                    <Copy size={14} className="text-primary" />
+                  </button>
+                </div>
+              )}
 
-            {method.instructions && (
-              <div className="bg-secondary/20 rounded-xl px-4 py-3">
-                <p className="text-[10px] text-muted-foreground mb-1">Instructions</p>
-                <p className="text-xs text-foreground whitespace-pre-line">{method.instructions}</p>
+              {method.phone && (
+                <div className="flex items-center justify-between bg-secondary/30 rounded-xl px-4 py-3.5">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Numéro</p>
+                    <p className="text-sm font-bold text-foreground mt-0.5">{method.phone}</p>
+                  </div>
+                  <button onClick={() => copyToClipboard(method.phone!, "Numéro")} className="p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors">
+                    <Copy size={14} className="text-primary" />
+                  </button>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between bg-secondary/30 rounded-xl px-4 py-3.5">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Montant</p>
+                  <p className="text-sm font-bold text-primary mt-0.5">{amount.toLocaleString("fr-FR")} CDF</p>
+                </div>
+                <button onClick={() => copyToClipboard(String(amount), "Montant")} className="p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors">
+                  <Copy size={14} className="text-primary" />
+                </button>
               </div>
-            )}
+
+              {method.instructions && (
+                <div className="bg-primary/5 rounded-xl px-4 py-3.5 border border-primary/10">
+                  <p className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-1">Instructions</p>
+                  <p className="text-xs text-foreground/80 whitespace-pre-line leading-relaxed">{method.instructions}</p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
-        {/* External payment redirect */}
+        {/* External payment */}
         {method.payment_type === "external" && (
-          <div className="bg-card rounded-2xl border border-border/30 p-4 space-y-3">
-            <p className="text-xs font-bold text-foreground">Paiement en ligne</p>
-            <p className="text-xs text-muted-foreground">
-              Vous allez etre redirige vers la plateforme de paiement. Apres le paiement, revenez ici pour confirmer.
-            </p>
+          <div className="bg-card rounded-2xl border border-secondary p-5 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <ExternalLink size={18} className="text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground">Paiement en ligne</p>
+                <p className="text-xs text-muted-foreground">Vous serez redirigé vers la plateforme</p>
+              </div>
+            </div>
             <button
               onClick={handleExternalRedirect}
-              className="w-full gradient-button text-primary-foreground font-bold py-3.5 rounded-xl text-sm flex items-center justify-center gap-2"
+              className="w-full gradient-button text-primary-foreground font-bold py-4 rounded-xl text-sm flex items-center justify-center gap-2"
             >
               <ExternalLink size={16} />
               Payer maintenant
             </button>
             {redirected && (
-              <div className="flex items-center gap-2 bg-success/10 text-success rounded-xl px-4 py-2.5">
-                <CheckCircle size={14} />
-                <p className="text-xs font-medium">Paiement effectue ? Entrez la reference ci-dessous</p>
+              <div className="flex items-center gap-2 bg-success/10 rounded-xl px-4 py-3">
+                <CheckCircle size={14} className="text-success" />
+                <p className="text-xs font-medium text-success">Paiement effectué ? Envoyez la preuve ci-dessous</p>
               </div>
             )}
           </div>
         )}
 
-        {/* Transaction confirmation - show for manual and external, and as fallback for failed API */}
+        {/* Proof upload section */}
         {(method.payment_type !== "api" || apiStatus === "failed") && (
-          <div className="bg-card rounded-2xl border border-border/30 p-4 space-y-3">
-            <p className="text-xs font-bold text-foreground">
-              {apiStatus === "failed" ? "Confirmation manuelle (secours)" : "Preuve de paiement"}
-            </p>
-
-            {/* Image upload */}
-            <div>
-              <label className="text-[10px] text-muted-foreground mb-2 block">
-                Téléchargez une capture d'écran ou photo de votre transaction
-              </label>
-              
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageSelect}
-                className="hidden"
-              />
+          <div className="bg-card rounded-2xl border border-secondary overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-secondary bg-secondary/20">
+              <p className="text-sm font-bold text-foreground">
+                {apiStatus === "failed" ? "Confirmation manuelle" : "Preuve de paiement"}
+              </p>
+            </div>
+            <div className="p-4 space-y-4">
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
 
               {!proofPreview ? (
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full border-2 border-dashed border-secondary rounded-xl py-8 flex flex-col items-center justify-center gap-3 hover:border-primary/50 transition-colors"
+                  className="w-full border-2 border-dashed border-secondary hover:border-primary/40 rounded-2xl py-10 flex flex-col items-center justify-center gap-3 transition-colors"
                 >
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
                     <Upload size={24} className="text-primary" />
                   </div>
                   <div className="text-center">
-                    <p className="text-sm font-semibold text-foreground">Télécharger une image</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">PNG, JPG ou JPEG (max 5 Mo)</p>
+                    <p className="text-sm font-bold text-foreground">Ajouter une capture d'écran</p>
+                    <p className="text-[10px] text-muted-foreground mt-1">PNG, JPG — max 5 Mo</p>
                   </div>
                 </button>
               ) : (
-                <div className="relative">
-                  <img
-                    src={proofPreview}
-                    alt="Preuve de paiement"
-                    className="w-full h-48 object-cover rounded-xl border border-secondary"
-                  />
-                  <button
-                    onClick={removeImage}
-                    className="absolute top-2 right-2 p-1.5 bg-destructive text-destructive-foreground rounded-full shadow-lg"
-                  >
-                    <X size={14} />
-                  </button>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="absolute bottom-2 right-2 flex items-center gap-1.5 px-3 py-1.5 bg-card/90 backdrop-blur-sm text-foreground text-xs font-semibold rounded-lg border border-secondary"
-                  >
-                    <ImageIcon size={12} />
-                    Changer
-                  </button>
+                <div className="relative rounded-2xl overflow-hidden border border-secondary">
+                  <img src={proofPreview} alt="Preuve" className="w-full h-52 object-cover" />
+                  <div className="absolute top-2 right-2 flex gap-1.5">
+                    <button onClick={removeImage} className="p-2 bg-destructive text-destructive-foreground rounded-xl shadow-lg">
+                      <X size={14} />
+                    </button>
+                    <button onClick={() => fileInputRef.current?.click()} className="p-2 bg-card/90 backdrop-blur-sm text-foreground rounded-xl shadow-lg border border-secondary">
+                      <ImageIcon size={14} />
+                    </button>
+                  </div>
                 </div>
               )}
-            </div>
 
-            <div>
-              <label className="text-[10px] text-muted-foreground mb-1 block">Numero utilise</label>
-              <div className="bg-secondary/40 rounded-xl px-4 py-3">
-                <p className="text-sm text-foreground">{countryCode} {phone}</p>
+              <div className="bg-secondary/30 rounded-xl px-4 py-3">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Numéro utilisé</p>
+                <p className="text-sm font-semibold text-foreground mt-0.5">{countryCode} {phone}</p>
               </div>
-            </div>
 
-            <button
-              onClick={handleValidate}
-              disabled={loading || !proofImage}
-              className="w-full bg-success text-success-foreground font-bold py-3.5 rounded-xl text-sm hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  {uploading ? "Téléchargement..." : "Envoi en cours..."}
-                </>
-              ) : (
-                "Confirmer le paiement"
-              )}
-            </button>
+              <button
+                onClick={handleValidate}
+                disabled={loading || !proofImage}
+                className="w-full bg-success hover:bg-success/90 text-success-foreground font-bold py-4 rounded-xl text-sm transition-all disabled:opacity-40 flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    {uploading ? "Téléchargement..." : "Envoi..."}
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={16} />
+                    Confirmer le paiement
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         )}
       </div>
