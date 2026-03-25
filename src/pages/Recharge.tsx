@@ -74,11 +74,11 @@ const Recharge = () => {
       return;
     }
     if (!parsedAmount || parsedAmount < minAmount) {
-      showError("Erreur", `Le montant minimum est de ${minAmount.toLocaleString()} FCFA`);
+      showError("Erreur", `Le montant minimum est de ${minAmount.toLocaleString()} CDF`);
       return;
     }
     if (parsedAmount > maxAmount) {
-      showError("Erreur", `Le montant maximum est de ${maxAmount.toLocaleString()} FCFA`);
+      showError("Erreur", `Le montant maximum est de ${maxAmount.toLocaleString()} CDF`);
       return;
     }
     if (!selectedMethod) {
@@ -126,7 +126,7 @@ const Recharge = () => {
       <div className="px-4 pt-5 space-y-5">
         {/* Amount input */}
         <div className="bg-card rounded-2xl border border-border/30 p-4">
-          <label className="text-xs text-muted-foreground mb-2 block">Montant (FCFA)</label>
+          <label className="text-xs text-muted-foreground mb-2 block">Montant (CDF)</label>
           <div className="flex items-center bg-secondary/50 rounded-xl px-4 py-3">
             <input
               type="number"
@@ -135,7 +135,7 @@ const Recharge = () => {
               onChange={(e) => setAmount(e.target.value)}
               className="bg-transparent text-foreground text-lg font-semibold w-full outline-none placeholder:text-muted-foreground"
             />
-            <span className="text-muted-foreground font-semibold text-sm ml-3 whitespace-nowrap">FCFA</span>
+            <span className="text-muted-foreground font-semibold text-sm ml-3 whitespace-nowrap">CDF</span>
           </div>
 
           {/* Preset amounts */}

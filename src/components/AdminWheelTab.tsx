@@ -131,13 +131,13 @@ const PrizesSection = ({ prizes, reload, showSuccess, showError }: any) => {
               <label className="text-xs text-muted-foreground">Type</label>
               <select value={form.prize_type} onChange={e => setForm({ ...form, prize_type: e.target.value })}
                 className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none">
-                <option value="cash">Cash (FCFA)</option>
+                <option value="cash">Cash (CDF)</option>
                 <option value="vip">VIP</option>
               </select>
             </div>
             {form.prize_type === "cash" ? (
               <div>
-                <label className="text-xs text-muted-foreground">Montant (FCFA)</label>
+                <label className="text-xs text-muted-foreground">Montant (CDF)</label>
                 <input type="number" value={form.value} onChange={e => setForm({ ...form, value: e.target.value })}
                   className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
               </div>
@@ -241,7 +241,7 @@ const WinnersSection = ({ spins, reload }: { spins: WheelSpin[]; reload: () => v
         </div>
         <div className="bg-card rounded-xl border border-secondary p-3 text-center">
           <p className="text-xl font-bold text-success">{totalCash.toLocaleString("fr-FR")}</p>
-          <p className="text-[10px] text-muted-foreground">Cash (FCFA)</p>
+          <p className="text-[10px] text-muted-foreground">Cash (CDF)</p>
         </div>
         <div className="bg-card rounded-xl border border-secondary p-3 text-center">
           <p className="text-xl font-bold text-warning">{totalVip}</p>

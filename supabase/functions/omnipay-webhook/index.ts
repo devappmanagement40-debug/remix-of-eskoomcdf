@@ -258,7 +258,7 @@ Deno.serve(async (req) => {
           .update({ balance: newBalance, deposit_balance: newDeposit })
           .eq("user_id", logEntry.user_id);
 
-        console.log(`✅ User ${logEntry.user_id} credited: +${logEntry.amount} FCFA (balance: ${newBalance})`);
+        console.log(`✅ User ${logEntry.user_id} credited: +${logEntry.amount} CDF (balance: ${newBalance})`);
       }
     } else {
       // Update existing recharge to 'rejected' on failure

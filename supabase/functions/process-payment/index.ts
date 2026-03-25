@@ -185,7 +185,7 @@ async function processCinetPay(config: any, amount: number, phone: string, count
         currency: 'XOF',
         customer_phone_number: phone,
         customer_country_code: countryCode,
-        description: `Dépôt ${amount} FCFA`,
+        description: `Dépôt ${amount} CDF`,
         channels: 'MOBILE_MONEY',
         notify_url: config.callback_url || '',
       }),
@@ -212,7 +212,7 @@ async function processFedaPay(config: any, amount: number, phone: string, countr
         'Authorization': `Bearer ${config.secret_key}`,
       },
       body: JSON.stringify({
-        description: `Dépôt ${amount} FCFA`,
+        description: `Dépôt ${amount} CDF`,
         amount: Math.round(amount),
         currency: { iso: 'XOF' },
         callback_url: config.callback_url || '',
@@ -274,7 +274,7 @@ async function processSendavaPay(config: any, amount: number, phone: string, cou
       operator,
       country: countryInfo.code,
       customerName: 'Client',
-      description: `Depot ${amount} FCFA`,
+      description: `Depot ${amount} CDF`,
       callbackUrl,
     };
 

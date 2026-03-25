@@ -70,7 +70,7 @@ const Portefeuille = () => {
           {loading ? (
             <div className="h-9 w-40 mx-auto bg-secondary/50 rounded animate-pulse" />
           ) : (
-            <p className="text-3xl font-bold text-foreground text-center">{fmt(profile.balance)} <span className="text-sm font-normal text-muted-foreground">FCFA</span></p>
+            <p className="text-3xl font-bold text-foreground text-center">{fmt(profile.balance)} <span className="text-sm font-normal text-muted-foreground">CDF</span></p>
           )}
 
           {/* Split balances */}
@@ -107,7 +107,7 @@ const Portefeuille = () => {
           {/* Withdrawable */}
           <div className="mt-4 bg-secondary/30 rounded-xl px-4 py-2.5 flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Solde retirable</span>
-            <span className="text-sm font-bold text-foreground">{fmt(withdrawable)} FCFA</span>
+            <span className="text-sm font-bold text-foreground">{fmt(withdrawable)} CDF</span>
           </div>
 
           {/* Action Buttons */}
@@ -158,7 +158,7 @@ const Portefeuille = () => {
               <div className="absolute inset-0 bg-black/55" />
               <div className="relative z-10 p-4 text-center flex flex-col justify-center h-full">
                 <p className="text-lg font-bold text-white">
-                  {stat.value} <span className="text-[10px] font-normal text-white/70">FCFA</span>
+                  {stat.value} <span className="text-[10px] font-normal text-white/70">CDF</span>
                 </p>
                 <p className="text-[10px] text-white/70 mt-1">{stat.label}</p>
               </div>
