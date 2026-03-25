@@ -85,6 +85,7 @@ const tabs = [
   { key: "faq", icon: HelpCircle, label: "FAQ" },
   { key: "infos", icon: Info, label: "Infos" },
   { key: "app", icon: Smartphone, label: "App" },
+  { key: "dates", icon: Clock, label: "Dates" },
   { key: "settings", icon: Settings, label: "Site" },
   { key: "security", icon: Shield, label: "Sécurité" },
   { key: "team", icon: Users, label: "Équipe" },
@@ -298,6 +299,7 @@ const AdminPanel = () => {
         {activeTab === "faq" && <FaqTab showSuccess={showSuccess} showError={showError} />}
         {activeTab === "infos" && <InfoItemsTab showSuccess={showSuccess} showError={showError} />}
         {activeTab === "app" && <AppSettingsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
+        {activeTab === "dates" && <DatesTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "settings" && <SettingsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "security" && <SecurityTab logs={adminLogs} settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "team" && <AdminTeamTab showSuccess={showSuccess} showError={showError} logAction={logAction} adminId={adminId} />}
