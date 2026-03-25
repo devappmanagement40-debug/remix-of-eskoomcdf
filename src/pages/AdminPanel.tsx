@@ -2445,6 +2445,82 @@ const AppSettingsTab = ({ settings, reload, showSuccess }: any) => {
 };
 
 // ==================== SETTINGS ====================
+// ==================== DATES TAB ====================
+const DatesTab = ({ settings, reload, showSuccess }: any) => {
+  const [edits, setEdits] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  const getValue = (key: string) => edits[key] ?? settings.find((s: SiteSetting) => s.key === key)?.value ?? "";
+  const setVal = (key: string, val: string) => setEdits({ ...edits, [key]: val });
+
+  const saveAll = async () => {
+    setSaving(true);
+    for (const [key, value] of Object.entries(edits)) {
+      const existing = settings.find((s: SiteSetting) => s.key === key);
+      if (existing) {
+        await supabase.from("site_settings").update({ value }).eq("key", key);
+      } else {
+        await supabase.from("site_settings").insert({ key, value, category: "dates" });
+      }
+    }
+    setEdits({});
+    await reload();
+    setSaving(false);
+    showSuccess("Dates sauvegardées !");
+  };
+
+  const dateFields = [
+    { key: "manual_start_date", label: "Date de début", desc: "Date de démarrage des cycles / activations" },
+    { key: "manual_end_date", label: "Date de fin", desc: "Date d'expiration des cycles" },
+    { key: "manual_payment_date", label: "Date de paiement", desc: "Date prévue pour les paiements" },
+    { key: "manual_profit_date", label: "Date de profit", desc: "Date de calcul des profits" },
+    { key: "manual_cycle_date", label: "Date de cycle", desc: "Date de renouvellement des cycles" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-lg font-bold text-foreground flex items-center gap-2"><Clock size={18} /> Contrôle manuel des dates</h2>
+      <p className="text-xs text-muted-foreground">Définissez des dates fixes que Emma et le système utiliseront à la place des calculs automatiques.</p>
+
+      {/* Toggle */}
+      <div className="bg-card rounded-xl border border-border/30 p-4 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-foreground">Utiliser les dates manuelles</p>
+          <p className="text-xs text-muted-foreground">Quand activé, le système utilisera ces dates au lieu des calculs automatiques</p>
+        </div>
+        <button
+          onClick={() => setVal("use_manual_dates", getValue("use_manual_dates") === "true" ? "false" : "true")}
+          className={`w-12 h-6 rounded-full transition-colors ${getValue("use_manual_dates") === "true" ? "bg-primary" : "bg-secondary"}`}
+        >
+          <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${getValue("use_manual_dates") === "true" ? "translate-x-6" : "translate-x-0.5"}`} />
+        </button>
+      </div>
+
+      {/* Date fields */}
+      <div className="grid gap-3">
+        {dateFields.map(({ key, label, desc }) => (
+          <div key={key} className="bg-card rounded-xl border border-border/30 p-4">
+            <label className="text-sm font-semibold text-foreground block mb-1">{label}</label>
+            <p className="text-[10px] text-muted-foreground mb-2">{desc}</p>
+            <input
+              type="date"
+              value={getValue(key)}
+              onChange={e => setVal(key, e.target.value)}
+              className="w-full bg-secondary text-foreground rounded-lg px-3 py-2 text-sm border border-secondary outline-none"
+            />
+          </div>
+        ))}
+      </div>
+
+      <button onClick={saveAll} disabled={saving || Object.keys(edits).length === 0}
+        className="w-full gradient-button text-primary-foreground font-semibold py-3 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-50">
+        <Save size={16} /> {saving ? "Sauvegarde..." : "Sauvegarder les dates"}
+      </button>
+    </div>
+  );
+};
+
+// ==================== SETTINGS TAB ====================
 const SettingsTab = ({ settings, reload, showSuccess }: any) => {
   const [edits, setEdits] = useState<Record<string, string>>({});
 
