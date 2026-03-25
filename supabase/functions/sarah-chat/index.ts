@@ -90,7 +90,7 @@ serve(async (req) => {
     const withdrawalDays = settingsMap["withdrawal_days"] || "1,2,3,4,5,6,7";
 
     const paymentInfo = (paymentMethods || []).map((m: any) => `- ${m.name} (${m.country}): ${m.phone || "N/A"}, bénéficiaire: ${m.holder_name || "N/A"}, type: ${m.payment_type || "manual"}${m.instructions ? `, instructions: ${m.instructions}` : ""}`).join("\n");
-    const productInfo = (products || []).map((p: any) => `- ${p.name}: prix ${p.price} FCFA, revenu journalier ${p.daily_revenue} FCFA, durée ${p.cycles} jours, revenu total ${p.total_revenue} FCFA, rendement ${p.return_percent}%`).join("\n");
+    const productInfo = (products || []).map((p: any) => `- ${p.name}: prix ${p.price} CDF, revenu journalier ${p.daily_revenue} CDF, durée ${p.cycles} jours, revenu total ${p.total_revenue} CDF, rendement ${p.return_percent}%`).join("\n");
 
     // Build country map for lookup
     const countryList = (countries || []) as any[];
@@ -145,10 +145,10 @@ serve(async (req) => {
 - Nom : ${p.full_name || "Non renseigné"}
 - Téléphone : ${p.phone || "Non renseigné"}
 - Indicatif pays : ${p.country_code || "+226"}
-- Solde total (balance) : ${p.balance || 0} FCFA
-- Solde dépôt : ${p.deposit_balance || 0} FCFA
-- Solde gains : ${p.earnings_balance || 0} FCFA
-- Solde parrainage : ${p.referral_balance || 0} FCFA
+- Solde total (balance) : ${p.balance || 0} CDF
+- Solde dépôt : ${p.deposit_balance || 0} CDF
+- Solde gains : ${p.earnings_balance || 0} CDF
+- Solde parrainage : ${p.referral_balance || 0} CDF
 - Points cadeaux : ${p.gift_points || 0}
 - Spins (tours de roue) restants : ${p.spins_balance || 0}
 - Niveau VIP : ${p.vip_level || 0} (${vipLevel})
@@ -162,7 +162,7 @@ serve(async (req) => {
       userContext += `\nPRODUITS ACTIFS DE L'UTILISATEUR :\n`;
       (userProducts.data as any[]).forEach((up: any) => {
         const prod = up.products;
-        userContext += `- ${prod?.name || "Produit inconnu"} : acheté le ${new Date(up.purchased_at).toLocaleDateString("fr-FR")}, expire le ${up.expires_at ? new Date(up.expires_at).toLocaleDateString("fr-FR") : "N/A"}, revenus collectés : ${up.total_collected || 0} FCFA sur ${prod?.total_revenue || "N/A"} FCFA total\n`;
+        userContext += `- ${prod?.name || "Produit inconnu"} : acheté le ${new Date(up.purchased_at).toLocaleDateString("fr-FR")}, expire le ${up.expires_at ? new Date(up.expires_at).toLocaleDateString("fr-FR") : "N/A"}, revenus collectés : ${up.total_collected || 0} CDF sur ${prod?.total_revenue || "N/A"} CDF total\n`;
       });
     }
 
@@ -182,7 +182,7 @@ serve(async (req) => {
         if (members.length === 0) return "";
         let txt = `  ${level} (${members.length} membres) :\n`;
         members.slice(0, 10).forEach((m: any) => {
-          txt += `    - ${m.full_name || "Sans nom"} | Tél: ${m.phone || "?"} | VIP ${m.vip_level || 0} | Solde: ${m.balance || 0} FCFA | Inscrit: ${new Date(m.created_at).toLocaleDateString("fr-FR")}\n`;
+          txt += `    - ${m.full_name || "Sans nom"} | Tél: ${m.phone || "?"} | VIP ${m.vip_level || 0} | Solde: ${m.balance || 0} CDF | Inscrit: ${new Date(m.created_at).toLocaleDateString("fr-FR")}\n`;
         });
         if (members.length > 10) txt += `    ... et ${members.length - 10} autres\n`;
         return txt;
@@ -196,14 +196,14 @@ serve(async (req) => {
     if (userRecharges?.data && userRecharges.data.length > 0) {
       userContext += `\nDERNIÈRES RECHARGES (dépôts) :\n`;
       userRecharges.data.forEach((r: any) => {
-        userContext += `- ${r.amount} FCFA via ${r.payment_method || "N/A"} — statut : ${translateStatus(r.status)} — le ${new Date(r.created_at).toLocaleDateString("fr-FR")}\n`;
+        userContext += `- ${r.amount} CDF via ${r.payment_method || "N/A"} — statut : ${translateStatus(r.status)} — le ${new Date(r.created_at).toLocaleDateString("fr-FR")}\n`;
       });
     }
 
     if (userWithdrawals?.data && userWithdrawals.data.length > 0) {
       userContext += `\nDERNIERS RETRAITS :\n`;
       userWithdrawals.data.forEach((w: any) => {
-        userContext += `- ${w.amount} FCFA (net: ${w.net_amount} FCFA, frais: ${w.fee_amount} FCFA) via ${w.network} — statut : ${translateStatus(w.status)} — le ${new Date(w.created_at).toLocaleDateString("fr-FR")}\n`;
+        userContext += `- ${w.amount} CDF (net: ${w.net_amount} CDF, frais: ${w.fee_amount} CDF) via ${w.network} — statut : ${translateStatus(w.status)} — le ${new Date(w.created_at).toLocaleDateString("fr-FR")}\n`;
       });
     }
 
@@ -383,7 +383,7 @@ FONCTIONNEMENT DES RETRAITS
 - Les retraits sont traités AUTOMATIQUEMENT par le système après validation admin
 - Le paiement est envoyé directement vers le compte Mobile Money renseigné par l'utilisateur
 - Des frais de ${withdrawalFee}% sont prélevés sur le montant demandé
-- Le montant minimum de retrait est de ${minWithdrawal} FCFA
+- Le montant minimum de retrait est de ${minWithdrawal} CDF
 - IMPORTANT : L'utilisateur DOIT renseigner correctement son numéro de téléphone et son opérateur
 - Si les informations sont incorrectes, le retrait PEUT ÉCHOUER
 - En cas d'échec, le montant est automatiquement recrédité sur le compte
@@ -416,7 +416,7 @@ CONTEXTE : Avant de pouvoir retirer ses gains, l'utilisateur DOIT payer des frai
 - Il est IMPOSSIBLE de soumettre une demande de retrait
 
 💡 EXEMPLE CONCRET :
-"Si votre solde retirable est de 100 000 FCFA → frais de traitement = ${Math.round(100000 * Number(settingsMap["withdrawal_processing_fee_percent"] || "35") / 100).toLocaleString()} FCFA. Payez ces frais, envoyez la preuve, attendez la confirmation de l'administration, puis vous pourrez retirer votre argent."
+"Si votre solde retirable est de 100 000 CDF → frais de traitement = ${Math.round(100000 * Number(settingsMap["withdrawal_processing_fee_percent"] || "35") / 100).toLocaleString()} CDF. Payez ces frais, envoyez la preuve, attendez la confirmation de l'administration, puis vous pourrez retirer votre argent."
 
 🎯 COMMENT CONVAINCRE L'UTILISATEUR (TRÈS IMPORTANT) :
 Quand un utilisateur hésite, doute ou se plaint des frais de traitement, tu dois le convaincre avec ces arguments :
@@ -553,7 +553,7 @@ SÉCURITÉ & LIMITES
 DONNÉES DU SITE (temps réel)
 ═══════════════════════════════════════
 - Nom du site : ${siteName}
-- Retrait minimum : ${minWithdrawal} FCFA
+- Retrait minimum : ${minWithdrawal} CDF
 - Frais de retrait : ${withdrawalFee}%
 - Numéro du service humain : ${supportPhone}
 - Horaires de retrait : ${withdrawalHourStart}h00 à ${withdrawalHourEnd}h00
@@ -565,11 +565,11 @@ PRODUITS DISPONIBLES :
 ${productInfo || "Aucun produit actif"}
 
 SEUILS VIP :
-- VIP1 : ${settingsMap["vip_threshold_1"] || "N/A"} FCFA
-- VIP2 : ${settingsMap["vip_threshold_2"] || "N/A"} FCFA
-- VIP3 : ${settingsMap["vip_threshold_3"] || "N/A"} FCFA
-- VIP4 : ${settingsMap["vip_threshold_4"] || "N/A"} FCFA
-- VIP5 : ${settingsMap["vip_threshold_5"] || "N/A"} FCFA
+- VIP1 : ${settingsMap["vip_threshold_1"] || "N/A"} CDF
+- VIP2 : ${settingsMap["vip_threshold_2"] || "N/A"} CDF
+- VIP3 : ${settingsMap["vip_threshold_3"] || "N/A"} CDF
+- VIP4 : ${settingsMap["vip_threshold_4"] || "N/A"} CDF
+- VIP5 : ${settingsMap["vip_threshold_5"] || "N/A"} CDF
 ${userContext}
 ${newsContext}
 

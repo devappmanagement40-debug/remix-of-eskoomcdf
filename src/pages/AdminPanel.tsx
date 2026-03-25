@@ -85,6 +85,7 @@ const tabs = [
   { key: "faq", icon: HelpCircle, label: "FAQ" },
   { key: "infos", icon: Info, label: "Infos" },
   { key: "app", icon: Smartphone, label: "App" },
+  { key: "dates", icon: Clock, label: "Dates" },
   { key: "settings", icon: Settings, label: "Site" },
   { key: "security", icon: Shield, label: "Sécurité" },
   { key: "team", icon: Users, label: "Équipe" },
@@ -298,6 +299,7 @@ const AdminPanel = () => {
         {activeTab === "faq" && <FaqTab showSuccess={showSuccess} showError={showError} />}
         {activeTab === "infos" && <InfoItemsTab showSuccess={showSuccess} showError={showError} />}
         {activeTab === "app" && <AppSettingsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
+        {activeTab === "dates" && <DatesTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "settings" && <SettingsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "security" && <SecurityTab logs={adminLogs} settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "team" && <AdminTeamTab showSuccess={showSuccess} showError={showError} logAction={logAction} adminId={adminId} />}
@@ -541,22 +543,22 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Solde total (FCFA)</label>
+            <label className="text-xs text-muted-foreground">Solde total (CDF)</label>
             <input type="number" value={editBalance} onChange={e => setEditBalance(e.target.value)}
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Solde dépôt (FCFA)</label>
+            <label className="text-xs text-muted-foreground">Solde dépôt (CDF)</label>
             <input type="number" value={editDepositBalance} onChange={e => setEditDepositBalance(e.target.value)}
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Solde gains (FCFA)</label>
+            <label className="text-xs text-muted-foreground">Solde gains (CDF)</label>
             <input type="number" value={editEarningsBalance} onChange={e => setEditEarningsBalance(e.target.value)}
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Solde parrainage (FCFA)</label>
+            <label className="text-xs text-muted-foreground">Solde parrainage (CDF)</label>
             <input type="number" value={editReferralBalance} onChange={e => setEditReferralBalance(e.target.value)}
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
           </div>
@@ -595,7 +597,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
             <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
               <div>
                 <p className="text-[10px] text-muted-foreground">Solde</p>
-                <p className="text-xs font-bold text-primary">{(p.balance || 0).toLocaleString("fr-FR")} FCFA</p>
+                <p className="text-xs font-bold text-primary">{(p.balance || 0).toLocaleString("fr-FR")} CDF</p>
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground">Code parrainage</p>
@@ -684,7 +686,7 @@ const DepositsTab = ({ recharges, profiles, reload, showSuccess, showError, logA
         }).eq("user_id", r.user_id);
       }
     }
-    logAction(`deposit_${status}`, "recharge", r.id, `${r.amount} FCFA`);
+    logAction(`deposit_${status}`, "recharge", r.id, `${r.amount} CDF`);
     showSuccess(status === "approved" ? "Dépôt approuvé ✅" : "Dépôt refusé ❌", "");
     reload();
   };
@@ -717,7 +719,7 @@ const DepositsTab = ({ recharges, profiles, reload, showSuccess, showError, logA
           return (
             <div key={r.id} className="bg-card rounded-xl border border-secondary px-4 pt-4 pb-3">
               <div className="flex items-start justify-between mb-2">
-                <p className="text-lg font-bold text-foreground">{r.amount.toLocaleString("fr-FR")} FCFA</p>
+                <p className="text-lg font-bold text-foreground">{r.amount.toLocaleString("fr-FR")} CDF</p>
                 <StatusBadge status={r.status} />
               </div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-3">
@@ -726,7 +728,7 @@ const DepositsTab = ({ recharges, profiles, reload, showSuccess, showError, logA
               <div className="border-t border-secondary my-2" />
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
                 <div><p className="text-[10px] text-muted-foreground">Client</p><p className="text-xs font-semibold text-foreground">{r.country_code} {r.phone}</p></div>
-                <div><p className="text-[10px] text-muted-foreground">Solde actuel</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("fr-FR")} FCFA` : "—"}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Solde actuel</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("fr-FR")} CDF` : "—"}</p></div>
                 <div><p className="text-[10px] text-muted-foreground">Nom client</p><p className="text-xs font-semibold text-foreground">{p?.full_name || "—"}</p></div>
                 <div><p className="text-[10px] text-muted-foreground">Date</p><p className="text-xs font-semibold text-foreground">{r.created_at ? new Date(r.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</p></div>
                 {r.proof_image_url && (
@@ -835,7 +837,7 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
     }
     // Rejected = direct update (trigger refunds)
     await supabase.from("withdrawals").update({ status }).eq("id", w.id);
-    logAction(`withdrawal_${status}`, "withdrawal", w.id, `${w.amount} FCFA`);
+    logAction(`withdrawal_${status}`, "withdrawal", w.id, `${w.amount} CDF`);
     showSuccess("Retrait refusé — montant restitué", "");
     reload();
   };
@@ -876,8 +878,8 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
               </div>
 
               <div className="text-center py-3">
-                <p className="text-2xl font-bold text-foreground">{detailW.amount.toLocaleString("fr-FR")} FCFA</p>
-                <p className="text-sm text-success font-semibold">Net: {detailW.net_amount.toLocaleString("fr-FR")} FCFA <span className="text-muted-foreground text-xs">(-{feePercent}% frais)</span></p>
+                <p className="text-2xl font-bold text-foreground">{detailW.amount.toLocaleString("fr-FR")} CDF</p>
+                <p className="text-sm text-success font-semibold">Net: {detailW.net_amount.toLocaleString("fr-FR")} CDF <span className="text-muted-foreground text-xs">(-{feePercent}% frais)</span></p>
                 <StatusBadge status={detailW.status} />
               </div>
 
@@ -886,7 +888,7 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
                 <div className="grid grid-cols-2 gap-2">
                   <div><p className="text-[10px] text-muted-foreground">Nom</p><p className="text-xs font-semibold text-foreground">{p?.full_name || "—"}</p></div>
                   <div><p className="text-[10px] text-muted-foreground">Téléphone compte</p><p className="text-xs font-semibold text-foreground">{p?.country_code} {p?.phone}</p></div>
-                  <div><p className="text-[10px] text-muted-foreground">Solde actuel</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("fr-FR")} FCFA` : "—"}</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Solde actuel</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("fr-FR")} CDF` : "—"}</p></div>
                   <div><p className="text-[10px] text-muted-foreground">Niveau VIP</p><p className="text-xs font-semibold text-foreground">VIP {p?.vip_level || 0}</p></div>
                 </div>
               </div>
@@ -912,9 +914,9 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
               <div className="bg-secondary/30 rounded-xl p-4 space-y-2">
                 <p className="text-xs font-bold text-foreground mb-2">📋 Transaction</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <div><p className="text-[10px] text-muted-foreground">Montant brut</p><p className="text-xs font-semibold text-foreground">{detailW.amount.toLocaleString("fr-FR")} FCFA</p></div>
-                  <div><p className="text-[10px] text-muted-foreground">Frais ({feePercent}%)</p><p className="text-xs font-semibold text-destructive">{detailW.fee_amount.toLocaleString("fr-FR")} FCFA</p></div>
-                  <div><p className="text-[10px] text-muted-foreground">Montant net</p><p className="text-xs font-semibold text-success">{detailW.net_amount.toLocaleString("fr-FR")} FCFA</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Montant brut</p><p className="text-xs font-semibold text-foreground">{detailW.amount.toLocaleString("fr-FR")} CDF</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Frais ({feePercent}%)</p><p className="text-xs font-semibold text-destructive">{detailW.fee_amount.toLocaleString("fr-FR")} CDF</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Montant net</p><p className="text-xs font-semibold text-success">{detailW.net_amount.toLocaleString("fr-FR")} CDF</p></div>
                   <div><p className="text-[10px] text-muted-foreground">Date</p><p className="text-xs font-semibold text-foreground">{detailW.created_at ? new Date(detailW.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</p></div>
                 </div>
                 <div><p className="text-[10px] text-muted-foreground">ID</p><p className="text-[10px] font-mono text-muted-foreground break-all">{detailW.id}</p></div>
@@ -942,10 +944,10 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
             <div key={w.id} className="bg-card rounded-xl border border-secondary px-4 pt-4 pb-3 cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setDetailW(w)}>
               <div className="flex items-start justify-between mb-2">
                 <div>
-                  <p className="text-lg font-bold text-foreground">{w.amount.toLocaleString("fr-FR")} FCFA</p>
+                  <p className="text-lg font-bold text-foreground">{w.amount.toLocaleString("fr-FR")} CDF</p>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <ArrowDown size={12} className="text-success" />
-                    <span className="text-sm font-semibold text-success">Net : {w.net_amount.toLocaleString("fr-FR")} FCFA</span>
+                    <span className="text-sm font-semibold text-success">Net : {w.net_amount.toLocaleString("fr-FR")} CDF</span>
                     <span className="text-xs text-muted-foreground">(- {feePercent}%)</span>
                   </div>
                 </div>
@@ -957,7 +959,7 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
               <div className="border-t border-secondary my-2" />
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
                 <div><p className="text-[10px] text-muted-foreground">Client</p><p className="text-xs font-semibold text-foreground">{w.country_code} {w.phone}</p></div>
-                <div><p className="text-[10px] text-muted-foreground">Solde actuel</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("fr-FR")} FCFA` : "—"}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Solde actuel</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("fr-FR")} CDF` : "—"}</p></div>
                 <div><p className="text-[10px] text-muted-foreground">Nom</p><p className="text-xs font-semibold text-foreground">{p?.full_name || "—"}</p></div>
                 <div><p className="text-[10px] text-muted-foreground">Titulaire carte</p><p className="text-xs font-semibold text-foreground">{wallet?.holder_name || "—"}</p></div>
               </div>
@@ -1109,12 +1111,12 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
                   className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
               </div>
               <div>
-                <label className="text-[10px] text-muted-foreground">Invest. perso min (FCFA)</label>
+                <label className="text-[10px] text-muted-foreground">Invest. perso min (CDF)</label>
                 <input type="number" value={seriesConditions.min_personal_investment} onChange={e => setSeriesConditions({ ...seriesConditions, min_personal_investment: e.target.value })} placeholder="0"
                   className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
               </div>
               <div>
-                <label className="text-[10px] text-muted-foreground">Invest. équipe min (FCFA)</label>
+                <label className="text-[10px] text-muted-foreground">Invest. équipe min (CDF)</label>
                 <input type="number" value={seriesConditions.min_team_investment} onChange={e => setSeriesConditions({ ...seriesConditions, min_team_investment: e.target.value })} placeholder="0"
                   className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
               </div>
@@ -1145,7 +1147,7 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
             </button>
           )}
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-xs text-muted-foreground">Prix / Budget (FCFA)</label><input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
+            <div><label className="text-xs text-muted-foreground">Prix / Budget (CDF)</label><input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
             <div><label className="text-xs text-muted-foreground">Retour (%)</label><input type="number" value={form.return_percent} onChange={e => setForm({ ...form, return_percent: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
             <div><label className="text-xs text-muted-foreground">Revenu total</label><input type="number" value={form.total_revenue} onChange={e => setForm({ ...form, total_revenue: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
             <div><label className="text-xs text-muted-foreground">Revenu quotidien</label><input type="number" value={form.daily_revenue} onChange={e => setForm({ ...form, daily_revenue: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
@@ -1193,7 +1195,7 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
                             {p.stock_status === "sold_out" && <span className="text-[9px] bg-warning/20 text-warning px-1.5 py-0.5 rounded-full font-bold">ÉPUISÉ</span>}
                             {p.stock_status === "terminated" && <span className="text-[9px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full font-bold">TERMINÉ</span>}
                           </div>
-                          <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} FCFA • {p.return_percent}%</span>
+                          <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} CDF • {p.return_percent}%</span>
                         </div>
                         <div className="flex gap-1.5">
                           <button onClick={async () => { await supabase.from("products").update({ is_active: !p.is_active }).eq("id", p.id); reload(); }} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{p.is_active ? "ON" : "OFF"}</button>
@@ -2045,7 +2047,7 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
             <div className="flex justify-between"><span className="text-xs font-bold text-foreground">{editing ? "Modifier" : "Nouveau cadeau"}</span><button onClick={() => setShowForm(false)}><X size={14} className="text-muted-foreground" /></button></div>
             <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nom du cadeau" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
             <input type="number" value={form.points_required} onChange={e => setForm({ ...form, points_required: e.target.value })} placeholder="Points requis" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
-            <input type="number" value={form.money_value} onChange={e => setForm({ ...form, money_value: e.target.value })} placeholder="Montant en FCFA" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+            <input type="number" value={form.money_value} onChange={e => setForm({ ...form, money_value: e.target.value })} placeholder="Montant en CDF" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
             <input value={form.image_url} onChange={e => setForm({ ...form, image_url: e.target.value })} placeholder="URL image (optionnel)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
             <button onClick={saveReward} className="w-full gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm">{editing ? "Modifier" : "Ajouter"}</button>
           </div>
@@ -2058,7 +2060,7 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
                 {r.image_url ? <img src={r.image_url} className="w-10 h-10 rounded-lg object-cover" /> : <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Gift size={16} className="text-primary" /></div>}
                 <div>
                   <p className="text-sm font-semibold text-foreground">{r.name}</p>
-                  <p className="text-xs text-muted-foreground">{r.points_required} ESK → {Number(r.money_value || 0).toLocaleString("fr-FR")} FCFA</p>
+                  <p className="text-xs text-muted-foreground">{r.points_required} ESK → {Number(r.money_value || 0).toLocaleString("fr-FR")} CDF</p>
                 </div>
               </div>
               <div className="flex gap-1.5">
@@ -2443,6 +2445,82 @@ const AppSettingsTab = ({ settings, reload, showSuccess }: any) => {
 };
 
 // ==================== SETTINGS ====================
+// ==================== DATES TAB ====================
+const DatesTab = ({ settings, reload, showSuccess }: any) => {
+  const [edits, setEdits] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+
+  const getValue = (key: string) => edits[key] ?? settings.find((s: SiteSetting) => s.key === key)?.value ?? "";
+  const setVal = (key: string, val: string) => setEdits({ ...edits, [key]: val });
+
+  const saveAll = async () => {
+    setSaving(true);
+    for (const [key, value] of Object.entries(edits)) {
+      const existing = settings.find((s: SiteSetting) => s.key === key);
+      if (existing) {
+        await supabase.from("site_settings").update({ value }).eq("key", key);
+      } else {
+        await supabase.from("site_settings").insert({ key, value, category: "dates" });
+      }
+    }
+    setEdits({});
+    await reload();
+    setSaving(false);
+    showSuccess("Dates sauvegardées !");
+  };
+
+  const dateFields = [
+    { key: "manual_start_date", label: "Date de début", desc: "Date de démarrage des cycles / activations" },
+    { key: "manual_end_date", label: "Date de fin", desc: "Date d'expiration des cycles" },
+    { key: "manual_payment_date", label: "Date de paiement", desc: "Date prévue pour les paiements" },
+    { key: "manual_profit_date", label: "Date de profit", desc: "Date de calcul des profits" },
+    { key: "manual_cycle_date", label: "Date de cycle", desc: "Date de renouvellement des cycles" },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-lg font-bold text-foreground flex items-center gap-2"><Clock size={18} /> Contrôle manuel des dates</h2>
+      <p className="text-xs text-muted-foreground">Définissez des dates fixes que Emma et le système utiliseront à la place des calculs automatiques.</p>
+
+      {/* Toggle */}
+      <div className="bg-card rounded-xl border border-border/30 p-4 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-foreground">Utiliser les dates manuelles</p>
+          <p className="text-xs text-muted-foreground">Quand activé, le système utilisera ces dates au lieu des calculs automatiques</p>
+        </div>
+        <button
+          onClick={() => setVal("use_manual_dates", getValue("use_manual_dates") === "true" ? "false" : "true")}
+          className={`w-12 h-6 rounded-full transition-colors ${getValue("use_manual_dates") === "true" ? "bg-primary" : "bg-secondary"}`}
+        >
+          <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${getValue("use_manual_dates") === "true" ? "translate-x-6" : "translate-x-0.5"}`} />
+        </button>
+      </div>
+
+      {/* Date fields */}
+      <div className="grid gap-3">
+        {dateFields.map(({ key, label, desc }) => (
+          <div key={key} className="bg-card rounded-xl border border-border/30 p-4">
+            <label className="text-sm font-semibold text-foreground block mb-1">{label}</label>
+            <p className="text-[10px] text-muted-foreground mb-2">{desc}</p>
+            <input
+              type="date"
+              value={getValue(key)}
+              onChange={e => setVal(key, e.target.value)}
+              className="w-full bg-secondary text-foreground rounded-lg px-3 py-2 text-sm border border-secondary outline-none"
+            />
+          </div>
+        ))}
+      </div>
+
+      <button onClick={saveAll} disabled={saving || Object.keys(edits).length === 0}
+        className="w-full gradient-button text-primary-foreground font-semibold py-3 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-50">
+        <Save size={16} /> {saving ? "Sauvegarde..." : "Sauvegarder les dates"}
+      </button>
+    </div>
+  );
+};
+
+// ==================== SETTINGS TAB ====================
 const SettingsTab = ({ settings, reload, showSuccess }: any) => {
   const [edits, setEdits] = useState<Record<string, string>>({});
 
@@ -2467,15 +2545,15 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
     general: { label: "General", keys: [{ key: "site_name", label: "Nom du site" }, { key: "welcome_text", label: "Texte d'accueil" }, { key: "terms_url", label: "URL Conditions generales" }] },
     deposit: { label: "Depot", keys: [
       { key: "deposit_amounts", label: "Montants predefinis (separes par virgules)" },
-      { key: "deposit_min", label: "Depot minimum (FCFA)" },
-      { key: "deposit_max", label: "Depot maximum (FCFA)" },
+      { key: "deposit_min", label: "Depot minimum (CDF)" },
+      { key: "deposit_max", label: "Depot maximum (CDF)" },
       { key: "deposit_rules", label: "Regles (separees par |, {min} et {max} dynamiques)" },
       { key: "require_screenshot", label: "Exiger capture (true/false)" },
     ]},
     withdrawal: { label: "Retrait", keys: [
       { key: "withdrawal_amounts", label: "Montants predefinis (separes par virgules)" },
-      { key: "withdrawal_min", label: "Retrait minimum (FCFA)" },
-      { key: "withdrawal_max", label: "Retrait maximum (FCFA)" },
+      { key: "withdrawal_min", label: "Retrait minimum (CDF)" },
+      { key: "withdrawal_max", label: "Retrait maximum (CDF)" },
       { key: "withdrawal_fee_percent", label: "Frais de retrait (%)" },
       { key: "withdrawal_rules", label: "Regles (separees par |, {min} {max} {fee} dynamiques)" },
       { key: "max_withdrawals_per_day", label: "Nombre max de retraits par jour" },
@@ -2493,7 +2571,7 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
       { key: "referral_subtitle", label: "Sous-titre gains invitation" },
       { key: "referral_rules", label: "Règles (JSON array de textes)" },
     ] },
-    vip: { label: "Seuils VIP", keys: [{ key: "vip_threshold_1", label: "VIP1 (FCFA)" }, { key: "vip_threshold_2", label: "VIP2 (FCFA)" }, { key: "vip_threshold_3", label: "VIP3 (FCFA)" }, { key: "vip_threshold_4", label: "VIP4 (FCFA)" }, { key: "vip_threshold_5", label: "VIP5 (FCFA)" }] },
+    vip: { label: "Seuils VIP", keys: [{ key: "vip_threshold_1", label: "VIP1 (CDF)" }, { key: "vip_threshold_2", label: "VIP2 (CDF)" }, { key: "vip_threshold_3", label: "VIP3 (CDF)" }, { key: "vip_threshold_4", label: "VIP4 (CDF)" }, { key: "vip_threshold_5", label: "VIP5 (CDF)" }] },
   };
 
   const toggleKeys = [
@@ -3195,12 +3273,12 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-muted-foreground">Invest. perso min (FCFA)</label>
+                  <label className="text-xs text-muted-foreground">Invest. perso min (CDF)</label>
                   <input type="number" value={form.min_investment} onChange={e => setForm({ ...form, min_investment: e.target.value })}
                     className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">Invest. équipe min (FCFA)</label>
+                  <label className="text-xs text-muted-foreground">Invest. équipe min (CDF)</label>
                   <input type="number" value={form.min_team_investment} onChange={e => setForm({ ...form, min_team_investment: e.target.value })}
                     className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
                 </div>
@@ -3494,7 +3572,7 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
             <div key={log.id} className="bg-secondary/30 rounded-lg px-3 py-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold text-foreground">{log.amount.toLocaleString()} FCFA • {log.phone}</p>
+                  <p className="text-xs font-semibold text-foreground">{log.amount.toLocaleString()} CDF • {log.phone}</p>
                   <p className="text-[10px] text-muted-foreground">{log.provider_ref || "—"}</p>
                 </div>
                 <div className="text-right">

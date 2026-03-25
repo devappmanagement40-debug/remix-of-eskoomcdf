@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({
         success: true,
         amount: totalRevenue,
-        message: `+${totalRevenue.toLocaleString("fr-FR")} FCFA crédités (gains débloqués)`,
+        message: `+${totalRevenue.toLocaleString("fr-FR")} CDF crédités (gains débloqués)`,
       }), {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -247,7 +247,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({
       success: true,
       amount: dailyRevenue,
-      message: `+${dailyRevenue.toLocaleString("fr-FR")} FCFA crédités`,
+      message: `+${dailyRevenue.toLocaleString("fr-FR")} CDF crédités`,
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

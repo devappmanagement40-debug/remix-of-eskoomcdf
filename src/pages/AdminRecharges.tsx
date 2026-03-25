@@ -196,7 +196,7 @@ const AdminRecharges = () => {
                 {/* Amount + Status */}
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <p className="text-lg font-bold text-foreground">{r.amount.toLocaleString("fr-FR")} FCFA</p>
+                    <p className="text-lg font-bold text-foreground">{r.amount.toLocaleString("fr-FR")} CDF</p>
                   </div>
                   <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
                     r.status === "pending" ? "bg-warning/15 text-warning" :
@@ -225,7 +225,7 @@ const AdminRecharges = () => {
                   </div>
                   <div>
                     <p className="text-[10px] text-muted-foreground">Solde actuel :</p>
-                    <p className="text-xs font-semibold text-foreground">{profile ? `${(profile.balance || 0).toLocaleString("fr-FR")} FCFA` : "—"}</p>
+                    <p className="text-xs font-semibold text-foreground">{profile ? `${(profile.balance || 0).toLocaleString("fr-FR")} CDF` : "—"}</p>
                   </div>
                   <div>
                     <p className="text-[10px] text-muted-foreground">Référence :</p>
