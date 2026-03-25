@@ -15,52 +15,28 @@ Deno.serve(async (req) => {
     );
 
     const adminUserId = "258a9744-0f68-4351-87e3-ccc3396ca3c1";
+    const { page = 1 } = await req.json().catch(() => ({ page: 1 }));
+    const perPage = 50;
 
-    // Get all non-admin profiles
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("user_id")
-      .neq("user_id", adminUserId);
-
-    const userIds = (profiles || []).map((p: any) => p.user_id);
-    console.log(`Found ${userIds.length} non-admin users to delete`);
+    // List auth users
+    const { data: { users }, error } = await supabase.auth.admin.listUsers({ page, perPage });
+    if (error) throw error;
 
     let deleted = 0;
-    for (const uid of userIds) {
-      // Delete related data
-      await Promise.all([
-        supabase.from("user_products").delete().eq("user_id", uid),
-        supabase.from("recharges").delete().eq("user_id", uid),
-        supabase.from("withdrawals").delete().eq("user_id", uid),
-        supabase.from("chat_messages").delete().eq("user_id", uid),
-        supabase.from("wheel_spins").delete().eq("user_id", uid),
-        supabase.from("referral_commissions").delete().eq("beneficiary_id", uid),
-        supabase.from("referral_commissions").delete().eq("buyer_id", uid),
-        supabase.from("point_exchanges").delete().eq("user_id", uid),
-        supabase.from("gift_code_uses").delete().eq("user_id", uid),
-        supabase.from("vip_history").delete().eq("user_id", uid),
-        supabase.from("user_wallets").delete().eq("user_id", uid),
-        supabase.from("withdrawal_fee_payments").delete().eq("user_id", uid),
-        supabase.from("payment_logs").delete().eq("user_id", uid),
-        supabase.from("user_roles").delete().eq("user_id", uid),
-        supabase.from("admin_permissions").delete().eq("user_id", uid),
-      ]);
-
-      // Delete profile
-      await supabase.from("profiles").delete().eq("user_id", uid);
-
-      // Delete auth user
-      const { error } = await supabase.auth.admin.deleteUser(uid);
-      if (error) console.error(`Failed to delete auth user ${uid}:`, error.message);
-      else deleted++;
+    for (const user of users || []) {
+      if (user.id === adminUserId) continue;
+      const { error: delErr } = await supabase.auth.admin.deleteUser(user.id);
+      if (!delErr) deleted++;
+      else console.error(`Failed ${user.id}: ${delErr.message}`);
     }
 
-    return new Response(JSON.stringify({ success: true, deleted, total: userIds.length }), {
+    const hasMore = (users || []).length === perPage;
+
+    return new Response(JSON.stringify({ success: true, deleted, hasMore, page }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("Cleanup error:", err);
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
