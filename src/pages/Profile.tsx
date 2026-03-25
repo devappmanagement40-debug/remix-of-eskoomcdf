@@ -33,23 +33,8 @@ const Profile = () => {
   const { displaySettings } = useDisplaySettings();
   const { vipProgress } = useVipProgress(userId, profile.vip_level, profile.balance);
   const [showLogout, setShowLogout] = useState(false);
-  const [userProducts, setUserProducts] = useState<any[]>([]);
 
   const phone = profile.phone || "...";
-
-  // Fetch user products when display is enabled
-  useEffect(() => {
-    if (!userId || !displaySettings.profile_products_display_enabled) return;
-    const fetchProducts = async () => {
-      const { data } = await supabase
-        .from("user_products")
-        .select("id, product_id, is_active, purchased_at, products(name, image_url, price)")
-        .eq("user_id", userId)
-        .eq("is_active", true);
-      if (data) setUserProducts(data);
-    };
-    fetchProducts();
-  }, [userId, displaySettings.profile_products_display_enabled]);
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -151,32 +136,6 @@ const Profile = () => {
             </button>
           ))}
         </div>
-
-        {/* Produits actifs */}
-        {displaySettings.profile_products_display_enabled && userProducts.length > 0 && (
-          <div className="bg-card rounded-xl border border-secondary p-4 mb-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Package size={16} className="text-primary" />
-              <h3 className="text-sm font-bold text-foreground">Mes produits actifs</h3>
-              <span className="ml-auto text-xs font-bold text-primary">{vipProgress.currentLevelName}</span>
-            </div>
-            <div className="space-y-2">
-              {userProducts.map((up: any) => (
-                <div key={up.id} className="flex items-center gap-3 bg-secondary/50 rounded-lg p-3">
-                  {up.products?.image_url && (
-                    <img src={up.products.image_url} alt="" className="w-10 h-10 rounded-lg object-cover" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-foreground truncate">{up.products?.name || "Produit"}</p>
-                    <p className="text-[10px] text-muted-foreground">{up.products?.price?.toLocaleString('fr-FR')} CDF</p>
-                  </div>
-                  <span className="text-[10px] font-medium text-success">Actif</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
 
         <div className="bg-card rounded-xl border border-secondary p-4 mb-4">
           <div className="grid grid-cols-4 gap-x-2 gap-y-5">
