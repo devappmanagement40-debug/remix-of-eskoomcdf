@@ -151,11 +151,11 @@ const HistoriqueRetraits = () => {
                 <div className="grid grid-cols-2 gap-4 py-3 border-b border-secondary/50">
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Montant du retrait</p>
-                    <p className="text-lg font-bold text-foreground">{fmt(r.amount)} <span className="text-xs font-normal text-muted-foreground">CFA</span></p>
+                    <p className="text-lg font-bold text-foreground">{fmt(r.amount)} <span className="text-xs font-normal text-muted-foreground">CDF</span></p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground mb-1">Montant reçu</p>
-                    <p className="text-lg font-bold text-foreground">{fmt(r.net_amount)} <span className="text-xs font-normal text-muted-foreground">CFA</span></p>
+                    <p className="text-lg font-bold text-foreground">{fmt(r.net_amount)} <span className="text-xs font-normal text-muted-foreground">CDF</span></p>
                   </div>
                 </div>
 

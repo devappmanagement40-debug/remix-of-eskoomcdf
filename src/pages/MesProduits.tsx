@@ -346,7 +346,7 @@ const MesProduits = () => {
                     <div className="flex items-center justify-between">
                       <span className={`text-sm font-semibold ${textColor}`}>{isBlocked ? "Gain prévu" : "Revenu Total"}</span>
                       <span className="text-lg font-bold text-foreground">
-                        {totalRevenue.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">CFA</span>
+                        {totalRevenue.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">CDF</span>
                       </span>
                     </div>
 
@@ -387,7 +387,7 @@ const MesProduits = () => {
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-muted-foreground">Revenu obtenu</span>
                             <span className="text-sm text-foreground">
-                              {Number(earnedSoFar).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-xs text-muted-foreground">CFA</span>
+                              {Number(earnedSoFar).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-xs text-muted-foreground">CDF</span>
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
