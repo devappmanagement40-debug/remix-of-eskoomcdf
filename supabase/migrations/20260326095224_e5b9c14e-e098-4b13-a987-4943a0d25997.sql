@@ -1,0 +1,1 @@
+ALTER TABLE public.products ALTER COLUMN series_id DROP NOT NULL;
