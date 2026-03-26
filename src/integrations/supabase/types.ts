@@ -725,7 +725,7 @@ export type Database = {
           name: string
           price: number | null
           return_percent: number | null
-          series_id: string
+          series_id: string | null
           sort_order: number | null
           stock_status: string
           total_revenue: number | null
@@ -746,7 +746,7 @@ export type Database = {
           name: string
           price?: number | null
           return_percent?: number | null
-          series_id: string
+          series_id?: string | null
           sort_order?: number | null
           stock_status?: string
           total_revenue?: number | null
@@ -767,7 +767,7 @@ export type Database = {
           name?: string
           price?: number | null
           return_percent?: number | null
-          series_id?: string
+          series_id?: string | null
           sort_order?: number | null
           stock_status?: string
           total_revenue?: number | null

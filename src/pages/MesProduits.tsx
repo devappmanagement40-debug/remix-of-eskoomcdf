@@ -30,7 +30,7 @@ type UserProduct = {
     cycles: number | null;
     description: string | null;
     image_url: string | null;
-    series_id: string;
+    series_id: string | null;
     gain_type: string;
   } | null;
 };
