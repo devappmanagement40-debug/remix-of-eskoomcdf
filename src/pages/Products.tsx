@@ -19,7 +19,7 @@ type Series = {
   min_team_investment: number | null; min_active_members: number | null;
 };
 type Product = {
-  id: string; series_id: string; name: string; image_url: string | null;
+  id: string; series_id: string | null; name: string; image_url: string | null;
   return_percent: number | null; total_revenue: number | null; daily_revenue: number | null;
   cycles: number | null; price: number | null; is_new: boolean | null; is_active: boolean | null;
   max_purchases: number | null; stock_status: string;
@@ -239,6 +239,7 @@ const Products = () => {
   };
 
   const filtered = activeSeries === "all" ? products : products.filter(p => p.series_id === activeSeries);
+  // Products without series should always show in "all" tab (already covered above)
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -285,7 +286,7 @@ const Products = () => {
         ) : (
           <div className="space-y-3">
             {filtered.map(product => {
-              const productSeries = series.find(s => s.id === product.series_id);
+              const productSeries = product.series_id ? series.find(s => s.id === product.series_id) : null;
               const seriesColor = productSeries?.color || "primary";
               const missingConditions = productSeries ? checkSeriesAccess(productSeries) : [];
               const isLocked = missingConditions.length > 0;
