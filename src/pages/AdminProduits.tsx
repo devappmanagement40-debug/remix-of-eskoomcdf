@@ -141,8 +141,8 @@ const AdminProduits = () => {
     loadAll();
   };
 
-  const openProductForm = (seriesId: string, p?: Product) => {
-    setProductSeriesId(seriesId);
+  const openProductForm = (seriesId: string | null, p?: Product) => {
+    setProductSeriesId(seriesId || "");
     if (p) {
       setEditingProduct(p);
       setProductName(p.name);
