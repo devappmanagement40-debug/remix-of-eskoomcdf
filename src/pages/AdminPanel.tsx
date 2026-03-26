@@ -1040,7 +1040,7 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
   const saveProduct = async () => {
     if (!form.name.trim()) { showError("Erreur", "Nom requis"); return; }
     const payload: any = {
-      series_id: formSeriesId, name: form.name, image_url: form.image_url || null,
+      series_id: formSeriesId || null, name: form.name, image_url: form.image_url || null,
       return_percent: Number(form.return_percent) || 0, total_revenue: Number(form.total_revenue) || 0,
       daily_revenue: Number(form.daily_revenue) || 0, cycles: Number(form.cycles) || 365,
       price: Number(form.price) || 0, is_new: form.is_new,
