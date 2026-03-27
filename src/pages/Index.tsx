@@ -1,5 +1,5 @@
 import { Headphones, Mail, RefreshCw, ShoppingBag, Clock, Download, Users, TrendingUp } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
 import BottomNav from "@/components/BottomNav";
 import FloatingButtons from "@/components/FloatingButtons";
@@ -28,6 +28,7 @@ const fallbackBanners = [
 ];
 
 const Index = () => {
+  const location = useLocation();
   const navigate = useNavigate();
   const [currentBanner, setCurrentBanner] = useState(0);
   const [showService, setShowService] = useState(false);
@@ -61,15 +62,20 @@ const Index = () => {
     loadData();
   }, []);
 
-  // Auto-show promo popup every time user visits home
+  // Auto-show promo popup every time user lands on home
   useEffect(() => {
+    if (location.pathname !== "/") return;
+
+    setShowPromo(false);
+
     const timer = setTimeout(() => {
       supabase.from("popup_messages").select("id").eq("trigger_key", "welcome_promo").eq("is_active", true).maybeSingle().then(({ data }) => {
         if (data) setShowPromo(true);
       });
     }, 10000);
+
     return () => clearTimeout(timer);
-  }, []);
+  }, [location.pathname]);
 
   const nextBanner = useCallback(() => {
     setCurrentBanner((prev) => (prev + 1) % banners.length);
