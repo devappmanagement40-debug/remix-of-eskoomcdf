@@ -21,14 +21,12 @@ interface PremiumModalProps {
   onClose: () => void;
   onConfirm?: () => void;
   onCancel?: () => void;
-  /** Replace {username} etc in message */
   replacements?: Record<string, string>;
 }
 
 const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacements }: PremiumModalProps) => {
   const navigate = useNavigate();
   const [data, setData] = useState<PopupMessage | null>(null);
-  const [activeTab, setActiveTab] = useState(0);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -41,14 +39,12 @@ const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacem
         ]),
       ]).then(([{ data: msg }, { data: settings }]) => {
         if (msg) {
-          // Build a map of official URLs
           const urlMap: Record<string, string> = {};
           (settings || []).forEach((s: any) => { if (s.value) urlMap[s.key] = s.value; });
 
-          // Auto-fill empty tab URLs based on label keywords
           const rawTabs: Tab[] = msg.tabs ? (Array.isArray(msg.tabs) ? (msg.tabs as unknown as Tab[]) : []) : [];
           const enrichedTabs = rawTabs.map((tab) => {
-            if (tab.url) return tab; // Already has a URL, keep it
+            if (tab.url) return tab;
             const lbl = tab.label.toLowerCase();
             if (lbl.includes("whatsapp") && lbl.includes("group")) return { ...tab, url: urlMap["official_whatsapp_group"] || "" };
             if (lbl.includes("whatsapp")) return { ...tab, url: urlMap["official_whatsapp_link"] || "" };
@@ -57,7 +53,6 @@ const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacem
           });
 
           setData({ ...(msg as unknown as PopupMessage), tabs: enrichedTabs });
-          setActiveTab(0);
           requestAnimationFrame(() => setVisible(true));
         }
       });
@@ -81,16 +76,6 @@ const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacem
   const tabs: Tab[] = data.tabs ? (Array.isArray(data.tabs) ? data.tabs : []) : [];
 
   const handleConfirm = () => {
-    // Check if active tab has a URL
-    const currentTab = tabs.length > 0 ? tabs[activeTab] : null;
-    const tabUrl = currentTab?.url;
-    if (tabUrl) {
-      if (tabUrl.startsWith("http")) {
-        window.open(tabUrl, "_blank");
-      } else {
-        navigate(tabUrl);
-      }
-    }
     onConfirm?.();
     onClose();
   };
@@ -130,34 +115,34 @@ const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacem
 
         {/* Body */}
         <div className="bg-white px-6 py-5">
-          {/* Tabs if present */}
+          {/* Message text */}
+          <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line mb-4">
+            {message}
+          </p>
+
+          {/* Links displayed inline like the reference screenshot */}
           {tabs.length > 0 && (
-            <div className="flex gap-2 mb-4 flex-wrap">
+            <div className="space-y-3 mb-5">
               {tabs.map((tab, i) => (
-                <button
-                  key={i}
-                  onClick={() => setActiveTab(i)}
-                  className={`px-4 py-2 rounded-full text-sm font-semibold transition-all ${
-                    activeTab === i
-                      ? "text-white shadow-lg"
-                      : "bg-gray-200 text-gray-600 hover:bg-gray-300"
-                  }`}
-                  style={
-                    activeTab === i
-                      ? { background: "linear-gradient(135deg, hsl(174 72% 50%), hsl(200 80% 55%))" }
-                      : undefined
-                  }
-                >
-                  {tab.label}
-                </button>
+                <div key={i}>
+                  {tab.content && (
+                    <p className="text-gray-600 text-xs mb-1">{tab.content}</p>
+                  )}
+                  {tab.url && (
+                    <a
+                      href={tab.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm font-semibold break-all"
+                      style={{ color: "hsl(200 80% 50%)" }}
+                    >
+                      👉 {tab.url}
+                    </a>
+                  )}
+                </div>
               ))}
             </div>
           )}
-
-          {/* Message */}
-          <p className="text-gray-700 text-sm leading-relaxed mb-5">
-            {tabs.length > 0 && tabs[activeTab] ? tabs[activeTab].content : message}
-          </p>
 
           {/* Buttons */}
           <div className="flex gap-3">
