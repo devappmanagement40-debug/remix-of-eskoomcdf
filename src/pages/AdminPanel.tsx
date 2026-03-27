@@ -605,7 +605,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground">Inscription</p>
-                <p className="text-xs text-foreground">{p.created_at ? new Date(p.created_at).toLocaleDateString("fr-FR") : "—"}</p>
+                <p className="text-xs text-foreground">{p.created_at ? <p className="text-xs text-foreground">{p.created_at ? new Date(p.created_at).toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" }) : "—"}</p> : "—"}</p>
               </div>
             </div>
             <div className="flex gap-2 mt-3">
