@@ -143,7 +143,7 @@ const PointsCadeaux = () => {
     }
   };
 
-  const fmtDate = (d: string) => new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  const fmtDate = (d: string) => new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lubumbashi" });
 
   return (
     <div className="min-h-screen bg-background pb-20">

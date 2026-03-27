@@ -153,7 +153,7 @@ const Team = () => {
   const totalRevenue = levels.reduce((sum, l) => sum + l.revenue, 0);
 
   const openWhatsApp = (member: TeamMember) => {
-    const code = (member.country_code || "+226").replace("+", "");
+    const code = (member.country_code || "+243").replace("+", "");
     const num = (member.phone || "").replace(/\D/g, "");
     if (!num) return;
     window.open(`https://wa.me/${code}${num}?text=${WHATSAPP_MESSAGE}`, "_blank");
@@ -170,7 +170,7 @@ const Team = () => {
 
   const formatDate = (d: string | null) => {
     if (!d) return "—";
-    return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+    return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric", timeZone: "Africa/Lubumbashi" });
   };
 
   // If a level is expanded, show member list view

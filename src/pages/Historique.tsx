@@ -208,7 +208,7 @@ const Historique = () => {
   const fmt = (n: number) => n.toLocaleString("fr-FR", { minimumFractionDigits: 2 });
   const fmtDate = (d: string) => {
     const dt = new Date(d);
-    return dt.toLocaleDateString("fr-FR") + " " + dt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+    return dt.toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" }) + " " + dt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lubumbashi" });
   };
 
   return (
@@ -354,8 +354,8 @@ const Historique = () => {
 
 function fmtDateFull(d: string) {
   const dt = new Date(d);
-  return dt.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric" }) +
-    " à " + dt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  return dt.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Africa/Lubumbashi" }) +
+    " à " + dt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Africa/Lubumbashi" });
 }
 
 export default Historique;

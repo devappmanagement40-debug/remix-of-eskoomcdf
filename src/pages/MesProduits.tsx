@@ -301,7 +301,7 @@ const MesProduits = () => {
               const totalRevenue = gainType === "blocked" ? Number(product.total_revenue) || 0 : dailyRevenue * cycles;
               const earnedSoFar = up.total_collected || 0;
               const purchaseDate = up.purchased_at
-                ? new Date(up.purchased_at).toLocaleDateString("fr-FR")
+                ? new Date(up.purchased_at).toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" })
                 : "—";
               const collectible = canCollect(up);
               const color = getColor(up);

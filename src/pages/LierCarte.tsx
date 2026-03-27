@@ -34,7 +34,7 @@ const LierCarte = () => {
   const [countries, setCountries] = useState<{ id: string; code: string; name: string }[]>([]);
   const [withdrawalMethods, setWithdrawalMethods] = useState<WithdrawalMethod[]>([]);
 
-  const [countryCode, setCountryCode] = useState("+226");
+  const [countryCode, setCountryCode] = useState("+243");
   const [phone, setPhone] = useState("");
   const [network, setNetwork] = useState("");
   const [holderName, setHolderName] = useState("");
