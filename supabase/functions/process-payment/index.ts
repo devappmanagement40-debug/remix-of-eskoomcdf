@@ -56,9 +56,8 @@ serve(async (req) => {
 
     // Generate reference early so we can store it before calling the API
     const logId = crypto.randomUUID();
-    const omnipayRef = apiConfig.provider === 'omnipay' ? `OMN${logId.replace(/-/g, '').slice(0, 16)}` : null;
 
-    // Create payment log entry with provider_ref pre-set for OmniPay
+    // Create payment log entry
     const { data: logEntry, error: logErr } = await supabaseAdmin
       .from('payment_logs')
       .insert({
@@ -68,9 +67,8 @@ serve(async (req) => {
         payment_method_id: payment_method_id,
         amount,
         phone,
-        country_code: country_code || '+226',
+        country_code: country_code || '+243',
         status: 'initiated',
-        provider_ref: omnipayRef,
       })
       .select()
       .single();
@@ -94,9 +92,6 @@ serve(async (req) => {
         case 'sendavapay':
           paymentResult = await processSendavaPay(apiConfig, amount, phone, country_code, logEntry.id, payment_method_name);
           break;
-        case 'omnipay':
-          paymentResult = await processOmniPay(apiConfig, amount, phone, country_code, logEntry.id, payment_method_name, otp_code);
-          break;
         default:
           // Generic API call
           if (apiConfig.endpoint_url) {
@@ -116,7 +111,6 @@ serve(async (req) => {
       status: logStatus,
       error_message: paymentResult.error || null,
     };
-    // Only overwrite provider_ref if we have a new value (preserve pre-set OmniPay ref)
     if (paymentResult.provider_ref) {
       updateData.provider_ref = paymentResult.provider_ref;
     }
@@ -139,7 +133,7 @@ serve(async (req) => {
     await supabaseAdmin.from('recharges').insert({
       user_id: userId,
       phone,
-      country_code: country_code || '+226',
+      country_code: country_code || '+243',
       amount,
       transaction_ref: ref,
       payment_method: pm?.name || 'API',
