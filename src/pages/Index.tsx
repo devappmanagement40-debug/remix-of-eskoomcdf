@@ -248,6 +248,12 @@ const Index = () => {
         onConfirm={() => navigate("/service-chat")}
       />
 
+      <PremiumModal
+        triggerKey="welcome_promo"
+        open={showPromo}
+        onClose={() => setShowPromo(false)}
+      />
+
       <InviteModal open={showInvite} onClose={() => setShowInvite(false)} />
       <FloatingButtons />
       <BottomNav />
