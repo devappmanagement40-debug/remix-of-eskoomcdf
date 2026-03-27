@@ -153,7 +153,7 @@ serve(async (req) => {
 - Spins (tours de roue) restants : ${p.spins_balance || 0}
 - Niveau VIP : ${p.vip_level || 0} (${vipLevel})
 - Code de parrainage : ${p.referral_code || "Non généré"}
-- Inscrit depuis : ${new Date(p.created_at).toLocaleDateString("fr-FR")}
+- Inscrit depuis : ${new Date(p.created_at).toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" })}
 `;
     }
 
@@ -162,7 +162,7 @@ serve(async (req) => {
       userContext += `\nPRODUITS ACTIFS DE L'UTILISATEUR :\n`;
       (userProducts.data as any[]).forEach((up: any) => {
         const prod = up.products;
-        userContext += `- ${prod?.name || "Produit inconnu"} : acheté le ${new Date(up.purchased_at).toLocaleDateString("fr-FR")}, expire le ${up.expires_at ? new Date(up.expires_at).toLocaleDateString("fr-FR") : "N/A"}, revenus collectés : ${up.total_collected || 0} CDF sur ${prod?.total_revenue || "N/A"} CDF total\n`;
+        userContext += `- ${prod?.name || "Produit inconnu"} : acheté le ${new Date(up.purchased_at).toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" })}, expire le ${up.expires_at ? new Date(up.expires_at).toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" }) : "N/A"}, revenus collectés : ${up.total_collected || 0} CDF sur ${prod?.total_revenue || "N/A"} CDF total\n`;
       });
     }
 
@@ -182,7 +182,7 @@ serve(async (req) => {
         if (members.length === 0) return "";
         let txt = `  ${level} (${members.length} membres) :\n`;
         members.slice(0, 10).forEach((m: any) => {
-          txt += `    - ${m.full_name || "Sans nom"} | Tél: ${m.phone || "?"} | VIP ${m.vip_level || 0} | Solde: ${m.balance || 0} CDF | Inscrit: ${new Date(m.created_at).toLocaleDateString("fr-FR")}\n`;
+          txt += `    - ${m.full_name || "Sans nom"} | Tél: ${m.phone || "?"} | VIP ${m.vip_level || 0} | Solde: ${m.balance || 0} CDF | Inscrit: ${new Date(m.created_at).toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" })}\n`;
         });
         if (members.length > 10) txt += `    ... et ${members.length - 10} autres\n`;
         return txt;
@@ -196,14 +196,14 @@ serve(async (req) => {
     if (userRecharges?.data && userRecharges.data.length > 0) {
       userContext += `\nDERNIÈRES RECHARGES (dépôts) :\n`;
       userRecharges.data.forEach((r: any) => {
-        userContext += `- ${r.amount} CDF via ${r.payment_method || "N/A"} — statut : ${translateStatus(r.status)} — le ${new Date(r.created_at).toLocaleDateString("fr-FR")}\n`;
+        userContext += `- ${r.amount} CDF via ${r.payment_method || "N/A"} — statut : ${translateStatus(r.status)} — le ${new Date(r.created_at).toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" })}\n`;
       });
     }
 
     if (userWithdrawals?.data && userWithdrawals.data.length > 0) {
       userContext += `\nDERNIERS RETRAITS :\n`;
       userWithdrawals.data.forEach((w: any) => {
-        userContext += `- ${w.amount} CDF (net: ${w.net_amount} CDF, frais: ${w.fee_amount} CDF) via ${w.network} — statut : ${translateStatus(w.status)} — le ${new Date(w.created_at).toLocaleDateString("fr-FR")}\n`;
+        userContext += `- ${w.amount} CDF (net: ${w.net_amount} CDF, frais: ${w.fee_amount} CDF) via ${w.network} — statut : ${translateStatus(w.status)} — le ${new Date(w.created_at).toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" })}\n`;
       });
     }
 
