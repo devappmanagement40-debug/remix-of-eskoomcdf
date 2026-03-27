@@ -811,7 +811,6 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
 
   const handleAction = async (w: Withdrawal, status: "approved" | "rejected") => {
     if (status === "approved") {
-      // Use OmniPay for automatic transfer
       setAutoPayingId(w.id);
       try {
         const { data, error } = await supabase.functions.invoke("process-withdrawal", {
@@ -822,10 +821,9 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
           return;
         }
         if (data?.success) {
-          showSuccess("Transfert OmniPay", `Transfert initié ✅ | Ref: ${data.reference} | Op: ${data.operator || 'auto'}`);
+          showSuccess("Retrait validé", "Le retrait a été approuvé avec succès ✅");
         } else {
-          const refundMsg = data?.refunded ? "\nMontant recrédité." : "";
-          showError("Erreur OmniPay", (data?.error || "Le transfert a échoué") + refundMsg);
+          showError("Erreur", data?.error || "Le retrait a échoué");
         }
       } catch {
         showError("Erreur", "Erreur de connexion");
@@ -2578,7 +2576,7 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
     { key: "vip_conditions_enabled", label: "Conditions d'évolution VIP", desc: "Appliquer les règles pour passer au niveau VIP suivant" },
     { key: "vip_progress_bar_enabled", label: "Barre de progression VIP", desc: "Afficher la barre de progression vers le prochain VIP sur le profil" },
     { key: "profile_products_display_enabled", label: "Produits & VIP sur le profil", desc: "Afficher les produits achetés et le niveau VIP sur le profil utilisateur" },
-    { key: "withdrawal_mode_auto", label: "Mode retrait automatique (OmniPay)", desc: "Activé = retraits envoyés automatiquement via OmniPay. Désactivé = retraits manuels sans appel API" },
+    { key: "withdrawal_mode_auto", label: "Mode retrait automatique", desc: "Activé = retraits validés automatiquement. Désactivé = retraits manuels" },
   ];
 
   const getToggleValue = (key: string): boolean => {
@@ -3417,7 +3415,6 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
   };
 
   const providers = [
-    { value: "omnipay", label: "OmniPay" },
     { value: "sendavapay", label: "SendavaPay" },
     { value: "cinetpay", label: "CinetPay" },
     { value: "fedapay", label: "FedaPay" },
@@ -3429,11 +3426,7 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
   // Auto-fill defaults when provider changes
   const handleProviderChange = (provider: string) => {
     const updates: any = { provider };
-    if (provider === "omnipay") {
-      updates.endpoint_url = form.endpoint_url || "https://omnipay.webtechci.com";
-      updates.callback_url = form.callback_url || `https://vigdgbydpumkauibuxmn.supabase.co/functions/v1/omnipay-webhook`;
-      updates.secret_key = ""; // OmniPay n'utilise pas de secret key
-    } else if (provider === "sendavapay") {
+    if (provider === "sendavapay") {
       updates.endpoint_url = form.endpoint_url || "https://sendavapay.com";
       updates.callback_url = form.callback_url || `https://vigdgbydpumkauibuxmn.supabase.co/functions/v1/sendavapay-webhook`;
     }
