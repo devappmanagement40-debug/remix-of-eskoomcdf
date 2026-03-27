@@ -287,7 +287,7 @@ const WinnersSection = ({ spins, reload }: { spins: WheelSpin[]; reload: () => v
                     {s.prize_type === "vip" ? `VIP${s.vip_level}` : `${Number(s.prize_value).toLocaleString("fr-FR")} F`}
                   </span>
                   <p className="text-[10px] text-muted-foreground">
-                    {new Date(s.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    {new Date(s.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lubumbashi" })}
                   </p>
                 </div>
               </div>
@@ -429,7 +429,7 @@ const VipSpinsSection = ({ spins, reload, showSuccess, showError, logAction, adm
                   <p className="text-xs text-muted-foreground">{p?.full_name || "Utilisateur"} • {p?.phone || ""}</p>
                   <p className="text-xs text-muted-foreground">VIP actuel : {p?.vip_level || 0} → VIP{s.vip_level}</p>
                 </div>
-                <span className="text-[10px] text-muted-foreground">{new Date(s.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                <span className="text-[10px] text-muted-foreground"><span className="text-[10px] text-muted-foreground">{new Date(s.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lubumbashi" })}</span></span>
               </div>
               {s.status === "pending_vip" && (
                 <div className="grid grid-cols-2 gap-3 mt-3">

@@ -327,8 +327,8 @@ const Loterie = () => {
                 {globalSpins.map((s) => (
                   <div key={s.id} className="grid grid-cols-3 py-2.5 text-xs items-center">
                     <span className="text-muted-foreground">
-                      {new Date(s.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}{" "}
-                      {new Date(s.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(s.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", timeZone: "Africa/Lubumbashi" })}{" "}
+                      {new Date(s.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lubumbashi" })}
                     </span>
                     <span className="font-bold text-foreground">{s.masked_phone}</span>
                     <span className="text-right font-bold text-warning">
