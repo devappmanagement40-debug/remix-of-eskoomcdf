@@ -68,6 +68,7 @@ const tabs = [
   { key: "withdrawals", icon: Upload, label: "Retraits" },
   { key: "products", icon: Package, label: "Produits" },
   { key: "banners", icon: ImageIcon, label: "Bannières" },
+  { key: "annonces", icon: Bell, label: "Annonces" },
   { key: "wheel", icon: Activity, label: "Roue" },
   { key: "rewards", icon: Star, label: "Cadeaux" },
   { key: "giftcodes", icon: Gift, label: "Codes" },
@@ -290,6 +291,7 @@ const AdminPanel = () => {
         {activeTab === "wmethods" && <WithdrawalMethodsTab methods={withdrawalMethods} countries={countries} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "apiconfigs" && <ApiConfigsTab configs={apiConfigs} countries={countries} paymentLogs={paymentLogs} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "links" && <LinksTab links={socialLinks} reload={loadAll} showSuccess={showSuccess} />}
+        {activeTab === "annonces" && <AnnoncesTab reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "popups" && <PopupsTab popups={popups} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "vip" && <VipTab conditions={vipConditions} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "sarah" && <SarahTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}

@@ -63,16 +63,17 @@ const Index = () => {
 
   // Auto-show promo popup once per session
   useEffect(() => {
-    const key = "eskom_promo_shown";
-    if (!sessionStorage.getItem(key)) {
-      // Check if a welcome_promo popup exists
-      supabase.from("popup_messages").select("id").eq("trigger_key", "welcome_promo").eq("is_active", true).single().then(({ data }) => {
+    const key = "eskom_promo_shown_v2";
+    if (sessionStorage.getItem(key)) return;
+    const timer = setTimeout(() => {
+      supabase.from("popup_messages").select("id").eq("trigger_key", "welcome_promo").eq("is_active", true).maybeSingle().then(({ data }) => {
         if (data) {
           sessionStorage.setItem(key, "1");
-          setTimeout(() => setShowPromo(true), 1500);
+          setShowPromo(true);
         }
       });
-    }
+    }, 1500);
+    return () => clearTimeout(timer);
   }, []);
 
   const nextBanner = useCallback(() => {
