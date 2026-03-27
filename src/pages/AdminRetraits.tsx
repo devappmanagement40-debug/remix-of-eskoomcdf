@@ -46,15 +46,6 @@ type WalletInfo = {
   network: string;
 };
 
-type CallbackLog = {
-  id: string;
-  withdrawal_id: string | null;
-  reference: string;
-  status_code: string | null;
-  status_result: string;
-  message: string | null;
-  created_at: string;
-};
 
 const AdminRetraits = () => {
   const navigate = useNavigate();
@@ -64,8 +55,6 @@ const AdminRetraits = () => {
   const [feePayments, setFeePayments] = useState<FeePayment[]>([]);
   const [profiles, setProfiles] = useState<Record<string, ProfileInfo>>({});
   const [wallets, setWallets] = useState<Record<string, WalletInfo>>({});
-  const [callbacks, setCallbacks] = useState<Record<string, CallbackLog[]>>({});
-  const [expandedCallbacks, setExpandedCallbacks] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "pending" | "processing" | "approved" | "rejected">("pending");
   const [feeFilter, setFeeFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
@@ -150,24 +139,6 @@ const AdminRetraits = () => {
           const wmap: Record<string, WalletInfo> = {};
           walletsData.forEach(w => { wmap[w.id] = w; });
           setWallets(wmap);
-        }
-      }
-      const withdrawalIds = data.map(d => d.id);
-      if (withdrawalIds.length > 0) {
-        const { data: cbData } = await supabase
-          .from("omnipay_callbacks")
-          .select("*")
-          .in("withdrawal_id", withdrawalIds)
-          .order("created_at", { ascending: false });
-        if (cbData) {
-          const cbMap: Record<string, CallbackLog[]> = {};
-          (cbData as any[]).forEach((cb: any) => {
-            if (cb.withdrawal_id) {
-              if (!cbMap[cb.withdrawal_id]) cbMap[cb.withdrawal_id] = [];
-              cbMap[cb.withdrawal_id].push(cb);
-            }
-          });
-          setCallbacks(cbMap);
         }
       }
     }
@@ -508,41 +479,6 @@ const AdminRetraits = () => {
                       </div>
                     )}
 
-                    {callbacks[r.id] && callbacks[r.id].length > 0 && (
-                      <div className="mt-2">
-                        <button
-                          onClick={() => {
-                            const s = new Set(expandedCallbacks);
-                            s.has(r.id) ? s.delete(r.id) : s.add(r.id);
-                            setExpandedCallbacks(s);
-                          }}
-                          className="flex items-center gap-1.5 text-[11px] font-semibold text-primary"
-                        >
-                          <History size={12} />
-                          Historique callbacks ({callbacks[r.id].length})
-                          {expandedCallbacks.has(r.id) ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                        </button>
-                        {expandedCallbacks.has(r.id) && (
-                          <div className="mt-2 space-y-2">
-                            {callbacks[r.id].map(cb => (
-                              <div key={cb.id} className={`p-2 rounded-lg border text-[10px] ${cb.status_result === "success" ? "bg-success/5 border-success/20" : "bg-destructive/5 border-destructive/20"}`}>
-                                <div className="flex items-center justify-between mb-1">
-                                  <span className={`font-bold ${cb.status_result === "success" ? "text-success" : "text-destructive"}`}>
-                                    {cb.status_result === "success" ? "✅ Succès" : "❌ Échec"}
-                                  </span>
-                                  <span className="text-muted-foreground">{formatDate(cb.created_at)}</span>
-                                </div>
-                                <div className="grid grid-cols-2 gap-1 text-muted-foreground">
-                                  <span>Ref: {cb.reference}</span>
-                                  <span>Code: {cb.status_code || "—"}</span>
-                                  <span>Msg: {cb.message || "—"}</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    )}
 
                     {r.status === "pending" && (
                       <div className="mt-2">
