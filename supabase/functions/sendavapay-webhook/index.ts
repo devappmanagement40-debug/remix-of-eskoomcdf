@@ -58,7 +58,7 @@ serve(async (req) => {
     }
 
     // SendavaPay callback format (flat):
-    // { reference: "PTR_xxx", status: "SUCCESS", amount: "5000", fee: "350", netAmount: "4650", currency: "XOF", provider: "omnipay" }
+    // { reference: "PTR_xxx", status: "SUCCESS", amount: "5000", fee: "350", netAmount: "4650", currency: "CDF" }
     // Also support wrapped format: { event: "payment.completed", data: { reference, ... } }
     const event = req.headers.get('x-sendavapay-event') || payload.event;
     const webhookData = payload.data || payload;
