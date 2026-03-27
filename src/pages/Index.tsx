@@ -32,6 +32,7 @@ const Index = () => {
   const [currentBanner, setCurrentBanner] = useState(0);
   const [showService, setShowService] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
+  const [showPromo, setShowPromo] = useState(false);
   const [banners, setBanners] = useState<{ image_url: string; link_path: string }[]>(fallbackBanners);
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [annonces, setAnnonces] = useState<any[]>([]);
@@ -58,6 +59,20 @@ const Index = () => {
       }
     };
     loadData();
+  }, []);
+
+  // Auto-show promo popup once per session
+  useEffect(() => {
+    const key = "eskom_promo_shown";
+    if (!sessionStorage.getItem(key)) {
+      // Check if a welcome_promo popup exists
+      supabase.from("popup_messages").select("id").eq("trigger_key", "welcome_promo").eq("is_active", true).single().then(({ data }) => {
+        if (data) {
+          sessionStorage.setItem(key, "1");
+          setTimeout(() => setShowPromo(true), 1500);
+        }
+      });
+    }
   }, []);
 
   const nextBanner = useCallback(() => {
@@ -231,6 +246,12 @@ const Index = () => {
         open={showService}
         onClose={() => setShowService(false)}
         onConfirm={() => navigate("/service-chat")}
+      />
+
+      <PremiumModal
+        triggerKey="welcome_promo"
+        open={showPromo}
+        onClose={() => setShowPromo(false)}
       />
 
       <InviteModal open={showInvite} onClose={() => setShowInvite(false)} />
