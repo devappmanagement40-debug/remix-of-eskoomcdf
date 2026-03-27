@@ -61,18 +61,13 @@ const Index = () => {
     loadData();
   }, []);
 
-  // Auto-show promo popup once per session
+  // Auto-show promo popup every time user visits home
   useEffect(() => {
-    const key = "eskom_promo_shown_v2";
-    if (sessionStorage.getItem(key)) return;
     const timer = setTimeout(() => {
       supabase.from("popup_messages").select("id").eq("trigger_key", "welcome_promo").eq("is_active", true).maybeSingle().then(({ data }) => {
-        if (data) {
-          sessionStorage.setItem(key, "1");
-          setShowPromo(true);
-        }
+        if (data) setShowPromo(true);
       });
-    }, 1500);
+    }, 10000);
     return () => clearTimeout(timer);
   }, []);
 
