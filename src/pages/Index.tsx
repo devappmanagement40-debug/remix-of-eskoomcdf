@@ -64,8 +64,6 @@ const Index = () => {
 
   // Auto-show promo popup every time user lands on home
   useEffect(() => {
-    if (location.pathname !== "/") return;
-
     setShowPromo(false);
 
     const timer = setTimeout(() => {
@@ -75,7 +73,7 @@ const Index = () => {
     }, 10000);
 
     return () => clearTimeout(timer);
-  }, [location.pathname]);
+  }, [location.key]);
 
   const nextBanner = useCallback(() => {
     setCurrentBanner((prev) => (prev + 1) % banners.length);
