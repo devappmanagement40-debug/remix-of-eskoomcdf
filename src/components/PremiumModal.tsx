@@ -36,8 +36,8 @@ const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacem
       Promise.all([
         supabase.from("popup_messages").select("*").eq("trigger_key", triggerKey).eq("is_active", true).single(),
         supabase.from("site_settings").select("key, value").in("key", [
-          "official_whatsapp_link", "official_telegram_link",
-          "official_whatsapp_group", "official_telegram_group",
+          "official_whatsapp_link",
+          "official_whatsapp_group",
         ]),
       ]).then(([{ data: msg }, { data: settings }]) => {
         if (msg) {
@@ -52,9 +52,7 @@ const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacem
             const lbl = tab.label.toLowerCase();
             if (lbl.includes("whatsapp") && lbl.includes("group")) return { ...tab, url: urlMap["official_whatsapp_group"] || "" };
             if (lbl.includes("whatsapp")) return { ...tab, url: urlMap["official_whatsapp_link"] || "" };
-            if (lbl.includes("telegram") && lbl.includes("group")) return { ...tab, url: urlMap["official_telegram_group"] || "" };
-            if (lbl.includes("telegram")) return { ...tab, url: urlMap["official_telegram_link"] || "" };
-            if (lbl.includes("groupe")) return { ...tab, url: urlMap["official_whatsapp_group"] || urlMap["official_telegram_group"] || "" };
+            if (lbl.includes("groupe")) return { ...tab, url: urlMap["official_whatsapp_group"] || "" };
             return tab;
           });
 
