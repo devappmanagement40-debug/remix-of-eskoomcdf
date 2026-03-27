@@ -32,6 +32,7 @@ const Index = () => {
   const [currentBanner, setCurrentBanner] = useState(0);
   const [showService, setShowService] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
+  const [showPromo, setShowPromo] = useState(false);
   const [banners, setBanners] = useState<{ image_url: string; link_path: string }[]>(fallbackBanners);
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [annonces, setAnnonces] = useState<any[]>([]);
