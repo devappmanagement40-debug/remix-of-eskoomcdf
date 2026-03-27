@@ -3119,7 +3119,7 @@ const CountriesTab = ({ countries, methods, withdrawalMethods = [], reload, show
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-muted-foreground">Indicatif</label>
-              <input value={form.country_code} onChange={e => setForm({ ...form, country_code: e.target.value })} <input value={form.country_code} onChange={e => setForm({ ...form, country_code: e.target.value })} placeholder="+243" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /> className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+              <input value={form.country_code} onChange={e => setForm({ ...form, country_code: e.target.value })} placeholder="+243" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
             </div>
             <div>
               <label className="text-xs text-muted-foreground">Chiffres requis</label>
