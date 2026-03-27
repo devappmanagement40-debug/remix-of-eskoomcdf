@@ -2634,11 +2634,9 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
 // ==================== OFFICIAL INFO ====================
 const OfficialInfoTab = ({ settings, reload, showSuccess }: { settings: SiteSetting[]; reload: () => void; showSuccess: (t: string, m: string) => void }) => {
   const fields = [
-    { key: "official_service_phone", label: "Numéro du service client", placeholder: "+226 XX XX XX XX" },
-    { key: "official_whatsapp_link", label: "Lien WhatsApp", placeholder: "https://wa.me/226XXXXXXXX" },
-    { key: "official_telegram_link", label: "Lien Telegram", placeholder: "https://t.me/username" },
+    { key: "official_service_phone", label: "Numéro du service client", placeholder: "+243 XX XXX XXXX" },
+    { key: "official_whatsapp_link", label: "Lien WhatsApp", placeholder: "https://wa.me/243XXXXXXXX" },
     { key: "official_whatsapp_group", label: "Lien Groupe WhatsApp", placeholder: "https://chat.whatsapp.com/..." },
-    { key: "official_telegram_group", label: "Lien Groupe Telegram", placeholder: "https://t.me/groupname" },
     { key: "official_private_group_msg", label: "Message Groupe Privé Investisseurs", placeholder: "Message affiché quand on demande le groupe privé...", multiline: true },
     { key: "official_welcome_message", label: "Message automatique de bienvenue", placeholder: "Bienvenue sur ESKOM...", multiline: true },
   ];

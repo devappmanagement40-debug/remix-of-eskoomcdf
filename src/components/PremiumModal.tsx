@@ -36,8 +36,8 @@ const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacem
       Promise.all([
         supabase.from("popup_messages").select("*").eq("trigger_key", triggerKey).eq("is_active", true).single(),
         supabase.from("site_settings").select("key, value").in("key", [
-          "official_whatsapp_link", "official_telegram_link",
-          "official_whatsapp_group", "official_telegram_group",
+          "official_whatsapp_link",
+          "official_whatsapp_group",
         ]),
       ]).then(([{ data: msg }, { data: settings }]) => {
         if (msg) {
