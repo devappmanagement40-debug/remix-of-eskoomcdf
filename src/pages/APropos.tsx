@@ -63,10 +63,9 @@ const APropos = () => {
         <div className="bg-card rounded-xl border border-secondary p-5">
           <h3 className="text-base font-bold text-foreground mb-3">Notre expansion en Afrique</h3>
           <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-            Présent dans plus de 12 pays africains, ESKOM s'est implanté stratégiquement 
-            en Afrique de l'Ouest, en Afrique Centrale et en Afrique de l'Est. Notre réseau 
-            couvre notamment le Burkina Faso, la Côte d'Ivoire, le Sénégal, le Mali, le Cameroun, 
-            la République Démocratique du Congo, le Togo, le Bénin, la Guinée, le Niger, 
+            Présent dans plusieurs pays africains, ESKOM s'est implanté stratégiquement 
+            en Afrique Centrale et en Afrique de l'Est. Notre réseau 
+            couvre notamment la République Démocratique du Congo, le Cameroun, 
             le Gabon et le Kenya.
           </p>
           <p className="text-sm text-muted-foreground leading-relaxed">

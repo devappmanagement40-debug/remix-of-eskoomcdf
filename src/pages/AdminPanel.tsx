@@ -1333,13 +1333,13 @@ const BannersTab = ({ banners, reload, showSuccess, showError }: any) => {
 const PaymentsTab = ({ methods, countries, apiConfigs, reload, showSuccess, showError }: any) => {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<PaymentMethod | null>(null);
-  const [form, setForm] = useState({ name: "", country: "Burkina Faso", phone: "", holder_name: "", instructions: "", country_id: "", payment_type: "manual", external_url: "", logo_url: "", api_config_id: "" });
+  const [form, setForm] = useState({ name: "", country: "Congo-Kinshasa", phone: "", holder_name: "", instructions: "", country_id: "", payment_type: "manual", external_url: "", logo_url: "", api_config_id: "" });
   const [uploading, setUploading] = useState(false);
   const logoRef = useRef<HTMLInputElement>(null);
 
   const openForm = (m?: PaymentMethod) => {
     if (m) { setEditing(m); setForm({ name: m.name, country: m.country, phone: m.phone || "", holder_name: m.holder_name || "", instructions: m.instructions || "", country_id: m.country_id || "", payment_type: m.payment_type || "manual", external_url: m.external_url || "", logo_url: m.logo_url || "", api_config_id: (m as any).api_config_id || "" }); }
-    else { setEditing(null); setForm({ name: "", country: "Burkina Faso", phone: "", holder_name: "", instructions: "", country_id: "", payment_type: "manual", external_url: "", logo_url: "", api_config_id: "" }); }
+    else { setEditing(null); setForm({ name: "", country: "Congo-Kinshasa", phone: "", holder_name: "", instructions: "", country_id: "", payment_type: "manual", external_url: "", logo_url: "", api_config_id: "" }); }
     setShowForm(true);
   };
 
@@ -3119,7 +3119,7 @@ const CountriesTab = ({ countries, methods, withdrawalMethods = [], reload, show
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-muted-foreground">Indicatif</label>
-              <input value={form.country_code} onChange={e => setForm({ ...form, country_code: e.target.value })} placeholder="+226" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+              <input value={form.country_code} onChange={e => setForm({ ...form, country_code: e.target.value })} <input value={form.country_code} onChange={e => setForm({ ...form, country_code: e.target.value })} placeholder="+243" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /> className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
             </div>
             <div>
               <label className="text-xs text-muted-foreground">Chiffres requis</label>

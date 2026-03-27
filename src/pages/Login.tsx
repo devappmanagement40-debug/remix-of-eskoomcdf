@@ -15,7 +15,7 @@ const Login = () => {
   const { validatePhone } = usePhoneValidation();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [countryCode, setCountryCode] = useState("+226");
+  const [countryCode, setCountryCode] = useState("+243");
   const [loading, setLoading] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [userName, setUserName] = useState("");

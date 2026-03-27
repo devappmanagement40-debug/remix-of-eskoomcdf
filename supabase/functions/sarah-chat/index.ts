@@ -144,7 +144,7 @@ serve(async (req) => {
       userContext += `\nPROFIL COMPLET DE L'UTILISATEUR ACTUEL :
 - Nom : ${p.full_name || "Non renseigné"}
 - Téléphone : ${p.phone || "Non renseigné"}
-- Indicatif pays : ${p.country_code || "+226"}
+- Indicatif pays : ${p.country_code || "+243"}
 - Solde total (balance) : ${p.balance || 0} CDF
 - Solde dépôt : ${p.deposit_balance || 0} CDF
 - Solde gains : ${p.earnings_balance || 0} CDF

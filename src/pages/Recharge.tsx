@@ -21,7 +21,7 @@ const Recharge = () => {
   const { validatePhone } = usePhoneValidation();
   const [amount, setAmount] = useState("");
   const [phone, setPhone] = useState("");
-  const [countryCode, setCountryCode] = useState("+226");
+  const [countryCode, setCountryCode] = useState("+243");
   const [presetAmounts, setPresetAmounts] = useState<number[]>([5000, 10000, 20000, 50000, 100000, 200000]);
   const [minAmount, setMinAmount] = useState(1000);
   const [maxAmount, setMaxAmount] = useState(1000000);
