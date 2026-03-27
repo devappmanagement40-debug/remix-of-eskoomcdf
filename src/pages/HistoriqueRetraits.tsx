@@ -38,7 +38,7 @@ const statusLabel = (s: string) => {
 
 const fmtDate = (d: string) => {
   const dt = new Date(d);
-  return dt.toLocaleDateString("fr-FR") + " " + dt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  return dt.toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" }) + " " + dt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Africa/Lubumbashi" });
 };
 
 const fmt = (n: number) => n.toLocaleString("fr-FR", { minimumFractionDigits: 2 });
