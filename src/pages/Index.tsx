@@ -1,5 +1,5 @@
 import { Headphones, Mail, RefreshCw, ShoppingBag, Clock, Download, Users, TrendingUp } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect, useCallback } from "react";
 import BottomNav from "@/components/BottomNav";
 import FloatingButtons from "@/components/FloatingButtons";
