@@ -1511,6 +1511,115 @@ const LinksTab = ({ links, reload, showSuccess }: any) => {
 };
 
 // ==================== POPUPS ====================
+// ==================== ANNONCES TAB ====================
+type TabItem = { label: string; content: string; url?: string };
+
+const AnnoncesTab = ({ reload, showSuccess, showError }: any) => {
+  const [popup, setPopup] = useState<PopupMsg | null>(null);
+  const [form, setForm] = useState<Partial<PopupMsg>>({});
+  const [tabs, setTabs] = useState<TabItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = async () => {
+    const { data } = await supabase.from("popup_messages").select("*").eq("trigger_key", "welcome_promo").maybeSingle();
+    if (data) {
+      setPopup(data as unknown as PopupMsg);
+      setForm({ title: data.title, message: data.message, button_confirm: data.button_confirm, button_cancel: data.button_cancel, is_active: data.is_active });
+      setTabs(Array.isArray(data.tabs) ? (data.tabs as unknown as TabItem[]) : []);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const save = async () => {
+    if (!popup) return;
+    const { error } = await supabase.from("popup_messages").update({
+      title: form.title, message: form.message,
+      button_confirm: form.button_confirm, button_cancel: form.button_cancel || null,
+      tabs: tabs.length > 0 ? tabs as any : null, is_active: form.is_active,
+    }).eq("id", popup.id);
+    if (error) showError("Erreur", "Impossible de sauvegarder");
+    else { showSuccess("Sauvegardé ✅", "Annonce mise à jour"); load(); reload(); }
+  };
+
+  if (loading) return <div className="flex justify-center py-10"><Loader2 className="animate-spin text-primary" size={24} /></div>;
+  if (!popup) return <p className="text-center text-muted-foreground py-10">Aucune annonce configurée</p>;
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card rounded-xl border border-secondary p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-bold text-foreground">Popup de bienvenue</h3>
+          <button onClick={async () => {
+            await supabase.from("popup_messages").update({ is_active: !popup.is_active }).eq("id", popup.id);
+            load(); reload();
+          }} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${popup.is_active ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"}`}>
+            {popup.is_active ? "✅ Actif" : "❌ Inactif"}
+          </button>
+        </div>
+
+        <div>
+          <label className="text-xs text-muted-foreground block mb-1">Titre</label>
+          <input value={form.title || ""} onChange={e => setForm({ ...form, title: e.target.value })}
+            className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+        </div>
+
+        <div>
+          <label className="text-xs text-muted-foreground block mb-1">Message</label>
+          <textarea value={form.message || ""} onChange={e => setForm({ ...form, message: e.target.value })}
+            rows={3} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none resize-none" />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Bouton Confirmer</label>
+            <input value={form.button_confirm || ""} onChange={e => setForm({ ...form, button_confirm: e.target.value })}
+              className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground block mb-1">Bouton Annuler (vide = aucun)</label>
+            <input value={form.button_cancel || ""} onChange={e => setForm({ ...form, button_cancel: e.target.value })}
+              className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+          </div>
+        </div>
+
+        {/* Tabs / Onglets */}
+        <div>
+          <label className="text-xs text-muted-foreground block mb-2">Onglets (boutons dans le popup)</label>
+          {tabs.map((tab, i) => (
+            <div key={i} className="bg-secondary/50 rounded-lg p-3 mb-2 space-y-2">
+              <input value={tab.label} onChange={e => {
+                const n = [...tabs]; n[i] = { ...n[i], label: e.target.value }; setTabs(n);
+              }} placeholder="Nom de l'onglet"
+                className="w-full bg-secondary text-foreground rounded-lg px-3 py-2 text-sm outline-none" />
+              <textarea value={tab.content} onChange={e => {
+                const n = [...tabs]; n[i] = { ...n[i], content: e.target.value }; setTabs(n);
+              }} rows={2} placeholder="Contenu"
+                className="w-full bg-secondary text-foreground rounded-lg px-3 py-2 text-sm outline-none resize-none" />
+              <input value={tab.url || ""} onChange={e => {
+                const n = [...tabs]; n[i] = { ...n[i], url: e.target.value }; setTabs(n);
+              }} placeholder="URL (ex: /service-chat, https://wa.me/...)"
+                className="w-full bg-secondary text-foreground rounded-lg px-3 py-2 text-sm outline-none" />
+              <button onClick={() => setTabs(tabs.filter((_, idx) => idx !== i))} className="text-destructive text-xs flex items-center gap-1">
+                <Trash2 size={12} /> Supprimer
+              </button>
+            </div>
+          ))}
+          <button onClick={() => setTabs([...tabs, { label: "Nouveau", content: "", url: "" }])}
+            className="text-primary text-xs flex items-center gap-1 mt-1">
+            <Plus size={12} /> Ajouter un onglet
+          </button>
+        </div>
+
+        <button onClick={save} className="w-full gradient-button text-primary-foreground text-sm font-bold py-3 rounded-xl flex items-center justify-center gap-2">
+          <Save size={14} /> Sauvegarder l'annonce
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const PopupsTab = ({ popups, reload, showSuccess, showError }: any) => {
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<PopupMsg>>({});
