@@ -70,7 +70,7 @@ const Index = () => {
       supabase.from("popup_messages").select("id").eq("trigger_key", "welcome_promo").eq("is_active", true).maybeSingle().then(({ data }) => {
         if (data) setShowPromo(true);
       });
-    }, 10000);
+    }, 1000);
 
     return () => clearTimeout(timer);
   }, [location.key]);
