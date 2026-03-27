@@ -28,6 +28,7 @@ const fallbackBanners = [
 ];
 
 const Index = () => {
+  const location = useLocation();
   const navigate = useNavigate();
   const [currentBanner, setCurrentBanner] = useState(0);
   const [showService, setShowService] = useState(false);
