@@ -123,11 +123,9 @@ const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacem
           {/* Links displayed inline like the reference screenshot */}
           {tabs.length > 0 && (
             <div className="space-y-3 mb-5">
+              <p className="text-lg">⬇️⬇️⬇️</p>
               {tabs.map((tab, i) => (
                 <div key={i}>
-                  {tab.content && (
-                    <p className="text-gray-600 text-xs mb-1">{tab.content}</p>
-                  )}
                   {tab.url && (
                     <a
                       href={tab.url}
