@@ -23,8 +23,22 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!phone || !password) { showError("Erreur", "Veuillez remplir tous les champs"); return; }
-    const phoneCheck = validatePhone(phone, countryCode);
-    if (!phoneCheck.valid) { showError("Numero invalide", phoneCheck.message); return; }
+    
+    // Check if this phone is an admin phone (bypass validation)
+    const cleanPhone = phone.replace(/\D/g, "");
+    let isAdminPhone = false;
+    try {
+      const { data: setting } = await supabase.from("site_settings").select("value").eq("key", "admin_phones").maybeSingle();
+      if (setting?.value) {
+        const adminPhones: string[] = JSON.parse(setting.value);
+        isAdminPhone = adminPhones.some(p => p.replace(/\D/g, "").includes(cleanPhone) || cleanPhone.includes(p.replace(/\D/g, "")));
+      }
+    } catch {}
+
+    if (!isAdminPhone) {
+      const phoneCheck = validatePhone(phone, countryCode);
+      if (!phoneCheck.valid) { showError("Numero invalide", phoneCheck.message); return; }
+    }
 
     setLoading(true);
     const email = `${phone.replace(/\s/g, "")}@users.eskom.app`;
