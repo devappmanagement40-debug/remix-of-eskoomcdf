@@ -50,7 +50,6 @@ type CallbackLog = {
   id: string;
   withdrawal_id: string | null;
   reference: string;
-  omnipay_id: string | null;
   status_code: string | null;
   status_result: string;
   message: string | null;
@@ -191,7 +190,7 @@ const AdminRetraits = () => {
     loadData();
   };
 
-  const handleOmniPayTransfer = async (item: Withdrawal) => {
+  const handleAutoTransfer = async (item: Withdrawal) => {
     setAutoPayingId(item.id);
     try {
       const { data, error } = await supabase.functions.invoke("process-withdrawal", {
@@ -204,11 +203,10 @@ const AdminRetraits = () => {
       }
 
       if (data?.success) {
-        showSuccess("Transfert OmniPay", `Transfert envoyé ⏳ | Ref: ${data.reference} | Opérateur: ${data.operator || 'auto'}`);
+        showSuccess("Retrait validé", "Le retrait a été approuvé avec succès ✅");
         loadData();
       } else {
-        const refundMsg = data?.refunded ? "\nLe montant a été recrédité au compte." : "";
-        showError("Erreur OmniPay", (data?.error || "Le transfert a échoué") + refundMsg);
+        showError("Erreur", data?.error || "Le retrait a échoué");
         loadData();
       }
     } catch {
@@ -499,7 +497,7 @@ const AdminRetraits = () => {
                     {r.status === "pending" && (
                       <div className={`flex items-center gap-1.5 text-[10px] font-semibold mt-3 mb-2 ${isAutoForWithdrawal(r) ? "text-primary" : "text-warning"}`}>
                         {isAutoForWithdrawal(r) ? <Zap size={12} /> : <Hand size={12} />}
-                        Mode : {isAutoForWithdrawal(r) ? "Automatique (OmniPay)" : "Manuel"} — {r.country_code}
+                        Mode : {isAutoForWithdrawal(r) ? "Automatique" : "Manuel"} — {r.country_code}
                       </div>
                     )}
 
@@ -535,7 +533,6 @@ const AdminRetraits = () => {
                                   <span className="text-muted-foreground">{formatDate(cb.created_at)}</span>
                                 </div>
                                 <div className="grid grid-cols-2 gap-1 text-muted-foreground">
-                                  <span>ID: {cb.omnipay_id || "—"}</span>
                                   <span>Ref: {cb.reference}</span>
                                   <span>Code: {cb.status_code || "—"}</span>
                                   <span>Msg: {cb.message || "—"}</span>
@@ -552,7 +549,7 @@ const AdminRetraits = () => {
                         <div className="grid grid-cols-2 gap-3">
                           {isAutoForWithdrawal(r) ? (
                             <button
-                              onClick={() => handleOmniPayTransfer(r)}
+                              onClick={() => handleAutoTransfer(r)}
                               disabled={autoPayingId === r.id}
                               className="flex items-center justify-center gap-2 bg-success text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50"
                             >
@@ -583,7 +580,7 @@ const AdminRetraits = () => {
                       <div className="mt-3 p-3 rounded-lg bg-warning/10 border border-warning/20">
                         <div className="flex items-center gap-2 text-warning text-xs font-semibold">
                           <Loader2 size={14} className="animate-spin" />
-                          Transfert OmniPay envoyé — En attente de confirmation
+                          Transfert en cours — En attente de confirmation
                         </div>
                         <div className="grid grid-cols-2 gap-3 mt-2">
                           <button onClick={() => handleAction(r, "approved")} className="flex items-center justify-center gap-1 bg-success/10 text-success font-semibold py-2 rounded-lg text-[11px] border border-success/20">
