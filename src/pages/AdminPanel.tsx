@@ -1704,9 +1704,9 @@ const SupportTab = ({ adminId }: { adminId: string }) => {
     const date = new Date(d);
     const now = new Date();
     if (date.toDateString() === now.toDateString()) {
-      return date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+      return date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lubumbashi" });
     }
-    return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+    return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Africa/Lubumbashi" });
   };
 
   if (loading) return <p className="text-xs text-muted-foreground text-center py-10">Chargement...</p>;
@@ -2132,7 +2132,7 @@ const GiftCodesTab = ({ showSuccess, showError }: any) => {
 
   const formatDate = (d: string | null) => {
     if (!d) return "—";
-    return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+    return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Lubumbashi" });
   };
 
   return (
