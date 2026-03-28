@@ -1,0 +1,1 @@
+DELETE FROM chat_messages WHERE id IN ('bcf7119d-59af-4160-9c12-2baa556e72b6', 'ea7e16d4-955c-4785-8958-1055a2a1ecbe', '69e2d4ea-97e4-4ed8-a322-67b4c253a473');
