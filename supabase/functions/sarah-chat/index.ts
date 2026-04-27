@@ -682,7 +682,7 @@ RÈGLES DE RÉPONSE STRICTES
       });
     }
 
-    // Default: Lovable AI (Gemini via gateway)
+    // Default: Lovable AI (Gemini 3.1 Pro Preview — modèle le plus avancé)
     response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -690,9 +690,10 @@ RÈGLES DE RÉPONSE STRICTES
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "google/gemini-3.1-pro-preview",
         messages: messages_payload,
         stream: false,
+        reasoning: { effort: "medium" },
       }),
     });
 
