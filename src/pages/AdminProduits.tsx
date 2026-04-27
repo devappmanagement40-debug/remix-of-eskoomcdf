@@ -397,7 +397,7 @@ const AdminProduits = () => {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-muted-foreground">Prix / Budget (CDF)</label>
+                <label className="text-xs text-muted-foreground">Prix / Budget (FCFA)</label>
                 <input type="number" value={productPrice} onChange={e => setProductPrice(e.target.value)} placeholder="5000"
                   className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
               </div>
@@ -473,7 +473,7 @@ const AdminProduits = () => {
                                 {p.stock_status === "sold_out" && <span className="text-[9px] bg-warning/20 text-warning px-1.5 py-0.5 rounded-full font-bold">ÉPUISÉ</span>}
                                 {p.stock_status === "terminated" && <span className="text-[9px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full font-bold">TERMINÉ</span>}
                               </div>
-                              <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} CDF • {p.return_percent}% • {p.cycles}j {p.gain_type === "blocked" ? "• 🔒" : ""}</span>
+                              <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} FCFA • {p.return_percent}% • {p.cycles}j {p.gain_type === "blocked" ? "• 🔒" : ""}</span>
                             </div>
                             <div className="flex gap-1.5">
                               <button onClick={() => toggleActive(p)} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>
@@ -555,7 +555,7 @@ const AdminProduits = () => {
                                   {p.stock_status === "sold_out" && <span className="text-[9px] bg-warning/20 text-warning px-1.5 py-0.5 rounded-full font-bold">ÉPUISÉ</span>}
                                   {p.stock_status === "terminated" && <span className="text-[9px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full font-bold">TERMINÉ</span>}
                                 </div>
-                                <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} CDF • {p.return_percent}% • {p.cycles}j {p.gain_type === "blocked" ? "• 🔒" : ""}</span>
+                                <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} FCFA • {p.return_percent}% • {p.cycles}j {p.gain_type === "blocked" ? "• 🔒" : ""}</span>
                               </div>
                               <div className="flex gap-1.5">
                                 <button onClick={() => toggleActive(p)} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>
