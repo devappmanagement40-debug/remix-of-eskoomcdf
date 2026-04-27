@@ -159,7 +159,7 @@ const MesProduits = () => {
         return;
       }
 
-      showSuccess("Gains collectés", `+${Number(data.amount).toLocaleString("fr-FR")} CDF crédités sur votre compte`);
+      showSuccess("Gains collectés", `+${Number(data.amount).toLocaleString("fr-FR")} FCFA crédités sur votre compte`);
       load();
     } catch (err) {
       showError("Erreur", "Une erreur est survenue");
@@ -213,17 +213,17 @@ const MesProduits = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-secondary/50 rounded-lg p-3">
                 <p className="text-[10px] text-muted-foreground">Prix d'achat</p>
-                <p className="text-sm font-bold text-foreground">{Number(product?.price).toLocaleString("fr-FR")} CDF</p>
+                <p className="text-sm font-bold text-foreground">{Number(product?.price).toLocaleString("fr-FR")} FCFA</p>
               </div>
               {gainType === "daily" && (
                 <div className="bg-secondary/50 rounded-lg p-3">
                   <p className="text-[10px] text-muted-foreground">Revenu quotidien</p>
-                  <p className={`text-sm font-bold ${seriesTextColors[color] || "text-success"}`}>{dailyRevenue.toLocaleString("fr-FR")} CDF</p>
+                  <p className={`text-sm font-bold ${seriesTextColors[color] || "text-success"}`}>{dailyRevenue.toLocaleString("fr-FR")} FCFA</p>
                 </div>
               )}
               <div className="bg-secondary/50 rounded-lg p-3">
                 <p className="text-[10px] text-muted-foreground">{gainType === "blocked" ? "Gain prévu" : "Revenu total"}</p>
-                <p className={`text-sm font-bold ${seriesTextColors[color] || "text-primary"}`}>{totalRevenue.toLocaleString("fr-FR")} CDF</p>
+                <p className={`text-sm font-bold ${seriesTextColors[color] || "text-primary"}`}>{totalRevenue.toLocaleString("fr-FR")} FCFA</p>
               </div>
               <div className="bg-secondary/50 rounded-lg p-3">
                 <p className="text-[10px] text-muted-foreground">Durée (cycles)</p>
@@ -231,7 +231,7 @@ const MesProduits = () => {
               </div>
               <div className="bg-secondary/50 rounded-lg p-3">
                 <p className="text-[10px] text-muted-foreground">Déjà collecté</p>
-                <p className="text-sm font-bold text-foreground">{Number(earnedSoFar).toLocaleString("fr-FR")} CDF</p>
+                <p className="text-sm font-bold text-foreground">{Number(earnedSoFar).toLocaleString("fr-FR")} FCFA</p>
               </div>
               {gainType === "daily" && (
                 <div className="bg-secondary/50 rounded-lg p-3">
@@ -346,7 +346,7 @@ const MesProduits = () => {
                     <div className="flex items-center justify-between">
                       <span className={`text-sm font-semibold ${textColor}`}>{isBlocked ? "Gain prévu" : "Revenu Total"}</span>
                       <span className="text-lg font-bold text-foreground">
-                        {totalRevenue.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">CDF</span>
+                        {totalRevenue.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">FCFA</span>
                       </span>
                     </div>
 
@@ -378,7 +378,7 @@ const MesProduits = () => {
                           {earnedSoFar > 0 && (
                             <div className="flex items-center justify-between">
                               <span className="text-xs text-muted-foreground">Déjà collecté</span>
-                              <span className="text-sm text-foreground">{Number(earnedSoFar).toLocaleString("fr-FR")} CDF</span>
+                              <span className="text-sm text-foreground">{Number(earnedSoFar).toLocaleString("fr-FR")} FCFA</span>
                             </div>
                           )}
                         </>
@@ -387,7 +387,7 @@ const MesProduits = () => {
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-muted-foreground">Revenu obtenu</span>
                             <span className="text-sm text-foreground">
-                              {Number(earnedSoFar).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-xs text-muted-foreground">CDF</span>
+                              {Number(earnedSoFar).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-xs text-muted-foreground">FCFA</span>
                             </span>
                           </div>
                           <div className="flex items-center justify-between">

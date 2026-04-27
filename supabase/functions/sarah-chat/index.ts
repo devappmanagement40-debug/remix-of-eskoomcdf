@@ -90,7 +90,7 @@ serve(async (req) => {
     const withdrawalDays = settingsMap["withdrawal_days"] || "1,2,3,4,5,6,7";
 
     const paymentInfo = (paymentMethods || []).map((m: any) => `- ${m.name} (${m.country}): ${m.phone || "N/A"}, bénéficiaire: ${m.holder_name || "N/A"}, type: ${m.payment_type || "manual"}${m.instructions ? `, instructions: ${m.instructions}` : ""}`).join("\n");
-    const productInfo = (products || []).map((p: any) => `- ${p.name}: prix ${p.price} CDF, revenu journalier ${p.daily_revenue} CDF, durée ${p.cycles} jours, revenu total ${p.total_revenue} CDF, rendement ${p.return_percent}%`).join("\n");
+    const productInfo = (products || []).map((p: any) => `- ${p.name}: prix ${p.price} FCFA, revenu journalier ${p.daily_revenue} FCFA, durée ${p.cycles} jours, revenu total ${p.total_revenue} FCFA, rendement ${p.return_percent}%`).join("\n");
 
     // Build country map for lookup
     const countryList = (countries || []) as any[];
@@ -145,10 +145,10 @@ serve(async (req) => {
 - Nom : ${p.full_name || "Non renseigné"}
 - Téléphone : ${p.phone || "Non renseigné"}
 - Indicatif pays : ${p.country_code || "+243"}
-- Solde total (balance) : ${p.balance || 0} CDF
-- Solde dépôt : ${p.deposit_balance || 0} CDF
-- Solde gains : ${p.earnings_balance || 0} CDF
-- Solde parrainage : ${p.referral_balance || 0} CDF
+- Solde total (balance) : ${p.balance || 0} FCFA
+- Solde dépôt : ${p.deposit_balance || 0} FCFA
+- Solde gains : ${p.earnings_balance || 0} FCFA
+- Solde parrainage : ${p.referral_balance || 0} FCFA
 - Points cadeaux : ${p.gift_points || 0}
 - Spins (tours de roue) restants : ${p.spins_balance || 0}
 - Niveau VIP : ${p.vip_level || 0} (${vipLevel})
@@ -162,7 +162,7 @@ serve(async (req) => {
       userContext += `\nPRODUITS ACTIFS DE L'UTILISATEUR :\n`;
       (userProducts.data as any[]).forEach((up: any) => {
         const prod = up.products;
-        userContext += `- ${prod?.name || "Produit inconnu"} : acheté le ${new Date(up.purchased_at).toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" })}, expire le ${up.expires_at ? new Date(up.expires_at).toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" }) : "N/A"}, revenus collectés : ${up.total_collected || 0} CDF sur ${prod?.total_revenue || "N/A"} CDF total\n`;
+        userContext += `- ${prod?.name || "Produit inconnu"} : acheté le ${new Date(up.purchased_at).toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" })}, expire le ${up.expires_at ? new Date(up.expires_at).toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" }) : "N/A"}, revenus collectés : ${up.total_collected || 0} FCFA sur ${prod?.total_revenue || "N/A"} FCFA total\n`;
       });
     }
 
@@ -182,7 +182,7 @@ serve(async (req) => {
         if (members.length === 0) return "";
         let txt = `  ${level} (${members.length} membres) :\n`;
         members.slice(0, 10).forEach((m: any) => {
-          txt += `    - ${m.full_name || "Sans nom"} | Tél: ${m.phone || "?"} | VIP ${m.vip_level || 0} | Solde: ${m.balance || 0} CDF | Inscrit: ${new Date(m.created_at).toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" })}\n`;
+          txt += `    - ${m.full_name || "Sans nom"} | Tél: ${m.phone || "?"} | VIP ${m.vip_level || 0} | Solde: ${m.balance || 0} FCFA | Inscrit: ${new Date(m.created_at).toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" })}\n`;
         });
         if (members.length > 10) txt += `    ... et ${members.length - 10} autres\n`;
         return txt;
@@ -196,14 +196,14 @@ serve(async (req) => {
     if (userRecharges?.data && userRecharges.data.length > 0) {
       userContext += `\nDERNIÈRES RECHARGES (dépôts) :\n`;
       userRecharges.data.forEach((r: any) => {
-        userContext += `- ${r.amount} CDF via ${r.payment_method || "N/A"} — statut : ${translateStatus(r.status)} — le ${new Date(r.created_at).toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" })}\n`;
+        userContext += `- ${r.amount} FCFA via ${r.payment_method || "N/A"} — statut : ${translateStatus(r.status)} — le ${new Date(r.created_at).toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" })}\n`;
       });
     }
 
     if (userWithdrawals?.data && userWithdrawals.data.length > 0) {
       userContext += `\nDERNIERS RETRAITS :\n`;
       userWithdrawals.data.forEach((w: any) => {
-        userContext += `- ${w.amount} CDF (net: ${w.net_amount} CDF, frais: ${w.fee_amount} CDF) via ${w.network} — statut : ${translateStatus(w.status)} — le ${new Date(w.created_at).toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" })}\n`;
+        userContext += `- ${w.amount} FCFA (net: ${w.net_amount} FCFA, frais: ${w.fee_amount} FCFA) via ${w.network} — statut : ${translateStatus(w.status)} — le ${new Date(w.created_at).toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" })}\n`;
       });
     }
 
@@ -391,7 +391,7 @@ FONCTIONNEMENT DES RETRAITS
 - Les retraits sont traités AUTOMATIQUEMENT par le système après validation admin
 - Le paiement est envoyé directement vers le compte Mobile Money renseigné par l'utilisateur
 - Des frais de ${withdrawalFee}% sont prélevés sur le montant demandé
-- Le montant minimum de retrait est de ${minWithdrawal} CDF
+- Le montant minimum de retrait est de ${minWithdrawal} FCFA
 - IMPORTANT : L'utilisateur DOIT renseigner correctement son numéro de téléphone et son opérateur
 - Si les informations sont incorrectes, le retrait PEUT ÉCHOUER
 - En cas d'échec, le montant est automatiquement recrédité sur le compte
@@ -504,7 +504,7 @@ SÉCURITÉ & LIMITES
 DONNÉES DU SITE (temps réel)
 ═══════════════════════════════════════
 - Nom du site : ${siteName}
-- Retrait minimum : ${minWithdrawal} CDF
+- Retrait minimum : ${minWithdrawal} FCFA
 - Frais de retrait : ${withdrawalFee}%
 - Numéro du service humain : ${supportPhone}
 - Horaires de retrait : ${withdrawalHourStart}h00 à ${withdrawalHourEnd}h00
@@ -516,11 +516,11 @@ PRODUITS DISPONIBLES :
 ${productInfo || "Aucun produit actif"}
 
 SEUILS VIP :
-- VIP1 : ${settingsMap["vip_threshold_1"] || "N/A"} CDF
-- VIP2 : ${settingsMap["vip_threshold_2"] || "N/A"} CDF
-- VIP3 : ${settingsMap["vip_threshold_3"] || "N/A"} CDF
-- VIP4 : ${settingsMap["vip_threshold_4"] || "N/A"} CDF
-- VIP5 : ${settingsMap["vip_threshold_5"] || "N/A"} CDF
+- VIP1 : ${settingsMap["vip_threshold_1"] || "N/A"} FCFA
+- VIP2 : ${settingsMap["vip_threshold_2"] || "N/A"} FCFA
+- VIP3 : ${settingsMap["vip_threshold_3"] || "N/A"} FCFA
+- VIP4 : ${settingsMap["vip_threshold_4"] || "N/A"} FCFA
+- VIP5 : ${settingsMap["vip_threshold_5"] || "N/A"} FCFA
 ${userContext}
 ${newsContext}
 
@@ -635,7 +635,7 @@ RÈGLES DE RÉPONSE STRICTES
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: "google/gemini-2.5-flash",
+              model: "google/gemini-2.5-pro",
               messages: messages_payload,
               stream: false,
             }),
@@ -682,7 +682,7 @@ RÈGLES DE RÉPONSE STRICTES
       });
     }
 
-    // Default: Lovable AI (Gemini via gateway)
+    // Default: Lovable AI (Gemini 3.1 Pro Preview — modèle le plus avancé)
     response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -690,9 +690,10 @@ RÈGLES DE RÉPONSE STRICTES
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
+        model: "google/gemini-3.1-pro-preview",
         messages: messages_payload,
         stream: false,
+        reasoning: { effort: "medium" },
       }),
     });
 

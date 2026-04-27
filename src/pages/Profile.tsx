@@ -123,7 +123,7 @@ const Profile = () => {
           {loading ? (
             <div className="h-8 w-32 bg-secondary/50 rounded animate-pulse" />
           ) : (
-            <p className="text-2xl font-bold text-primary">{profile.balance.toLocaleString('fr-FR')} CDF</p>
+            <p className="text-2xl font-bold text-primary">{profile.balance.toLocaleString('fr-FR')} FCFA</p>
           )}
         </div>
 

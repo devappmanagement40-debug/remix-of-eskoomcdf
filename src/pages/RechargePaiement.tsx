@@ -184,7 +184,7 @@ const RechargePaiement = () => {
             <p className="text-xs text-primary-foreground/70 mb-1">Montant à payer</p>
             <p className="text-4xl font-black text-primary-foreground tracking-tight">
               {amount.toLocaleString("fr-FR")}
-              <span className="text-base font-medium ml-1.5 opacity-80">CDF</span>
+              <span className="text-base font-medium ml-1.5 opacity-80">FCFA</span>
             </p>
             <div className="mt-3 inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1">
               <Shield size={12} className="text-primary-foreground/80" />
@@ -231,7 +231,7 @@ const RechargePaiement = () => {
                 className="w-full gradient-button text-primary-foreground font-bold py-4 rounded-2xl text-sm flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
               >
                 <Zap size={18} />
-                Payer {amount.toLocaleString("fr-FR")} CDF
+                Payer {amount.toLocaleString("fr-FR")} FCFA
               </button>
             )}
 
@@ -328,7 +328,7 @@ const RechargePaiement = () => {
               <div className="flex items-center justify-between bg-secondary/30 rounded-xl px-4 py-3.5">
                 <div className="flex-1 min-w-0">
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Montant</p>
-                  <p className="text-sm font-bold text-primary mt-0.5">{amount.toLocaleString("fr-FR")} CDF</p>
+                  <p className="text-sm font-bold text-primary mt-0.5">{amount.toLocaleString("fr-FR")} FCFA</p>
                 </div>
                 <button onClick={() => copyToClipboard(String(amount), "Montant")} className="p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors">
                   <Copy size={14} className="text-primary" />
