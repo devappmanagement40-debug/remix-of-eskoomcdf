@@ -1,4 +1,4 @@
-// Haiti timezone (UTC+2)
+// Haiti timezone (UTC-5)
 export const APP_TIMEZONE = "America/Port-au-Prince";
 
 export const formatDateFR = (d: string | null, options?: Intl.DateTimeFormatOptions): string => {
