@@ -9,9 +9,9 @@ import { Info } from "lucide-react";
 type TabKey = "tous" | "detenir" | "expire";
 
 const tabs: { key: TabKey; label: string }[] = [
-  { key: "tous", label: "Tous" },
-  { key: "detenir", label: "Détenir" },
-  { key: "expire", label: "Expiré" },
+  { key: "tous", label: "All" },
+  { key: "detenir", label: "Active" },
+  { key: "expire", label: "Expired" },
 ];
 
 type UserProduct = {
@@ -148,21 +148,21 @@ const MesProduits = () => {
       });
 
       if (error) {
-        showError("Erreur", "Impossible de collecter les gains");
+        showError("Error", "Unable to collect earnings");
         setCollecting(null);
         return;
       }
 
       if (data?.error) {
-        showError("Impossible", data.error);
+        showError("Unable", data.error);
         setCollecting(null);
         return;
       }
 
-      showSuccess("Gains collectés", `+${Number(data.amount).toLocaleString("fr-FR")} FCFA crédités sur votre compte`);
+      showSuccess("Earnings collected", `+${Number(data.amount).toLocaleString("fr-FR")} USDT credited to your account`);
       load();
     } catch (err) {
-      showError("Erreur", "Une erreur est survenue");
+      showError("Error", "Something went wrong");
     } finally {
       setCollecting(null);
     }
@@ -196,10 +196,10 @@ const MesProduits = () => {
 
     return (
       <div className="min-h-screen bg-background pb-20">
-        <PageHeader title="Détails du produit" showBack />
+        <PageHeader title="Product details" showBack />
         <div className="px-4 pt-4 space-y-4">
           <button onClick={() => setDetailProduct(null)} className="flex items-center gap-2 text-sm text-primary font-semibold">
-            ← Retour
+            ← Back
           </button>
 
           {product?.image_url && (
@@ -212,30 +212,30 @@ const MesProduits = () => {
             <h2 className="text-lg font-bold text-foreground">{product?.name}</h2>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-secondary/50 rounded-lg p-3">
-                <p className="text-[10px] text-muted-foreground">Prix d'achat</p>
-                <p className="text-sm font-bold text-foreground">{Number(product?.price).toLocaleString("fr-FR")} FCFA</p>
+                <p className="text-[10px] text-muted-foreground">Purchase price</p>
+                <p className="text-sm font-bold text-foreground">{Number(product?.price).toLocaleString("fr-FR")} USDT</p>
               </div>
               {gainType === "daily" && (
                 <div className="bg-secondary/50 rounded-lg p-3">
-                  <p className="text-[10px] text-muted-foreground">Revenu quotidien</p>
-                  <p className={`text-sm font-bold ${seriesTextColors[color] || "text-success"}`}>{dailyRevenue.toLocaleString("fr-FR")} FCFA</p>
+                  <p className="text-[10px] text-muted-foreground">Daily revenue</p>
+                  <p className={`text-sm font-bold ${seriesTextColors[color] || "text-success"}`}>{dailyRevenue.toLocaleString("fr-FR")} USDT</p>
                 </div>
               )}
               <div className="bg-secondary/50 rounded-lg p-3">
-                <p className="text-[10px] text-muted-foreground">{gainType === "blocked" ? "Gain prévu" : "Revenu total"}</p>
-                <p className={`text-sm font-bold ${seriesTextColors[color] || "text-primary"}`}>{totalRevenue.toLocaleString("fr-FR")} FCFA</p>
+                <p className="text-[10px] text-muted-foreground">{gainType === "blocked" ? "Expected gain" : "Total revenue"}</p>
+                <p className={`text-sm font-bold ${seriesTextColors[color] || "text-primary"}`}>{totalRevenue.toLocaleString("fr-FR")} USDT</p>
               </div>
               <div className="bg-secondary/50 rounded-lg p-3">
-                <p className="text-[10px] text-muted-foreground">Durée (cycles)</p>
-                <p className="text-sm font-bold text-foreground">{cycles} jours</p>
+                <p className="text-[10px] text-muted-foreground">Duration (cycles)</p>
+                <p className="text-sm font-bold text-foreground">{cycles} days</p>
               </div>
               <div className="bg-secondary/50 rounded-lg p-3">
-                <p className="text-[10px] text-muted-foreground">Déjà collecté</p>
-                <p className="text-sm font-bold text-foreground">{Number(earnedSoFar).toLocaleString("fr-FR")} FCFA</p>
+                <p className="text-[10px] text-muted-foreground">Already collected</p>
+                <p className="text-sm font-bold text-foreground">{Number(earnedSoFar).toLocaleString("fr-FR")} USDT</p>
               </div>
               {gainType === "daily" && (
                 <div className="bg-secondary/50 rounded-lg p-3">
-                  <p className="text-[10px] text-muted-foreground">Jours reçus</p>
+                  <p className="text-[10px] text-muted-foreground">Days received</p>
                   <p className="text-sm font-bold text-foreground">{daysReceived} / {cycles}</p>
                 </div>
               )}
@@ -243,14 +243,14 @@ const MesProduits = () => {
             <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
               status === "actif" ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
             }`}>
-              {status === "actif" ? "Actif" : "Termine"}
+              {status === "actif" ? "Active" : "Ended"}
             </div>
           </div>
 
           {product?.description && (
             <div className="bg-card rounded-xl border border-secondary p-4">
               <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-2">
-                <Info size={16} className="text-primary" /> Informations
+                <Info size={16} className="text-primary" /> Information
               </h3>
               <p className="text-sm text-muted-foreground whitespace-pre-line">{product.description}</p>
             </div>
@@ -263,7 +263,7 @@ const MesProduits = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <PageHeader title="Mon produit" showBack />
+      <PageHeader title="My products" showBack />
       <div className="px-4 pt-4">
         {/* Tabs */}
         <div className="flex gap-2 mb-5">
@@ -284,10 +284,10 @@ const MesProduits = () => {
 
         <div className="space-y-4">
           {loading ? (
-            <p className="text-center text-muted-foreground py-10">Chargement...</p>
+            <p className="text-center text-muted-foreground py-10">Loading...</p>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center py-16">
-              <p className="text-sm text-muted-foreground">Aucun produit dans cette catégorie</p>
+              <p className="text-sm text-muted-foreground">No products in this category</p>
             </div>
           ) : (
             filtered.map((up) => {
@@ -301,7 +301,7 @@ const MesProduits = () => {
               const totalRevenue = gainType === "blocked" ? Number(product.total_revenue) || 0 : dailyRevenue * cycles;
               const earnedSoFar = up.total_collected || 0;
               const purchaseDate = up.purchased_at
-                ? new Date(up.purchased_at).toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" })
+                ? new Date(up.purchased_at).toLocaleDateString("fr-FR", { timeZone: "America/Port-au-Prince" })
                 : "—";
               const collectible = canCollect(up);
               const color = getColor(up);
@@ -336,7 +336,7 @@ const MesProduits = () => {
                       {isBlocked && <span className="ml-1.5 text-[10px] opacity-80">🔒</span>}
                     </span>
                     <div className="text-right">
-                      <span className="text-xs text-success-foreground/80 block">{isBlocked ? "Date d'achat" : "Heure de réception"}</span>
+                      <span className="text-xs text-success-foreground/80 block">{isBlocked ? "Purchase date" : "Collect time"}</span>
                       <span className="text-xs font-semibold text-success-foreground">{purchaseDate}</span>
                     </div>
                   </div>
@@ -344,9 +344,9 @@ const MesProduits = () => {
                   <div className="px-4 py-3 space-y-2.5">
                     {/* Revenu Total */}
                     <div className="flex items-center justify-between">
-                      <span className={`text-sm font-semibold ${textColor}`}>{isBlocked ? "Gain prévu" : "Revenu Total"}</span>
+                      <span className={`text-sm font-semibold ${textColor}`}>{isBlocked ? "Expected gain" : "Total revenue"}</span>
                       <span className="text-lg font-bold text-foreground">
-                        {totalRevenue.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">FCFA</span>
+                        {totalRevenue.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">USDT</span>
                       </span>
                     </div>
 
@@ -354,13 +354,13 @@ const MesProduits = () => {
                       {isBlocked ? (
                         <>
                           <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Durée du cycle</span>
-                            <span className="text-sm text-foreground">{cycles} jours</span>
+                            <span className="text-xs text-muted-foreground">Cycle duration</span>
+                            <span className="text-sm text-foreground">{cycles} days</span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Jours restants</span>
+                            <span className="text-xs text-muted-foreground">Days remaining</span>
                             <span className={`text-sm font-semibold ${daysRemaining > 0 ? "text-warning" : "text-success"}`}>
-                              {daysRemaining > 0 ? `${daysRemaining} jour${daysRemaining > 1 ? "s" : ""}` : "Terminé ✅"}
+                              {daysRemaining > 0 ? `${daysRemaining} day${daysRemaining > 1 ? "s" : ""}` : "Ended ✅"}
                             </span>
                           </div>
                           {/* Progress bar */}
@@ -377,25 +377,25 @@ const MesProduits = () => {
                           </div>
                           {earnedSoFar > 0 && (
                             <div className="flex items-center justify-between">
-                              <span className="text-xs text-muted-foreground">Déjà collecté</span>
-                              <span className="text-sm text-foreground">{Number(earnedSoFar).toLocaleString("fr-FR")} FCFA</span>
+                              <span className="text-xs text-muted-foreground">Already collected</span>
+                              <span className="text-sm text-foreground">{Number(earnedSoFar).toLocaleString("fr-FR")} USDT</span>
                             </div>
                           )}
                         </>
                       ) : (
                         <>
                           <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Revenu obtenu</span>
+                            <span className="text-xs text-muted-foreground">Earnings received</span>
                             <span className="text-sm text-foreground">
-                              {Number(earnedSoFar).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-xs text-muted-foreground">FCFA</span>
+                              {Number(earnedSoFar).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-xs text-muted-foreground">USDT</span>
                             </span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Période de validité</span>
-                            <span className="text-sm text-foreground">{cycles} Jour</span>
+                            <span className="text-xs text-muted-foreground">Validity period</span>
+                            <span className="text-sm text-foreground">{cycles} days</span>
                           </div>
                           <div className="flex items-center justify-between">
-                            <span className="text-xs text-muted-foreground">Nombre de fois reçu</span>
+                            <span className="text-xs text-muted-foreground">Times collected</span>
                             <span className="text-sm text-foreground">{daysReceived} / {cycles}</span>
                           </div>
                         </>
@@ -405,7 +405,7 @@ const MesProduits = () => {
                     {/* Collect button - hidden for blocked products during cycle */}
                     {isBlocked && daysRemaining > 0 && earnedSoFar === 0 ? (
                       <div className="w-full py-3 rounded-xl text-sm font-semibold mt-2 bg-warning/10 text-warning text-center border border-warning/20">
-                        🔒 Gains bloqués — {daysRemaining}j restants
+                        🔒 Earnings locked — {daysRemaining}d remaining
                       </div>
                     ) : (
                       <button
@@ -419,7 +419,7 @@ const MesProduits = () => {
                               : "bg-secondary text-muted-foreground cursor-not-allowed"
                         }`}
                       >
-                        {collecting === up.id ? "Collecte..." : isBlocked && earnedSoFar > 0 ? "Déjà collecté" : isBlocked ? "Collecter les gains" : "Recevoir"}
+                        {collecting === up.id ? "Collecting..." : isBlocked && earnedSoFar > 0 ? "Already collected" : isBlocked ? "Collect earnings" : "Collect"}
                       </button>
                     )}
                   </div>

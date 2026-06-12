@@ -14,10 +14,10 @@ import bgTotalDeposit from "@/assets/bg-total-deposit.png";
 import bgTotalWithdraw from "@/assets/bg-total-withdraw.png";
 
 const menuItems = [
-  { label: "Historique des retraits", path: "/historique-retraits", hasChevron: true },
-  { label: "Historique des fonds", path: "/historique-fonds", hasChevron: true },
+  { label: "Withdrawal history", path: "/historique-retraits", hasChevron: true },
+  { label: "Funds history", path: "/historique-fonds", hasChevron: true },
   { label: "Energy Storage", path: "#", value: "0" },
-  { label: "Monnaie Eskom", path: "/points-cadeaux", value: "0", hasChevron: true },
+  { label: "Eskom Currency", path: "/points-cadeaux", value: "0", hasChevron: true },
 ];
 
 const Portefeuille = () => {
@@ -62,15 +62,15 @@ const Portefeuille = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <PageHeader title="Portefeuille" />
+      <PageHeader title="Wallet" />
       <div className="px-4 pt-6 space-y-4">
         {/* Main Balance Card */}
         <div className="bg-card rounded-2xl border border-border/30 p-5">
-          <p className="text-xs text-muted-foreground text-center mb-1">Solde total</p>
+          <p className="text-xs text-muted-foreground text-center mb-1">Total balance</p>
           {loading ? (
             <div className="h-9 w-40 mx-auto bg-secondary/50 rounded animate-pulse" />
           ) : (
-            <p className="text-3xl font-bold text-foreground text-center">{fmt(profile.balance)} <span className="text-sm font-normal text-muted-foreground">FCFA</span></p>
+            <p className="text-3xl font-bold text-foreground text-center">{fmt(profile.balance)} <span className="text-sm font-normal text-muted-foreground">USDT</span></p>
           )}
 
           {/* Split balances */}
@@ -79,46 +79,46 @@ const Portefeuille = () => {
               <img src={bgDepot} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
               <div className="absolute inset-0 bg-black/50" />
               <div className="relative z-10 p-3 text-center flex flex-col justify-center h-full">
-                <p className="text-[10px] text-white/80 mb-0.5">Depot</p>
+                <p className="text-[10px] text-white/80 mb-0.5">Deposit</p>
                 <p className="text-xs font-bold text-white">{profile.deposit_balance.toLocaleString("fr-FR")} F</p>
-                {depositNotWithdrawable && <p className="text-[8px] text-red-400 mt-0.5">Non retirable</p>}
+                {depositNotWithdrawable && <p className="text-[8px] text-red-400 mt-0.5">Non-withdrawable</p>}
               </div>
             </div>
             <div className="relative rounded-xl overflow-hidden min-h-[100px]">
               <img src={bgGains} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
               <div className="absolute inset-0 bg-black/50" />
               <div className="relative z-10 p-3 text-center flex flex-col justify-center h-full">
-                <p className="text-[10px] text-white/80 mb-0.5">Gains</p>
+                <p className="text-[10px] text-white/80 mb-0.5">Earnings</p>
                 <p className="text-xs font-bold text-emerald-300">{profile.earnings_balance.toLocaleString("fr-FR")} F</p>
-                <p className="text-[8px] text-emerald-400 mt-0.5">Retirable</p>
+                <p className="text-[8px] text-emerald-400 mt-0.5">Withdrawable</p>
               </div>
             </div>
             <div className="relative rounded-xl overflow-hidden min-h-[100px]">
               <img src={bgParrainage} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
               <div className="absolute inset-0 bg-black/50" />
               <div className="relative z-10 p-3 text-center flex flex-col justify-center h-full">
-                <p className="text-[10px] text-white/80 mb-0.5">Parrainage</p>
+                <p className="text-[10px] text-white/80 mb-0.5">Referral</p>
                 <p className="text-xs font-bold text-purple-300">{profile.referral_balance.toLocaleString("fr-FR")} F</p>
-                <p className="text-[8px] text-purple-400 mt-0.5">Retirable</p>
+                <p className="text-[8px] text-purple-400 mt-0.5">Withdrawable</p>
               </div>
             </div>
           </div>
 
           {/* Withdrawable */}
           <div className="mt-4 bg-secondary/30 rounded-xl px-4 py-2.5 flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">Solde retirable</span>
-            <span className="text-sm font-bold text-foreground">{fmt(withdrawable)} FCFA</span>
+            <span className="text-xs text-muted-foreground">Withdrawable balance</span>
+            <span className="text-sm font-bold text-foreground">{fmt(withdrawable)} USDT</span>
           </div>
 
           {/* Action Buttons */}
           <div className="grid grid-cols-2 gap-3 mt-5">
             <button onClick={() => navigate("/recharge")} className="gradient-button text-primary-foreground font-semibold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
               <ArrowDownLeft size={16} />
-              Deposer
+              Deposit
             </button>
             <button onClick={() => navigate("/retrait")} className="bg-secondary text-foreground font-semibold py-3 rounded-xl text-sm flex items-center justify-center gap-2 border border-border/30">
               <ArrowUpRight size={16} />
-              Retrait
+              Withdraw
             </button>
           </div>
         </div>
@@ -145,20 +145,20 @@ const Portefeuille = () => {
         </div>
 
         {/* Statistics */}
-        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Actifs</h3>
+        <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Assets</h3>
         <div className="grid grid-cols-2 gap-3">
           {[
-            { label: "Revenu d'aujourd'hui", value: fmt(todayEarnings), bg: bgTodayEarnings },
-            { label: "Revenu total", value: fmt(profile.earnings_balance), bg: bgTotalRevenue },
-            { label: "Recharge totale", value: fmt(totalDeposits), bg: bgTotalDeposit },
-            { label: "Total retraits", value: fmt(totalWithdrawals), bg: bgTotalWithdraw },
+            { label: "Today's earnings", value: fmt(todayEarnings), bg: bgTodayEarnings },
+            { label: "Total earnings", value: fmt(profile.earnings_balance), bg: bgTotalRevenue },
+            { label: "Total deposits", value: fmt(totalDeposits), bg: bgTotalDeposit },
+            { label: "Total withdrawals", value: fmt(totalWithdrawals), bg: bgTotalWithdraw },
           ].map((stat) => (
             <div key={stat.label} className="relative rounded-2xl overflow-hidden min-h-[100px]">
               <img src={stat.bg} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
               <div className="absolute inset-0 bg-black/55" />
               <div className="relative z-10 p-4 text-center flex flex-col justify-center h-full">
                 <p className="text-lg font-bold text-white">
-                  {stat.value} <span className="text-[10px] font-normal text-white/70">FCFA</span>
+                  {stat.value} <span className="text-[10px] font-normal text-white/70">USDT</span>
                 </p>
                 <p className="text-[10px] text-white/70 mt-1">{stat.label}</p>
               </div>

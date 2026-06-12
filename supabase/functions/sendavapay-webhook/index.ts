@@ -58,7 +58,7 @@ serve(async (req) => {
     }
 
     // SendavaPay callback format (flat):
-    // { reference: "PTR_xxx", status: "SUCCESS", amount: "5000", fee: "350", netAmount: "4650", currency: "FCFA" }
+    // { reference: "PTR_xxx", status: "SUCCESS", amount: "5000", fee: "350", netAmount: "4650", currency: "USDT" }
     // Also support wrapped format: { event: "payment.completed", data: { reference, ... } }
     const event = req.headers.get('x-sendavapay-event') || payload.event;
     const webhookData = payload.data || payload;
@@ -203,7 +203,7 @@ serve(async (req) => {
           deposit_balance: newDeposit,
         }).eq('user_id', logEntry.user_id);
         
-        console.log(`✅ User ${logEntry.user_id} credited: +${logEntry.amount} FCFA (balance: ${newBalance}, deposit: ${newDeposit})`);
+        console.log(`✅ User ${logEntry.user_id} credited: +${logEntry.amount} USDT (balance: ${newBalance}, deposit: ${newDeposit})`);
       }
     } else {
       // Update existing recharge to 'rejected' on failure

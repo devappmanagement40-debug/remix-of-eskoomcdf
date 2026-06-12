@@ -137,13 +137,13 @@ const PointsCadeaux = () => {
         created_at: new Date().toISOString(),
       }, ...prev]);
 
-      showSuccess("Conversion réussie ✅", `${reward.points_required} ESK convertis en ${reward.money_value.toLocaleString("fr-FR")} FCFA. Le montant a été crédité sur votre compte.`);
+      showSuccess("Conversion réussie ✅", `${reward.points_required} ESK convertis en ${reward.money_value.toLocaleString("fr-FR")} USDT. Le montant a été crédité sur votre compte.`);
     } finally {
       setExchanging(null);
     }
   };
 
-  const fmtDate = (d: string) => new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lubumbashi" });
+  const fmtDate = (d: string) => new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" });
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -227,7 +227,7 @@ const PointsCadeaux = () => {
                     )}
                     <div>
                       <p className="text-sm font-medium text-foreground">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">{item.points_required} ESK → <span className="text-success font-semibold">{item.money_value.toLocaleString("fr-FR")} FCFA</span></p>
+                      <p className="text-xs text-muted-foreground">{item.points_required} ESK → <span className="text-success font-semibold">{item.money_value.toLocaleString("fr-FR")} USDT</span></p>
                     </div>
                   </div>
                   <button

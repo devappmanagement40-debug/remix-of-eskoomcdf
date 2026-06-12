@@ -224,7 +224,7 @@ const AdminPanel = () => {
 
   const formatDate = (d: string | null) => {
     if (!d) return "—";
-    return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lubumbashi" });
+    return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" });
   };
 
   if (loading) return (
@@ -545,22 +545,22 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Solde total (FCFA)</label>
+            <label className="text-xs text-muted-foreground">Solde total (USDT)</label>
             <input type="number" value={editBalance} onChange={e => setEditBalance(e.target.value)}
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Solde dépôt (FCFA)</label>
+            <label className="text-xs text-muted-foreground">Solde dépôt (USDT)</label>
             <input type="number" value={editDepositBalance} onChange={e => setEditDepositBalance(e.target.value)}
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Solde gains (FCFA)</label>
+            <label className="text-xs text-muted-foreground">Solde gains (USDT)</label>
             <input type="number" value={editEarningsBalance} onChange={e => setEditEarningsBalance(e.target.value)}
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Solde parrainage (FCFA)</label>
+            <label className="text-xs text-muted-foreground">Solde parrainage (USDT)</label>
             <input type="number" value={editReferralBalance} onChange={e => setEditReferralBalance(e.target.value)}
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
           </div>
@@ -599,7 +599,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
             <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
               <div>
                 <p className="text-[10px] text-muted-foreground">Solde</p>
-                <p className="text-xs font-bold text-primary">{(p.balance || 0).toLocaleString("fr-FR")} FCFA</p>
+                <p className="text-xs font-bold text-primary">{(p.balance || 0).toLocaleString("fr-FR")} USDT</p>
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground">Code parrainage</p>
@@ -607,7 +607,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground">Inscription</p>
-                <p className="text-xs text-foreground">{p.created_at ? <p className="text-xs text-foreground">{p.created_at ? new Date(p.created_at).toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" }) : "—"}</p> : "—"}</p>
+                <p className="text-xs text-foreground">{p.created_at ? <p className="text-xs text-foreground">{p.created_at ? new Date(p.created_at).toLocaleDateString("fr-FR", { timeZone: "America/Port-au-Prince" }) : "—"}</p> : "—"}</p>
               </div>
             </div>
             <div className="flex gap-2 mt-3">
@@ -688,7 +688,7 @@ const DepositsTab = ({ recharges, profiles, reload, showSuccess, showError, logA
         }).eq("user_id", r.user_id);
       }
     }
-    logAction(`deposit_${status}`, "recharge", r.id, `${r.amount} FCFA`);
+    logAction(`deposit_${status}`, "recharge", r.id, `${r.amount} USDT`);
     showSuccess(status === "approved" ? "Dépôt approuvé ✅" : "Dépôt refusé ❌", "");
     reload();
   };
@@ -721,7 +721,7 @@ const DepositsTab = ({ recharges, profiles, reload, showSuccess, showError, logA
           return (
             <div key={r.id} className="bg-card rounded-xl border border-secondary px-4 pt-4 pb-3">
               <div className="flex items-start justify-between mb-2">
-                <p className="text-lg font-bold text-foreground">{r.amount.toLocaleString("fr-FR")} FCFA</p>
+                <p className="text-lg font-bold text-foreground">{r.amount.toLocaleString("fr-FR")} USDT</p>
                 <StatusBadge status={r.status} />
               </div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-3">
@@ -730,7 +730,7 @@ const DepositsTab = ({ recharges, profiles, reload, showSuccess, showError, logA
               <div className="border-t border-secondary my-2" />
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
                 <div><p className="text-[10px] text-muted-foreground">Client</p><p className="text-xs font-semibold text-foreground">{r.country_code} {r.phone}</p></div>
-                <div><p className="text-[10px] text-muted-foreground">Solde actuel</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("fr-FR")} FCFA` : "—"}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Solde actuel</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("fr-FR")} USDT` : "—"}</p></div>
                 <div><p className="text-[10px] text-muted-foreground">Nom client</p><p className="text-xs font-semibold text-foreground">{p?.full_name || "—"}</p></div>
                 <div><p className="text-[10px] text-muted-foreground">Date</p><p className="text-xs font-semibold text-foreground">{r.created_at ? new Date(r.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</p></div>
                 {r.proof_image_url && (
@@ -837,7 +837,7 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
     }
     // Rejected = direct update (trigger refunds)
     await supabase.from("withdrawals").update({ status }).eq("id", w.id);
-    logAction(`withdrawal_${status}`, "withdrawal", w.id, `${w.amount} FCFA`);
+    logAction(`withdrawal_${status}`, "withdrawal", w.id, `${w.amount} USDT`);
     showSuccess("Retrait refusé — montant restitué", "");
     reload();
   };
@@ -878,8 +878,8 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
               </div>
 
               <div className="text-center py-3">
-                <p className="text-2xl font-bold text-foreground">{detailW.amount.toLocaleString("fr-FR")} FCFA</p>
-                <p className="text-sm text-success font-semibold">Net: {detailW.net_amount.toLocaleString("fr-FR")} FCFA <span className="text-muted-foreground text-xs">(-{feePercent}% frais)</span></p>
+                <p className="text-2xl font-bold text-foreground">{detailW.amount.toLocaleString("fr-FR")} USDT</p>
+                <p className="text-sm text-success font-semibold">Net: {detailW.net_amount.toLocaleString("fr-FR")} USDT <span className="text-muted-foreground text-xs">(-{feePercent}% frais)</span></p>
                 <StatusBadge status={detailW.status} />
               </div>
 
@@ -888,7 +888,7 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
                 <div className="grid grid-cols-2 gap-2">
                   <div><p className="text-[10px] text-muted-foreground">Nom</p><p className="text-xs font-semibold text-foreground">{p?.full_name || "—"}</p></div>
                   <div><p className="text-[10px] text-muted-foreground">Téléphone compte</p><p className="text-xs font-semibold text-foreground">{p?.country_code} {p?.phone}</p></div>
-                  <div><p className="text-[10px] text-muted-foreground">Solde actuel</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("fr-FR")} FCFA` : "—"}</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Solde actuel</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("fr-FR")} USDT` : "—"}</p></div>
                   <div><p className="text-[10px] text-muted-foreground">Niveau VIP</p><p className="text-xs font-semibold text-foreground">VIP {p?.vip_level || 0}</p></div>
                 </div>
               </div>
@@ -914,9 +914,9 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
               <div className="bg-secondary/30 rounded-xl p-4 space-y-2">
                 <p className="text-xs font-bold text-foreground mb-2">📋 Transaction</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <div><p className="text-[10px] text-muted-foreground">Montant brut</p><p className="text-xs font-semibold text-foreground">{detailW.amount.toLocaleString("fr-FR")} FCFA</p></div>
-                  <div><p className="text-[10px] text-muted-foreground">Frais ({feePercent}%)</p><p className="text-xs font-semibold text-destructive">{detailW.fee_amount.toLocaleString("fr-FR")} FCFA</p></div>
-                  <div><p className="text-[10px] text-muted-foreground">Montant net</p><p className="text-xs font-semibold text-success">{detailW.net_amount.toLocaleString("fr-FR")} FCFA</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Montant brut</p><p className="text-xs font-semibold text-foreground">{detailW.amount.toLocaleString("fr-FR")} USDT</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Frais ({feePercent}%)</p><p className="text-xs font-semibold text-destructive">{detailW.fee_amount.toLocaleString("fr-FR")} USDT</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Montant net</p><p className="text-xs font-semibold text-success">{detailW.net_amount.toLocaleString("fr-FR")} USDT</p></div>
                   <div><p className="text-[10px] text-muted-foreground">Date</p><p className="text-xs font-semibold text-foreground">{detailW.created_at ? new Date(detailW.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</p></div>
                 </div>
                 <div><p className="text-[10px] text-muted-foreground">ID</p><p className="text-[10px] font-mono text-muted-foreground break-all">{detailW.id}</p></div>
@@ -944,10 +944,10 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
             <div key={w.id} className="bg-card rounded-xl border border-secondary px-4 pt-4 pb-3 cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setDetailW(w)}>
               <div className="flex items-start justify-between mb-2">
                 <div>
-                  <p className="text-lg font-bold text-foreground">{w.amount.toLocaleString("fr-FR")} FCFA</p>
+                  <p className="text-lg font-bold text-foreground">{w.amount.toLocaleString("fr-FR")} USDT</p>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <ArrowDown size={12} className="text-success" />
-                    <span className="text-sm font-semibold text-success">Net : {w.net_amount.toLocaleString("fr-FR")} FCFA</span>
+                    <span className="text-sm font-semibold text-success">Net : {w.net_amount.toLocaleString("fr-FR")} USDT</span>
                     <span className="text-xs text-muted-foreground">(- {feePercent}%)</span>
                   </div>
                 </div>
@@ -959,7 +959,7 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
               <div className="border-t border-secondary my-2" />
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
                 <div><p className="text-[10px] text-muted-foreground">Client</p><p className="text-xs font-semibold text-foreground">{w.country_code} {w.phone}</p></div>
-                <div><p className="text-[10px] text-muted-foreground">Solde actuel</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("fr-FR")} FCFA` : "—"}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Solde actuel</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("fr-FR")} USDT` : "—"}</p></div>
                 <div><p className="text-[10px] text-muted-foreground">Nom</p><p className="text-xs font-semibold text-foreground">{p?.full_name || "—"}</p></div>
                 <div><p className="text-[10px] text-muted-foreground">Titulaire carte</p><p className="text-xs font-semibold text-foreground">{wallet?.holder_name || "—"}</p></div>
               </div>
@@ -1111,12 +1111,12 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
                   className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
               </div>
               <div>
-                <label className="text-[10px] text-muted-foreground">Invest. perso min (FCFA)</label>
+                <label className="text-[10px] text-muted-foreground">Invest. perso min (USDT)</label>
                 <input type="number" value={seriesConditions.min_personal_investment} onChange={e => setSeriesConditions({ ...seriesConditions, min_personal_investment: e.target.value })} placeholder="0"
                   className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
               </div>
               <div>
-                <label className="text-[10px] text-muted-foreground">Invest. équipe min (FCFA)</label>
+                <label className="text-[10px] text-muted-foreground">Invest. équipe min (USDT)</label>
                 <input type="number" value={seriesConditions.min_team_investment} onChange={e => setSeriesConditions({ ...seriesConditions, min_team_investment: e.target.value })} placeholder="0"
                   className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
               </div>
@@ -1147,7 +1147,7 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
             </button>
           )}
           <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-xs text-muted-foreground">Prix / Budget (FCFA)</label><input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
+            <div><label className="text-xs text-muted-foreground">Prix / Budget (USDT)</label><input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
             <div><label className="text-xs text-muted-foreground">Retour (%)</label><input type="number" value={form.return_percent} onChange={e => setForm({ ...form, return_percent: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
             <div><label className="text-xs text-muted-foreground">Revenu total</label><input type="number" value={form.total_revenue} onChange={e => setForm({ ...form, total_revenue: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
             <div><label className="text-xs text-muted-foreground">Revenu quotidien</label><input type="number" value={form.daily_revenue} onChange={e => setForm({ ...form, daily_revenue: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
@@ -1195,7 +1195,7 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
                             {p.stock_status === "sold_out" && <span className="text-[9px] bg-warning/20 text-warning px-1.5 py-0.5 rounded-full font-bold">ÉPUISÉ</span>}
                             {p.stock_status === "terminated" && <span className="text-[9px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full font-bold">TERMINÉ</span>}
                           </div>
-                          <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} FCFA • {p.return_percent}%</span>
+                          <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} USDT • {p.return_percent}%</span>
                         </div>
                         <div className="flex gap-1.5">
                           <button onClick={async () => { await supabase.from("products").update({ is_active: !p.is_active }).eq("id", p.id); reload(); }} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{p.is_active ? "ON" : "OFF"}</button>
@@ -1333,13 +1333,13 @@ const BannersTab = ({ banners, reload, showSuccess, showError }: any) => {
 const PaymentsTab = ({ methods, countries, apiConfigs, reload, showSuccess, showError }: any) => {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<PaymentMethod | null>(null);
-  const [form, setForm] = useState({ name: "", country: "Congo-Kinshasa", phone: "", holder_name: "", instructions: "", country_id: "", payment_type: "manual", external_url: "", logo_url: "", api_config_id: "" });
+  const [form, setForm] = useState({ name: "", country: "Haiti", phone: "", holder_name: "", instructions: "", country_id: "", payment_type: "manual", external_url: "", logo_url: "", api_config_id: "" });
   const [uploading, setUploading] = useState(false);
   const logoRef = useRef<HTMLInputElement>(null);
 
   const openForm = (m?: PaymentMethod) => {
     if (m) { setEditing(m); setForm({ name: m.name, country: m.country, phone: m.phone || "", holder_name: m.holder_name || "", instructions: m.instructions || "", country_id: m.country_id || "", payment_type: m.payment_type || "manual", external_url: m.external_url || "", logo_url: m.logo_url || "", api_config_id: (m as any).api_config_id || "" }); }
-    else { setEditing(null); setForm({ name: "", country: "Congo-Kinshasa", phone: "", holder_name: "", instructions: "", country_id: "", payment_type: "manual", external_url: "", logo_url: "", api_config_id: "" }); }
+    else { setEditing(null); setForm({ name: "", country: "Haiti", phone: "", holder_name: "", instructions: "", country_id: "", payment_type: "manual", external_url: "", logo_url: "", api_config_id: "" }); }
     setShowForm(true);
   };
 
@@ -1813,9 +1813,9 @@ const SupportTab = ({ adminId }: { adminId: string }) => {
     const date = new Date(d);
     const now = new Date();
     if (date.toDateString() === now.toDateString()) {
-      return date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lubumbashi" });
+      return date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" });
     }
-    return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Africa/Lubumbashi" });
+    return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "America/Port-au-Prince" });
   };
 
   if (loading) return <p className="text-xs text-muted-foreground text-center py-10">Chargement...</p>;
@@ -2156,7 +2156,7 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
             <div className="flex justify-between"><span className="text-xs font-bold text-foreground">{editing ? "Modifier" : "Nouveau cadeau"}</span><button onClick={() => setShowForm(false)}><X size={14} className="text-muted-foreground" /></button></div>
             <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nom du cadeau" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
             <input type="number" value={form.points_required} onChange={e => setForm({ ...form, points_required: e.target.value })} placeholder="Points requis" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
-            <input type="number" value={form.money_value} onChange={e => setForm({ ...form, money_value: e.target.value })} placeholder="Montant en FCFA" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+            <input type="number" value={form.money_value} onChange={e => setForm({ ...form, money_value: e.target.value })} placeholder="Montant en USDT" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
             <input value={form.image_url} onChange={e => setForm({ ...form, image_url: e.target.value })} placeholder="URL image (optionnel)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
             <button onClick={saveReward} className="w-full gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm">{editing ? "Modifier" : "Ajouter"}</button>
           </div>
@@ -2169,7 +2169,7 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
                 {r.image_url ? <img src={r.image_url} className="w-10 h-10 rounded-lg object-cover" /> : <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Gift size={16} className="text-primary" /></div>}
                 <div>
                   <p className="text-sm font-semibold text-foreground">{r.name}</p>
-                  <p className="text-xs text-muted-foreground">{r.points_required} ESK → {Number(r.money_value || 0).toLocaleString("fr-FR")} FCFA</p>
+                  <p className="text-xs text-muted-foreground">{r.points_required} ESK → {Number(r.money_value || 0).toLocaleString("fr-FR")} USDT</p>
                 </div>
               </div>
               <div className="flex gap-1.5">
@@ -2241,7 +2241,7 @@ const GiftCodesTab = ({ showSuccess, showError }: any) => {
 
   const formatDate = (d: string | null) => {
     if (!d) return "—";
-    return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Lubumbashi" });
+    return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Port-au-Prince" });
   };
 
   return (
@@ -2654,15 +2654,15 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
     general: { label: "General", keys: [{ key: "site_name", label: "Nom du site" }, { key: "welcome_text", label: "Texte d'accueil" }, { key: "terms_url", label: "URL Conditions generales" }] },
     deposit: { label: "Depot", keys: [
       { key: "deposit_amounts", label: "Montants predefinis (separes par virgules)" },
-      { key: "deposit_min", label: "Depot minimum (FCFA)" },
-      { key: "deposit_max", label: "Depot maximum (FCFA)" },
+      { key: "deposit_min", label: "Depot minimum (USDT)" },
+      { key: "deposit_max", label: "Depot maximum (USDT)" },
       { key: "deposit_rules", label: "Regles (separees par |, {min} et {max} dynamiques)" },
       { key: "require_screenshot", label: "Exiger capture (true/false)" },
     ]},
     withdrawal: { label: "Retrait", keys: [
       { key: "withdrawal_amounts", label: "Montants predefinis (separes par virgules)" },
-      { key: "withdrawal_min", label: "Retrait minimum (FCFA)" },
-      { key: "withdrawal_max", label: "Retrait maximum (FCFA)" },
+      { key: "withdrawal_min", label: "Retrait minimum (USDT)" },
+      { key: "withdrawal_max", label: "Retrait maximum (USDT)" },
       { key: "withdrawal_fee_percent", label: "Frais de retrait (%)" },
       { key: "withdrawal_rules", label: "Regles (separees par |, {min} {max} {fee} dynamiques)" },
       { key: "max_withdrawals_per_day", label: "Nombre max de retraits par jour" },
@@ -2680,7 +2680,7 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
       { key: "referral_subtitle", label: "Sous-titre gains invitation" },
       { key: "referral_rules", label: "Règles (JSON array de textes)" },
     ] },
-    vip: { label: "Seuils VIP", keys: [{ key: "vip_threshold_1", label: "VIP1 (FCFA)" }, { key: "vip_threshold_2", label: "VIP2 (FCFA)" }, { key: "vip_threshold_3", label: "VIP3 (FCFA)" }, { key: "vip_threshold_4", label: "VIP4 (FCFA)" }, { key: "vip_threshold_5", label: "VIP5 (FCFA)" }] },
+    vip: { label: "Seuils VIP", keys: [{ key: "vip_threshold_1", label: "VIP1 (USDT)" }, { key: "vip_threshold_2", label: "VIP2 (USDT)" }, { key: "vip_threshold_3", label: "VIP3 (USDT)" }, { key: "vip_threshold_4", label: "VIP4 (USDT)" }, { key: "vip_threshold_5", label: "VIP5 (USDT)" }] },
   };
 
   const toggleKeys = [
@@ -2745,7 +2745,7 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
 // ==================== OFFICIAL INFO ====================
 const OfficialInfoTab = ({ settings, reload, showSuccess }: { settings: SiteSetting[]; reload: () => void; showSuccess: (t: string, m: string) => void }) => {
   const fields = [
-    { key: "official_service_phone", label: "Numéro du service client", placeholder: "+243 XX XXX XXXX" },
+    { key: "official_service_phone", label: "Numéro du service client", placeholder: "+509 XX XXX XXXX" },
     { key: "official_whatsapp_link", label: "Lien WhatsApp", placeholder: "https://wa.me/243XXXXXXXX" },
     { key: "official_whatsapp_group", label: "Lien Groupe WhatsApp", placeholder: "https://chat.whatsapp.com/..." },
     { key: "official_private_group_msg", label: "Message Groupe Privé Investisseurs", placeholder: "Message affiché quand on demande le groupe privé...", multiline: true },
@@ -3226,7 +3226,7 @@ const CountriesTab = ({ countries, methods, withdrawalMethods = [], reload, show
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-muted-foreground">Indicatif</label>
-              <input value={form.country_code} onChange={e => setForm({ ...form, country_code: e.target.value })} placeholder="+243" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+              <input value={form.country_code} onChange={e => setForm({ ...form, country_code: e.target.value })} placeholder="+509" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
             </div>
             <div>
               <label className="text-xs text-muted-foreground">Chiffres requis</label>
@@ -3380,12 +3380,12 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-muted-foreground">Invest. perso min (FCFA)</label>
+                  <label className="text-xs text-muted-foreground">Invest. perso min (USDT)</label>
                   <input type="number" value={form.min_investment} onChange={e => setForm({ ...form, min_investment: e.target.value })}
                     className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">Invest. équipe min (FCFA)</label>
+                  <label className="text-xs text-muted-foreground">Invest. équipe min (USDT)</label>
                   <input type="number" value={form.min_team_investment} onChange={e => setForm({ ...form, min_team_investment: e.target.value })}
                     className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
                 </div>
@@ -3672,7 +3672,7 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
             <div key={log.id} className="bg-secondary/30 rounded-lg px-3 py-2">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold text-foreground">{log.amount.toLocaleString()} FCFA • {log.phone}</p>
+                  <p className="text-xs font-semibold text-foreground">{log.amount.toLocaleString()} USDT • {log.phone}</p>
                   <p className="text-[10px] text-muted-foreground">{log.provider_ref || "—"}</p>
                 </div>
                 <div className="text-right">

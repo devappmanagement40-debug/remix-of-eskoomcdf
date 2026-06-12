@@ -65,7 +65,7 @@ const CountryPicker = ({ value, onChange, triggerClassName }: CountryPickerProps
             }}
           >
             <div className="flex items-center justify-between px-5 py-4">
-              <span className="text-sm font-bold text-foreground">Selectionnez le code</span>
+              <span className="text-sm font-bold text-foreground">Select code</span>
               <button
                 onClick={() => setOpen(false)}
                 className="w-8 h-8 rounded-full bg-secondary/50 flex items-center justify-center"
@@ -80,9 +80,9 @@ const CountryPicker = ({ value, onChange, triggerClassName }: CountryPickerProps
 
             <div className="max-h-[50vh] overflow-y-auto py-2">
               {loading ? (
-                <p className="text-center text-sm text-muted-foreground py-8">Chargement...</p>
+                <p className="text-center text-sm text-muted-foreground py-8">Loading...</p>
               ) : countries.length === 0 ? (
-                <p className="text-center text-sm text-muted-foreground py-8">Aucun pays disponible</p>
+                <p className="text-center text-sm text-muted-foreground py-8">No country available</p>
               ) : (
                 countries.map((c) => {
                   const isSelected = c.code === value;

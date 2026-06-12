@@ -1,5 +1,5 @@
-// Congo-Kinshasa timezone (UTC+2)
-export const APP_TIMEZONE = "Africa/Lubumbashi";
+// Haiti timezone (UTC-5)
+export const APP_TIMEZONE = "America/Port-au-Prince";
 
 export const formatDateFR = (d: string | null, options?: Intl.DateTimeFormatOptions): string => {
   if (!d) return "—";

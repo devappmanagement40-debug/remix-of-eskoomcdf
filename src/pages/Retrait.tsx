@@ -98,18 +98,18 @@ const Retrait = () => {
       const now = new Date();
       const dayOfWeek = now.getDay() === 0 ? 7 : now.getDay();
       const currentHour = now.getHours();
-      const dayNames = ["", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+      const dayNames = ["", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
       if (!wEnabled) {
         setIsWithinSchedule(false);
-        setScheduleMessage("Les retraits sont temporairement désactivés.");
+        setScheduleMessage("Withdrawals are temporarily disabled.");
       } else if (!wDays.includes(dayOfWeek)) {
         setIsWithinSchedule(false);
         const allowedDayNames = wDays.map(d => dayNames[d]).join(", ");
-        setScheduleMessage(`Les retraits sont disponibles uniquement les jours suivants : ${allowedDayNames}.`);
+        setScheduleMessage(`Withdrawals are available only on: ${allowedDayNames}.`);
       } else if (currentHour < wHourStart || currentHour >= wHourEnd) {
         setIsWithinSchedule(false);
-        setScheduleMessage(`Les retraits sont disponibles uniquement de ${wHourStart}h00 à ${wHourEnd}h00.`);
+        setScheduleMessage(`Withdrawals are available only from ${wHourStart}:00 to ${wHourEnd}:00.`);
       } else {
         setIsWithinSchedule(true);
         setScheduleMessage("");
@@ -126,7 +126,7 @@ const Retrait = () => {
       }
     } catch (err) {
       console.error("Load error:", err);
-      showError("Erreur", "Impossible de charger les données");
+      showError("Error", "Failed to load data");
     } finally {
       setLoading(false);
     }
@@ -137,15 +137,15 @@ const Retrait = () => {
   const netAmount = numAmount - feeAmount;
 
   const handleSubmit = async () => {
-    if (!isWithinSchedule) { showError("Retraits fermés", scheduleMessage); return; }
-    if (!selectedWallet) { showError("Erreur", "Selectionnez un portefeuille"); return; }
+    if (!isWithinSchedule) { showError("Withdrawals closed", scheduleMessage); return; }
+    if (!selectedWallet) { showError("Error", "Select a wallet"); return; }
     if (maxWithdrawalsEnabled && todayWithdrawals >= maxWithdrawalsPerDay) {
-      showError("Limite atteinte", "Vous avez atteint le nombre maximum de retraits autorises aujourd'hui.");
+      showError("Limit reached", "You have reached the maximum number of withdrawals allowed today.");
       return;
     }
-    if (numAmount < minAmount) { showError("Erreur", `Montant minimum : ${minAmount} FCFA`); return; }
-    if (numAmount > maxAmount) { showError("Erreur", `Montant maximum : ${maxAmount.toLocaleString()} FCFA`); return; }
-    if (numAmount > withdrawableBalance) { showError("Erreur", "Solde retirable insuffisant"); return; }
+    if (numAmount < minAmount) { showError("Error", `Minimum amount: ${minAmount} USDT`); return; }
+    if (numAmount > maxAmount) { showError("Error", `Maximum amount: ${maxAmount.toLocaleString()} USDT`); return; }
+    if (numAmount > withdrawableBalance) { showError("Error", "Insufficient withdrawable balance"); return; }
 
     setSubmitting(true);
     const { data: { user } } = await supabase.auth.getUser();
@@ -161,7 +161,7 @@ const Retrait = () => {
     });
 
     if (error) {
-      showError("Erreur", "Erreur lors de la demande de retrait");
+      showError("Error", "Withdrawal request failed");
     } else {
       const { data: pointSetting } = await supabase.from("site_settings")
         .select("value").eq("key", "points_per_withdrawal").single();
@@ -185,24 +185,24 @@ const Retrait = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Chargement...</p>
+        <p className="text-muted-foreground">Loading...</p>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-background pb-10">
-      <PageHeader title="Retrait" showBack />
+      <PageHeader title="Withdraw" showBack />
 
       <div className="px-4 pt-6 space-y-4">
         {/* Balance */}
         <div className="bg-card rounded-2xl border border-border/30 p-5 text-center">
-          <p className="text-xs text-muted-foreground mb-1">Solde retirable</p>
-          <p className="text-3xl font-bold text-foreground">{withdrawableBalance.toLocaleString("fr-FR")} <span className="text-sm font-normal text-muted-foreground">FCFA</span></p>
+          <p className="text-xs text-muted-foreground mb-1">Withdrawable balance</p>
+          <p className="text-3xl font-bold text-foreground">{withdrawableBalance.toLocaleString("fr-FR")} <span className="text-sm font-normal text-muted-foreground">USDT</span></p>
           {depositNotWithdrawable && (
             <div className="flex justify-center gap-3 mt-3">
-              <span className="text-[10px] bg-success/10 text-success px-2.5 py-1 rounded-full">Gains: {earningsBalance.toLocaleString("fr-FR")} F</span>
-              <span className="text-[10px] bg-primary/10 text-primary px-2.5 py-1 rounded-full">Parrainage: {referralBalance.toLocaleString("fr-FR")} F</span>
+              <span className="text-[10px] bg-success/10 text-success px-2.5 py-1 rounded-full">Earnings: {earningsBalance.toLocaleString("fr-FR")} U</span>
+              <span className="text-[10px] bg-primary/10 text-primary px-2.5 py-1 rounded-full">Referral: {referralBalance.toLocaleString("fr-FR")} U</span>
             </div>
           )}
         </div>
@@ -211,15 +211,15 @@ const Retrait = () => {
         <div className="bg-card rounded-2xl border border-border/30 p-4">
           <div className="flex items-center gap-2 mb-2">
             <Clock size={14} className="text-primary" />
-            <label className="text-xs font-semibold text-foreground">Horaires de retrait</label>
+            <label className="text-xs font-semibold text-foreground">Withdrawal schedule</label>
           </div>
           <div className="space-y-1">
             <p className="text-xs text-muted-foreground">
-              Heures : <span className="font-semibold text-foreground">{withdrawalHourStart}h00 – {withdrawalHourEnd}h00</span>
+              Hours: <span className="font-semibold text-foreground">{withdrawalHourStart}:00 – {withdrawalHourEnd}:00</span>
             </p>
             <p className="text-xs text-muted-foreground">
-              Jours : <span className="font-semibold text-foreground">
-                {withdrawalDays.length === 7 ? "Lundi à Dimanche" : withdrawalDays.map(d => ["", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"][d]).join(", ")}
+              Days: <span className="font-semibold text-foreground">
+                {withdrawalDays.length === 7 ? "Monday to Sunday" : withdrawalDays.map(d => ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][d]).join(", ")}
               </span>
             </p>
           </div>
@@ -233,7 +233,7 @@ const Retrait = () => {
 
         {/* Amount */}
         <div className="bg-card rounded-2xl border border-border/30 p-4">
-          <label className="text-xs text-muted-foreground mb-2 block">Montant du retrait (FCFA)</label>
+          <label className="text-xs text-muted-foreground mb-2 block">Withdrawal amount (USDT)</label>
           <input
             type="number"
             value={amount}
@@ -261,16 +261,16 @@ const Retrait = () => {
           {numAmount > 0 && (
             <div className="mt-3 space-y-1.5 pt-3 border-t border-border/20">
               <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Montant demandé</span>
-                <span className="text-foreground font-semibold">{numAmount.toLocaleString("fr-FR")} FCFA</span>
+                <span className="text-muted-foreground">Requested amount</span>
+                <span className="text-foreground font-semibold">{numAmount.toLocaleString("fr-FR")} USDT</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Frais ({feePercent}%)</span>
-                <span className="text-destructive font-semibold">- {feeAmount.toLocaleString("fr-FR")} FCFA</span>
+                <span className="text-muted-foreground">Fees ({feePercent}%)</span>
+                <span className="text-destructive font-semibold">- {feeAmount.toLocaleString("fr-FR")} USDT</span>
               </div>
               <div className="flex justify-between text-sm pt-1">
-                <span className="text-foreground font-bold">Vous recevrez</span>
-                <span className="text-success font-bold">{netAmount.toLocaleString("fr-FR")} FCFA</span>
+                <span className="text-foreground font-bold">You will receive</span>
+                <span className="text-success font-bold">{netAmount.toLocaleString("fr-FR")} USDT</span>
               </div>
             </div>
           )}
@@ -278,12 +278,12 @@ const Retrait = () => {
 
         {/* Select wallet */}
         <div className="bg-card rounded-2xl border border-border/30 p-4">
-          <label className="text-xs text-muted-foreground mb-2 block">Portefeuille de retrait</label>
+          <label className="text-xs text-muted-foreground mb-2 block">Withdrawal wallet</label>
           {wallets.length === 0 ? (
             <div className="text-center py-4">
-              <p className="text-xs text-muted-foreground mb-3">Aucun portefeuille enregistré</p>
+              <p className="text-xs text-muted-foreground mb-3">No wallet registered</p>
               <button onClick={() => navigate("/lier-carte")} className="gradient-button text-primary-foreground text-xs font-semibold px-4 py-2.5 rounded-xl">
-                Ajouter un portefeuille
+                Add a wallet
               </button>
             </div>
           ) : (
@@ -292,7 +292,7 @@ const Retrait = () => {
               onChange={(e) => setSelectedWallet(e.target.value)}
               className="w-full bg-secondary/50 text-foreground rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-primary"
             >
-              <option value="">-- Choisir --</option>
+              <option value="">-- Choose --</option>
               {wallets.map((w) => (
                 <option key={w.id} value={w.id}>
                   {w.network} — {w.country_code} ****{w.phone.slice(-4)}
@@ -305,7 +305,7 @@ const Retrait = () => {
         {/* Rules */}
         {rules.length > 0 && (
           <div className="bg-card rounded-2xl border border-border/30 p-4">
-            <label className="text-xs text-muted-foreground mb-2 block">Règles de retrait</label>
+            <label className="text-xs text-muted-foreground mb-2 block">Withdrawal rules</label>
             <div className="space-y-2">
               {rules.map((rule, i) => (
                 <div key={i} className="flex items-start gap-2">
@@ -320,7 +320,7 @@ const Retrait = () => {
         {numAmount > withdrawableBalance && (
           <div className="flex items-center gap-2 bg-destructive/10 text-destructive rounded-xl px-4 py-3">
             <AlertTriangle size={16} />
-            <p className="text-xs font-medium">Solde retirable insuffisant</p>
+            <p className="text-xs font-medium">Insufficient withdrawable balance</p>
           </div>
         )}
 
@@ -330,7 +330,7 @@ const Retrait = () => {
           className="w-full gradient-button text-primary-foreground font-bold py-4 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           <ArrowUpRight size={16} />
-          {submitting ? "Envoi en cours..." : !isWithinSchedule ? "Retraits fermés" : "Lancer le retrait"}
+          {submitting ? "Sending..." : !isWithinSchedule ? "Withdrawals closed" : "Submit withdrawal"}
         </button>
 
         <PremiumModal

@@ -153,7 +153,7 @@ const Team = () => {
   const totalRevenue = levels.reduce((sum, l) => sum + l.revenue, 0);
 
   const openWhatsApp = (member: TeamMember) => {
-    const code = (member.country_code || "+243").replace("+", "");
+    const code = (member.country_code || "+509").replace("+", "");
     const num = (member.phone || "").replace(/\D/g, "");
     if (!num) return;
     window.open(`https://wa.me/${code}${num}?text=${WHATSAPP_MESSAGE}`, "_blank");
@@ -170,7 +170,7 @@ const Team = () => {
 
   const formatDate = (d: string | null) => {
     if (!d) return "—";
-    return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric", timeZone: "Africa/Lubumbashi" });
+    return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric", timeZone: "America/Port-au-Prince" });
   };
 
   // If a level is expanded, show member list view
@@ -220,7 +220,7 @@ const Team = () => {
                   <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-2">
                     <span className="flex items-center gap-1"><Calendar size={12} /> {formatDate(member.created_at)}</span>
                     <span className="flex items-center gap-1 font-semibold text-primary">
-                      <DollarSign size={12} /> Bonus: {member.bonusEarned.toLocaleString()} FCFA
+                      <DollarSign size={12} /> Bonus: {member.bonusEarned.toLocaleString()} USDT
                     </span>
                   </div>
 
@@ -268,7 +268,7 @@ const Team = () => {
               <DollarSign size={28} className="text-amber-400" />
             </div>
             <span className="text-xs text-muted-foreground mb-1">Revenu Total</span>
-            <span className="text-lg font-bold text-primary">{totalRevenue.toLocaleString()} <span className="text-xs font-normal text-muted-foreground">FCFA</span></span>
+            <span className="text-lg font-bold text-primary">{totalRevenue.toLocaleString()} <span className="text-xs font-normal text-muted-foreground">USDT</span></span>
           </div>
           <div className="bg-card border border-border rounded-xl p-5 flex flex-col items-center">
             <div className="w-14 h-14 rounded-full bg-cyan-500/20 flex items-center justify-center mb-3">
@@ -301,7 +301,7 @@ const Team = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Revenu</span>
-                  <span className="text-sm text-foreground">{level.revenue.toLocaleString()} FCFA</span>
+                  <span className="text-sm text-foreground">{level.revenue.toLocaleString()} USDT</span>
                 </div>
               </div>
             </div>
