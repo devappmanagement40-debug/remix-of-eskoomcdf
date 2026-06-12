@@ -111,19 +111,19 @@ const Products = () => {
   }, []);
 
   const checkSeriesAccess = (s: Series): string[] => {
-    if (!userAccess) return ["Connectez-vous pour acheter"];
+    if (!userAccess) return ["Sign in to purchase"];
     const missing: string[] = [];
     if ((s.min_vip_level || 0) > 0 && userAccess.vipLevel < (s.min_vip_level || 0)) {
-      missing.push(`VIP ${s.min_vip_level} minimum requis (vous êtes VIP ${userAccess.vipLevel})`);
+      missing.push(`VIP ${s.min_vip_level} required (you are VIP ${userAccess.vipLevel})`);
     }
     if ((s.min_personal_investment || 0) > 0 && userAccess.personalInvestment < (s.min_personal_investment || 0)) {
-      missing.push(`Investissement personnel de ${Number(s.min_personal_investment).toLocaleString("fr-FR")} USDT requis`);
+      missing.push(`Personal investment of ${Number(s.min_personal_investment).toLocaleString("fr-FR")} USDT required`);
     }
     if ((s.min_team_investment || 0) > 0 && userAccess.teamInvestment < (s.min_team_investment || 0)) {
-      missing.push(`Investissement équipe de ${Number(s.min_team_investment).toLocaleString("fr-FR")} USDT requis`);
+      missing.push(`Team investment of ${Number(s.min_team_investment).toLocaleString("fr-FR")} USDT required`);
     }
     if ((s.min_active_members || 0) > 0 && userAccess.activeMembers < (s.min_active_members || 0)) {
-      missing.push(`${s.min_active_members} membres actifs requis (vous en avez ${userAccess.activeMembers})`);
+      missing.push(`${s.min_active_members} active members required (you have ${userAccess.activeMembers})`);
     }
     return missing;
   };
@@ -138,13 +138,13 @@ const Products = () => {
       const { data: profile } = await supabase.from("profiles")
         .select("balance, deposit_balance, earnings_balance")
         .eq("user_id", user.id).single();
-      if (!profile) { showError("Erreur", "Profil introuvable"); return; }
+      if (!profile) { showError("Error", "Profile not found"); return; }
 
       const price = Number(product.price) || 0;
       const totalBalance = (profile.balance || 0);
 
       if (totalBalance < price) {
-        showError("Solde insuffisant", `Votre solde (${totalBalance.toLocaleString("fr-FR")} USDT) est insuffisant pour acheter ce produit (${price.toLocaleString("fr-FR")} USDT). Veuillez recharger votre compte.`);
+        showError("Insufficient balance", `Your balance (${totalBalance.toLocaleString("fr-FR")} USDT) is too low to buy this product (${price.toLocaleString("fr-FR")} USDT). Please top up your account.`);
         return;
       }
 
@@ -158,7 +158,7 @@ const Products = () => {
 
       // Rule: Cannot buy same product while a previous purchase is still active
       if ((activeCount || 0) > 0) {
-        showError("Produit encore actif", `Vous possédez déjà ce produit et il est encore actif. Vous pourrez le racheter une fois qu'il sera expiré.`);
+        showError("Product still active", `You already own this product and it is still active. You can buy it again once it expires.`);
         return;
       }
 
@@ -169,7 +169,7 @@ const Products = () => {
           .eq("user_id", user.id)
           .eq("product_id", product.id);
         if ((totalCount || 0) >= product.max_purchases) {
-          showError("Limite atteinte", `Vous avez atteint la limite maximale de ${product.max_purchases} achat(s) pour ce produit.`);
+          showError("Limit reached", `You have reached the maximum of ${product.max_purchases} purchase(s) for this product.`);
           return;
         }
       }
@@ -197,7 +197,7 @@ const Products = () => {
       });
 
       if (insertError) {
-        showError("Erreur", "Erreur lors de l'achat");
+        showError("Error", "Purchase failed");
         return;
       }
 
@@ -243,7 +243,7 @@ const Products = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <PageHeader title="Produits" />
+      <PageHeader title="Products" />
       <div className="px-4 pt-4">
         {/* Series tabs */}
         <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
@@ -253,7 +253,7 @@ const Products = () => {
               activeSeries === "all" ? "gradient-button text-primary-foreground" : "bg-transparent border border-primary text-primary"
             }`}
           >
-            Tous
+            All
           </button>
           {series.map(s => {
             const isActive = activeSeries === s.id;
@@ -273,7 +273,7 @@ const Products = () => {
         </div>
 
         {loading ? (
-          <p className="text-center text-muted-foreground py-10">Chargement...</p>
+          <p className="text-center text-muted-foreground py-10">Loading...</p>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center py-20">
             <div className="relative mb-6">
@@ -281,7 +281,7 @@ const Products = () => {
                 <ClipboardList size={40} className="text-muted-foreground/50" />
               </div>
             </div>
-            <p className="text-sm text-muted-foreground">La liste des produits est vide</p>
+            <p className="text-sm text-muted-foreground">No products available</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -301,16 +301,16 @@ const Products = () => {
                       <div className="relative w-24 h-28 rounded-lg overflow-hidden flex-shrink-0">
                         <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                         {product.is_new && !isUnavailable && (
-                          <Badge className="absolute top-1.5 left-1.5 bg-success text-success-foreground text-[9px] px-1.5 py-0.5">nouveau</Badge>
+                          <Badge className="absolute top-1.5 left-1.5 bg-success text-success-foreground text-[9px] px-1.5 py-0.5">new</Badge>
                         )}
                         {isSoldOut && (
                           <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-                            <Badge className="bg-warning text-warning-foreground text-[10px] px-2 py-1 font-bold">Épuisé</Badge>
+                            <Badge className="bg-warning text-warning-foreground text-[10px] px-2 py-1 font-bold">Sold out</Badge>
                           </div>
                         )}
                         {isTerminated && (
                           <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-                            <Badge className="bg-destructive text-destructive-foreground text-[10px] px-2 py-1 font-bold">Terminé</Badge>
+                            <Badge className="bg-destructive text-destructive-foreground text-[10px] px-2 py-1 font-bold">Ended</Badge>
                           </div>
                         )}
                       </div>
@@ -318,16 +318,16 @@ const Products = () => {
                       <div className="relative w-24 h-28 rounded-lg overflow-hidden flex-shrink-0 bg-secondary/30 flex items-center justify-center">
                         <Package size={28} className="text-muted-foreground/30" />
                         {product.is_new && !isUnavailable && (
-                          <Badge className="absolute top-1.5 left-1.5 bg-success text-success-foreground text-[9px] px-1.5 py-0.5">nouveau</Badge>
+                          <Badge className="absolute top-1.5 left-1.5 bg-success text-success-foreground text-[9px] px-1.5 py-0.5">new</Badge>
                         )}
                         {isSoldOut && (
                           <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-                            <Badge className="bg-warning text-warning-foreground text-[10px] px-2 py-1 font-bold">Épuisé</Badge>
+                            <Badge className="bg-warning text-warning-foreground text-[10px] px-2 py-1 font-bold">Sold out</Badge>
                           </div>
                         )}
                         {isTerminated && (
                           <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-                            <Badge className="bg-destructive text-destructive-foreground text-[10px] px-2 py-1 font-bold">Terminé</Badge>
+                            <Badge className="bg-destructive text-destructive-foreground text-[10px] px-2 py-1 font-bold">Ended</Badge>
                           </div>
                         )}
                       </div>
@@ -336,29 +336,29 @@ const Products = () => {
                       <div className="flex gap-1.5 items-center flex-wrap">
                         <Badge variant="outline" className={`${colorBorderMap[seriesColor] || ""} text-[10px]`}>{product.name}</Badge>
                         <Badge className="bg-success text-success-foreground text-[10px]">{product.return_percent}%</Badge>
-                        <Badge className="bg-primary/90 text-primary-foreground text-[9px]">Actuellement</Badge>
+                        <Badge className="bg-primary/90 text-primary-foreground text-[9px]">Live</Badge>
                       </div>
                       <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 mt-1">
                         <div>
-                          <p className="text-[9px] text-muted-foreground">Total des revenus</p>
+                          <p className="text-[9px] text-muted-foreground">Total revenue</p>
                           <p className="text-xs font-bold text-primary">{Number(product.total_revenue).toLocaleString("fr-FR")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p>
                         </div>
                         <div>
-                          <p className="text-[9px] text-muted-foreground">Revenu Quotidien</p>
+                          <p className="text-[9px] text-muted-foreground">Daily revenue</p>
                           <p className="text-xs font-bold text-primary">{Number(product.daily_revenue).toLocaleString("fr-FR")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p>
                         </div>
                         <div>
                           <p className="text-[9px] text-muted-foreground">Cycles</p>
-                          <p className="text-xs font-bold text-primary">{product.cycles}j</p>
+                          <p className="text-xs font-bold text-primary">{product.cycles}d</p>
                         </div>
                         <div>
-                          <p className="text-[9px] text-muted-foreground">Prix</p>
+                          <p className="text-[9px] text-muted-foreground">Price</p>
                           <p className="text-xs font-bold text-primary">{Number(product.price).toLocaleString("fr-FR")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p>
                         </div>
                         {product.max_purchases && (
                           <div className="col-span-2 mt-0.5">
-                            <p className="text-[9px] text-muted-foreground">Limite d'achat</p>
-                            <p className="text-xs font-bold text-warning">{product.max_purchases} achat{product.max_purchases > 1 ? "s" : ""} max</p>
+                            <p className="text-[9px] text-muted-foreground">Purchase limit</p>
+                            <p className="text-xs font-bold text-warning">Max {product.max_purchases} purchase{product.max_purchases > 1 ? "s" : ""}</p>
                           </div>
                         )}
                       </div>
@@ -381,15 +381,15 @@ const Products = () => {
                         disabled
                       >
                         <Ban size={14} />
-                        {isSoldOut ? "Rupture de stock" : "Produit terminé"}
+                        {isSoldOut ? "Out of stock" : "Product ended"}
                       </Button>
                     ) : isLocked ? (
                       <Button
                         className="w-full h-8 text-xs font-semibold gap-1.5 bg-secondary text-muted-foreground hover:bg-secondary"
-                        onClick={() => showError("Conditions non remplies", missingConditions.join("\n• "))}
+                        onClick={() => showError("Conditions not met", missingConditions.join("\n• "))}
                       >
                         <Lock size={14} />
-                        Conditions requises
+                        Requirements
                       </Button>
                     ) : (
                       <Button
@@ -398,7 +398,7 @@ const Products = () => {
                         onClick={() => setConfirmProduct(product)}
                       >
                         <ShoppingCart size={14} />
-                        {purchasing === product.id ? "Achat..." : "Acheter"}
+                        {purchasing === product.id ? "Buying..." : "Buy"}
                       </Button>
                     )}
                   </div>
@@ -413,7 +413,7 @@ const Products = () => {
       <AlertDialog open={!!confirmProduct} onOpenChange={(open) => { if (!open) setConfirmProduct(null); }}>
         <AlertDialogContent className="bg-card border-secondary rounded-2xl max-w-[90vw] sm:max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground text-center">Confirmer l'achat</AlertDialogTitle>
+            <AlertDialogTitle className="text-foreground text-center">Confirm purchase</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3 pt-2">
                 {confirmProduct?.image_url && (
@@ -427,32 +427,32 @@ const Products = () => {
                 </div>
                 <div className="bg-secondary/50 rounded-xl p-3 grid grid-cols-2 gap-2 text-center">
                   <div>
-                    <p className="text-[10px] text-muted-foreground">Revenu quotidien</p>
-                    <p className="text-xs font-bold text-primary">{Number(confirmProduct?.daily_revenue || 0).toLocaleString("fr-FR")} F</p>
+                    <p className="text-[10px] text-muted-foreground">Daily revenue</p>
+                    <p className="text-xs font-bold text-primary">{Number(confirmProduct?.daily_revenue || 0).toLocaleString("fr-FR")} U</p>
                   </div>
                   <div>
                     <p className="text-[10px] text-muted-foreground">Cycles</p>
-                    <p className="text-xs font-bold text-primary">{confirmProduct?.cycles}j</p>
+                    <p className="text-xs font-bold text-primary">{confirmProduct?.cycles}d</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-muted-foreground">Rendement</p>
+                    <p className="text-[10px] text-muted-foreground">Yield</p>
                     <p className="text-xs font-bold text-success">{confirmProduct?.return_percent}%</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-muted-foreground">Total revenus</p>
-                    <p className="text-xs font-bold text-primary">{Number(confirmProduct?.total_revenue || 0).toLocaleString("fr-FR")} F</p>
+                    <p className="text-[10px] text-muted-foreground">Total revenue</p>
+                    <p className="text-xs font-bold text-primary">{Number(confirmProduct?.total_revenue || 0).toLocaleString("fr-FR")} U</p>
                   </div>
                 </div>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row gap-3 sm:flex-row">
-            <AlertDialogCancel className="flex-1 rounded-xl font-bold">Annuler</AlertDialogCancel>
+            <AlertDialogCancel className="flex-1 rounded-xl font-bold">Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="flex-1 gradient-button rounded-xl font-bold"
               onClick={async () => { if (confirmProduct) { await handlePurchase(confirmProduct); } setConfirmProduct(null); }}
             >
-              Confirmer l'achat
+              Confirm purchase
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
