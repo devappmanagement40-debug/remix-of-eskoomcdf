@@ -61,7 +61,7 @@ const HistoriqueFonds = () => {
   const fmt = (n: number) => n.toLocaleString("fr-FR", { minimumFractionDigits: 2 });
   const fmtDate = (d: string) => {
     const dt = new Date(d);
-    return dt.toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" }) + " " + dt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lubumbashi" });
+    return dt.toLocaleDateString("fr-FR", { timeZone: "America/Port-au-Prince" }) + " " + dt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" });
   };
 
   return (

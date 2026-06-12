@@ -117,10 +117,10 @@ const Products = () => {
       missing.push(`VIP ${s.min_vip_level} minimum requis (vous êtes VIP ${userAccess.vipLevel})`);
     }
     if ((s.min_personal_investment || 0) > 0 && userAccess.personalInvestment < (s.min_personal_investment || 0)) {
-      missing.push(`Investissement personnel de ${Number(s.min_personal_investment).toLocaleString("fr-FR")} FCFA requis`);
+      missing.push(`Investissement personnel de ${Number(s.min_personal_investment).toLocaleString("fr-FR")} USDT requis`);
     }
     if ((s.min_team_investment || 0) > 0 && userAccess.teamInvestment < (s.min_team_investment || 0)) {
-      missing.push(`Investissement équipe de ${Number(s.min_team_investment).toLocaleString("fr-FR")} FCFA requis`);
+      missing.push(`Investissement équipe de ${Number(s.min_team_investment).toLocaleString("fr-FR")} USDT requis`);
     }
     if ((s.min_active_members || 0) > 0 && userAccess.activeMembers < (s.min_active_members || 0)) {
       missing.push(`${s.min_active_members} membres actifs requis (vous en avez ${userAccess.activeMembers})`);
@@ -144,7 +144,7 @@ const Products = () => {
       const totalBalance = (profile.balance || 0);
 
       if (totalBalance < price) {
-        showError("Solde insuffisant", `Votre solde (${totalBalance.toLocaleString("fr-FR")} FCFA) est insuffisant pour acheter ce produit (${price.toLocaleString("fr-FR")} FCFA). Veuillez recharger votre compte.`);
+        showError("Solde insuffisant", `Votre solde (${totalBalance.toLocaleString("fr-FR")} USDT) est insuffisant pour acheter ce produit (${price.toLocaleString("fr-FR")} USDT). Veuillez recharger votre compte.`);
         return;
       }
 
@@ -341,11 +341,11 @@ const Products = () => {
                       <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 mt-1">
                         <div>
                           <p className="text-[9px] text-muted-foreground">Total des revenus</p>
-                          <p className="text-xs font-bold text-primary">{Number(product.total_revenue).toLocaleString("fr-FR")} <span className="text-[9px] font-normal text-muted-foreground">FCFA</span></p>
+                          <p className="text-xs font-bold text-primary">{Number(product.total_revenue).toLocaleString("fr-FR")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p>
                         </div>
                         <div>
                           <p className="text-[9px] text-muted-foreground">Revenu Quotidien</p>
-                          <p className="text-xs font-bold text-primary">{Number(product.daily_revenue).toLocaleString("fr-FR")} <span className="text-[9px] font-normal text-muted-foreground">FCFA</span></p>
+                          <p className="text-xs font-bold text-primary">{Number(product.daily_revenue).toLocaleString("fr-FR")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p>
                         </div>
                         <div>
                           <p className="text-[9px] text-muted-foreground">Cycles</p>
@@ -353,7 +353,7 @@ const Products = () => {
                         </div>
                         <div>
                           <p className="text-[9px] text-muted-foreground">Prix</p>
-                          <p className="text-xs font-bold text-primary">{Number(product.price).toLocaleString("fr-FR")} <span className="text-[9px] font-normal text-muted-foreground">FCFA</span></p>
+                          <p className="text-xs font-bold text-primary">{Number(product.price).toLocaleString("fr-FR")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p>
                         </div>
                         {product.max_purchases && (
                           <div className="col-span-2 mt-0.5">
@@ -423,7 +423,7 @@ const Products = () => {
                 )}
                 <div className="text-center space-y-1">
                   <p className="text-sm font-bold text-foreground">{confirmProduct?.name}</p>
-                  <p className="text-lg font-bold text-primary">{Number(confirmProduct?.price || 0).toLocaleString("fr-FR")} FCFA</p>
+                  <p className="text-lg font-bold text-primary">{Number(confirmProduct?.price || 0).toLocaleString("fr-FR")} USDT</p>
                 </div>
                 <div className="bg-secondary/50 rounded-xl p-3 grid grid-cols-2 gap-2 text-center">
                   <div>

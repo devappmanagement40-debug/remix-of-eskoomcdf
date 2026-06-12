@@ -67,7 +67,7 @@ serve(async (req) => {
         payment_method_id: payment_method_id,
         amount,
         phone,
-        country_code: country_code || '+243',
+        country_code: country_code || '+509',
         status: 'initiated',
       })
       .select()
@@ -133,7 +133,7 @@ serve(async (req) => {
     await supabaseAdmin.from('recharges').insert({
       user_id: userId,
       phone,
-      country_code: country_code || '+243',
+      country_code: country_code || '+509',
       amount,
       transaction_ref: ref,
       payment_method: pm?.name || 'API',
@@ -179,7 +179,7 @@ async function processCinetPay(config: any, amount: number, phone: string, count
         currency: 'XOF',
         customer_phone_number: phone,
         customer_country_code: countryCode,
-        description: `Dépôt ${amount} FCFA`,
+        description: `Dépôt ${amount} USDT`,
         channels: 'MOBILE_MONEY',
         notify_url: config.callback_url || '',
       }),
@@ -206,7 +206,7 @@ async function processFedaPay(config: any, amount: number, phone: string, countr
         'Authorization': `Bearer ${config.secret_key}`,
       },
       body: JSON.stringify({
-        description: `Dépôt ${amount} FCFA`,
+        description: `Dépôt ${amount} USDT`,
         amount: Math.round(amount),
         currency: { iso: 'XOF' },
         callback_url: config.callback_url || '',
@@ -238,7 +238,7 @@ async function processSendavaPay(config: any, amount: number, phone: string, cou
       '+228': { code: 'TG', currency: 'XOF' },
       '+237': { code: 'CM', currency: 'XAF' },
       '+225': { code: 'CI', currency: 'XOF' },
-      '+243': { code: 'COD', currency: 'FCFA' },
+      '+509': { code: 'COD', currency: 'USDT' },
       '+242': { code: 'COG', currency: 'XAF' },
     };
 
@@ -268,7 +268,7 @@ async function processSendavaPay(config: any, amount: number, phone: string, cou
       operator,
       country: countryInfo.code,
       customerName: 'Client',
-      description: `Depot ${amount} FCFA`,
+      description: `Depot ${amount} USDT`,
       callbackUrl,
     };
 

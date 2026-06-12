@@ -113,7 +113,7 @@ const Loterie = () => {
           showPopup({
             type: "success",
             title: "Félicitations !",
-            message: `Vous avez gagné ${Number(prize.value).toLocaleString("fr-FR")} FCFA ! Le montant a été crédité sur votre compte.`,
+            message: `Vous avez gagné ${Number(prize.value).toLocaleString("fr-FR")} USDT ! Le montant a été crédité sur votre compte.`,
           });
         } else {
           showPopup({
@@ -264,7 +264,7 @@ const Loterie = () => {
         {/* Stats */}
         <div className="bg-card rounded-xl border border-secondary p-4 flex">
           <div className="flex-1 text-center border-r border-secondary">
-            <p className="text-xl font-bold text-foreground">{totalWon.toLocaleString("fr-FR")} <span className="text-sm font-normal text-muted-foreground">FCFA</span></p>
+            <p className="text-xl font-bold text-foreground">{totalWon.toLocaleString("fr-FR")} <span className="text-sm font-normal text-muted-foreground">USDT</span></p>
             <p className="text-xs text-muted-foreground mt-1">Montant gagné</p>
           </div>
           <div className="flex-1 text-center border-r border-secondary">
@@ -327,12 +327,12 @@ const Loterie = () => {
                 {globalSpins.map((s) => (
                   <div key={s.id} className="grid grid-cols-3 py-2.5 text-xs items-center">
                     <span className="text-muted-foreground">
-                      {new Date(s.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", timeZone: "Africa/Lubumbashi" })}{" "}
-                      {new Date(s.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lubumbashi" })}
+                      {new Date(s.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", timeZone: "America/Port-au-Prince" })}{" "}
+                      {new Date(s.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" })}
                     </span>
                     <span className="font-bold text-foreground">{s.masked_phone}</span>
                     <span className="text-right font-bold text-warning">
-                      {s.prize_type === "vip" ? `VIP${s.vip_level || ""}` : `${Number(s.prize_value).toLocaleString("fr-FR")} FCFA`}
+                      {s.prize_type === "vip" ? `VIP${s.vip_level || ""}` : `${Number(s.prize_value).toLocaleString("fr-FR")} USDT`}
                     </span>
                   </div>
                 ))}

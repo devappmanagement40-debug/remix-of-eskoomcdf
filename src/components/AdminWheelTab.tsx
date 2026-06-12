@@ -131,13 +131,13 @@ const PrizesSection = ({ prizes, reload, showSuccess, showError }: any) => {
               <label className="text-xs text-muted-foreground">Type</label>
               <select value={form.prize_type} onChange={e => setForm({ ...form, prize_type: e.target.value })}
                 className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none">
-                <option value="cash">Cash (FCFA)</option>
+                <option value="cash">Cash (USDT)</option>
                 <option value="vip">VIP</option>
               </select>
             </div>
             {form.prize_type === "cash" ? (
               <div>
-                <label className="text-xs text-muted-foreground">Montant (FCFA)</label>
+                <label className="text-xs text-muted-foreground">Montant (USDT)</label>
                 <input type="number" value={form.value} onChange={e => setForm({ ...form, value: e.target.value })}
                   className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
               </div>
@@ -241,7 +241,7 @@ const WinnersSection = ({ spins, reload }: { spins: WheelSpin[]; reload: () => v
         </div>
         <div className="bg-card rounded-xl border border-secondary p-3 text-center">
           <p className="text-xl font-bold text-success">{totalCash.toLocaleString("fr-FR")}</p>
-          <p className="text-[10px] text-muted-foreground">Cash (FCFA)</p>
+          <p className="text-[10px] text-muted-foreground">Cash (USDT)</p>
         </div>
         <div className="bg-card rounded-xl border border-secondary p-3 text-center">
           <p className="text-xl font-bold text-warning">{totalVip}</p>
@@ -287,7 +287,7 @@ const WinnersSection = ({ spins, reload }: { spins: WheelSpin[]; reload: () => v
                     {s.prize_type === "vip" ? `VIP${s.vip_level}` : `${Number(s.prize_value).toLocaleString("fr-FR")} F`}
                   </span>
                   <p className="text-[10px] text-muted-foreground">
-                    {new Date(s.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lubumbashi" })}
+                    {new Date(s.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" })}
                   </p>
                 </div>
               </div>
@@ -429,7 +429,7 @@ const VipSpinsSection = ({ spins, reload, showSuccess, showError, logAction, adm
                   <p className="text-xs text-muted-foreground">{p?.full_name || "Utilisateur"} • {p?.phone || ""}</p>
                   <p className="text-xs text-muted-foreground">VIP actuel : {p?.vip_level || 0} → VIP{s.vip_level}</p>
                 </div>
-                <span className="text-[10px] text-muted-foreground"><span className="text-[10px] text-muted-foreground">{new Date(s.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Lubumbashi" })}</span></span>
+                <span className="text-[10px] text-muted-foreground"><span className="text-[10px] text-muted-foreground">{new Date(s.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" })}</span></span>
               </div>
               {s.status === "pending_vip" && (
                 <div className="grid grid-cols-2 gap-3 mt-3">

@@ -413,10 +413,10 @@ const AdminRetraits = () => {
                   <div className="px-4 pt-4 pb-3">
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <p className="text-lg font-bold text-foreground">{r.amount.toLocaleString("fr-FR")} FCFA</p>
+                        <p className="text-lg font-bold text-foreground">{r.amount.toLocaleString("fr-FR")} USDT</p>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <ArrowDown size={12} className="text-success" />
-                          <span className="text-sm font-semibold text-success">Net : {r.net_amount.toLocaleString("fr-FR")} FCFA</span>
+                          <span className="text-sm font-semibold text-success">Net : {r.net_amount.toLocaleString("fr-FR")} USDT</span>
                           <span className="text-xs text-muted-foreground">(- {feePercent} %)</span>
                         </div>
                       </div>
@@ -453,11 +453,11 @@ const AdminRetraits = () => {
                       </div>
                       <div>
                         <p className="text-[10px] text-muted-foreground">Montant demandé :</p>
-                        <p className="text-xs font-semibold text-foreground">{r.amount.toLocaleString("fr-FR")} FCFA</p>
+                        <p className="text-xs font-semibold text-foreground">{r.amount.toLocaleString("fr-FR")} USDT</p>
                       </div>
                       <div>
                         <p className="text-[10px] text-muted-foreground">Solde actuel :</p>
-                        <p className="text-xs font-semibold text-foreground">{profile ? `${(profile.balance || 0).toLocaleString("fr-FR")} FCFA` : "—"}</p>
+                        <p className="text-xs font-semibold text-foreground">{profile ? `${(profile.balance || 0).toLocaleString("fr-FR")} USDT` : "—"}</p>
                       </div>
                       <div>
                         <p className="text-[10px] text-muted-foreground">Date & heure :</p>

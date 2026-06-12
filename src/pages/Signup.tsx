@@ -17,7 +17,7 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [inviteCode, setInviteCode] = useState("");
-  const [countryCode, setCountryCode] = useState("+243");
+  const [countryCode, setCountryCode] = useState("+509");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {

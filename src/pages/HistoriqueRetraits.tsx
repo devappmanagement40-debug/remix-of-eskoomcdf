@@ -38,7 +38,7 @@ const statusLabel = (s: string) => {
 
 const fmtDate = (d: string) => {
   const dt = new Date(d);
-  return dt.toLocaleDateString("fr-FR", { timeZone: "Africa/Lubumbashi" }) + " " + dt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Africa/Lubumbashi" });
+  return dt.toLocaleDateString("fr-FR", { timeZone: "America/Port-au-Prince" }) + " " + dt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "America/Port-au-Prince" });
 };
 
 const fmt = (n: number) => n.toLocaleString("fr-FR", { minimumFractionDigits: 2 });
@@ -151,11 +151,11 @@ const HistoriqueRetraits = () => {
                 <div className="grid grid-cols-2 gap-4 py-3 border-b border-secondary/50">
                   <div>
                     <p className="text-xs text-muted-foreground mb-1">Montant du retrait</p>
-                    <p className="text-lg font-bold text-foreground">{fmt(r.amount)} <span className="text-xs font-normal text-muted-foreground">FCFA</span></p>
+                    <p className="text-lg font-bold text-foreground">{fmt(r.amount)} <span className="text-xs font-normal text-muted-foreground">USDT</span></p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-muted-foreground mb-1">Montant reçu</p>
-                    <p className="text-lg font-bold text-foreground">{fmt(r.net_amount)} <span className="text-xs font-normal text-muted-foreground">FCFA</span></p>
+                    <p className="text-lg font-bold text-foreground">{fmt(r.net_amount)} <span className="text-xs font-normal text-muted-foreground">USDT</span></p>
                   </div>
                 </div>
 
@@ -169,7 +169,7 @@ const HistoriqueRetraits = () => {
                         <AlertTriangle size={14} className="text-warning" />
                       )}
                       <span className={`text-xs font-bold ${r.processing_fee_paid ? "text-success" : "text-warning"}`}>
-                        Frais de traitement : {fmt(r.processing_fee_amount)} FCFA
+                        Frais de traitement : {fmt(r.processing_fee_amount)} USDT
                       </span>
                     </div>
                     {r.processing_fee_paid ? (
@@ -177,7 +177,7 @@ const HistoriqueRetraits = () => {
                     ) : (
                       <>
                         <p className="text-[10px] text-muted-foreground mb-2">
-                          Vous devez payer <span className="font-bold text-warning">{fmt(r.processing_fee_amount)} FCFA</span> pour débloquer votre retrait. Envoyez le montant puis téléchargez la preuve de paiement ci-dessous.
+                          Vous devez payer <span className="font-bold text-warning">{fmt(r.processing_fee_amount)} USDT</span> pour débloquer votre retrait. Envoyez le montant puis téléchargez la preuve de paiement ci-dessous.
                         </p>
                         {r.processing_fee_proof_url ? (
                           <div className="flex items-center gap-2">
@@ -199,7 +199,7 @@ const HistoriqueRetraits = () => {
                   </div>
                 )}
 
-                <DetailRow label="Frais" value={`${fmt(r.fee_amount)} FCFA`} />
+                <DetailRow label="Frais" value={`${fmt(r.fee_amount)} USDT`} />
                 <DetailRow label="Réseau" value={r.network} />
                 <DetailRow label="Numéro" value={r.phone} />
                 <DetailRow label="Heure de la demande" value={fmtDate(r.created_at)} />
