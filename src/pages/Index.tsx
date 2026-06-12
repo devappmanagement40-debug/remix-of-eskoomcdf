@@ -11,16 +11,16 @@ import bannerHome from "@/assets/banner-home.jpg";
 
 
 const circleActions = [
-  { icon: ShoppingBag, label: "Mon produit", path: "/mes-produits" },
-  { icon: Clock, label: "Rechargeur", path: "/recharge" },
-  { icon: Download, label: "Retrait", path: "/portefeuille" },
-  { icon: Users, label: "Mon équipe", path: "/equipe" },
+  { icon: ShoppingBag, label: "My products", path: "/mes-produits" },
+  { icon: Clock, label: "Deposit", path: "/recharge" },
+  { icon: Download, label: "Withdraw", path: "/portefeuille" },
+  { icon: Users, label: "My team", path: "/equipe" },
 ];
 
 const quickActions = [
-  { icon: Headphones, label: "Service" },
-  { icon: Mail, label: "Inviter des amis" },
-  { icon: RefreshCw, label: "Échangeur" },
+  { icon: Headphones, label: "Support" },
+  { icon: Mail, label: "Invite friends" },
+  { icon: RefreshCw, label: "Exchange" },
 ];
 
 const fallbackBanners = [
@@ -142,9 +142,9 @@ const Index = () => {
             <button
               key={action.label}
               onClick={() => {
-                if (action.label === "Service") setShowService(true);
-                else if (action.label === "Inviter des amis") setShowInvite(true);
-                else if (action.label === "Échangeur") navigate("/echanger-code");
+                if (action.label === "Support") setShowService(true);
+                else if (action.label === "Invite friends") setShowInvite(true);
+                else if (action.label === "Exchange") navigate("/echanger-code");
               }}
               className="flex flex-col items-center gap-2 bg-card rounded-xl py-4 px-2 border border-secondary hover:border-primary transition-colors"
             >
@@ -160,9 +160,9 @@ const Index = () => {
         <section className="mt-6 px-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-              <TrendingUp size={18} className="text-primary" /> Produits populaires
+              <TrendingUp size={18} className="text-primary" /> Popular products
             </h2>
-            <button onClick={() => navigate("/produits")} className="text-xs text-primary font-semibold">Voir tout</button>
+            <button onClick={() => navigate("/produits")} className="text-xs text-primary font-semibold">View all</button>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-2 snap-x">
             {featuredProducts.map((product) => (
@@ -172,7 +172,7 @@ const Index = () => {
                     <div className="relative w-28 h-32 rounded-lg overflow-hidden flex-shrink-0">
                       <img src={product.image_url} alt={product.name} width={224} height={256} loading="lazy" className="w-full h-full object-cover" />
                       {product.is_new && (
-                        <Badge className="absolute top-1.5 left-1.5 bg-success text-success-foreground text-[9px] px-1.5 py-0.5">nouveau</Badge>
+                        <Badge className="absolute top-1.5 left-1.5 bg-success text-success-foreground text-[9px] px-1.5 py-0.5">new</Badge>
                       )}
                     </div>
                   ) : (
@@ -185,19 +185,19 @@ const Index = () => {
                     <Badge className="bg-success text-success-foreground text-[10px] w-fit">{product.return_percent}%</Badge>
                     <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 mt-1">
                       <div>
-                        <p className="text-[9px] text-muted-foreground">Total des revenus</p>
+                        <p className="text-[9px] text-muted-foreground">Total revenue</p>
                         <p className="text-xs font-bold text-primary">{Number(product.total_revenue).toLocaleString("fr-FR")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p>
                       </div>
                       <div>
-                        <p className="text-[9px] text-muted-foreground">Revenu Quotidien</p>
+                        <p className="text-[9px] text-muted-foreground">Daily revenue</p>
                         <p className="text-xs font-bold text-primary">{Number(product.daily_revenue).toLocaleString("fr-FR")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p>
                       </div>
                       <div>
                         <p className="text-[9px] text-muted-foreground">Cycles</p>
-                        <p className="text-xs font-bold text-primary">{product.cycles}j</p>
+                        <p className="text-xs font-bold text-primary">{product.cycles}d</p>
                       </div>
                       <div>
-                        <p className="text-[9px] text-muted-foreground">Prix</p>
+                        <p className="text-[9px] text-muted-foreground">Price</p>
                         <p className="text-xs font-bold text-primary">{Number(product.price).toLocaleString("fr-FR")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p>
                       </div>
                     </div>
@@ -205,7 +205,7 @@ const Index = () => {
                 </div>
                 <div className="px-3 pb-3">
                   <button onClick={() => navigate("/produits")} className="gradient-button w-full h-8 text-xs font-semibold flex items-center justify-center gap-1.5 rounded-lg text-primary-foreground">
-                    <ShoppingBag size={14} /> Acheter
+                    <ShoppingBag size={14} /> Buy
                   </button>
                 </div>
               </div>
@@ -217,7 +217,7 @@ const Index = () => {
       {/* Annonces */}
       {annonces.length > 0 && (
         <section className="mt-6 px-4">
-          <h2 className="text-lg font-bold text-foreground mb-4">Annonces</h2>
+          <h2 className="text-lg font-bold text-foreground mb-4">Announcements</h2>
           <div className="space-y-3">
             {annonces.map((item) => (
               <div
@@ -228,7 +228,7 @@ const Index = () => {
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-bold text-foreground mb-1">{item.title}</h3>
                   <p className="text-xs text-muted-foreground line-clamp-3">{item.description}</p>
-                  <span className="text-[10px] text-primary font-semibold mt-2 inline-block">Lire la suite →</span>
+                  <span className="text-[10px] text-primary font-semibold mt-2 inline-block">Read more →</span>
                 </div>
                 {item.image_url && (
                   <div className="w-24 h-20 rounded-lg overflow-hidden flex-shrink-0">
