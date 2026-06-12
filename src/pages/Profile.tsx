@@ -11,20 +11,20 @@ import { useDisplaySettings } from "@/hooks/useDisplaySettings";
 import PremiumModal from "@/components/PremiumModal";
 
 const actionButtons = [
-  { icon: Wallet, label: "Recharger", path: "/portefeuille" },
-  { icon: Download, label: "Retirer", path: "/retrait" },
-  { icon: Clock, label: "Historique", path: "/historique" },
+  { icon: Wallet, label: "Deposit", path: "/portefeuille" },
+  { icon: Download, label: "Withdraw", path: "/retrait" },
+  { icon: Clock, label: "History", path: "/historique" },
 ];
 
 const menuGrid = [
-  { icon: MessageCircle, label: "À propos de nous", path: "/a-propos" },
-  { icon: Headphones, label: "Service client", path: "/aide" },
-  { icon: Clock, label: "Enregistrements", path: "/historique" },
-  { icon: FileText, label: "Réglementation", path: "/aide" },
-  { icon: Smartphone, label: "Télécharger APP", path: "#" },
-  { icon: CreditCard, label: "Lier carte bancaire", path: "/lier-carte" },
-  { icon: Lock, label: "Changer mot de passe", path: "/parametres" },
-  { icon: Gift, label: "Monnaie Eskom", path: "/points-cadeaux" },
+  { icon: MessageCircle, label: "About us", path: "/a-propos" },
+  { icon: Headphones, label: "Customer support", path: "/aide" },
+  { icon: Clock, label: "Records", path: "/historique" },
+  { icon: FileText, label: "Rules", path: "/aide" },
+  { icon: Smartphone, label: "Download APP", path: "#" },
+  { icon: CreditCard, label: "Link bank card", path: "/lier-carte" },
+  { icon: Lock, label: "Change password", path: "/parametres" },
+  { icon: Gift, label: "Eskom Currency", path: "/points-cadeaux" },
 ];
 
 const Profile = () => {
@@ -38,7 +38,7 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <PageHeader title="Mon Compte" />
+      <PageHeader title="My Account" />
       <div className="px-4 pt-6">
         {/* VIP Header */}
         <div className="relative bg-card rounded-2xl border border-secondary p-6 mb-4 overflow-hidden">
@@ -73,13 +73,13 @@ const Profile = () => {
             </div>
             {displaySettings.vip_progress_bar_enabled && vipProgress.nextLevelName && (
               <p className="text-xs text-primary font-medium">
-                Suivant VIP : <span className="font-bold">{vipProgress.nextLevelName}</span>
+                Next VIP: <span className="font-bold">{vipProgress.nextLevelName}</span>
               </p>
             )}
             {displaySettings.vip_progress_bar_enabled && vipProgress.nextLevelName && (
               <div className="w-full mt-2 bg-secondary/50 rounded-xl p-4 border border-secondary">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-muted-foreground">Progression vers {vipProgress.nextLevelName}</span>
+                  <span className="text-xs text-muted-foreground">Progress to {vipProgress.nextLevelName}</span>
                   <span className="text-xs font-bold text-primary">{vipProgress.overallProgress}%</span>
                 </div>
                 <div className="relative h-3 w-full rounded-full bg-muted overflow-hidden">
@@ -110,7 +110,7 @@ const Profile = () => {
                   </div>
                 )}
                 <p className="text-[10px] text-muted-foreground mt-2 text-center">
-                  {vipProgress.allMet ? "Félicitations ! Conditions remplies 🎉" : `Encore ${100 - vipProgress.overallProgress}% pour passer au niveau supérieur`}
+                  {vipProgress.allMet ? "Congratulations! All conditions met 🎉" : `${100 - vipProgress.overallProgress}% left to reach the next level`}
                 </p>
               </div>
             )}
@@ -119,7 +119,7 @@ const Profile = () => {
 
         {/* Balance */}
         <div className="bg-card rounded-xl border border-secondary p-5 mb-4">
-          <p className="text-xs text-muted-foreground mb-1">Solde disponible</p>
+          <p className="text-xs text-muted-foreground mb-1">Available balance</p>
           {loading ? (
             <div className="h-8 w-32 bg-secondary/50 rounded animate-pulse" />
           ) : (
@@ -153,7 +153,7 @@ const Profile = () => {
         {/* Déconnexion */}
         <button onClick={() => setShowLogout(true)} className="w-full bg-card rounded-xl border border-secondary p-4 flex items-center justify-center gap-3 hover:border-primary transition-colors">
           <LogOut size={20} className="text-primary" />
-          <span className="text-sm font-medium text-primary">Se déconnecter</span>
+          <span className="text-sm font-medium text-primary">Sign out</span>
         </button>
       </div>
 
