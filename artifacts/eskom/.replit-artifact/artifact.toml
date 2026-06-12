@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "ESKOM Energy"
+version = "1.0.0"
+id = "artifacts/eskom"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23962
+
+[services.development]
+run = "pnpm --filter @workspace/eskom run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/eskom", "run", "build" ]
+publicDir = "artifacts/eskom/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23962"
+BASE_PATH = "/"

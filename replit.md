@@ -1,44 +1,49 @@
-# [Project name]
+# ESKOM Energy
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A fintech/investment mobile-style React app with user authentication, product purchasing, earnings collection, lottery wheel, and admin panel — fully migrated from Supabase to Replit PostgreSQL + Express API.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
+- `pnpm --filter @workspace/api-server run dev` — run the API server (port 8080)
+- `pnpm --filter @workspace/eskom run dev` — run the frontend (Vite, reads PORT env)
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required env: `DATABASE_URL` — Postgres connection string
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Frontend: React + Vite (artifacts/eskom)
+- API: Express 5 (artifacts/api-server, port 8080)
+- DB: PostgreSQL + Drizzle ORM (lib/db)
+- Auth: custom session tokens in `user_sessions` table, stored as `eskom_token` in localStorage
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/eskom/src/integrations/supabase/client.ts` — Supabase drop-in wrapper (routes to Express API)
+- `artifacts/eskom/src/pages/` — all app pages (Index, Products, MesProduits, Loterie, AdminPanel, etc.)
+- `artifacts/api-server/src/routes/` — auth, profiles, products, payments, settings, content, db (generic + rpc + functions)
+- `lib/db/src/schema/` — 8 schema files: profiles, auth, products, payments, settings, content, social, admin
+- `artifacts/eskom/vite.config.ts` — proxies `/api` to `http://localhost:8080`
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- **Supabase wrapper pattern**: `client.ts` is a drop-in replacement exposing the same `supabase.auth`, `supabase.from()`, `supabase.rpc()`, `supabase.functions.invoke()` API surface — no page-level rewrites needed.
+- **QueryBuilder routing**: JOIN queries (e.g. `user_products.select("*, products(...)")`) are auto-detected by regex and routed to `/api/user-products/my` instead of the generic `/api/db` endpoint.
+- **Auth pattern**: phone numbers are stored directly; login/signup use `phone` field; the supabase wrapper converts to `${phone}@users.eskom.app` format for email compatibility.
+- **Admin roles**: stored in `user_roles` table; `has_role` and `has_permission` RPCs are implemented in `/api/rpc/`.
+- **Functions**: Supabase Edge Functions replaced by Express handlers at `/api/functions/:fn` — spin-wheel, collect-revenue, process-withdrawal, process-payment, sarah-chat.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
-
-## User preferences
-
-_Populate as you build — explicit user instructions worth remembering across sessions._
+Users can register with a phone number, deposit funds, purchase investment products, collect daily earnings, spin a lottery wheel, and withdraw earnings. Admins can manage users, approve deposits/withdrawals, configure products and wheel prizes, and view statistics.
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- API server runs on port **8080** (not 5000 as the default template says)
+- To grant admin access: insert a row into `user_roles` with `user_id` and `role = 'admin'`
+- Password verification uses bcryptjs — the `passwordHash` column stores hashed passwords
+- `supabase.from("user_products").select("*, products(...)")` routes to `/api/user-products/my` (dedicated JOIN endpoint), not the generic `/api/db`
+- Count queries (`select("*", {count:"exact",head:true})`) route to `/api/db?count=exact`
 
 ## Pointers
 

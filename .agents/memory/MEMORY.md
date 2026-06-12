@@ -1,0 +1,1 @@
+- [Supabase migration architecture](supabase-migration.md) — full Supabase→Express+PostgreSQL migration; QueryBuilder routing, JOIN handling, auth pattern
