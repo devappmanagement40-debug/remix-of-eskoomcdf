@@ -65,7 +65,7 @@ const APropos = () => {
           <p className="text-sm text-muted-foreground leading-relaxed mb-4">
             Présent dans plusieurs pays africains, ESKOM s'est implanté stratégiquement 
             en Afrique Centrale et en Afrique de l'Est. Notre réseau 
-            couvre notamment la République Démocratique du Congo, le Cameroun, 
+            couvre notamment Haïti, le Cameroun, 
             le Gabon et le Kenya.
           </p>
           <p className="text-sm text-muted-foreground leading-relaxed">
