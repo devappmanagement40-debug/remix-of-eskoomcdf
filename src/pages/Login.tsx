@@ -22,7 +22,7 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone || !password) { showError("Erreur", "Veuillez remplir tous les champs"); return; }
+    if (!phone || !password) { showError("Error", "Please fill in all fields"); return; }
 
     const cleanPhone = phone.replace(/\D/g, "");
     let isAdminPhone = false;
@@ -43,7 +43,7 @@ const Login = () => {
 
     if (!isAdminPhone) {
       const phoneCheck = validatePhone(phone, countryCode);
-      if (!phoneCheck.valid) { showError("Numero invalide", phoneCheck.message); return; }
+      if (!phoneCheck.valid) { showError("Invalid number", phoneCheck.message); return; }
     }
 
     setLoading(true);
@@ -51,7 +51,7 @@ const Login = () => {
     const { error, data: authData } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      showError("Connexion échouée", "Numéro ou mot de passe incorrect");
+      showError("Login failed", "Incorrect number or password");
     } else {
       const { data: profile } = await supabase.from("profiles").select("full_name, phone").eq("user_id", authData.user.id).single();
       setUserName(profile?.full_name || profile?.phone || phone);
@@ -62,10 +62,10 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <PageHeader title="Connexion" showBack />
+      <PageHeader title="Sign in" showBack />
       <div className="flex-1 flex flex-col items-center px-6 pt-8 pb-12">
-        <h2 className="text-2xl font-bold text-foreground text-center mb-1">Salut !</h2>
-        <p className="text-xl font-bold text-foreground text-center mb-8">Connexion Immédiate</p>
+        <h2 className="text-2xl font-bold text-foreground text-center mb-1">Hello!</h2>
+        <p className="text-xl font-bold text-foreground text-center mb-8">Instant Login</p>
 
         <div className="mb-10">
           <EskomLogo size="md" />
@@ -80,7 +80,7 @@ const Login = () => {
               <span className="text-muted-foreground">|</span>
               <Input
                 type="tel"
-                placeholder="Numéro Téléphone"
+                placeholder="Phone number"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                 className="border-0 bg-transparent focus-visible:ring-0 text-foreground placeholder:text-muted-foreground"
@@ -89,7 +89,7 @@ const Login = () => {
           </div>
 
           <div className="input-glow rounded-lg bg-input">
-            <Input type="password" placeholder="Veuillez entrer le mot de passe" value={password}
+            <Input type="password" placeholder="Enter your password" value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="border-0 bg-transparent focus-visible:ring-0 text-foreground placeholder:text-muted-foreground" />
           </div>
@@ -97,13 +97,13 @@ const Login = () => {
           <div className="pt-6">
             <button type="submit" disabled={loading}
               className="w-full gradient-button text-foreground font-semibold py-3.5 rounded-xl text-base transition-opacity hover:opacity-90 disabled:opacity-50">
-              {loading ? "Connexion..." : "Connexion"}
+              {loading ? "Signing in..." : "Sign in"}
             </button>
           </div>
 
           <p className="text-center text-sm text-muted-foreground pt-2">
-            Vous n'avez pas de compte ? /{" "}
-            <button type="button" onClick={() => navigate("/inscription")} className="text-primary font-medium hover:underline">S'inscrire</button>
+            Don't have an account? /{" "}
+            <button type="button" onClick={() => navigate("/inscription")} className="text-primary font-medium hover:underline">Sign up</button>
           </p>
         </form>
       </div>
