@@ -74,15 +74,15 @@ const Recharge = () => {
       return;
     }
     if (!parsedAmount || parsedAmount < minAmount) {
-      showError("Erreur", `Le montant minimum est de ${minAmount.toLocaleString()} USDT`);
+      showError("Error", `Minimum amount is ${minAmount.toLocaleString()} USDT`);
       return;
     }
     if (parsedAmount > maxAmount) {
-      showError("Erreur", `Le montant maximum est de ${maxAmount.toLocaleString()} USDT`);
+      showError("Error", `Maximum amount is ${maxAmount.toLocaleString()} USDT`);
       return;
     }
     if (!selectedMethod) {
-      showError("Erreur", "Veuillez selectionner un moyen de paiement");
+      showError("Error", "Please select a payment method");
       return;
     }
 
@@ -121,12 +121,12 @@ const Recharge = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <PageHeader title="Depot" showBack />
+      <PageHeader title="Deposit" showBack />
 
       <div className="px-4 pt-5 space-y-5">
         {/* Amount input */}
         <div className="bg-card rounded-2xl border border-border/30 p-4">
-          <label className="text-xs text-muted-foreground mb-2 block">Montant (USDT)</label>
+          <label className="text-xs text-muted-foreground mb-2 block">Amount (USDT)</label>
           <div className="flex items-center bg-secondary/50 rounded-xl px-4 py-3">
             <input
               type="number"
@@ -158,13 +158,13 @@ const Recharge = () => {
 
         {/* Phone */}
         <div className="bg-card rounded-2xl border border-border/30 p-4" translate="no">
-          <label className="text-xs text-muted-foreground mb-2 block">Numero de telephone</label>
+          <label className="text-xs text-muted-foreground mb-2 block">Phone number</label>
           <div className="flex items-center bg-secondary/50 rounded-xl px-3 py-3 gap-3">
             <CountryPicker value={countryCode} onChange={setCountryCode} />
             <span className="text-border">|</span>
             <input
               type="tel"
-              placeholder="Numero de telephone"
+              placeholder="Phone number"
               value={phone}
               onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
               className="bg-transparent text-foreground text-sm w-full outline-none placeholder:text-muted-foreground"
@@ -174,9 +174,9 @@ const Recharge = () => {
 
         {/* Payment methods */}
         <div className="bg-card rounded-2xl border border-border/30 p-4">
-          <label className="text-xs text-muted-foreground mb-3 block">Moyen de paiement</label>
+          <label className="text-xs text-muted-foreground mb-3 block">Payment method</label>
           {filteredMethods.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-4">Aucun moyen de paiement disponible pour ce pays</p>
+            <p className="text-xs text-muted-foreground text-center py-4">No payment method available for this country</p>
           ) : (
             <div className="space-y-2">
               {filteredMethods.map((m) => (
@@ -199,7 +199,7 @@ const Recharge = () => {
                   <div className="flex-1 text-left">
                     <p className="text-sm font-semibold text-foreground">{m.name}</p>
                     <p className="text-[10px] text-muted-foreground">
-                      {m.payment_type === "api" ? "Paiement automatique ⚡" : m.payment_type === "external" ? "Paiement en ligne" : "Paiement manuel"}
+                      {m.payment_type === "api" ? "Automatic payment ⚡" : m.payment_type === "external" ? "Online payment" : "Manual payment"}
                     </p>
                   </div>
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
@@ -216,7 +216,7 @@ const Recharge = () => {
         {/* Rules */}
         {rules.length > 0 && (
           <div className="bg-card rounded-2xl border border-border/30 p-4">
-            <label className="text-xs text-muted-foreground mb-2 block">Regles de depot</label>
+            <label className="text-xs text-muted-foreground mb-2 block">Deposit rules</label>
             <div className="space-y-2">
               {rules.map((rule, i) => (
                 <div key={i} className="flex items-start gap-2">
@@ -234,7 +234,7 @@ const Recharge = () => {
           disabled={!amount || !phone || !selectedMethod}
           className="w-full gradient-button text-primary-foreground font-bold py-4 rounded-xl text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
         >
-          Confirmer
+          Confirm
         </button>
       </div>
       <BottomNav />
