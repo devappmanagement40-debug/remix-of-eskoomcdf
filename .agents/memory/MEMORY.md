@@ -1,2 +1,2 @@
 - [Supabase migration architecture](supabase-migration.md) — full Supabase→Express+PostgreSQL migration; QueryBuilder routing, JOIN handling, auth pattern
-- [Supabase project credentials](supabase-credentials.md) — real Supabase project is pgyqeokxqfpwxpaysdku (NOT vigdgbydpumkauibuxmn); uses VITE_SUPABASE_PUBLISHABLE_KEY not VITE_SUPABASE_ANON_KEY
+- [Supabase project configuration](supabase-credentials.md) — env var naming convention and API security model; no credentials stored
