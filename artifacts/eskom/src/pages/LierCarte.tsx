@@ -21,21 +21,26 @@ type NpCurrency = {
   logo: string;
 };
 
-// Local display metadata
-const CURRENCY_META: Record<string, { label: string; network: string; color: string; symbol: string; bg: string }> = {
-  usdtbsc:   { label: "USDT BEP20",  network: "BNB Smart Chain (BEP20)", color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.18)" },
-  usdtmatic: { label: "USDT Polygon",network: "Polygon (MATIC)",         color: "#8247E5", symbol: "₮", bg: "rgba(130,71,229,0.18)" },
-  usdterc20: { label: "USDT ERC20",  network: "Ethereum (ERC20)",        color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.18)" },
-  usdttrc20: { label: "USDT TRC20",  network: "TRON (TRC20)",            color: "#EF0027", symbol: "₮", bg: "rgba(239,0,39,0.18)" },
-  trx:       { label: "TRX",         network: "TRON",                    color: "#EF0027", symbol: "◈", bg: "rgba(239,0,39,0.18)" },
-  bnbbsc:    { label: "BNB",         network: "BNB Smart Chain (BEP20)", color: "#F0B90B", symbol: "⬡", bg: "rgba(240,185,11,0.18)" },
-  eth:       { label: "ETH",         network: "Ethereum",                color: "#627EEA", symbol: "Ξ", bg: "rgba(98,126,234,0.18)" },
-  btc:       { label: "BTC",         network: "Bitcoin",                 color: "#F7931A", symbol: "₿", bg: "rgba(247,147,26,0.18)" },
-  sol:       { label: "SOL",         network: "Solana",                  color: "#9945FF", symbol: "◎", bg: "rgba(153,69,255,0.18)" },
-  ltc:       { label: "LTC",         network: "Litecoin",                color: "#BFBBBB", symbol: "Ł", bg: "rgba(191,187,187,0.18)" },
-  doge:      { label: "DOGE",        network: "Dogecoin",                color: "#C2A633", symbol: "Ð", bg: "rgba(194,166,51,0.18)" },
-  xrp:       { label: "XRP",         network: "Ripple",                  color: "#00AAE4", symbol: "✕", bg: "rgba(0,170,228,0.18)" },
-  ada:       { label: "ADA",         network: "Cardano",                 color: "#0033AD", symbol: "₳", bg: "rgba(0,51,173,0.18)" },
+type CurrencyMeta = { label: string; network: string; color: string; symbol: string; bg: string; logo: string };
+
+// Local metadata with official logos from /crypto-logos/ (downloaded from official sources)
+const CURRENCY_META: Record<string, CurrencyMeta> = {
+  usdtbsc:   { label: "USDT BEP20",   network: "BNB Smart Chain (BEP20)", color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.15)",  logo: "/crypto-logos/usdt.png" },
+  usdtmatic: { label: "USDT Polygon", network: "Polygon (MATIC)",         color: "#8247E5", symbol: "₮", bg: "rgba(130,71,229,0.15)",  logo: "/crypto-logos/usdt.png" },
+  usdterc20: { label: "USDT ERC20",   network: "Ethereum (ERC20)",        color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.15)",  logo: "/crypto-logos/usdt.png" },
+  usdttrc20: { label: "USDT TRC20",   network: "TRON (TRC20)",            color: "#EF0027", symbol: "₮", bg: "rgba(239,0,39,0.15)",    logo: "/crypto-logos/usdt.png" },
+  trx:       { label: "TRX",          network: "TRON",                    color: "#EF0027", symbol: "◈", bg: "rgba(239,0,39,0.15)",    logo: "/crypto-logos/trx.png"  },
+  bnbbsc:    { label: "BNB",          network: "BNB Smart Chain (BEP20)", color: "#F0B90B", symbol: "⬡", bg: "rgba(240,185,11,0.15)",  logo: "/crypto-logos/bnb.png"  },
+  eth:       { label: "ETH",          network: "Ethereum",                color: "#627EEA", symbol: "Ξ", bg: "rgba(98,126,234,0.15)",  logo: "/crypto-logos/eth.png"  },
+  btc:       { label: "BTC",          network: "Bitcoin",                 color: "#F7931A", symbol: "₿", bg: "rgba(247,147,26,0.15)",  logo: "/crypto-logos/btc.png"  },
+  sol:       { label: "SOL",          network: "Solana",                  color: "#9945FF", symbol: "◎", bg: "rgba(153,69,255,0.15)",  logo: "/crypto-logos/sol.png"  },
+  ltc:       { label: "LTC",          network: "Litecoin",                color: "#BFBBBB", symbol: "Ł", bg: "rgba(191,187,187,0.15)", logo: "/crypto-logos/ltc.png"  },
+  doge:      { label: "DOGE",         network: "Dogecoin",                color: "#C2A633", symbol: "Ð", bg: "rgba(194,166,51,0.15)",  logo: "/crypto-logos/doge.png" },
+  xrp:       { label: "XRP",          network: "Ripple",                  color: "#00AAE4", symbol: "✕", bg: "rgba(0,170,228,0.15)",   logo: "/crypto-logos/xrp.png"  },
+  ada:       { label: "ADA",          network: "Cardano",                 color: "#0033AD", symbol: "₳", bg: "rgba(0,51,173,0.15)",    logo: "/crypto-logos/ada.png"  },
+  matic:     { label: "MATIC",        network: "Polygon",                 color: "#8247E5", symbol: "⬡", bg: "rgba(130,71,229,0.15)",  logo: "/crypto-logos/matic.png"},
+  avax:      { label: "AVAX",         network: "Avalanche",               color: "#E84142", symbol: "▲", bg: "rgba(232,65,66,0.15)",   logo: "/crypto-logos/avax.png" },
+  usdteosio: { label: "USDT EOS",     network: "EOS",                     color: "#14191E", symbol: "₮", bg: "rgba(20,25,30,0.25)",    logo: "/crypto-logos/usdt.png" },
 };
 
 const FALLBACK_CURRENCIES: NpCurrency[] = [
@@ -423,14 +428,19 @@ const LierCarte = () => {
                     }`}
                   >
                     <div
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-black flex-shrink-0"
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-black flex-shrink-0 overflow-hidden"
                       style={{
                         background: meta?.bg ?? "rgba(170,170,170,0.18)",
                         color: meta?.color ?? "#aaa",
                       }}
                     >
-                      {c.logo ? (
-                        <img src={c.logo} alt={c.code} className="w-6 h-6 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                      {(meta?.logo || c.logo) ? (
+                        <img
+                          src={meta?.logo || c.logo}
+                          alt={c.code}
+                          className="w-7 h-7 object-contain"
+                          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
                       ) : (
                         meta?.symbol ?? "◉"
                       )}
