@@ -178,6 +178,18 @@ const ADMIN_ONLY_WRITE_TABLES = new Set([
   "wheel_prizes", "vip_conditions",
 ]);
 
+// Tables scoped to the authenticated user — reads auto-filtered to user_id for non-admins
+const USER_SCOPED_TABLES = new Set([
+  "user_products", "recharges", "withdrawals", "user_wallets",
+  "withdrawal_fee_payments", "gift_code_uses", "point_exchanges",
+  "wheel_spins", "vip_history", "referral_commissions", "payment_logs",
+]);
+
+// Tables that require admin role for reads (internal/admin data)
+const ADMIN_READ_TABLES = new Set([
+  "admin_logs", "admin_permissions", "user_roles", "payment_api_configs",
+]);
+
 function buildWhereClause(filters: string[], params: any[]): string[] {
   const conditions: string[] = [];
   for (const f of filters) {
@@ -210,35 +222,41 @@ router.get("/db", attachUser, async (req, res) => {
     const tableName = TABLE_ALLOWLIST[String(table)];
     if (!tableName) return res.status(400).json({ error: "Unknown table" });
 
+    const tableKey = String(table);
+    const isAdmin = req.authUser?.role === "admin";
+
     // Require auth for non-public tables
-    if (!PUBLIC_READ_TABLES.has(String(table)) && !req.authUser) {
+    if (!PUBLIC_READ_TABLES.has(tableKey) && !req.authUser) {
       return res.status(401).json({ error: "Authentication required" });
     }
 
-    // Admin-only tables require admin role
-    if (ADMIN_ONLY_WRITE_TABLES.has(String(table)) && !PUBLIC_READ_TABLES.has(String(table)) && req.authUser?.role !== "admin") {
+    // Admin-only read tables require admin role
+    if (ADMIN_READ_TABLES.has(tableKey) && !isAdmin) {
       return res.status(403).json({ error: "Admin access required" });
     }
 
-    const filters = Array.isArray(filter) ? filter : filter ? [filter] : [];
+    const rawFilters = Array.isArray(filter) ? filter : filter ? [filter] : [];
+    const params: any[] = [];
+
+    // Always use SELECT * to prevent SQL injection via column names
+    let sql = `SELECT * FROM "${tableName}"`;
+
+    const conditions = buildWhereClause(rawFilters, params);
+
+    // For user-scoped tables: non-admin users can only read their own rows
+    if (USER_SCOPED_TABLES.has(tableKey) && !isAdmin && req.authUser) {
+      params.push(req.authUser.userId);
+      conditions.push(`"user_id" = $${params.length}`);
+    }
 
     // Handle count-only queries
     if (count === "exact") {
-      const params: any[] = [];
-      const conditions = buildWhereClause(filters, params);
       let countSql = `SELECT COUNT(*) FROM "${tableName}"`;
       if (conditions.length) countSql += ` WHERE ${conditions.join(" AND ")}`;
       const { rows } = await pool.query(countSql, params);
       return res.json({ count: parseInt(rows[0].count) });
     }
 
-    const selectedCols = select === "*" || !select
-      ? "*"
-      : (String(select)).split(",").map(c => `"${toSnake(c.trim())}"`).join(", ");
-
-    const params: any[] = [];
-    const conditions = buildWhereClause(filters, params);
-    let sql = `SELECT ${selectedCols} FROM "${tableName}"`;
     if (conditions.length) sql += ` WHERE ${conditions.join(" AND ")}`;
 
     if (order) {
