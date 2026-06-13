@@ -21,14 +21,17 @@ type PaymentInfo = {
   expirationDate?: string;
 };
 
+// All official NowPayments payment statuses
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  waiting:    { label: "Waiting for payment",  color: "text-warning" },
-  confirming: { label: "Confirming on blockchain", color: "text-primary" },
-  confirmed:  { label: "Confirmed!",            color: "text-success" },
-  sending:    { label: "Processing…",           color: "text-primary" },
-  finished:   { label: "Payment complete!",     color: "text-success" },
-  failed:     { label: "Payment failed",        color: "text-destructive" },
-  expired:    { label: "Payment expired",       color: "text-destructive" },
+  waiting:       { label: "Waiting for payment",       color: "text-warning" },
+  confirming:    { label: "Confirming on blockchain",  color: "text-primary" },
+  confirmed:     { label: "Confirmed!",                color: "text-success" },
+  sending:       { label: "Processing…",               color: "text-primary" },
+  partially_paid:{ label: "Partially paid — send rest",color: "text-warning" },
+  finished:      { label: "Payment complete!",         color: "text-success" },
+  failed:        { label: "Payment failed",            color: "text-destructive" },
+  refunded:      { label: "Payment refunded",          color: "text-muted-foreground" },
+  expired:       { label: "Payment expired",           color: "text-destructive" },
 };
 
 const POLL_INTERVAL = 30_000;
@@ -115,6 +118,8 @@ const RechargePaiement = () => {
         }, 1000);
       }
 
+      // Poll immediately after creation, then every 30s
+      setTimeout(() => pollStatus(data.paymentId), 5_000);
       pollRef.current = setInterval(() => {
         pollStatus(data.paymentId);
       }, POLL_INTERVAL);
@@ -178,10 +183,23 @@ const RechargePaiement = () => {
             style={{ backgroundImage: "radial-gradient(circle at 20% 50%, white 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
           <div className="relative px-6 py-6 text-center">
             <div
-              className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl font-black"
-              style={{ background: currency.bg, color: currency.color, border: "2px solid rgba(255,255,255,0.2)" }}
+              className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 overflow-hidden"
+              style={{ background: currency.bg, border: "2px solid rgba(255,255,255,0.25)" }}
             >
-              {currency.symbol}
+              {currency.logoUrl ? (
+                <img
+                  src={currency.logoUrl}
+                  alt={currency.label}
+                  className="w-10 h-10 object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
+                />
+              ) : (
+                <span className="text-2xl font-black" style={{ color: currency.color }}>
+                  {currency.symbol}
+                </span>
+              )}
             </div>
             <p className="text-xs text-primary-foreground/70 mb-1">You are depositing</p>
             <p className="text-4xl font-black text-primary-foreground">
