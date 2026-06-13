@@ -13,9 +13,9 @@ A fintech/investment mobile-style React app with user authentication, product pu
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
 - Frontend: React + Vite (artifacts/eskom)
-- API: Express 5 (artifacts/api-server, port 8080)
-- DB: PostgreSQL + Drizzle ORM (lib/db)
-- Auth: custom session tokens in `user_sessions` table, stored as `eskom_token` in localStorage
+- API: Express 5 (artifacts/api-server, port 8080) — secondary, frontend uses Supabase directly
+- DB: **Supabase** (project `pgyqeokxqfpwxpaysdku`) — primary database
+- Auth: Supabase Auth via `@supabase/supabase-js`
 
 ## Where things live
 

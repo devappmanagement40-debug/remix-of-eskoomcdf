@@ -34,7 +34,8 @@ externalPort = 3000
 [userenv]
 
 [userenv.shared]
-VITE_SUPABASE_URL = "https://vigdgbydpumkauibuxmn.supabase.co"
+VITE_SUPABASE_PROJECT_URL = "https://pgyqeokxqfpwxpaysdku.supabase.co"
+VITE_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBneXFlb2t4cWZwd3hwYXlzZGt1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyNzg1MTAsImV4cCI6MjA5Mjg1NDUxMH0.SB0fNNZuXb87D_-zcgVe3iuy7N-SamFs-rmVAlrbH_k"
 
 [nix]
 channel = "stable-25_05"
