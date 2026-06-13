@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 type VipCondition = {
   id: string;
@@ -42,15 +43,6 @@ const defaults: VipProgressData = {
   allMet: false,
 };
 
-async function apiFetch(path: string) {
-  const token = localStorage.getItem("eskom_token");
-  const res = await fetch(`/api${path}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-  });
-  if (!res.ok) return null;
-  return res.json();
-}
-
 export const useVipProgress = (userId: string | null, vipLevel: number, balance: number) => {
   const [data, setData] = useState<VipProgressData>(defaults);
   const [loading, setLoading] = useState(true);
@@ -61,34 +53,35 @@ export const useVipProgress = (userId: string | null, vipLevel: number, balance:
 
     const compute = async () => {
       try {
-        const [conditions, userProducts, teamMembers, settingRaw] = await Promise.all([
-          apiFetch("/db?table=vip_conditions&order=level:asc"),
-          apiFetch("/db?table=user_products&filter=eq:user_id:" + userId + "&filter=eq:is_active:true"),
-          apiFetch("/team/my"),
-          apiFetch("/db?table=site_settings&filter=eq:key:vip_conditions_enabled&limit=1"),
+        const [conditionsRes, userProductsRes, settingRes, myProfileRes, teamRes] = await Promise.all([
+          supabase.from("vip_conditions").select("*").order("level", { ascending: true }),
+          supabase.from("user_products").select("*").eq("user_id", userId).eq("is_active", true),
+          supabase.from("site_settings").select("value").eq("key", "vip_conditions_enabled").limit(1).maybeSingle(),
+          supabase.from("profiles").select("deposit_balance").eq("user_id", userId).single(),
+          supabase.from("profiles").select("user_id, deposit_balance").eq("referred_by", userId),
         ]);
 
         if (cancelled) return;
-        if (!conditions || conditions.length === 0) { setLoading(false); return; }
 
-        const vipConditionsEnabled = (Array.isArray(settingRaw) ? settingRaw[0]?.value : settingRaw?.value) !== "false";
+        const conditions = conditionsRes.data ?? [];
+        if (conditions.length === 0) { setLoading(false); return; }
 
-        const upList = userProducts ?? [];
+        const vipConditionsEnabled = settingRes.data?.value !== "false";
+        const upList = userProductsRes.data ?? [];
         const totalPurchases = upList.length;
         const uniqueProducts = new Set(upList.map((up: any) => up.product_id)).size;
+        const personalInvestment = Number(myProfileRes.data?.deposit_balance ?? 0);
 
-        const myProfileRaw = await apiFetch("/db?table=profiles&filter=eq:user_id:" + userId + "&limit=1");
-        const myProfile = Array.isArray(myProfileRaw) ? myProfileRaw[0] : myProfileRaw;
-        const personalInvestment = Number(myProfile?.deposit_balance ?? 0);
-
-        const team = teamMembers ?? [];
+        const team = teamRes.data ?? [];
         const teamUserIds = team.map((m: any) => m.user_id);
-        let activeMembers = 0;
-        let teamInvestment = team.reduce((s: number, m: any) => s + Number(m.deposit_balance ?? 0), 0);
+        const teamInvestment = team.reduce((s: number, m: any) => s + Number(m.deposit_balance ?? 0), 0);
 
+        let activeMembers = 0;
         if (teamUserIds.length > 0) {
-          const teamProdsQuery = teamUserIds.map((id: string) => `filter=eq:user_id:${id}`).join("&");
-          const teamProds = await apiFetch(`/db?table=user_products&${teamProdsQuery}`);
+          const { data: teamProds } = await supabase
+            .from("user_products")
+            .select("user_id")
+            .in("user_id", teamUserIds);
           if (!cancelled) {
             activeMembers = new Set((teamProds ?? []).map((tp: any) => tp.user_id)).size;
           }

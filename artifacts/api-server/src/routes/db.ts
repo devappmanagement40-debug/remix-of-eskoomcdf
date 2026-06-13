@@ -2,6 +2,7 @@ import { Router } from "express";
 import { db, pool } from "@workspace/db";
 import { userSessions, profiles } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { requireAuth } from "../middlewares/requireAuth";
 
 const router = Router();
 
@@ -251,7 +252,7 @@ router.get("/db", async (req, res) => {
   }
 });
 
-router.post("/db", async (req, res) => {
+router.post("/db", requireAuth, async (req, res) => {
   try {
     const { table, upsert } = req.query as Record<string, string>;
     const tableName = TABLE_ALLOWLIST[String(table)];
@@ -287,7 +288,7 @@ router.post("/db", async (req, res) => {
   }
 });
 
-router.patch("/db", async (req, res) => {
+router.patch("/db", requireAuth, async (req, res) => {
   try {
     const { table, filter } = req.query as Record<string, string | string[]>;
     const tableName = TABLE_ALLOWLIST[String(table)];
@@ -326,7 +327,7 @@ router.patch("/db", async (req, res) => {
   }
 });
 
-router.delete("/db", async (req, res) => {
+router.delete("/db", requireAuth, async (req, res) => {
   try {
     const { table, filter } = req.query as Record<string, string | string[]>;
     const tableName = TABLE_ALLOWLIST[String(table)];
