@@ -10,6 +10,19 @@ type WalletItem = {
   id: string; phone: string; country_code: string; network: string; label: string | null;
 };
 
+function isCryptoWallet(w: WalletItem): boolean {
+  return !!w.country_code && !/^\+?\d+$/.test(w.country_code);
+}
+
+function formatWalletOption(w: WalletItem): string {
+  if (isCryptoWallet(w)) {
+    const addr = w.phone;
+    const truncated = addr.length > 14 ? `${addr.slice(0, 8)}...${addr.slice(-6)}` : addr;
+    return `${w.network} — ${truncated}`;
+  }
+  return `${w.network} — ${w.country_code} ****${w.phone.slice(-4)}`;
+}
+
 const Retrait = () => {
   const navigate = useNavigate();
   const { showError, showSuccess: showSuccessPopup } = useActionPopup();
@@ -295,7 +308,7 @@ const Retrait = () => {
               <option value="">-- Choose --</option>
               {wallets.map((w) => (
                 <option key={w.id} value={w.id}>
-                  {w.network} — {w.country_code} ****{w.phone.slice(-4)}
+                  {formatWalletOption(w)}
                 </option>
               ))}
             </select>

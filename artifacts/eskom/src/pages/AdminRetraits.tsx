@@ -3,7 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
-import { Search, Clock, CheckCircle2, XCircle, ArrowDown, CreditCard, Loader2, Zap, Hand, ChevronDown, ChevronUp, History, DollarSign, Image } from "lucide-react";
+import {
+  Search, Clock, CheckCircle2, XCircle, ArrowDown, Loader2,
+  Zap, Hand, ChevronDown, ChevronUp, DollarSign, Image,
+  Send, ShieldCheck,
+} from "lucide-react";
 
 type Withdrawal = {
   id: string;
@@ -46,6 +50,15 @@ type WalletInfo = {
   network: string;
 };
 
+// Detect if a withdrawal is crypto (country_code is a NowPayments currency code, not a phone prefix)
+function isCryptoWithdrawal(w: Withdrawal): boolean {
+  return !!w.country_code && !/^\+?\d+$/.test(w.country_code);
+}
+
+function truncateAddress(addr: string): string {
+  if (!addr || addr.length <= 16) return addr;
+  return `${addr.slice(0, 8)}...${addr.slice(-6)}`;
+}
 
 const AdminRetraits = () => {
   const navigate = useNavigate();
@@ -59,9 +72,11 @@ const AdminRetraits = () => {
   const [filter, setFilter] = useState<"all" | "pending" | "processing" | "approved" | "rejected">("pending");
   const [feeFilter, setFeeFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
   const [search, setSearch] = useState("");
-  const [countryAutoMap, setCountryAutoMap] = useState<Record<string, boolean>>({});
 
-  const isAutoForWithdrawal = (w: Withdrawal) => countryAutoMap[w.country_code] ?? false;
+  // Per-item action state
+  const [autoPayingId, setAutoPayingId] = useState<string | null>(null);
+  const [semiAutoId, setSemiAutoId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     checkAdminAndLoad();
@@ -78,30 +93,19 @@ const AdminRetraits = () => {
     if (!user) { navigate("/connexion"); return; }
     const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
     const { data: isMod } = await supabase.rpc("has_role", { _user_id: user.id, _role: "moderator" });
-    if (!isAdmin && !isMod) { showError("Accès refusé", "Vous n'avez pas les droits d'administrateur"); navigate("/"); return; }
+    if (!isAdmin && !isMod) { showError("Accès refusé", "Droits admin requis"); navigate("/"); return; }
     if (isMod && !isAdmin) {
       const { data: hasPerm } = await supabase.rpc("has_permission", { _user_id: user.id, _permission: "manage_withdrawals" });
-      if (!hasPerm) { showError("Accès refusé", "Vous n'avez pas la permission de gérer les retraits"); navigate("/"); return; }
+      if (!hasPerm) { showError("Accès refusé", "Permission refusée"); navigate("/"); return; }
     }
     loadData();
     loadFeePayments();
-    loadCountryModes();
-  };
-
-  const loadCountryModes = async () => {
-    const { data } = await supabase.from("countries").select("country_code, api_enabled");
-    if (data) {
-      const map: Record<string, boolean> = {};
-      data.forEach((c: any) => { map[c.country_code] = c.api_enabled; });
-      setCountryAutoMap(map);
-    }
   };
 
   const loadFeePayments = async () => {
     const { data } = await supabase.from("withdrawal_fee_payments").select("*").order("created_at", { ascending: false });
     if (data) {
       setFeePayments(data as FeePayment[]);
-      // Load profiles for fee payments
       const userIds = [...new Set(data.map((d: any) => d.user_id))];
       if (userIds.length > 0) {
         const { data: profilesData } = await supabase.from("profiles").select("user_id, full_name, phone, balance").in("user_id", userIds);
@@ -122,7 +126,6 @@ const AdminRetraits = () => {
       setItems(data);
       const userIds = [...new Set(data.map(d => d.user_id))];
       const walletIds = data.map(d => d.wallet_id).filter(Boolean) as string[];
-
       if (userIds.length > 0) {
         const { data: profilesData } = await supabase.from("profiles").select("user_id, full_name, phone, balance").in("user_id", userIds);
         if (profilesData) {
@@ -145,46 +148,47 @@ const AdminRetraits = () => {
     setLoading(false);
   };
 
-  const [autoPayingId, setAutoPayingId] = useState<string | null>(null);
-
+  // Manual approve / reject
   const handleAction = async (item: Withdrawal, status: "approved" | "rejected") => {
     const note = status === "approved"
-      ? `✅ Validé manuellement par l'admin`
-      : `❌ Rejeté manuellement par l'admin`;
+      ? "✅ Validé manuellement par l'admin"
+      : "❌ Rejeté manuellement par l'admin";
     const { error } = await supabase.from("withdrawals").update({ status, admin_note: note }).eq("id", item.id);
-    if (error) { showError("Erreur", error.message || "Erreur lors de la mise à jour"); return; }
-
+    if (error) { showError("Erreur", error.message); return; }
     showSuccess(
       status === "approved" ? "Retrait approuvé" : "Retrait refusé",
-      status === "approved" ? "Le retrait a été validé manuellement ✅" : "Le retrait a été refusé et le montant recrédité ❌"
+      status === "approved" ? "Validé manuellement ✅" : "Refusé et montant recrédité ❌"
     );
     loadData();
   };
 
-  const handleAutoTransfer = async (item: Withdrawal) => {
+  // Automatic NowPayments payout
+  const handleNowPaymentsPayout = async (item: Withdrawal) => {
     setAutoPayingId(item.id);
     try {
-      const { data, error } = await supabase.functions.invoke("process-withdrawal", {
-        body: { withdrawal_id: item.id },
+      const res = await fetch("/api/nowpayments/payout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ withdrawalId: item.id }),
       });
-
-      if (error) {
-        showError("Erreur", "Erreur de connexion au serveur");
-        return;
-      }
-
-      if (data?.success) {
-        showSuccess("Retrait validé", "Le retrait a été approuvé avec succès ✅");
+      const data = await res.json();
+      if (data.success) {
+        showSuccess("Payout soumis", `Retrait envoyé via NowPayments ✅ (ID: ${data.payoutId})`);
         loadData();
       } else {
-        showError("Erreur", data?.error || "Le retrait a échoué");
-        loadData();
+        showError("Erreur NowPayments", data.error || "Payout échoué");
       }
     } catch {
-      showError("Erreur", "Erreur de connexion");
+      showError("Erreur", "Erreur de connexion au serveur");
     } finally {
       setAutoPayingId(null);
     }
+  };
+
+  // Semi-automatic: confirm dialog then NowPayments payout
+  const handleSemiAutoConfirm = async (item: Withdrawal) => {
+    setSemiAutoId(null);
+    await handleNowPaymentsPayout(item);
   };
 
   const handleFeeAction = async (fp: FeePayment, status: "approved" | "rejected", note?: string) => {
@@ -195,7 +199,7 @@ const AdminRetraits = () => {
     if (error) { showError("Erreur", error.message); return; }
     showSuccess(
       status === "approved" ? "Frais confirmés" : "Frais refusés",
-      status === "approved" ? "L'utilisateur peut maintenant effectuer son retrait" : "Le paiement a été refusé"
+      status === "approved" ? "L'utilisateur peut effectuer son retrait" : "Paiement refusé"
     );
     loadFeePayments();
   };
@@ -220,7 +224,7 @@ const AdminRetraits = () => {
       const s = search.toLowerCase();
       const profile = profiles[r.user_id];
       return (
-        r.phone.includes(s) ||
+        r.phone.toLowerCase().includes(s) ||
         r.id.toLowerCase().includes(s) ||
         r.network.toLowerCase().includes(s) ||
         (profile?.full_name?.toLowerCase().includes(s)) ||
@@ -243,33 +247,32 @@ const AdminRetraits = () => {
 
   const formatDate = (d: string | null) => {
     if (!d) return "—";
-    const date = new Date(d);
-    return date.toLocaleDateString("fr-FR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+    return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
   };
 
-  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Chargement...</p></div>;
+  if (loading) return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <p className="text-muted-foreground">Chargement...</p>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background pb-10">
-      <PageHeader title="Admin - Retraits" showBack />
+      <PageHeader title="Admin — Retraits" showBack />
 
       <div className="px-4 pt-4 space-y-4">
         {/* Tabs */}
         <div className="flex gap-2">
           <button
             onClick={() => setActiveTab("fees")}
-            className={`flex-1 py-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-              activeTab === "fees" ? "bg-warning text-warning-foreground" : "bg-secondary text-foreground"
-            }`}
+            className={`flex-1 py-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${activeTab === "fees" ? "bg-warning text-warning-foreground" : "bg-secondary text-foreground"}`}
           >
             <DollarSign size={14} />
             Frais ({feeCounts.pending})
           </button>
           <button
             onClick={() => setActiveTab("withdrawals")}
-            className={`flex-1 py-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-              activeTab === "withdrawals" ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"
-            }`}
+            className={`flex-1 py-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${activeTab === "withdrawals" ? "bg-primary text-primary-foreground" : "bg-secondary text-foreground"}`}
           >
             <ArrowDown size={14} />
             Retraits ({counts.pending})
@@ -280,18 +283,13 @@ const AdminRetraits = () => {
         {activeTab === "fees" && (
           <>
             <div className="grid grid-cols-3 gap-2">
-              <button onClick={() => setFeeFilter("pending")} className={`bg-card rounded-xl border p-3 flex flex-col items-center gap-1 ${feeFilter === "pending" ? "border-warning" : "border-secondary"}`}>
-                <span className="text-xl font-bold text-warning">{feeCounts.pending}</span>
-                <span className="text-[9px] text-muted-foreground">En attente</span>
-              </button>
-              <button onClick={() => setFeeFilter("approved")} className={`bg-card rounded-xl border p-3 flex flex-col items-center gap-1 ${feeFilter === "approved" ? "border-success" : "border-secondary"}`}>
-                <span className="text-xl font-bold text-success">{feeCounts.approved}</span>
-                <span className="text-[9px] text-muted-foreground">Confirmés</span>
-              </button>
-              <button onClick={() => setFeeFilter("rejected")} className={`bg-card rounded-xl border p-3 flex flex-col items-center gap-1 ${feeFilter === "rejected" ? "border-destructive" : "border-secondary"}`}>
-                <span className="text-xl font-bold text-destructive">{feeCounts.rejected}</span>
-                <span className="text-[9px] text-muted-foreground">Refusés</span>
-              </button>
+              {(["pending", "approved", "rejected"] as const).map((s) => (
+                <button key={s} onClick={() => setFeeFilter(s)}
+                  className={`bg-card rounded-xl border p-3 flex flex-col items-center gap-1 ${feeFilter === s ? (s === "pending" ? "border-warning" : s === "approved" ? "border-success" : "border-destructive") : "border-secondary"}`}>
+                  <span className={`text-xl font-bold ${s === "pending" ? "text-warning" : s === "approved" ? "text-success" : "text-destructive"}`}>{feeCounts[s]}</span>
+                  <span className="text-[9px] text-muted-foreground">{s === "pending" ? "En attente" : s === "approved" ? "Confirmés" : "Refusés"}</span>
+                </button>
+              ))}
             </div>
 
             <div className="relative">
@@ -311,11 +309,7 @@ const AdminRetraits = () => {
                         <p className="text-sm font-bold text-foreground">{profile?.full_name || "Utilisateur"}</p>
                         <p className="text-[10px] text-muted-foreground">{profile?.phone || "—"}</p>
                       </div>
-                      <span className={`text-xs font-bold px-3 py-1 rounded-full ${
-                        fp.status === "approved" ? "bg-success/15 text-success" :
-                        fp.status === "rejected" ? "bg-destructive/15 text-destructive" :
-                        "bg-warning/15 text-warning"
-                      }`}>
+                      <span className={`text-xs font-bold px-3 py-1 rounded-full ${fp.status === "approved" ? "bg-success/15 text-success" : fp.status === "rejected" ? "bg-destructive/15 text-destructive" : "bg-warning/15 text-warning"}`}>
                         {fp.status === "approved" ? "✅ Confirmé" : fp.status === "rejected" ? "❌ Refusé" : "⏳ En attente"}
                       </span>
                     </div>
@@ -338,8 +332,7 @@ const AdminRetraits = () => {
                         <div className="rounded-xl overflow-hidden border border-border/30 relative">
                           <img src={fp.proof_url} alt="Preuve" className="w-full h-40 object-cover" />
                           <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded-lg flex items-center gap-1">
-                            <Image size={10} />
-                            Voir en grand
+                            <Image size={10} />Voir en grand
                           </div>
                         </div>
                       </a>
@@ -353,16 +346,10 @@ const AdminRetraits = () => {
 
                     {fp.status === "pending" && (
                       <div className="grid grid-cols-2 gap-3">
-                        <button
-                          onClick={() => handleFeeAction(fp, "approved")}
-                          className="flex items-center justify-center gap-2 bg-success text-white font-bold py-2.5 rounded-xl text-sm"
-                        >
+                        <button onClick={() => handleFeeAction(fp, "approved")} className="flex items-center justify-center gap-2 bg-success text-white font-bold py-2.5 rounded-xl text-sm">
                           <CheckCircle2 size={16} />Confirmer
                         </button>
-                        <button
-                          onClick={() => handleFeeAction(fp, "rejected", "Preuve invalide")}
-                          className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm"
-                        >
+                        <button onClick={() => handleFeeAction(fp, "rejected", "Preuve invalide")} className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm">
                           <XCircle size={16} />Refuser
                         </button>
                       </div>
@@ -378,27 +365,24 @@ const AdminRetraits = () => {
         {activeTab === "withdrawals" && (
           <>
             <div className="grid grid-cols-4 gap-2">
-              <button onClick={() => setFilter("pending")} className={`bg-card rounded-xl border p-3 flex flex-col items-center gap-1 ${filter === "pending" ? "border-warning" : "border-secondary"}`}>
-                <span className="text-xl font-bold text-warning">{counts.pending}</span>
-                <span className="text-[9px] text-muted-foreground">En attente</span>
-              </button>
-              <button onClick={() => setFilter("processing")} className={`bg-card rounded-xl border p-3 flex flex-col items-center gap-1 ${filter === "processing" ? "border-primary" : "border-secondary"}`}>
-                <span className="text-xl font-bold text-primary">{counts.processing}</span>
-                <span className="text-[9px] text-muted-foreground">En cours</span>
-              </button>
-              <button onClick={() => setFilter("approved")} className={`bg-card rounded-xl border p-3 flex flex-col items-center gap-1 ${filter === "approved" ? "border-success" : "border-secondary"}`}>
-                <span className="text-xl font-bold text-success">{counts.approved}</span>
-                <span className="text-[9px] text-muted-foreground">Approuvés</span>
-              </button>
-              <button onClick={() => setFilter("rejected")} className={`bg-card rounded-xl border p-3 flex flex-col items-center gap-1 ${filter === "rejected" ? "border-destructive" : "border-secondary"}`}>
-                <span className="text-xl font-bold text-destructive">{counts.rejected}</span>
-                <span className="text-[9px] text-muted-foreground">Rejetés</span>
-              </button>
+              {(["pending", "processing", "approved", "rejected"] as const).map((s) => (
+                <button key={s} onClick={() => setFilter(s)}
+                  className={`bg-card rounded-xl border p-3 flex flex-col items-center gap-1 ${filter === s
+                    ? s === "pending" ? "border-warning" : s === "processing" ? "border-primary" : s === "approved" ? "border-success" : "border-destructive"
+                    : "border-secondary"}`}>
+                  <span className={`text-xl font-bold ${s === "pending" ? "text-warning" : s === "processing" ? "text-primary" : s === "approved" ? "text-success" : "text-destructive"}`}>
+                    {counts[s]}
+                  </span>
+                  <span className="text-[9px] text-muted-foreground">
+                    {s === "pending" ? "En attente" : s === "processing" ? "En cours" : s === "approved" ? "Approuvés" : "Rejetés"}
+                  </span>
+                </button>
+              ))}
             </div>
 
             <div className="relative">
               <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher par compte, nom ou téléphone" className="w-full bg-card border border-secondary rounded-xl pl-11 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary transition-colors" />
+              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Rechercher par adresse, nom…" className="w-full bg-card border border-secondary rounded-xl pl-11 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary" />
             </div>
 
             {filtered.length === 0 ? (
@@ -407,10 +391,14 @@ const AdminRetraits = () => {
               const profile = profiles[r.user_id];
               const wallet = r.wallet_id ? wallets[r.wallet_id] : null;
               const feePercent = r.amount > 0 ? Math.round((r.fee_amount / r.amount) * 100) : 0;
+              const crypto = isCryptoWithdrawal(r);
+              const isExpanded = expandedId === r.id;
+              const isSemiAutoOpen = semiAutoId === r.id;
 
               return (
                 <div key={r.id} className="bg-card rounded-xl border border-secondary overflow-hidden">
                   <div className="px-4 pt-4 pb-3">
+                    {/* Header */}
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <p className="text-lg font-bold text-foreground">{r.amount.toLocaleString("fr-FR")} USDT</p>
@@ -420,105 +408,182 @@ const AdminRetraits = () => {
                           <span className="text-xs text-muted-foreground">(- {feePercent} %)</span>
                         </div>
                       </div>
-                      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
-                        r.status === "pending" ? "bg-warning/15 text-warning" :
-                        r.status === "processing" ? "bg-primary/15 text-primary" :
-                        r.status === "approved" ? "bg-success/15 text-success" :
-                        "bg-destructive/15 text-destructive"
-                      }`}>
+                      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${r.status === "pending" ? "bg-warning/15 text-warning" : r.status === "processing" ? "bg-primary/15 text-primary" : r.status === "approved" ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}>
                         {r.status === "pending" ? <Clock size={12} /> : r.status === "processing" ? <Loader2 size={12} className="animate-spin" /> : r.status === "approved" ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
                         {r.status === "pending" ? "En attente" : r.status === "processing" ? "En cours" : r.status === "approved" ? "Approuvé" : "Rejeté"}
                       </div>
                     </div>
 
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-3">
-                      <CreditCard size={12} />
-                      {r.network.toUpperCase()}
+                    {/* Network badge */}
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${crypto ? "bg-primary/10 text-primary" : "bg-secondary text-foreground"}`}>
+                        {crypto ? <Zap size={11} /> : <Hand size={11} />}
+                        {r.network || r.country_code}
+                      </div>
+                      {crypto && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-success/10 text-success font-semibold">
+                          NowPayments
+                        </span>
+                      )}
                     </div>
 
-                    <div className="border-t border-secondary my-2" />
-
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-3">
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">Nom du titulaire :</p>
-                        <p className="text-xs font-semibold text-foreground">{wallet?.holder_name || profile?.full_name || "—"}</p>
+                    {/* Wallet address (crypto) or phone (legacy) */}
+                    {crypto ? (
+                      <div className="bg-secondary/40 rounded-xl px-3 py-2 mb-3 flex items-center justify-between">
+                        <div>
+                          <p className="text-[10px] text-muted-foreground">Wallet address</p>
+                          <p className="text-xs font-mono font-semibold text-foreground">{truncateAddress(r.phone)}</p>
+                        </div>
+                        <span className="text-[9px] font-semibold text-primary px-2 py-0.5 rounded-full bg-primary/10">
+                          {r.country_code.toUpperCase()}
+                        </span>
                       </div>
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">Numéro de retrait :</p>
+                    ) : (
+                      <div className="bg-secondary/40 rounded-xl px-3 py-2 mb-3">
+                        <p className="text-[10px] text-muted-foreground">Numéro</p>
                         <p className="text-xs font-semibold text-foreground">{r.country_code} {r.phone}</p>
                       </div>
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">Moyen de paiement :</p>
-                        <p className="text-xs font-semibold text-foreground">{r.network}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">Montant demandé :</p>
-                        <p className="text-xs font-semibold text-foreground">{r.amount.toLocaleString("fr-FR")} USDT</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">Solde actuel :</p>
-                        <p className="text-xs font-semibold text-foreground">{profile ? `${(profile.balance || 0).toLocaleString("fr-FR")} USDT` : "—"}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] text-muted-foreground">Date & heure :</p>
-                        <p className="text-xs font-semibold text-foreground">{formatDate(r.created_at)}</p>
-                      </div>
-                    </div>
+                    )}
 
-                    {r.status === "pending" && (
-                      <div className={`flex items-center gap-1.5 text-[10px] font-semibold mt-3 mb-2 ${isAutoForWithdrawal(r) ? "text-primary" : "text-warning"}`}>
-                        {isAutoForWithdrawal(r) ? <Zap size={12} /> : <Hand size={12} />}
-                        Mode : {isAutoForWithdrawal(r) ? "Automatique" : "Manuel"} — {r.country_code}
+                    {/* Toggle details */}
+                    <button
+                      onClick={() => setExpandedId(isExpanded ? null : r.id)}
+                      className="flex items-center gap-1 text-[10px] text-muted-foreground mb-2"
+                    >
+                      {isExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                      {isExpanded ? "Masquer les détails" : "Voir les détails"}
+                    </button>
+
+                    {isExpanded && (
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-1 mb-3 p-3 bg-secondary/30 rounded-xl">
+                        <div>
+                          <p className="text-[10px] text-muted-foreground">Titulaire :</p>
+                          <p className="text-xs font-semibold text-foreground">{wallet?.holder_name || profile?.full_name || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-muted-foreground">Client :</p>
+                          <p className="text-xs font-semibold text-foreground">{profile?.full_name || "—"}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-muted-foreground">Montant demandé :</p>
+                          <p className="text-xs font-semibold text-foreground">{r.amount.toLocaleString("fr-FR")} USDT</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-muted-foreground">Solde actuel :</p>
+                          <p className="text-xs font-semibold text-foreground">{profile ? `${(profile.balance || 0).toLocaleString("fr-FR")} USDT` : "—"}</p>
+                        </div>
+                        {crypto && (
+                          <div className="col-span-2">
+                            <p className="text-[10px] text-muted-foreground">Adresse complète :</p>
+                            <p className="text-[10px] font-mono text-foreground break-all">{r.phone}</p>
+                          </div>
+                        )}
+                        <div className="col-span-2">
+                          <p className="text-[10px] text-muted-foreground">Date :</p>
+                          <p className="text-xs font-semibold text-foreground">{formatDate(r.created_at)}</p>
+                        </div>
                       </div>
                     )}
 
                     {r.admin_note && (
-                      <div className="mt-3 p-2.5 rounded-lg bg-muted/50 border border-secondary">
+                      <div className="mt-2 p-2.5 rounded-lg bg-muted/50 border border-secondary mb-2">
                         <p className="text-[10px] font-semibold text-muted-foreground mb-1">📋 Note :</p>
                         <p className="text-[11px] text-foreground leading-relaxed break-all">{r.admin_note}</p>
                       </div>
                     )}
 
-
+                    {/* ---- PENDING ACTIONS ---- */}
                     {r.status === "pending" && (
-                      <div className="mt-2">
-                        <div className="grid grid-cols-2 gap-3">
-                          {isAutoForWithdrawal(r) ? (
-                            <button
-                              onClick={() => handleAutoTransfer(r)}
-                              disabled={autoPayingId === r.id}
-                              className="flex items-center justify-center gap-2 bg-success text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50"
-                            >
-                              {autoPayingId === r.id ? (
-                                <><Loader2 size={16} className="animate-spin" />Envoi...</>
-                              ) : (
-                                <><Zap size={16} />Auto Valider</>
-                              )}
-                            </button>
-                          ) : (
-                            <button
-                              onClick={() => handleAction(r, "approved")}
-                              className="flex items-center justify-center gap-2 bg-success text-white font-bold py-2.5 rounded-xl text-sm"
-                            >
+                      <div className="mt-2 space-y-2">
+                        {crypto ? (
+                          <>
+                            {/* Semi-auto confirmation panel */}
+                            {isSemiAutoOpen && (
+                              <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 space-y-2">
+                                <p className="text-xs font-bold text-primary">Confirmer le payout NowPayments</p>
+                                <div className="text-[10px] text-muted-foreground space-y-0.5">
+                                  <p>Réseau : <span className="text-foreground font-semibold">{r.network}</span></p>
+                                  <p>Montant net : <span className="text-success font-bold">{r.net_amount.toLocaleString("fr-FR")} USDT</span></p>
+                                  <p className="font-mono break-all">Adresse : {r.phone}</p>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 pt-1">
+                                  <button
+                                    onClick={() => setSemiAutoId(null)}
+                                    className="py-2 rounded-lg bg-secondary text-foreground text-xs font-semibold"
+                                  >
+                                    Annuler
+                                  </button>
+                                  <button
+                                    onClick={() => handleSemiAutoConfirm(r)}
+                                    disabled={autoPayingId === r.id}
+                                    className="py-2 rounded-lg bg-primary text-primary-foreground text-xs font-bold flex items-center justify-center gap-1 disabled:opacity-50"
+                                  >
+                                    {autoPayingId === r.id ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
+                                    Confirmer
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            {!isSemiAutoOpen && (
+                              <div className="space-y-2">
+                                {/* Row 1: Auto + Semi-auto */}
+                                <div className="grid grid-cols-2 gap-2">
+                                  <button
+                                    onClick={() => handleNowPaymentsPayout(r)}
+                                    disabled={autoPayingId === r.id}
+                                    className="flex items-center justify-center gap-1.5 bg-success text-white font-bold py-2.5 rounded-xl text-xs disabled:opacity-50"
+                                  >
+                                    {autoPayingId === r.id
+                                      ? <><Loader2 size={13} className="animate-spin" />Envoi...</>
+                                      : <><Zap size={13} />Auto NP</>}
+                                  </button>
+                                  <button
+                                    onClick={() => setSemiAutoId(r.id)}
+                                    className="flex items-center justify-center gap-1.5 bg-primary/10 border border-primary text-primary font-bold py-2.5 rounded-xl text-xs hover:bg-primary/20"
+                                  >
+                                    <ShieldCheck size={13} />Semi-auto
+                                  </button>
+                                </div>
+                                {/* Row 2: Manual + Reject */}
+                                <div className="grid grid-cols-2 gap-2">
+                                  <button
+                                    onClick={() => handleAction(r, "approved")}
+                                    className="flex items-center justify-center gap-1.5 bg-secondary border border-border text-foreground font-semibold py-2.5 rounded-xl text-xs hover:bg-secondary/80"
+                                  >
+                                    <Hand size={13} />Manuel
+                                  </button>
+                                  <button
+                                    onClick={() => handleAction(r, "rejected")}
+                                    className="flex items-center justify-center gap-1.5 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-xs hover:bg-destructive/10"
+                                  >
+                                    <XCircle size={13} />Rejeter
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-3">
+                            <button onClick={() => handleAction(r, "approved")} className="flex items-center justify-center gap-2 bg-success text-white font-bold py-2.5 rounded-xl text-sm">
                               <CheckCircle2 size={16} />Valider
                             </button>
-                          )}
-                          <button
-                            onClick={() => handleAction(r, "rejected")}
-                            className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10 transition-colors"
-                          >
-                            <XCircle size={16} />Rejeter
-                          </button>
-                        </div>
+                            <button onClick={() => handleAction(r, "rejected")} className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10">
+                              <XCircle size={16} />Rejeter
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
+
+                    {/* Processing: force finish/fail */}
                     {r.status === "processing" && (
                       <div className="mt-3 p-3 rounded-lg bg-warning/10 border border-warning/20">
-                        <div className="flex items-center gap-2 text-warning text-xs font-semibold">
+                        <div className="flex items-center gap-2 text-warning text-xs font-semibold mb-2">
                           <Loader2 size={14} className="animate-spin" />
-                          Transfert en cours — En attente de confirmation
+                          Payout NowPayments en cours…
                         </div>
-                        <div className="grid grid-cols-2 gap-3 mt-2">
+                        <div className="grid grid-cols-2 gap-3">
                           <button onClick={() => handleAction(r, "approved")} className="flex items-center justify-center gap-1 bg-success/10 text-success font-semibold py-2 rounded-lg text-[11px] border border-success/20">
                             <CheckCircle2 size={12} />Forcer Succès
                           </button>
