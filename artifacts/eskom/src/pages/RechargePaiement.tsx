@@ -4,444 +4,322 @@ import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import PremiumModal from "@/components/PremiumModal";
-import { Copy, ExternalLink, CheckCircle, Zap, Loader2, Upload, Image as ImageIcon, X, CreditCard, Shield } from "lucide-react";
+import { Copy, CheckCircle, Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 import { safeClipboardWrite } from "@/lib/clipboard";
+import type { CryptoCurrency } from "./Recharge";
 
-type PaymentMethodInfo = {
-  id: string; name: string; phone: string | null; holder_name: string | null;
-  instructions: string | null; payment_type: string; external_url: string | null;
-  api_config_id?: string | null;
+type LocationState = {
+  amount: number;
+  currency: CryptoCurrency;
 };
+
+type PaymentInfo = {
+  paymentId: string;
+  payAddress: string;
+  payAmount: number;
+  payCurrency: string;
+  expirationDate?: string;
+};
+
+const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+  waiting:    { label: "Waiting for payment",  color: "text-warning" },
+  confirming: { label: "Confirming on blockchain", color: "text-primary" },
+  confirmed:  { label: "Confirmed!",            color: "text-success" },
+  sending:    { label: "Processing…",           color: "text-primary" },
+  finished:   { label: "Payment complete!",     color: "text-success" },
+  failed:     { label: "Payment failed",        color: "text-destructive" },
+  expired:    { label: "Payment expired",       color: "text-destructive" },
+};
+
+const POLL_INTERVAL = 30_000;
 
 const RechargePaiement = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { showError, showCopy, showSuccess } = useActionPopup();
-  const { amount, phone, countryCode, method, isExternal, isApi } = (location.state as {
-    amount: number; phone: string; countryCode: string;
-    method: PaymentMethodInfo; isExternal?: boolean; isApi?: boolean;
-  }) || {};
+  const { showError, showCopy } = useActionPopup();
+  const state = location.state as LocationState | null;
 
-  const [loading, setLoading] = useState(false);
-  const [showRechargeSuccess, setShowRechargeSuccess] = useState(false);
-  const [redirected, setRedirected] = useState(false);
-  const [apiProcessing, setApiProcessing] = useState(false);
-  const [apiStatus, setApiStatus] = useState<"idle" | "processing" | "success" | "pending" | "failed">("idle");
-  const [otpCode, setOtpCode] = useState("");
-  
-  const [proofImage, setProofImage] = useState<File | null>(null);
-  const [proofPreview, setProofPreview] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [creating, setCreating] = useState(true);
+  const [paymentInfo, setPaymentInfo] = useState<PaymentInfo | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<string>("waiting");
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    if (!amount || !method) {
+    if (!state?.amount || !state?.currency) {
       navigate("/recharge");
+      return;
     }
+    createPayment();
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
   }, []);
 
-  if (!amount || !method) return null;
-
-  const copyToClipboard = async (text: string, label: string) => {
-    await safeClipboardWrite(text);
-    showCopy(`${label} copié`);
-  };
-
-  const handleExternalRedirect = () => {
-    if (method.external_url) {
-      window.open(method.external_url, "_blank");
-      setRedirected(true);
-    }
-  };
-
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!file.type.startsWith("image/")) {
-      showError("Erreur", "Veuillez sélectionner une image");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      showError("Erreur", "L'image ne doit pas dépasser 5 Mo");
-      return;
-    }
-    setProofImage(file);
-    setProofPreview(URL.createObjectURL(file));
-  };
-
-  const removeImage = () => {
-    setProofImage(null);
-    if (proofPreview) {
-      URL.revokeObjectURL(proofPreview);
-      setProofPreview(null);
-    }
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  };
-
-  const handleApiPayment = async () => {
-    setApiProcessing(true);
-    setApiStatus("processing");
+  const createPayment = async () => {
+    setCreating(true);
+    setCreateError(null);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        showError("Erreur", "Vous devez être connecté");
-        navigate("/connexion");
-        return;
-      }
-      const body: Record<string, unknown> = {
-        amount, phone, country_code: countryCode,
-        payment_method_id: method.id, api_config_id: method.api_config_id,
-        payment_method_name: method.name,
-      };
-      if (otpCode.trim()) body.otp_code = otpCode.trim();
-      const { data, error } = await supabase.functions.invoke("process-payment", { body });
-      if (error) {
-        setApiStatus("failed");
-        showError("Erreur", "Le paiement a échoué. Réessayez ou utilisez le paiement manuel.");
-        return;
-      }
-      if (data?.success) {
-        if (data?.paymentUrl) {
-          window.open(data.paymentUrl, "_blank");
-          setApiStatus("pending");
-        } else if (data?.pending) {
-          setApiStatus("pending");
-        } else {
-          setApiStatus("success");
-          setShowRechargeSuccess(true);
-        }
-      } else {
-        setApiStatus("failed");
-        showError("Erreur", data?.error || "Le paiement a échoué");
-      }
-    } catch {
-      setApiStatus("failed");
-      showError("Erreur", "Erreur de connexion au serveur");
-    } finally {
-      setApiProcessing(false);
-    }
-  };
+      if (!user) { navigate("/connexion"); return; }
 
-  const handleValidate = async () => {
-    if (!proofImage) {
-      showError("Erreur", "Veuillez télécharger une preuve de paiement");
-      return;
-    }
-    setLoading(true);
-    setUploading(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        showError("Erreur", "Vous devez être connecté");
-        navigate("/connexion");
+      const { amount, currency } = state!;
+
+      const { data: recharge, error: rechargeErr } = await supabase
+        .from("recharges")
+        .insert({
+          user_id: user.id,
+          amount,
+          payment_method: currency.label,
+          status: "pending",
+          phone: "",
+          country_code: "",
+        })
+        .select()
+        .single();
+
+      if (rechargeErr || !recharge) {
+        setCreateError("Failed to create deposit record. Please try again.");
         return;
       }
-      const fileExt = proofImage.name.split(".").pop();
-      const fileName = `${user.id}_${Date.now()}.${fileExt}`;
-      const filePath = `recharge-proofs/${fileName}`;
-      const { error: uploadError } = await supabase.storage
-        .from("site-assets")
-        .upload(filePath, proofImage, { cacheControl: "3600", upsert: false });
-      if (uploadError) {
-        showError("Erreur", "Erreur lors du téléchargement de l'image");
-        return;
-      }
-      const { data: urlData } = supabase.storage.from("site-assets").getPublicUrl(filePath);
-      const proofUrl = urlData?.publicUrl;
-      const { error } = await supabase.from("recharges").insert({
-        user_id: user.id, phone, country_code: countryCode,
-        amount, payment_method: method.name, proof_image_url: proofUrl,
+
+      const res = await fetch("/api/nowpayments/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount,
+          currency: currency.code,
+          rechargeId: recharge.id,
+        }),
       });
-      if (error) {
-        showError("Erreur", "Erreur lors de la soumission");
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setCreateError(err.error || "Payment gateway unavailable. Please try again later.");
         return;
       }
-      setShowRechargeSuccess(true);
+
+      const data = await res.json();
+      setPaymentInfo(data);
+
+      if (data.expirationDate) {
+        const expiry = new Date(data.expirationDate).getTime();
+        timerRef.current = setInterval(() => {
+          const remaining = Math.max(0, Math.floor((expiry - Date.now()) / 1000));
+          setTimeLeft(remaining);
+          if (remaining <= 0 && timerRef.current) clearInterval(timerRef.current);
+        }, 1000);
+      }
+
+      pollRef.current = setInterval(() => {
+        pollStatus(data.paymentId);
+      }, POLL_INTERVAL);
+
     } catch {
-      showError("Erreur", "Erreur de connexion au serveur");
+      setCreateError("Network error. Please check your connection.");
     } finally {
-      setLoading(false);
-      setUploading(false);
+      setCreating(false);
     }
   };
+
+  const pollStatus = async (paymentId: string) => {
+    try {
+      const res = await fetch(`/api/nowpayments/status/${paymentId}`);
+      if (!res.ok) return;
+      const { status } = await res.json();
+      setPaymentStatus(status);
+      if (status === "finished" || status === "confirmed") {
+        if (pollRef.current) clearInterval(pollRef.current);
+        if (timerRef.current) clearInterval(timerRef.current);
+        setShowSuccess(true);
+      }
+      if (status === "failed" || status === "expired") {
+        if (pollRef.current) clearInterval(pollRef.current);
+      }
+    } catch {}
+  };
+
+  const copyAddress = async () => {
+    if (!paymentInfo?.payAddress) return;
+    await safeClipboardWrite(paymentInfo.payAddress);
+    showCopy("Address copied");
+  };
+
+  const copyAmount = async () => {
+    if (!paymentInfo?.payAmount) return;
+    await safeClipboardWrite(String(paymentInfo.payAmount));
+    showCopy("Amount copied");
+  };
+
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60).toString().padStart(2, "0");
+    const s = (secs % 60).toString().padStart(2, "0");
+    return `${m}:${s}`;
+  };
+
+  if (!state?.amount || !state?.currency) return null;
+
+  const { amount, currency } = state;
+  const statusInfo = STATUS_LABELS[paymentStatus] ?? STATUS_LABELS.waiting;
 
   return (
     <div className="min-h-screen bg-background pb-10">
-      <PageHeader title="Paiement" showBack />
+      <PageHeader title="Crypto Deposit" showBack />
 
-      <div className="px-4 pt-4 space-y-5">
-        {/* Hero amount section */}
+      <div className="px-4 pt-4 space-y-4">
+        {/* Hero */}
         <div className="relative rounded-2xl overflow-hidden"
-          style={{ background: "linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary) / 0.7))" }}
-        >
+          style={{ background: "linear-gradient(135deg, hsl(174 72% 50%), hsl(174 60% 38%))" }}>
           <div className="absolute inset-0 opacity-10"
-            style={{ backgroundImage: "radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)", backgroundSize: "40px 40px" }}
-          />
-          <div className="relative px-6 py-8 text-center">
-            <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mx-auto mb-3">
-              <CreditCard size={26} className="text-primary-foreground" />
+            style={{ backgroundImage: "radial-gradient(circle at 20% 50%, white 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+          <div className="relative px-6 py-6 text-center">
+            <div
+              className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl font-black"
+              style={{ background: currency.bg, color: currency.color, border: "2px solid rgba(255,255,255,0.2)" }}
+            >
+              {currency.symbol}
             </div>
-            <p className="text-xs text-primary-foreground/70 mb-1">Montant à payer</p>
-            <p className="text-4xl font-black text-primary-foreground tracking-tight">
-              {amount.toLocaleString("fr-FR")}
+            <p className="text-xs text-primary-foreground/70 mb-1">You are depositing</p>
+            <p className="text-4xl font-black text-primary-foreground">
+              {amount.toLocaleString("en-US")}
               <span className="text-base font-medium ml-1.5 opacity-80">USDT</span>
             </p>
-            <div className="mt-3 inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-3 py-1">
-              <Shield size={12} className="text-primary-foreground/80" />
-              <span className="text-[11px] font-medium text-primary-foreground/90">{method.name}</span>
+            <div className="mt-2 inline-flex items-center gap-1.5 bg-white/15 rounded-full px-3 py-1">
+              <span className="text-[11px] font-semibold text-primary-foreground/90">{currency.label}</span>
+              <span className="text-[10px] text-primary-foreground/60">• {currency.network}</span>
             </div>
           </div>
         </div>
 
-        {/* API Payment Section */}
-        {isApi && (
-          <div className="space-y-4">
-            {/* OTP for Orange Money */}
-            {method.name?.toLowerCase().includes("orange") && apiStatus === "idle" && (
-              <div className="bg-card rounded-2xl border border-secondary p-5 space-y-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                    <Zap size={16} className="text-amber-500" />
-                  </div>
-                  <p className="text-sm font-bold text-foreground">Code OTP requis</p>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {countryCode === "+225" || countryCode === "+223" ? (
-                    <>Composez <span className="font-bold text-foreground">#144*82#</span> pour générer votre code OTP.</>
-                  ) : (
-                    <>Composez <span className="font-bold text-foreground">*144*4*6*{amount}#</span> pour recevoir votre code OTP par SMS.</>
-                  )}
-                </p>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={6}
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
-                  placeholder="• • • • • •"
-                  className="w-full bg-secondary/50 rounded-xl px-4 py-4 text-lg text-foreground placeholder:text-muted-foreground/40 border border-secondary focus:outline-none focus:ring-2 focus:ring-primary/50 text-center tracking-[0.5em] font-bold"
-                />
-              </div>
-            )}
-
-            {apiStatus === "idle" && (
-              <button
-                onClick={handleApiPayment}
-                disabled={apiProcessing || (method.name?.toLowerCase().includes("orange") && otpCode.length < 4)}
-                className="w-full gradient-button text-primary-foreground font-bold py-4 rounded-2xl text-sm flex items-center justify-center gap-2 shadow-lg disabled:opacity-50"
-              >
-                <Zap size={18} />
-                Payer {amount.toLocaleString("fr-FR")} USDT
-              </button>
-            )}
-
-            {apiStatus === "processing" && (
-              <div className="bg-card rounded-2xl border border-secondary p-8 flex flex-col items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Loader2 size={32} className="text-primary animate-spin" />
-                </div>
-                <div className="text-center">
-                  <p className="text-base font-bold text-foreground">Traitement en cours</p>
-                  <p className="text-xs text-muted-foreground mt-1">Ne fermez pas cette page...</p>
-                </div>
-              </div>
-            )}
-
-            {apiStatus === "pending" && (
-              <div className="bg-card rounded-2xl border border-success/30 p-5 space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0">
-                    <CheckCircle size={20} className="text-success" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-foreground">Demande envoyée !</p>
-                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                      Confirmez le paiement avec votre code PIN sur votre téléphone. Votre compte sera crédité automatiquement.
-                    </p>
-                  </div>
-                </div>
-                <button onClick={() => navigate("/portefeuille")} className="w-full gradient-button text-primary-foreground font-bold py-3.5 rounded-xl text-sm">
-                  Retour au portefeuille
-                </button>
-              </div>
-            )}
-
-            {apiStatus === "failed" && (
-              <div className="bg-card rounded-2xl border border-destructive/30 p-5 space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
-                    <X size={20} className="text-destructive" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-foreground">Paiement échoué</p>
-                    <p className="text-xs text-muted-foreground mt-1">Réessayez ou utilisez le mode manuel ci-dessous.</p>
-                  </div>
-                </div>
-                <button onClick={handleApiPayment} className="w-full gradient-button text-primary-foreground font-bold py-3.5 rounded-xl text-sm">
-                  Réessayer
-                </button>
-              </div>
-            )}
-
-            {apiStatus === "success" && (
-              <div className="bg-card rounded-2xl border border-success/30 p-5 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle size={20} className="text-success" />
-                </div>
-                <p className="text-sm font-bold text-foreground">Paiement confirmé avec succès !</p>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Manual payment details */}
-        {method.payment_type === "manual" && (
-          <div className="bg-card rounded-2xl border border-secondary overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-secondary bg-secondary/20">
-              <p className="text-sm font-bold text-foreground">Détails du paiement</p>
+        {/* Creating payment */}
+        {creating && (
+          <div className="bg-card rounded-2xl border border-secondary p-10 flex flex-col items-center gap-4">
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+              <Loader2 size={32} className="text-primary animate-spin" />
             </div>
-            <div className="p-4 space-y-3">
-              {method.holder_name && (
-                <div className="flex items-center justify-between bg-secondary/30 rounded-xl px-4 py-3.5">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Bénéficiaire</p>
-                    <p className="text-sm font-bold text-foreground mt-0.5 truncate">{method.holder_name}</p>
-                  </div>
-                  <button onClick={() => copyToClipboard(method.holder_name!, "Nom")} className="p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors">
-                    <Copy size={14} className="text-primary" />
-                  </button>
-                </div>
-              )}
-
-              {method.phone && (
-                <div className="flex items-center justify-between bg-secondary/30 rounded-xl px-4 py-3.5">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Numéro</p>
-                    <p className="text-sm font-bold text-foreground mt-0.5">{method.phone}</p>
-                  </div>
-                  <button onClick={() => copyToClipboard(method.phone!, "Numéro")} className="p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors">
-                    <Copy size={14} className="text-primary" />
-                  </button>
-                </div>
-              )}
-
-              <div className="flex items-center justify-between bg-secondary/30 rounded-xl px-4 py-3.5">
-                <div className="flex-1 min-w-0">
-                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Montant</p>
-                  <p className="text-sm font-bold text-primary mt-0.5">{amount.toLocaleString("fr-FR")} USDT</p>
-                </div>
-                <button onClick={() => copyToClipboard(String(amount), "Montant")} className="p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors">
-                  <Copy size={14} className="text-primary" />
-                </button>
-              </div>
-
-              {method.instructions && (
-                <div className="bg-primary/5 rounded-xl px-4 py-3.5 border border-primary/10">
-                  <p className="text-[10px] uppercase tracking-wider text-primary font-semibold mb-1">Instructions</p>
-                  <p className="text-xs text-foreground/80 whitespace-pre-line leading-relaxed">{method.instructions}</p>
-                </div>
-              )}
+            <div className="text-center">
+              <p className="text-sm font-bold text-foreground">Generating payment address…</p>
+              <p className="text-xs text-muted-foreground mt-1">This takes a few seconds</p>
             </div>
           </div>
         )}
 
-        {/* External payment */}
-        {method.payment_type === "external" && (
-          <div className="bg-card rounded-2xl border border-secondary p-5 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <ExternalLink size={18} className="text-primary" />
+        {/* Error creating */}
+        {!creating && createError && (
+          <div className="bg-card rounded-2xl border border-destructive/30 p-5 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
+                <AlertTriangle size={20} className="text-destructive" />
               </div>
               <div>
-                <p className="text-sm font-bold text-foreground">Paiement en ligne</p>
-                <p className="text-xs text-muted-foreground">Vous serez redirigé vers la plateforme</p>
+                <p className="text-sm font-bold text-foreground">Unable to create payment</p>
+                <p className="text-xs text-muted-foreground mt-1">{createError}</p>
               </div>
             </div>
-            <button
-              onClick={handleExternalRedirect}
-              className="w-full gradient-button text-primary-foreground font-bold py-4 rounded-xl text-sm flex items-center justify-center gap-2"
-            >
-              <ExternalLink size={16} />
-              Payer maintenant
+            <button onClick={createPayment} className="w-full gradient-button text-primary-foreground font-bold py-3.5 rounded-xl text-sm flex items-center justify-center gap-2">
+              <RefreshCw size={16} /> Retry
             </button>
-            {redirected && (
-              <div className="flex items-center gap-2 bg-success/10 rounded-xl px-4 py-3">
-                <CheckCircle size={14} className="text-success" />
-                <p className="text-xs font-medium text-success">Paiement effectué ? Envoyez la preuve ci-dessous</p>
-              </div>
-            )}
           </div>
         )}
 
-        {/* Proof upload section */}
-        {(method.payment_type !== "api" || apiStatus === "failed") && (
-          <div className="bg-card rounded-2xl border border-secondary overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-secondary bg-secondary/20">
-              <p className="text-sm font-bold text-foreground">
-                {apiStatus === "failed" ? "Confirmation manuelle" : "Preuve de paiement"}
-              </p>
-            </div>
-            <div className="p-4 space-y-4">
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
-
-              {!proofPreview ? (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full border-2 border-dashed border-secondary hover:border-primary/40 rounded-2xl py-10 flex flex-col items-center justify-center gap-3 transition-colors"
-                >
-                  <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-                    <Upload size={24} className="text-primary" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm font-bold text-foreground">Ajouter une capture d'écran</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">PNG, JPG — max 5 Mo</p>
-                  </div>
-                </button>
-              ) : (
-                <div className="relative rounded-2xl overflow-hidden border border-secondary">
-                  <img src={proofPreview} alt="Preuve" className="w-full h-52 object-cover" />
-                  <div className="absolute top-2 right-2 flex gap-1.5">
-                    <button onClick={removeImage} className="p-2 bg-destructive text-destructive-foreground rounded-xl shadow-lg">
-                      <X size={14} />
-                    </button>
-                    <button onClick={() => fileInputRef.current?.click()} className="p-2 bg-card/90 backdrop-blur-sm text-foreground rounded-xl shadow-lg border border-secondary">
-                      <ImageIcon size={14} />
-                    </button>
-                  </div>
+        {/* Payment details */}
+        {!creating && paymentInfo && (
+          <>
+            {/* Status pill */}
+            <div className="flex items-center justify-between bg-card rounded-2xl border border-secondary px-5 py-3">
+              <div>
+                <p className="text-xs text-muted-foreground">Payment status</p>
+                <p className={`text-sm font-bold mt-0.5 ${statusInfo.color}`}>{statusInfo.label}</p>
+              </div>
+              {timeLeft !== null && timeLeft > 0 && (
+                <div className="text-right">
+                  <p className="text-[10px] text-muted-foreground">Expires in</p>
+                  <p className={`text-base font-black font-mono ${timeLeft < 300 ? "text-destructive" : "text-foreground"}`}>
+                    {formatTime(timeLeft)}
+                  </p>
                 </div>
               )}
+            </div>
 
-              <div className="bg-secondary/30 rounded-xl px-4 py-3">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Numéro utilisé</p>
-                <p className="text-sm font-semibold text-foreground mt-0.5">{countryCode} {phone}</p>
+            {/* QR Code */}
+            <div className="bg-card rounded-2xl border border-secondary p-5">
+              <div className="flex justify-center mb-4">
+                <div className="p-3 bg-white rounded-2xl">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(paymentInfo.payAddress)}&bgcolor=ffffff&color=000000&qzone=1`}
+                    alt="QR Code"
+                    className="w-44 h-44 rounded-lg"
+                  />
+                </div>
               </div>
 
-              <button
-                onClick={handleValidate}
-                disabled={loading || !proofImage}
-                className="w-full bg-success hover:bg-success/90 text-success-foreground font-bold py-4 rounded-xl text-sm transition-all disabled:opacity-40 flex items-center justify-center gap-2"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    {uploading ? "Téléchargement..." : "Envoi..."}
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle size={16} />
-                    Confirmer le paiement
-                  </>
-                )}
-              </button>
+              {/* Send exact amount */}
+              <div className="bg-primary/8 rounded-xl border border-primary/20 px-4 py-3.5 mb-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wider text-primary/80 font-semibold">Send exactly</p>
+                    <p className="text-xl font-black text-primary mt-0.5">
+                      {paymentInfo.payAmount} <span className="text-sm font-medium">{paymentInfo.payCurrency.toUpperCase()}</span>
+                    </p>
+                  </div>
+                  <button onClick={copyAmount} className="p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors">
+                    <Copy size={16} className="text-primary" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Address */}
+              <div className="bg-secondary/50 rounded-xl px-4 py-3.5">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Deposit address</p>
+                    <p className="text-xs font-mono text-foreground break-all leading-relaxed">{paymentInfo.payAddress}</p>
+                  </div>
+                  <button onClick={copyAddress} className="p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors flex-shrink-0 mt-4">
+                    <Copy size={16} className="text-primary" />
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
+
+            {/* Instructions */}
+            <div className="bg-card rounded-2xl border border-border/30 p-4 space-y-2.5">
+              <p className="text-xs font-bold text-foreground">How to deposit</p>
+              {[
+                `Send exactly ${paymentInfo.payAmount} ${paymentInfo.payCurrency.toUpperCase()} to the address above`,
+                `Make sure to use the ${currency.network} network`,
+                "Your account will be credited automatically after confirmation",
+                "Do not close this page — status updates automatically every 30s",
+              ].map((step, i) => (
+                <div key={i} className="flex items-start gap-2.5">
+                  <div className="w-5 h-5 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="text-[10px] font-black text-primary">{i + 1}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{step}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Manual refresh */}
+            <button
+              onClick={() => pollStatus(paymentInfo.paymentId)}
+              className="w-full bg-secondary border border-border/30 text-foreground font-semibold py-3.5 rounded-xl text-sm flex items-center justify-center gap-2"
+            >
+              <RefreshCw size={16} />
+              Check payment status
+            </button>
+          </>
         )}
       </div>
 
       <PremiumModal
         triggerKey="recharge_success"
-        open={showRechargeSuccess}
-        onClose={() => { setShowRechargeSuccess(false); navigate("/portefeuille"); }}
+        open={showSuccess}
+        onClose={() => { setShowSuccess(false); navigate("/portefeuille"); }}
       />
     </div>
   );

@@ -1,241 +1,165 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import BottomNav from "@/components/BottomNav";
-import CountryPicker from "@/components/CountryPicker";
-import { CreditCard, ChevronRight } from "lucide-react";
-import { usePhoneValidation } from "@/hooks/usePhoneValidation";
+import { ChevronRight, Zap } from "lucide-react";
 
-type PaymentMethod = {
-  id: string; name: string; phone: string | null; holder_name: string | null;
-  instructions: string | null; country_id: string | null; country: string;
-  payment_type: string; external_url: string | null; logo_url: string | null;
-  is_active: boolean; api_config_id: string | null;
+export type CryptoCurrency = {
+  code: string;
+  label: string;
+  network: string;
+  color: string;
+  symbol: string;
+  bg: string;
 };
+
+export const CRYPTO_CURRENCIES: CryptoCurrency[] = [
+  { code: "usdtbsc",   label: "BEP20-USDT",  network: "BNB Smart Chain (BEP20)", color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.18)" },
+  { code: "usdtmatic", label: "MATIC-USDT",   network: "Polygon (MATIC)",         color: "#8247E5", symbol: "⬡", bg: "rgba(130,71,229,0.18)" },
+  { code: "usdterc20", label: "ERC20-USDT",   network: "Ethereum (ERC20)",        color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.18)" },
+  { code: "usdttrc20", label: "TRC20-USDT",   network: "TRON (TRC20)",            color: "#EF0027", symbol: "₮", bg: "rgba(239,0,39,0.18)" },
+  { code: "trx",       label: "TRC20-TRX",    network: "TRON (TRC20)",            color: "#EF0027", symbol: "◈", bg: "rgba(239,0,39,0.18)" },
+  { code: "bnbbsc",    label: "BEP20-BNB",    network: "BNB Smart Chain (BEP20)", color: "#F0B90B", symbol: "⬡", bg: "rgba(240,185,11,0.18)" },
+  { code: "eth",       label: "ETH",          network: "Ethereum (ERC20)",        color: "#627EEA", symbol: "Ξ", bg: "rgba(98,126,234,0.18)" },
+];
 
 const Recharge = () => {
   const navigate = useNavigate();
-  const { showError } = useActionPopup();
-  const { validatePhone } = usePhoneValidation();
   const [amount, setAmount] = useState("");
-  const [phone, setPhone] = useState("");
-  const [countryCode, setCountryCode] = useState("+509");
-  const [presetAmounts, setPresetAmounts] = useState<number[]>([5000, 10000, 20000, 50000, 100000, 200000]);
-  const [minAmount, setMinAmount] = useState(1000);
-  const [maxAmount, setMaxAmount] = useState(1000000);
-  const [rules, setRules] = useState<string[]>([]);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
-  const [countriesList, setCountriesList] = useState<any[]>([]);
+  const [presetAmounts, setPresetAmounts] = useState<number[]>([10, 20, 50, 100, 200, 500]);
+  const [minAmount, setMinAmount] = useState(5);
+  const [maxAmount, setMaxAmount] = useState(100000);
 
-  useEffect(() => { loadSettings(); }, []);
-
-  const loadSettings = async () => {
-    const [settingsRes, methodsRes, countriesRes] = await Promise.all([
-      supabase.from("site_settings").select("key, value").in("key", ["deposit_amounts", "deposit_min", "deposit_max", "deposit_rules"]),
-      supabase.from("payment_methods").select("*").eq("is_active", true).order("sort_order"),
-      supabase.from("countries").select("*").eq("is_active", true).order("sort_order"),
-    ]);
-    if (settingsRes.data) {
-      settingsRes.data.forEach(s => {
-        if (s.key === "deposit_amounts" && s.value) setPresetAmounts(s.value.split(",").map(Number).filter(Boolean));
-        if (s.key === "deposit_min" && s.value) setMinAmount(Number(s.value));
-        if (s.key === "deposit_max" && s.value) setMaxAmount(Number(s.value));
-        if (s.key === "deposit_rules" && s.value) {
-          const parsed = s.value
-            .replace("{min}", String(Number(settingsRes.data?.find(x => x.key === "deposit_min")?.value || 1000).toLocaleString()))
-            .replace("{max}", String(Number(settingsRes.data?.find(x => x.key === "deposit_max")?.value || 1000000).toLocaleString()));
-          setRules(parsed.split("|"));
-        }
+  useEffect(() => {
+    supabase
+      .from("site_settings")
+      .select("key, value")
+      .in("key", ["deposit_amounts", "deposit_min", "deposit_max"])
+      .then(({ data }) => {
+        if (!data) return;
+        data.forEach((s) => {
+          if (s.key === "deposit_amounts" && s.value)
+            setPresetAmounts(s.value.split(",").map(Number).filter(Boolean));
+          if (s.key === "deposit_min" && s.value) setMinAmount(Number(s.value));
+          if (s.key === "deposit_max" && s.value) setMaxAmount(Number(s.value));
+        });
       });
-    }
-    if (methodsRes.data) setPaymentMethods(methodsRes.data as PaymentMethod[]);
-    if (countriesRes.data) setCountriesList(countriesRes.data);
+  }, []);
+
+  const handleSelectCurrency = (currency: CryptoCurrency) => {
+    const parsed = parseFloat(amount);
+    if (!parsed || parsed < minAmount || parsed > maxAmount) return;
+    navigate("/recharge/paiement", { state: { amount: parsed, currency } });
   };
 
-  // Filter methods by selected country
-  const selectedCountry = countriesList.find(c => c.country_code === countryCode);
-  const isApiEnabled = selectedCountry?.api_enabled === true;
-  const filteredMethods = paymentMethods.filter(m => {
-    // Filter by country
-    if (m.country_id && (!selectedCountry || m.country_id !== selectedCountry.id)) return false;
-    // If API disabled for this country, hide API payment methods
-    if (!isApiEnabled && m.payment_type === "api") return false;
-    return true;
-  });
-
-  const handleConfirm = () => {
-    const parsedAmount = parseFloat(amount);
-    const phoneCheck = validatePhone(phone, countryCode);
-    if (!phoneCheck.valid) {
-      showError("Erreur", phoneCheck.message);
-      return;
-    }
-    if (!parsedAmount || parsedAmount < minAmount) {
-      showError("Error", `Minimum amount is ${minAmount.toLocaleString()} USDT`);
-      return;
-    }
-    if (parsedAmount > maxAmount) {
-      showError("Error", `Maximum amount is ${maxAmount.toLocaleString()} USDT`);
-      return;
-    }
-    if (!selectedMethod) {
-      showError("Error", "Please select a payment method");
-      return;
-    }
-
-    // If API payment, navigate to API payment flow
-    if (selectedMethod.payment_type === "api" && selectedMethod.api_config_id) {
-      navigate("/recharge/paiement", {
-        state: {
-          amount: parsedAmount,
-          phone,
-          countryCode,
-          method: selectedMethod,
-          isApi: true,
-        },
-      });
-      return;
-    }
-
-    // If external link payment, redirect
-    if (selectedMethod.payment_type === "external" && selectedMethod.external_url) {
-      navigate("/recharge/paiement", {
-        state: {
-          amount: parsedAmount,
-          phone,
-          countryCode,
-          method: selectedMethod,
-          isExternal: true,
-        },
-      });
-      return;
-    }
-
-    navigate("/recharge/paiement", {
-      state: { amount: parsedAmount, phone, countryCode, method: selectedMethod },
-    });
-  };
+  const parsedAmount = parseFloat(amount);
+  const amountValid = parsedAmount >= minAmount && parsedAmount <= maxAmount;
 
   return (
     <div className="min-h-screen bg-background pb-20">
       <PageHeader title="Deposit" showBack />
 
       <div className="px-4 pt-5 space-y-5">
-        {/* Amount input */}
+        {/* Banner */}
+        <div className="relative rounded-2xl overflow-hidden"
+          style={{ background: "linear-gradient(135deg, hsl(174 72% 50%), hsl(174 60% 38%))" }}>
+          <div className="absolute inset-0 opacity-10"
+            style={{ backgroundImage: "radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+          <div className="relative px-5 py-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+              <Zap size={20} className="text-primary-foreground" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-primary-foreground">Automatic Crypto Deposit</p>
+              <p className="text-[11px] text-primary-foreground/75">Instant confirmation via blockchain</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Amount */}
         <div className="bg-card rounded-2xl border border-border/30 p-4">
           <label className="text-xs text-muted-foreground mb-2 block">Amount (USDT)</label>
           <div className="flex items-center bg-secondary/50 rounded-xl px-4 py-3">
             <input
               type="number"
-              placeholder={`Min. ${minAmount.toLocaleString()}`}
+              placeholder={`Min. ${minAmount.toLocaleString("en-US")}`}
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="bg-transparent text-foreground text-lg font-semibold w-full outline-none placeholder:text-muted-foreground"
             />
-            <span className="text-muted-foreground font-semibold text-sm ml-3 whitespace-nowrap">USDT</span>
+            <span className="text-primary font-bold text-sm ml-2 whitespace-nowrap">USDT</span>
           </div>
 
-          {/* Preset amounts */}
+          {/* Presets */}
           <div className="grid grid-cols-3 gap-2 mt-3">
-            {presetAmounts.map((preset) => (
+            {presetAmounts.map((p) => (
               <button
-                key={preset}
-                onClick={() => setAmount(String(preset))}
+                key={p}
+                onClick={() => setAmount(String(p))}
                 className={`py-2.5 rounded-xl text-xs font-bold transition-all ${
-                  amount === String(preset)
-                    ? "bg-primary text-primary-foreground"
+                  amount === String(p)
+                    ? "gradient-button text-primary-foreground"
                     : "bg-secondary/60 text-foreground hover:bg-secondary"
                 }`}
               >
-                {preset.toLocaleString()}
+                {p.toLocaleString("en-US")} USDT
               </button>
             ))}
           </div>
-        </div>
 
-        {/* Phone */}
-        <div className="bg-card rounded-2xl border border-border/30 p-4" translate="no">
-          <label className="text-xs text-muted-foreground mb-2 block">Phone number</label>
-          <div className="flex items-center bg-secondary/50 rounded-xl px-3 py-3 gap-3">
-            <CountryPicker value={countryCode} onChange={setCountryCode} />
-            <span className="text-border">|</span>
-            <input
-              type="tel"
-              placeholder="Phone number"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-              className="bg-transparent text-foreground text-sm w-full outline-none placeholder:text-muted-foreground"
-            />
-          </div>
-        </div>
-
-        {/* Payment methods */}
-        <div className="bg-card rounded-2xl border border-border/30 p-4">
-          <label className="text-xs text-muted-foreground mb-3 block">Payment method</label>
-          {filteredMethods.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-4">No payment method available for this country</p>
-          ) : (
-            <div className="space-y-2">
-              {filteredMethods.map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => setSelectedMethod(m)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                    selectedMethod?.id === m.id
-                      ? "bg-primary/10 border border-primary/40"
-                      : "bg-secondary/40 border border-transparent hover:border-border/30"
-                  }`}
-                >
-                  {m.logo_url ? (
-                    <img src={m.logo_url} alt={m.name} className="w-8 h-8 rounded-lg object-cover" />
-                  ) : (
-                    <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
-                      <CreditCard size={14} className="text-muted-foreground" />
-                    </div>
-                  )}
-                  <div className="flex-1 text-left">
-                    <p className="text-sm font-semibold text-foreground">{m.name}</p>
-                    <p className="text-[10px] text-muted-foreground">
-                      {m.payment_type === "api" ? "Automatic payment ⚡" : m.payment_type === "external" ? "Online payment" : "Manual payment"}
-                    </p>
-                  </div>
-                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                    selectedMethod?.id === m.id ? "border-primary" : "border-muted-foreground/30"
-                  }`}>
-                    {selectedMethod?.id === m.id && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
-                  </div>
-                </button>
-              ))}
-            </div>
+          {amount && !amountValid && (
+            <p className="text-xs text-destructive mt-2">
+              Amount must be between {minAmount.toLocaleString("en-US")} and {maxAmount.toLocaleString("en-US")} USDT
+            </p>
           )}
         </div>
 
-        {/* Rules */}
-        {rules.length > 0 && (
-          <div className="bg-card rounded-2xl border border-border/30 p-4">
-            <label className="text-xs text-muted-foreground mb-2 block">Deposit rules</label>
-            <div className="space-y-2">
-              {rules.map((rule, i) => (
-                <div key={i} className="flex items-start gap-2">
-                  <span className="text-[10px] text-muted-foreground mt-0.5">{i + 1}.</span>
-                  <p className="text-xs text-muted-foreground">{rule}</p>
+        {/* Currency list */}
+        <div>
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3 px-1">
+            Select deposit network
+          </p>
+          <div className="bg-card rounded-2xl border border-border/30 overflow-hidden">
+            {CRYPTO_CURRENCIES.map((c, idx) => (
+              <button
+                key={c.code}
+                onClick={() => handleSelectCurrency(c)}
+                disabled={!amountValid}
+                className={`w-full flex items-center gap-4 px-4 py-3.5 transition-all disabled:opacity-40 ${
+                  idx < CRYPTO_CURRENCIES.length - 1 ? "border-b border-border/20" : ""
+                } hover:bg-secondary/30 active:bg-secondary/50`}
+              >
+                {/* Icon */}
+                <div
+                  className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 text-base font-black"
+                  style={{ background: c.bg, color: c.color }}
+                >
+                  {c.symbol}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
 
-        {/* Confirm button */}
-        <button
-          onClick={handleConfirm}
-          disabled={!amount || !phone || !selectedMethod}
-          className="w-full gradient-button text-primary-foreground font-bold py-4 rounded-xl text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
-        >
-          Confirm
-        </button>
+                {/* Text */}
+                <div className="flex-1 text-left">
+                  <p className="text-sm font-bold text-foreground">{c.label}</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{c.network}</p>
+                </div>
+
+                {/* Chevron */}
+                <ChevronRight size={16} className="text-muted-foreground flex-shrink-0" />
+              </button>
+            ))}
+          </div>
+          {!amountValid && amount && (
+            <p className="text-xs text-muted-foreground text-center mt-3">
+              Enter a valid amount to select a network
+            </p>
+          )}
+          {!amount && (
+            <p className="text-xs text-muted-foreground text-center mt-3">
+              Enter an amount above to enable selection
+            </p>
+          )}
+        </div>
       </div>
       <BottomNav />
     </div>
