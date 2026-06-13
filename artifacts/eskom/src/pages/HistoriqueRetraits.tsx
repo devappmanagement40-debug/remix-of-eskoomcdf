@@ -29,19 +29,19 @@ const DetailRow = ({ label, value, highlight = false }: { label: string; value: 
 );
 
 const statusLabel = (s: string) => {
-  if (s === "approved") return "Approuvé";
-  if (s === "pending") return "En attente";
-  if (s === "processing") return "En cours";
-  if (s === "rejected") return "Refusé";
+  if (s === "approved") return "Approved";
+  if (s === "pending") return "Pending";
+  if (s === "processing") return "Processing";
+  if (s === "rejected") return "Rejected";
   return s;
 };
 
 const fmtDate = (d: string) => {
   const dt = new Date(d);
-  return dt.toLocaleDateString("fr-FR", { timeZone: "America/Port-au-Prince" }) + " " + dt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "America/Port-au-Prince" });
+  return dt.toLocaleDateString("en-US", { timeZone: "America/Port-au-Prince" }) + " " + dt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "America/Port-au-Prince" });
 };
 
-const fmt = (n: number) => n.toLocaleString("fr-FR", { minimumFractionDigits: 2 });
+const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 });
 
 const HistoriqueRetraits = () => {
   const [retraits, setRetraits] = useState<Retrait[]>([]);
@@ -93,7 +93,7 @@ const HistoriqueRetraits = () => {
         .upload(path, file, { upsert: true });
 
       if (uploadError) {
-        toast.error("Erreur lors de l'envoi de la preuve");
+        toast.error("Error uploading proof");
         return;
       }
 
@@ -105,14 +105,14 @@ const HistoriqueRetraits = () => {
         .eq("id", targetWithdrawalId);
 
       if (updateError) {
-        toast.error("Erreur lors de la mise à jour");
+        toast.error("Error updating record");
         return;
       }
 
-      toast.success("Preuve envoyée ! En attente de confirmation.");
+      toast.success("Proof submitted! Awaiting confirmation.");
       load();
     } catch {
-      toast.error("Erreur inattendue");
+      toast.error("Unexpected error");
     } finally {
       setUploadingId(null);
       setTargetWithdrawalId(null);
@@ -122,18 +122,18 @@ const HistoriqueRetraits = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <PageHeader title="Historique des retraits" showBack />
+      <PageHeader title="Withdrawal History" showBack />
 
       {/* Hidden file input */}
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileSelected} />
 
       <div className="px-4 pt-4 space-y-4">
         {loading ? (
-          <p className="text-center text-muted-foreground py-10">Chargement...</p>
+          <p className="text-center text-muted-foreground py-10">Loading...</p>
         ) : retraits.length === 0 ? (
           <div className="flex flex-col items-center py-16">
             <ArrowDownLeft size={40} className="text-muted-foreground mb-4" />
-            <p className="text-sm text-muted-foreground">Aucun retrait pour le moment</p>
+            <p className="text-sm text-muted-foreground">No withdrawals yet</p>
           </div>
         ) : (
           retraits.map((r) => (
@@ -150,11 +150,11 @@ const HistoriqueRetraits = () => {
               <div className="px-4 pt-2 pb-3">
                 <div className="grid grid-cols-2 gap-4 py-3 border-b border-secondary/50">
                   <div>
-                    <p className="text-xs text-muted-foreground mb-1">Montant du retrait</p>
+                    <p className="text-xs text-muted-foreground mb-1">Withdrawal amount</p>
                     <p className="text-lg font-bold text-foreground">{fmt(r.amount)} <span className="text-xs font-normal text-muted-foreground">USDT</span></p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-muted-foreground mb-1">Montant reçu</p>
+                    <p className="text-xs text-muted-foreground mb-1">Amount received</p>
                     <p className="text-lg font-bold text-foreground">{fmt(r.net_amount)} <span className="text-xs font-normal text-muted-foreground">USDT</span></p>
                   </div>
                 </div>
@@ -169,20 +169,20 @@ const HistoriqueRetraits = () => {
                         <AlertTriangle size={14} className="text-warning" />
                       )}
                       <span className={`text-xs font-bold ${r.processing_fee_paid ? "text-success" : "text-warning"}`}>
-                        Frais de traitement : {fmt(r.processing_fee_amount)} USDT
+                        Processing fee: {fmt(r.processing_fee_amount)} USDT
                       </span>
                     </div>
                     {r.processing_fee_paid ? (
-                      <p className="text-[10px] text-success">✅ Frais payés — Retrait en cours de traitement</p>
+                      <p className="text-[10px] text-success">✅ Fee paid — Withdrawal is being processed</p>
                     ) : (
                       <>
                         <p className="text-[10px] text-muted-foreground mb-2">
-                          Vous devez payer <span className="font-bold text-warning">{fmt(r.processing_fee_amount)} USDT</span> pour débloquer votre retrait. Envoyez le montant puis téléchargez la preuve de paiement ci-dessous.
+                          You must pay <span className="font-bold text-warning">{fmt(r.processing_fee_amount)} USDT</span> to unlock your withdrawal. Send the amount then upload your payment proof below.
                         </p>
                         {r.processing_fee_proof_url ? (
                           <div className="flex items-center gap-2">
-                            <p className="text-[10px] text-primary font-semibold">📄 Preuve envoyée — En attente de vérification</p>
-                            <a href={r.processing_fee_proof_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary underline">Voir</a>
+                            <p className="text-[10px] text-primary font-semibold">📄 Proof submitted — Awaiting verification</p>
+                            <a href={r.processing_fee_proof_url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-primary underline">View</a>
                           </div>
                         ) : (
                           <button
@@ -191,7 +191,7 @@ const HistoriqueRetraits = () => {
                             className="w-full flex items-center justify-center gap-2 bg-warning text-warning-foreground font-bold py-2.5 rounded-lg text-xs disabled:opacity-50"
                           >
                             <Upload size={14} />
-                            {uploadingId === r.id ? "Envoi en cours..." : "Envoyer la preuve de paiement"}
+                            {uploadingId === r.id ? "Uploading..." : "Upload payment proof"}
                           </button>
                         )}
                       </>
@@ -199,12 +199,12 @@ const HistoriqueRetraits = () => {
                   </div>
                 )}
 
-                <DetailRow label="Frais" value={`${fmt(r.fee_amount)} USDT`} />
-                <DetailRow label="Réseau" value={r.network} />
-                <DetailRow label="Numéro" value={r.phone} />
-                <DetailRow label="Heure de la demande" value={fmtDate(r.created_at)} />
-                <DetailRow label="État" value={statusLabel(r.status)} highlight />
-                {r.admin_note && <DetailRow label="Note admin" value={r.admin_note} />}
+                <DetailRow label="Fee" value={`${fmt(r.fee_amount)} USDT`} />
+                <DetailRow label="Network" value={r.network} />
+                <DetailRow label="Number" value={r.phone} />
+                <DetailRow label="Request time" value={fmtDate(r.created_at)} />
+                <DetailRow label="Status" value={statusLabel(r.status)} highlight />
+                {r.admin_note && <DetailRow label="Admin note" value={r.admin_note} />}
               </div>
             </div>
           ))

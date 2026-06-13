@@ -159,7 +159,7 @@ const MesProduits = () => {
         return;
       }
 
-      showSuccess("Earnings collected", `+${Number(data.amount).toLocaleString("fr-FR")} USDT credited to your account`);
+      showSuccess("Earnings collected", `+${Number(data.amount).toLocaleString("en-US")} USDT credited to your account`);
       load();
     } catch (err) {
       showError("Error", "Something went wrong");
@@ -213,17 +213,17 @@ const MesProduits = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-secondary/50 rounded-lg p-3">
                 <p className="text-[10px] text-muted-foreground">Purchase price</p>
-                <p className="text-sm font-bold text-foreground">{Number(product?.price).toLocaleString("fr-FR")} USDT</p>
+                <p className="text-sm font-bold text-foreground">{Number(product?.price).toLocaleString("en-US")} USDT</p>
               </div>
               {gainType === "daily" && (
                 <div className="bg-secondary/50 rounded-lg p-3">
                   <p className="text-[10px] text-muted-foreground">Daily revenue</p>
-                  <p className={`text-sm font-bold ${seriesTextColors[color] || "text-success"}`}>{dailyRevenue.toLocaleString("fr-FR")} USDT</p>
+                  <p className={`text-sm font-bold ${seriesTextColors[color] || "text-success"}`}>{dailyRevenue.toLocaleString("en-US")} USDT</p>
                 </div>
               )}
               <div className="bg-secondary/50 rounded-lg p-3">
                 <p className="text-[10px] text-muted-foreground">{gainType === "blocked" ? "Expected gain" : "Total revenue"}</p>
-                <p className={`text-sm font-bold ${seriesTextColors[color] || "text-primary"}`}>{totalRevenue.toLocaleString("fr-FR")} USDT</p>
+                <p className={`text-sm font-bold ${seriesTextColors[color] || "text-primary"}`}>{totalRevenue.toLocaleString("en-US")} USDT</p>
               </div>
               <div className="bg-secondary/50 rounded-lg p-3">
                 <p className="text-[10px] text-muted-foreground">Duration (cycles)</p>
@@ -231,7 +231,7 @@ const MesProduits = () => {
               </div>
               <div className="bg-secondary/50 rounded-lg p-3">
                 <p className="text-[10px] text-muted-foreground">Already collected</p>
-                <p className="text-sm font-bold text-foreground">{Number(earnedSoFar).toLocaleString("fr-FR")} USDT</p>
+                <p className="text-sm font-bold text-foreground">{Number(earnedSoFar).toLocaleString("en-US")} USDT</p>
               </div>
               {gainType === "daily" && (
                 <div className="bg-secondary/50 rounded-lg p-3">
@@ -301,7 +301,7 @@ const MesProduits = () => {
               const totalRevenue = gainType === "blocked" ? Number(product.total_revenue) || 0 : dailyRevenue * cycles;
               const earnedSoFar = up.total_collected || 0;
               const purchaseDate = up.purchased_at
-                ? new Date(up.purchased_at).toLocaleDateString("fr-FR", { timeZone: "America/Port-au-Prince" })
+                ? new Date(up.purchased_at).toLocaleDateString("en-US", { timeZone: "America/Port-au-Prince" })
                 : "—";
               const collectible = canCollect(up);
               const color = getColor(up);
@@ -346,7 +346,7 @@ const MesProduits = () => {
                     <div className="flex items-center justify-between">
                       <span className={`text-sm font-semibold ${textColor}`}>{isBlocked ? "Expected gain" : "Total revenue"}</span>
                       <span className="text-lg font-bold text-foreground">
-                        {totalRevenue.toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">USDT</span>
+                        {totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">USDT</span>
                       </span>
                     </div>
 
@@ -378,7 +378,7 @@ const MesProduits = () => {
                           {earnedSoFar > 0 && (
                             <div className="flex items-center justify-between">
                               <span className="text-xs text-muted-foreground">Already collected</span>
-                              <span className="text-sm text-foreground">{Number(earnedSoFar).toLocaleString("fr-FR")} USDT</span>
+                              <span className="text-sm text-foreground">{Number(earnedSoFar).toLocaleString("en-US")} USDT</span>
                             </div>
                           )}
                         </>
@@ -387,7 +387,7 @@ const MesProduits = () => {
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-muted-foreground">Earnings received</span>
                             <span className="text-sm text-foreground">
-                              {Number(earnedSoFar).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} <span className="text-xs text-muted-foreground">USDT</span>
+                              {Number(earnedSoFar).toLocaleString("en-US", { minimumFractionDigits: 2 })} <span className="text-xs text-muted-foreground">USDT</span>
                             </span>
                           </div>
                           <div className="flex items-center justify-between">

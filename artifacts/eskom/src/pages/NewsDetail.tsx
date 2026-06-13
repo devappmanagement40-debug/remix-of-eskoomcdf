@@ -16,14 +16,14 @@ const NewsDetail = () => {
     });
   }, [id]);
 
-  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Chargement...</p></div>;
+  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
 
   if (!item) {
     return (
       <div className="min-h-screen bg-background">
-        <PageHeader title="Détails Annonce" showBack />
+        <PageHeader title="Announcement Details" showBack />
         <div className="px-4 pt-10 text-center">
-          <p className="text-muted-foreground">Article introuvable.</p>
+          <p className="text-muted-foreground">Article not found.</p>
         </div>
       </div>
     );
@@ -31,7 +31,7 @@ const NewsDetail = () => {
 
   return (
     <div className="min-h-screen bg-background pb-10">
-      <PageHeader title="Détails Annonce" showBack />
+      <PageHeader title="Announcement Details" showBack />
       <div className="px-4 pt-6">
         {item.image_url && (
           <img src={item.image_url} alt={item.title} className="w-full h-48 object-cover rounded-xl mb-5" />

@@ -64,32 +64,32 @@ type Banner = { id: string; image_url: string; link_path: string; sort_order: nu
 const tabs = [
   { key: "dashboard", icon: BarChart3, label: "Stats" },
   { key: "users", icon: Users, label: "Clients" },
-  { key: "deposits", icon: Download, label: "Dépôts" },
-  { key: "withdrawals", icon: Upload, label: "Retraits" },
-  { key: "products", icon: Package, label: "Produits" },
-  { key: "banners", icon: ImageIcon, label: "Bannières" },
-  { key: "annonces", icon: Bell, label: "Annonces" },
-  { key: "wheel", icon: Activity, label: "Roue" },
-  { key: "rewards", icon: Star, label: "Cadeaux" },
+  { key: "deposits", icon: Download, label: "Deposits" },
+  { key: "withdrawals", icon: Upload, label: "Withdrawals" },
+  { key: "products", icon: Package, label: "Products" },
+  { key: "banners", icon: ImageIcon, label: "Banners" },
+  { key: "annonces", icon: Bell, label: "Announcements" },
+  { key: "wheel", icon: Activity, label: "Wheel" },
+  { key: "rewards", icon: Star, label: "Rewards" },
   { key: "giftcodes", icon: Gift, label: "Codes" },
-  { key: "countries", icon: Globe, label: "Pays" },
-  { key: "payments", icon: CreditCard, label: "Dépôt" },
-  { key: "wmethods", icon: Wallet, label: "Retrait M." },
+  { key: "countries", icon: Globe, label: "Countries" },
+  { key: "payments", icon: CreditCard, label: "Deposit" },
+  { key: "wmethods", icon: Wallet, label: "Withdrawal M." },
   { key: "apiconfigs", icon: Power, label: "APIs" },
-  { key: "links", icon: Link2, label: "Liens" },
+  { key: "links", icon: Link2, label: "Links" },
   { key: "popups", icon: Bell, label: "Popups" },
-  { key: "vip", icon: TrendingUp, label: "Niveaux" },
-  { key: "sarah", icon: Bot, label: "Emma IA" },
-  { key: "officialdocs", icon: FileText, label: "Docs Off." },
-  { key: "officialinfo", icon: Globe, label: "Infos Off." },
+  { key: "vip", icon: TrendingUp, label: "Levels" },
+  { key: "sarah", icon: Bot, label: "Emma AI" },
+  { key: "officialdocs", icon: FileText, label: "Off. Docs" },
+  { key: "officialinfo", icon: Globe, label: "Off. Info" },
   { key: "support", icon: MessageSquare, label: "Support" },
   { key: "faq", icon: HelpCircle, label: "FAQ" },
   { key: "infos", icon: Info, label: "Infos" },
   { key: "app", icon: Smartphone, label: "App" },
   { key: "dates", icon: Clock, label: "Dates" },
   { key: "settings", icon: Settings, label: "Site" },
-  { key: "security", icon: Shield, label: "Sécurité" },
-  { key: "team", icon: Users, label: "Équipe" },
+  { key: "security", icon: Shield, label: "Security" },
+  { key: "team", icon: Users, label: "Team" },
 ];
 
 const colorOptions = [
@@ -138,7 +138,7 @@ const AdminPanel = () => {
       if (!user) { navigate("/connexion"); return; }
       const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
       const { data: isMod } = await supabase.rpc("has_role", { _user_id: user.id, _role: "moderator" });
-      if (!isAdmin && !isMod) { showError("Accès refusé", "Droits admin requis"); navigate("/"); return; }
+      if (!isAdmin && !isMod) { showError("Access denied", "Admin rights required"); navigate("/"); return; }
       setAdminId(user.id);
       setIsFullAdmin(!!isAdmin);
       if (isMod && !isAdmin) {
@@ -150,7 +150,7 @@ const AdminPanel = () => {
       await loadAll();
     } catch (err) {
       console.error("Admin check error:", err);
-      showError("Erreur", "Impossible de vérifier les droits d'accès");
+      showError("Error", "Unable to verify access rights");
       setLoading(false);
     }
   };
@@ -212,7 +212,7 @@ const AdminPanel = () => {
       if (plogs.data) setPaymentLogs(plogs.data as PaymentLog[]);
     } catch (err) {
       console.error("Load error:", err);
-      showError("Erreur", "Impossible de charger les données");
+      showError("Error", "Unable to load data");
     } finally {
       setLoading(false);
     }
@@ -224,13 +224,13 @@ const AdminPanel = () => {
 
   const formatDate = (d: string | null) => {
     if (!d) return "—";
-    return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" });
+    return new Date(d).toLocaleDateString("en-US", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" });
   };
 
   if (loading) return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3">
       <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      <p className="text-foreground font-medium">Chargement...</p>
+      <p className="text-foreground font-medium">Loading...</p>
     </div>
   );
 
@@ -323,14 +323,14 @@ const DashboardTab = ({ profiles, recharges, withdrawals, products }: any) => {
   const totalBalance = profiles.reduce((s: number, p: Profile) => s + (p.balance || 0), 0);
 
   const stats = [
-    { label: "Utilisateurs", value: totalUsers, color: "text-primary" },
-    { label: "Nouveaux aujourd'hui", value: activeToday, color: "text-primary" },
-    { label: "Total dépôts", value: `${totalDeposits.toLocaleString("fr-FR")}`, color: "text-success" },
-    { label: "Total retraits", value: `${totalWithdrawals.toLocaleString("fr-FR")}`, color: "text-destructive" },
-    { label: "Soldes cumulés", value: `${totalBalance.toLocaleString("fr-FR")}`, color: "text-primary" },
-    { label: "Produits actifs", value: activeProducts, color: "text-primary" },
-    { label: "Dépôts en attente", value: pendingDeposits, color: "text-warning" },
-    { label: "Retraits en attente", value: pendingWithdrawals, color: "text-warning" },
+    { label: "Users", value: totalUsers, color: "text-primary" },
+    { label: "New today", value: activeToday, color: "text-primary" },
+    { label: "Total deposits", value: `${totalDeposits.toLocaleString("en-US")}`, color: "text-success" },
+    { label: "Total withdrawals", value: `${totalWithdrawals.toLocaleString("en-US")}`, color: "text-destructive" },
+    { label: "Cumulative balances", value: `${totalBalance.toLocaleString("en-US")}`, color: "text-primary" },
+    { label: "Active products", value: activeProducts, color: "text-primary" },
+    { label: "Pending deposits", value: pendingDeposits, color: "text-warning" },
+    { label: "Pending withdrawals", value: pendingWithdrawals, color: "text-warning" },
   ];
 
   return (
@@ -381,7 +381,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
       gift_points: Number(editGiftPoints) || 0,
     }).eq("id", editingUser.id);
     logAction("edit_user", "profile", editingUser.id, `Balance: ${editBalance}, Deposit: ${editDepositBalance}, Earnings: ${editEarningsBalance}, Referral: ${editReferralBalance}, VIP: ${editVipLevel}, ESK: ${editGiftPoints}, Name: ${editName}`);
-    showSuccess("Utilisateur modifié", "Modifications enregistrées ✅");
+    showSuccess("User updated", "Changes saved ✅");
     setEditingUser(null);
     reload();
   };
@@ -389,14 +389,14 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
   const toggleSuspend = async (p: Profile) => {
     const newVal = !p.is_suspended;
     const { error } = await supabase.from("profiles").update({ is_suspended: newVal }).eq("id", p.id);
-    if (error) { showError("Erreur", error.message); return; }
+    if (error) { showError("Error", error.message); return; }
     logAction(newVal ? "suspend_user" : "unsuspend_user", "profile", p.id);
-    showSuccess(newVal ? "Compte suspendu" : "Compte réactivé", "");
+    showSuccess(newVal ? "Account suspended" : "Account reactivated", "");
     reload();
   };
 
   const deleteUser = async (p: Profile) => {
-    if (!confirm(`Supprimer définitivement ${p.full_name || p.phone} ?`)) return;
+    if (!confirm(`Permanently delete ${p.full_name || p.phone}?`)) return;
     // Delete related data first, then profile
     await supabase.from("user_products").delete().eq("user_id", p.user_id);
     await supabase.from("chat_messages").delete().eq("user_id", p.user_id);
@@ -405,9 +405,9 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
     await supabase.from("wheel_spins").delete().eq("user_id", p.user_id);
     await supabase.from("point_exchanges").delete().eq("user_id", p.user_id);
     const { error } = await supabase.from("profiles").delete().eq("id", p.id);
-    if (error) { showError("Erreur suppression", error.message); return; }
+    if (error) { showError("Delete error", error.message); return; }
     logAction("delete_user", "profile", p.id, p.full_name || p.phone || "");
-    showSuccess("Compte supprimé", "L'utilisateur a été supprimé définitivement");
+    showSuccess("Account deleted", "User has been permanently deleted");
     reload();
   };
 
@@ -439,14 +439,14 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
   const removeUserProduct = async (upId: string) => {
     await supabase.from("user_products").delete().eq("id", upId);
     if (detailUser) loadUserDetail(detailUser);
-    showSuccess("Produit retiré", "");
+    showSuccess("Product removed", "");
   };
 
   const addProductToUser = async (productId: string) => {
     if (!detailUser) return;
     await supabase.from("user_products").insert({ user_id: detailUser.user_id, product_id: productId, is_active: true });
     loadUserDetail(detailUser);
-    showSuccess("Produit ajouté", "");
+    showSuccess("Product added", "");
   };
 
   // Detail view
@@ -454,33 +454,33 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
     return (
       <div className="space-y-4">
         <button onClick={() => setDetailUser(null)} className="flex items-center gap-2 text-sm text-primary font-semibold">
-          <ArrowLeft size={16} /> Retour
+          <ArrowLeft size={16} /> Back
         </button>
         <div className="bg-card rounded-xl border border-secondary p-4">
-          <p className="text-sm font-bold text-foreground">{detailUser.full_name || "Sans nom"}</p>
+          <p className="text-sm font-bold text-foreground">{detailUser.full_name || "No name"}</p>
           <p className="text-xs text-muted-foreground">{detailUser.country_code} {detailUser.phone}</p>
           <div className="grid grid-cols-2 gap-3 mt-3">
-            <div><p className="text-[10px] text-muted-foreground">Solde total</p><p className="text-xs font-bold text-primary">{(detailUser.balance || 0).toLocaleString("en-US")} USDT</p></div>
-            <div><p className="text-[10px] text-muted-foreground">Niveau</p><p className="text-xs font-bold text-foreground">VIP{detailUser.vip_level || 0}</p></div>
-            <div><p className="text-[10px] text-muted-foreground">Dépôt</p><p className="text-xs font-bold text-foreground">{(detailUser.deposit_balance || 0).toLocaleString("en-US")} USDT</p></div>
-            <div><p className="text-[10px] text-muted-foreground">Gains</p><p className="text-xs font-bold text-success">{(detailUser.earnings_balance || 0).toLocaleString("en-US")} USDT</p></div>
-            <div><p className="text-[10px] text-muted-foreground">Parrainage</p><p className="text-xs font-bold text-primary">{(detailUser.referral_balance || 0).toLocaleString("en-US")} USDT</p></div>
-            <div><p className="text-[10px] text-muted-foreground">ESK Points</p><p className="text-xs font-bold text-warning">{(detailUser.gift_points || 0).toLocaleString("fr-FR")} ESK</p></div>
+            <div><p className="text-[10px] text-muted-foreground">Total balance</p><p className="text-xs font-bold text-primary">{(detailUser.balance || 0).toLocaleString("en-US")} USDT</p></div>
+            <div><p className="text-[10px] text-muted-foreground">Level</p><p className="text-xs font-bold text-foreground">VIP{detailUser.vip_level || 0}</p></div>
+            <div><p className="text-[10px] text-muted-foreground">Deposit</p><p className="text-xs font-bold text-foreground">{(detailUser.deposit_balance || 0).toLocaleString("en-US")} USDT</p></div>
+            <div><p className="text-[10px] text-muted-foreground">Earnings</p><p className="text-xs font-bold text-success">{(detailUser.earnings_balance || 0).toLocaleString("en-US")} USDT</p></div>
+            <div><p className="text-[10px] text-muted-foreground">Referral</p><p className="text-xs font-bold text-primary">{(detailUser.referral_balance || 0).toLocaleString("en-US")} USDT</p></div>
+            <div><p className="text-[10px] text-muted-foreground">ESK Points</p><p className="text-xs font-bold text-warning">{(detailUser.gift_points || 0).toLocaleString("en-US")} ESK</p></div>
             <div><p className="text-[10px] text-muted-foreground">Code</p><p className="text-xs font-semibold text-foreground">{detailUser.referral_code || "—"}</p></div>
           </div>
         </div>
 
-        {loadingDetail ? <p className="text-xs text-muted-foreground text-center py-4">Chargement...</p> : (
+        {loadingDetail ? <p className="text-xs text-muted-foreground text-center py-4">Loading...</p> : (
           <>
             {/* User Products */}
             <div className="bg-card rounded-xl border border-secondary p-4">
-              <h4 className="text-xs font-bold text-muted-foreground mb-3">PRODUITS ACTIFS ({userProducts.length})</h4>
-              {userProducts.length === 0 ? <p className="text-xs text-muted-foreground">Aucun produit</p> :
+              <h4 className="text-xs font-bold text-muted-foreground mb-3">ACTIVE PRODUCTS ({userProducts.length})</h4>
+              {userProducts.length === 0 ? <p className="text-xs text-muted-foreground">No products</p> :
                 userProducts.map((up: any) => (
                   <div key={up.id} className="flex items-center justify-between py-2 border-b border-secondary last:border-0">
                     <div>
-                      <p className="text-xs font-semibold text-foreground">{up.products?.name || "Produit"}</p>
-                      <p className="text-[10px] text-muted-foreground">{Number(up.products?.price || 0).toLocaleString("en-US")} USDT • {up.products?.daily_revenue} USDT/jour</p>
+                      <p className="text-xs font-semibold text-foreground">{up.products?.name || "Product"}</p>
+                      <p className="text-[10px] text-muted-foreground">{Number(up.products?.price || 0).toLocaleString("en-US")} USDT • {up.products?.daily_revenue} USDT/day</p>
                     </div>
                     <button onClick={() => removeUserProduct(up.id)} className="w-7 h-7 rounded-lg bg-destructive/10 flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
                   </div>
@@ -489,7 +489,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
               <div className="mt-3">
                 <select onChange={(e) => { if (e.target.value) addProductToUser(e.target.value); e.target.value = ""; }}
                   className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-xs border border-secondary outline-none">
-                  <option value="">+ Ajouter un produit...</option>
+                  <option value="">+ Add a product...</option>
                   {products.filter((pr: Product) => pr.is_active).map((pr: Product) => (
                     <option key={pr.id} value={pr.id}>{pr.name} — {Number(pr.price).toLocaleString("en-US")} USDT</option>
                   ))}
@@ -499,15 +499,15 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
 
             {/* Team Members */}
             <div className="bg-card rounded-xl border border-secondary p-4">
-              <h4 className="text-xs font-bold text-muted-foreground mb-3">ÉQUIPE</h4>
+              <h4 className="text-xs font-bold text-muted-foreground mb-3">TEAM</h4>
               {[
-                { label: "Niveau E (directs)", members: teamMembers.b },
-                { label: "Niveau F", members: teamMembers.c },
-                { label: "Niveau G", members: teamMembers.d },
+                { label: "Level E (direct)", members: teamMembers.b },
+                { label: "Level F", members: teamMembers.c },
+                { label: "Level G", members: teamMembers.d },
               ].map(level => (
                 <div key={level.label} className="mb-3">
                   <p className="text-xs font-semibold text-foreground mb-1">{level.label} ({level.members.length})</p>
-                  {level.members.length === 0 ? <p className="text-[10px] text-muted-foreground ml-2">Aucun</p> :
+                  {level.members.length === 0 ? <p className="text-[10px] text-muted-foreground ml-2">None</p> :
                     level.members.map((m: Profile) => (
                       <div key={m.id} className="flex items-center justify-between py-1.5 ml-2">
                         <p className="text-xs text-foreground">{m.full_name || m.phone || "—"}</p>
@@ -536,16 +536,16 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
       {editingUser && (
         <div className="bg-card rounded-xl border border-primary p-4 space-y-3">
           <div className="flex justify-between items-center">
-            <h3 className="text-sm font-bold text-foreground">Modifier l'utilisateur</h3>
+            <h3 className="text-sm font-bold text-foreground">Edit user</h3>
             <button onClick={() => setEditingUser(null)}><X size={16} className="text-muted-foreground" /></button>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Nom</label>
+            <label className="text-xs text-muted-foreground">Name</label>
             <input value={editName} onChange={e => setEditName(e.target.value)}
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Solde total (USDT)</label>
+            <label className="text-xs text-muted-foreground">Total balance (USDT)</label>
             <input type="number" value={editBalance} onChange={e => setEditBalance(e.target.value)}
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
           </div>
@@ -565,7 +565,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Niveau VIP</label>
+            <label className="text-xs text-muted-foreground">VIP Level</label>
             <select value={editVipLevel} onChange={e => setEditVipLevel(e.target.value)}
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none">
               {[0,1,2,3,4,5].map(v => <option key={v} value={v}>VIP{v}</option>)}
@@ -577,7 +577,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
           </div>
           <button onClick={saveUser} className="w-full gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm flex items-center justify-center gap-2">
-            <Save size={14} /> Sauvegarder
+            <Save size={14} /> Save
           </button>
         </div>
       )}
@@ -587,7 +587,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
           <div className="px-4 pt-4 pb-3">
             <div className="flex items-start justify-between mb-2">
               <div>
-                <p className="text-sm font-bold text-foreground">{p.full_name || "Sans nom"}</p>
+                <p className="text-sm font-bold text-foreground">{p.full_name || "No name"}</p>
                 <p className="text-xs text-muted-foreground">{p.country_code} {p.phone}</p>
               </div>
               <div className="flex items-center gap-1.5">
@@ -599,7 +599,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
             <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
               <div>
                 <p className="text-[10px] text-muted-foreground">Solde</p>
-                <p className="text-xs font-bold text-primary">{(p.balance || 0).toLocaleString("fr-FR")} USDT</p>
+                <p className="text-xs font-bold text-primary">{(p.balance || 0).toLocaleString("en-US")} USDT</p>
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground">Code parrainage</p>
@@ -607,7 +607,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground">Inscription</p>
-                <p className="text-xs text-foreground">{p.created_at ? <p className="text-xs text-foreground">{p.created_at ? new Date(p.created_at).toLocaleDateString("fr-FR", { timeZone: "America/Port-au-Prince" }) : "—"}</p> : "—"}</p>
+                <p className="text-xs text-foreground">{p.created_at ? <p className="text-xs text-foreground">{p.created_at ? new Date(p.created_at).toLocaleDateString("en-US", { timeZone: "America/Port-au-Prince" }) : "—"}</p> : "—"}</p>
               </div>
             </div>
             <div className="flex gap-2 mt-3">
@@ -617,7 +617,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
               </button>
               <button onClick={() => { setEditingUser(p); setEditBalance(String(p.balance || 0)); setEditDepositBalance(String(p.deposit_balance || 0)); setEditEarningsBalance(String(p.earnings_balance || 0)); setEditReferralBalance(String(p.referral_balance || 0)); setEditName(p.full_name || ""); setEditVipLevel(String(p.vip_level || 0)); setEditGiftPoints(String(p.gift_points || 0)); }}
                 className="flex-1 flex items-center justify-center gap-1.5 border border-primary text-primary font-semibold py-2 rounded-xl text-xs hover:bg-primary/10 transition-colors">
-                <Edit2 size={12} /> Modifier
+                <Edit2 size={12} /> Edit
               </button>
             </div>
             <div className="flex gap-2 mt-2">
@@ -629,7 +629,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
               </button>
               <button onClick={() => deleteUser(p)}
                 className="flex-1 flex items-center justify-center gap-1.5 border border-destructive text-destructive font-semibold py-2 rounded-xl text-xs hover:bg-destructive/10 transition-colors">
-                <Trash2 size={12} /> Supprimer
+                <Trash2 size={12} /> Delete
               </button>
             </div>
           </div>
@@ -689,7 +689,7 @@ const DepositsTab = ({ recharges, profiles, reload, showSuccess, showError, logA
       }
     }
     logAction(`deposit_${status}`, "recharge", r.id, `${r.amount} USDT`);
-    showSuccess(status === "approved" ? "Dépôt approuvé ✅" : "Dépôt refusé ❌", "");
+    showSuccess(status === "approved" ? "Deposit approved ✅" : "Deposit rejected ❌", "");
     reload();
   };
 
@@ -715,13 +715,13 @@ const DepositsTab = ({ recharges, profiles, reload, showSuccess, showError, logA
           className="w-full bg-card border border-secondary rounded-xl pl-11 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary" />
       </div>
 
-      {filtered.length === 0 ? <p className="text-center text-sm text-muted-foreground py-10">Aucun dépôt</p> :
+      {filtered.length === 0 ? <p className="text-center text-sm text-muted-foreground py-10">No deposits</p> :
         filtered.map((r: Recharge) => {
           const p = profileMap[r.user_id];
           return (
             <div key={r.id} className="bg-card rounded-xl border border-secondary px-4 pt-4 pb-3">
               <div className="flex items-start justify-between mb-2">
-                <p className="text-lg font-bold text-foreground">{r.amount.toLocaleString("fr-FR")} USDT</p>
+                <p className="text-lg font-bold text-foreground">{r.amount.toLocaleString("en-US")} USDT</p>
                 <StatusBadge status={r.status} />
               </div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-3">
@@ -730,14 +730,14 @@ const DepositsTab = ({ recharges, profiles, reload, showSuccess, showError, logA
               <div className="border-t border-secondary my-2" />
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
                 <div><p className="text-[10px] text-muted-foreground">Client</p><p className="text-xs font-semibold text-foreground">{r.country_code} {r.phone}</p></div>
-                <div><p className="text-[10px] text-muted-foreground">Solde actuel</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("fr-FR")} USDT` : "—"}</p></div>
-                <div><p className="text-[10px] text-muted-foreground">Nom client</p><p className="text-xs font-semibold text-foreground">{p?.full_name || "—"}</p></div>
-                <div><p className="text-[10px] text-muted-foreground">Date</p><p className="text-xs font-semibold text-foreground">{r.created_at ? new Date(r.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Current balance</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("en-US")} USDT` : "—"}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Client name</p><p className="text-xs font-semibold text-foreground">{p?.full_name || "—"}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Date</p><p className="text-xs font-semibold text-foreground">{r.created_at ? new Date(r.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</p></div>
                 {r.proof_image_url && (
                   <div className="col-span-2">
-                    <p className="text-[10px] text-muted-foreground mb-1">Preuve de paiement :</p>
+                    <p className="text-[10px] text-muted-foreground mb-1">Payment proof:</p>
                     <button onClick={() => setZoomedImage(r.proof_image_url)} className="relative group cursor-pointer">
-                      <img src={r.proof_image_url} alt="Preuve de paiement" className="w-full max-w-[200px] h-24 object-cover rounded-lg border border-secondary" />
+                      <img src={r.proof_image_url} alt="Payment proof" className="w-full max-w-[200px] h-24 object-cover rounded-lg border border-secondary" />
                       <div className="absolute inset-0 max-w-[200px] bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
                         <Eye size={20} className="text-white" />
                       </div>
@@ -745,13 +745,13 @@ const DepositsTab = ({ recharges, profiles, reload, showSuccess, showError, logA
                   </div>
                 )}
                 {!r.proof_image_url && r.transaction_ref && (
-                  <div className="col-span-2"><p className="text-[10px] text-muted-foreground">Référence</p><p className="text-xs font-semibold text-foreground font-mono">{r.transaction_ref}</p></div>
+                  <div className="col-span-2"><p className="text-[10px] text-muted-foreground">Reference</p><p className="text-xs font-semibold text-foreground font-mono">{r.transaction_ref}</p></div>
                 )}
               </div>
               {r.status === "pending" && (
                 <div className="grid grid-cols-2 gap-3 mt-4">
-                  <button onClick={() => handleAction(r, "approved")} className="flex items-center justify-center gap-2 border-2 border-success text-success font-bold py-2.5 rounded-xl text-sm hover:bg-success/10"><CheckCircle2 size={16} /> Approuver</button>
-                  <button onClick={() => handleAction(r, "rejected")} className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10"><XCircle size={16} /> Rejeter</button>
+                  <button onClick={() => handleAction(r, "approved")} className="flex items-center justify-center gap-2 border-2 border-success text-success font-bold py-2.5 rounded-xl text-sm hover:bg-success/10"><CheckCircle2 size={16} /> Approve</button>
+                  <button onClick={() => handleAction(r, "rejected")} className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10"><XCircle size={16} /> Reject</button>
                 </div>
               )}
             </div>
@@ -764,7 +764,7 @@ const DepositsTab = ({ recharges, profiles, reload, showSuccess, showError, logA
           <button onClick={() => setZoomedImage(null)} className="absolute top-4 right-4 p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors">
             <X size={20} className="text-white" />
           </button>
-          <img src={zoomedImage} alt="Preuve de paiement (agrandie)" className="max-w-full max-h-[85vh] object-contain rounded-lg" />
+          <img src={zoomedImage} alt="Payment proof (enlarged)" className="max-w-full max-h-[85vh] object-contain rounded-lg" />
         </div>
       )}
     </div>
@@ -819,16 +819,16 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
           body: { withdrawal_id: w.id },
         });
         if (error) {
-          showError("Erreur", "Erreur de connexion au serveur");
+          showError("Error", "Server connection error");
           return;
         }
         if (data?.success) {
-          showSuccess("Retrait validé", "Le retrait a été approuvé avec succès ✅");
+          showSuccess("Withdrawal approved", "The withdrawal has been successfully approved ✅");
         } else {
-          showError("Erreur", data?.error || "Le retrait a échoué");
+          showError("Error", data?.error || "Withdrawal failed");
         }
       } catch {
-        showError("Erreur", "Erreur de connexion");
+        showError("Error", "Connection error");
       } finally {
         setAutoPayingId(null);
         reload();
@@ -838,7 +838,7 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
     // Rejected = direct update (trigger refunds)
     await supabase.from("withdrawals").update({ status }).eq("id", w.id);
     logAction(`withdrawal_${status}`, "withdrawal", w.id, `${w.amount} USDT`);
-    showSuccess("Retrait refusé — montant restitué", "");
+    showSuccess("Withdrawal rejected — amount refunded", "");
     reload();
   };
 
@@ -878,35 +878,35 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
               </div>
 
               <div className="text-center py-3">
-                <p className="text-2xl font-bold text-foreground">{detailW.amount.toLocaleString("fr-FR")} USDT</p>
-                <p className="text-sm text-success font-semibold">Net: {detailW.net_amount.toLocaleString("fr-FR")} USDT <span className="text-muted-foreground text-xs">(-{feePercent}% frais)</span></p>
+                <p className="text-2xl font-bold text-foreground">{detailW.amount.toLocaleString("en-US")} USDT</p>
+                <p className="text-sm text-success font-semibold">Net: {detailW.net_amount.toLocaleString("en-US")} USDT <span className="text-muted-foreground text-xs">(-{feePercent}% fee)</span></p>
                 <StatusBadge status={detailW.status} />
               </div>
 
               <div className="bg-secondary/30 rounded-xl p-4 space-y-2">
-                <p className="text-xs font-bold text-foreground mb-2">👤 Informations utilisateur</p>
+                <p className="text-xs font-bold text-foreground mb-2">👤 User information</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <div><p className="text-[10px] text-muted-foreground">Nom</p><p className="text-xs font-semibold text-foreground">{p?.full_name || "—"}</p></div>
-                  <div><p className="text-[10px] text-muted-foreground">Téléphone compte</p><p className="text-xs font-semibold text-foreground">{p?.country_code} {p?.phone}</p></div>
-                  <div><p className="text-[10px] text-muted-foreground">Solde actuel</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("fr-FR")} USDT` : "—"}</p></div>
-                  <div><p className="text-[10px] text-muted-foreground">Niveau VIP</p><p className="text-xs font-semibold text-foreground">VIP {p?.vip_level || 0}</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Name</p><p className="text-xs font-semibold text-foreground">{p?.full_name || "—"}</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Account phone</p><p className="text-xs font-semibold text-foreground">{p?.country_code} {p?.phone}</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Current balance</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("en-US")} USDT` : "—"}</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">VIP Level</p><p className="text-xs font-semibold text-foreground">VIP {p?.vip_level || 0}</p></div>
                 </div>
               </div>
 
               <div className="bg-secondary/30 rounded-xl p-4 space-y-2">
-                <p className="text-xs font-bold text-foreground mb-2">💳 Portefeuille de retrait</p>
+                <p className="text-xs font-bold text-foreground mb-2">💳 Withdrawal wallet</p>
                 {wallet ? (
                   <div className="grid grid-cols-2 gap-2">
-                    <div><p className="text-[10px] text-muted-foreground">Réseau</p><p className="text-xs font-semibold text-primary">{wallet.network}</p></div>
-                    <div><p className="text-[10px] text-muted-foreground">Pays</p><p className="text-xs font-semibold text-foreground">{wallet.country_code}</p></div>
-                    <div><p className="text-[10px] text-muted-foreground">Numéro</p><p className="text-xs font-semibold text-foreground">{wallet.phone}</p></div>
-                    <div><p className="text-[10px] text-muted-foreground">Titulaire</p><p className="text-xs font-semibold text-foreground">{wallet.holder_name || "—"}</p></div>
-                    {wallet.label && <div className="col-span-2"><p className="text-[10px] text-muted-foreground">Libellé</p><p className="text-xs font-semibold text-foreground">{wallet.label}</p></div>}
+                    <div><p className="text-[10px] text-muted-foreground">Network</p><p className="text-xs font-semibold text-primary">{wallet.network}</p></div>
+                    <div><p className="text-[10px] text-muted-foreground">Country</p><p className="text-xs font-semibold text-foreground">{wallet.country_code}</p></div>
+                    <div><p className="text-[10px] text-muted-foreground">Number</p><p className="text-xs font-semibold text-foreground">{wallet.phone}</p></div>
+                    <div><p className="text-[10px] text-muted-foreground">Account holder</p><p className="text-xs font-semibold text-foreground">{wallet.holder_name || "—"}</p></div>
+                    {wallet.label && <div className="col-span-2"><p className="text-[10px] text-muted-foreground">Label</p><p className="text-xs font-semibold text-foreground">{wallet.label}</p></div>}
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
-                    <div><p className="text-[10px] text-muted-foreground">Réseau</p><p className="text-xs font-semibold text-primary">{detailW.network}</p></div>
-                    <div><p className="text-[10px] text-muted-foreground">Numéro</p><p className="text-xs font-semibold text-foreground">{detailW.country_code} {detailW.phone}</p></div>
+                    <div><p className="text-[10px] text-muted-foreground">Network</p><p className="text-xs font-semibold text-primary">{detailW.network}</p></div>
+                    <div><p className="text-[10px] text-muted-foreground">Number</p><p className="text-xs font-semibold text-foreground">{detailW.country_code} {detailW.phone}</p></div>
                   </div>
                 )}
               </div>
@@ -914,10 +914,10 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
               <div className="bg-secondary/30 rounded-xl p-4 space-y-2">
                 <p className="text-xs font-bold text-foreground mb-2">📋 Transaction</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <div><p className="text-[10px] text-muted-foreground">Montant brut</p><p className="text-xs font-semibold text-foreground">{detailW.amount.toLocaleString("fr-FR")} USDT</p></div>
-                  <div><p className="text-[10px] text-muted-foreground">Frais ({feePercent}%)</p><p className="text-xs font-semibold text-destructive">{detailW.fee_amount.toLocaleString("fr-FR")} USDT</p></div>
-                  <div><p className="text-[10px] text-muted-foreground">Montant net</p><p className="text-xs font-semibold text-success">{detailW.net_amount.toLocaleString("fr-FR")} USDT</p></div>
-                  <div><p className="text-[10px] text-muted-foreground">Date</p><p className="text-xs font-semibold text-foreground">{detailW.created_at ? new Date(detailW.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Gross amount</p><p className="text-xs font-semibold text-foreground">{detailW.amount.toLocaleString("en-US")} USDT</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Fee ({feePercent}%)</p><p className="text-xs font-semibold text-destructive">{detailW.fee_amount.toLocaleString("en-US")} USDT</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Net amount</p><p className="text-xs font-semibold text-success">{detailW.net_amount.toLocaleString("en-US")} USDT</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Date</p><p className="text-xs font-semibold text-foreground">{detailW.created_at ? new Date(detailW.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</p></div>
                 </div>
                 <div><p className="text-[10px] text-muted-foreground">ID</p><p className="text-[10px] font-mono text-muted-foreground break-all">{detailW.id}</p></div>
               </div>
@@ -925,7 +925,7 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
                {detailW.status === "pending" && (
                 <div className="grid grid-cols-2 gap-3">
                   <button onClick={() => { handleAction(detailW, "approved"); setDetailW(null); }} disabled={autoPayingId === detailW.id} className="flex items-center justify-center gap-2 bg-success text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50">
-                    {autoPayingId === detailW.id ? <><Loader2 size={16} className="animate-spin" /> Envoi...</> : <><CheckCircle2 size={16} /> Valider</>}
+                    {autoPayingId === detailW.id ? <><Loader2 size={16} className="animate-spin" /> Sending...</> : <><CheckCircle2 size={16} /> Approve</>}
                   </button>
                   <button onClick={() => { handleAction(detailW, "rejected"); setDetailW(null); }} className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10"><XCircle size={16} /> Rejeter</button>
                 </div>
@@ -935,7 +935,7 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
         );
       })()}
 
-      {filtered.length === 0 ? <p className="text-center text-sm text-muted-foreground py-10">Aucun retrait</p> :
+      {filtered.length === 0 ? <p className="text-center text-sm text-muted-foreground py-10">No withdrawals</p> :
         filtered.map((w: Withdrawal) => {
           const p = profileMap[w.user_id];
           const wallet = w.wallet_id ? wallets[w.wallet_id] : null;
@@ -944,10 +944,10 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
             <div key={w.id} className="bg-card rounded-xl border border-secondary px-4 pt-4 pb-3 cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setDetailW(w)}>
               <div className="flex items-start justify-between mb-2">
                 <div>
-                  <p className="text-lg font-bold text-foreground">{w.amount.toLocaleString("fr-FR")} USDT</p>
+                  <p className="text-lg font-bold text-foreground">{w.amount.toLocaleString("en-US")} USDT</p>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <ArrowDown size={12} className="text-success" />
-                    <span className="text-sm font-semibold text-success">Net : {w.net_amount.toLocaleString("fr-FR")} USDT</span>
+                    <span className="text-sm font-semibold text-success">Net: {w.net_amount.toLocaleString("en-US")} USDT</span>
                     <span className="text-xs text-muted-foreground">(- {feePercent}%)</span>
                   </div>
                 </div>
@@ -959,17 +959,17 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
               <div className="border-t border-secondary my-2" />
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
                 <div><p className="text-[10px] text-muted-foreground">Client</p><p className="text-xs font-semibold text-foreground">{w.country_code} {w.phone}</p></div>
-                <div><p className="text-[10px] text-muted-foreground">Solde actuel</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("fr-FR")} USDT` : "—"}</p></div>
-                <div><p className="text-[10px] text-muted-foreground">Nom</p><p className="text-xs font-semibold text-foreground">{p?.full_name || "—"}</p></div>
-                <div><p className="text-[10px] text-muted-foreground">Titulaire carte</p><p className="text-xs font-semibold text-foreground">{wallet?.holder_name || "—"}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Current balance</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("en-US")} USDT` : "—"}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Name</p><p className="text-xs font-semibold text-foreground">{p?.full_name || "—"}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Card holder</p><p className="text-xs font-semibold text-foreground">{wallet?.holder_name || "—"}</p></div>
               </div>
-              <p className="text-[10px] text-muted-foreground mt-2 text-right">Cliquez pour voir les détails →</p>
+              <p className="text-[10px] text-muted-foreground mt-2 text-right">Click to view details →</p>
               {w.status === "pending" && (
                 <div className="grid grid-cols-2 gap-3 mt-4" onClick={e => e.stopPropagation()}>
                   <button onClick={() => handleAction(w, "approved")} disabled={autoPayingId === w.id} className="flex items-center justify-center gap-2 bg-success text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50">
-                    {autoPayingId === w.id ? <><Loader2 size={16} className="animate-spin" /> Envoi...</> : <><CheckCircle2 size={16} /> Valider</>}
+                    {autoPayingId === w.id ? <><Loader2 size={16} className="animate-spin" /> Sending...</> : <><CheckCircle2 size={16} /> Validate</>}
                   </button>
-                  <button onClick={() => handleAction(w, "rejected")} className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10"><XCircle size={16} /> Rejeter</button>
+                  <button onClick={() => handleAction(w, "rejected")} className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10"><XCircle size={16} /> Reject</button>
                 </div>
               )}
             </div>
@@ -1020,25 +1020,25 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { showError("Fichier trop volumineux", "Maximum 5 Mo autorisé"); return; }
+    if (file.size > 5 * 1024 * 1024) { showError("File too large", "Maximum 5 MB allowed"); return; }
     setUploading(true);
     try {
       const ext = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error } = await supabase.storage.from('product-images').upload(fileName, file);
-      if (error) { showError("Erreur upload", error.message || "Vérifiez votre connexion et réessayez"); setUploading(false); return; }
+      if (error) { showError("Upload error", error.message || "Check your connection and try again"); setUploading(false); return; }
       const { data } = supabase.storage.from('product-images').getPublicUrl(fileName);
       setForm({ ...form, image_url: data.publicUrl });
-      showSuccess("Image uploadée", "");
+      showSuccess("Image uploaded", "");
     } catch (err: any) {
-      showError("Erreur réseau", err?.message || "Vérifiez votre connexion internet");
+      showError("Network error", err?.message || "Check your internet connection");
     } finally {
       setUploading(false);
     }
   };
 
   const saveProduct = async () => {
-    if (!form.name.trim()) { showError("Erreur", "Nom requis"); return; }
+    if (!form.name.trim()) { showError("Error", "Name required"); return; }
     const payload: any = {
       series_id: formSeriesId || null, name: form.name, image_url: form.image_url || null,
       return_percent: Number(form.return_percent) || 0, total_revenue: Number(form.total_revenue) || 0,
@@ -1049,7 +1049,7 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
     };
     if (editingProduct) await supabase.from("products").update(payload).eq("id", editingProduct.id);
     else await supabase.from("products").insert({ ...payload, sort_order: products.filter((p: Product) => p.series_id === formSeriesId).length });
-    showSuccess(editingProduct ? "Produit modifié ✅" : "Produit créé ✅", "");
+    showSuccess(editingProduct ? "Product updated ✅" : "Product created ✅", "");
     setShowForm(false); reload();
   };
 
@@ -1064,7 +1064,7 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
     };
     if (editingSeries) await supabase.from("product_series").update(payload).eq("id", editingSeries.id);
     else await supabase.from("product_series").insert({ ...payload, sort_order: series.length });
-    showSuccess(editingSeries ? "Série modifiée ✅" : "Série créée ✅", "");
+    showSuccess(editingSeries ? "Series updated ✅" : "Series created ✅", "");
     setShowSeriesForm(false); reload();
   };
 
@@ -1076,17 +1076,17 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
         .eq("id", p.id);
       if (error) throw error;
       showSuccess(
-        "Mis à jour",
+        "Updated",
         status === "available"
-          ? "Produit disponible ✅"
+          ? "Product available ✅"
           : status === "sold_out"
-          ? "Produit marqué en rupture"
-          : "Produit marqué terminé"
+          ? "Product marked as sold out"
+          : "Product marked as ended"
       );
       reload();
     } catch (err) {
       console.error("setStockStatus error:", err);
-      showError("Erreur", "Impossible de changer l'état du produit");
+      showError("Error", "Unable to change product status");
     }
   };
 
@@ -1094,16 +1094,16 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
     <div className="space-y-3">
       <button onClick={() => { setEditingSeries(null); setSeriesName(""); setSeriesColor("primary"); setSeriesConditions({ min_vip_level: "", min_personal_investment: "", min_team_investment: "", min_active_members: "" }); setShowSeriesForm(true); setShowForm(false); }}
         className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
-        <Layers size={16} /> Ajouter une série
+        <Layers size={16} /> Add a series
       </button>
 
       {showSeriesForm && (
         <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
-          <div className="flex justify-between"><h3 className="text-sm font-bold text-foreground">{editingSeries ? "Modifier série" : "Nouvelle série"}</h3><button onClick={() => setShowSeriesForm(false)}><X size={16} className="text-muted-foreground" /></button></div>
-          <input value={seriesName} onChange={e => setSeriesName(e.target.value)} placeholder="Nom" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary focus:border-primary outline-none" />
+          <div className="flex justify-between"><h3 className="text-sm font-bold text-foreground">{editingSeries ? "Edit series" : "New series"}</h3><button onClick={() => setShowSeriesForm(false)}><X size={16} className="text-muted-foreground" /></button></div>
+          <input value={seriesName} onChange={e => setSeriesName(e.target.value)} placeholder="Name" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary focus:border-primary outline-none" />
           <div className="flex gap-2">{colorOptions.map(c => (<button key={c.value} onClick={() => setSeriesColor(c.value)} className={`w-8 h-8 rounded-full ${c.css} border-2 ${seriesColor === c.value ? "border-foreground scale-110" : "border-transparent"}`} />))}</div>
           <div className="border-t border-secondary pt-3 mt-2">
-            <p className="text-xs font-bold text-foreground mb-2">Conditions d'accès à cette série</p>
+            <p className="text-xs font-bold text-foreground mb-2">Access conditions for this series</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-[10px] text-muted-foreground">VIP minimum</label>
@@ -1111,30 +1111,30 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
                   className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
               </div>
               <div>
-                <label className="text-[10px] text-muted-foreground">Invest. perso min (USDT)</label>
+                <label className="text-[10px] text-muted-foreground">Min personal invest. (USDT)</label>
                 <input type="number" value={seriesConditions.min_personal_investment} onChange={e => setSeriesConditions({ ...seriesConditions, min_personal_investment: e.target.value })} placeholder="0"
                   className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
               </div>
               <div>
-                <label className="text-[10px] text-muted-foreground">Invest. équipe min (USDT)</label>
+                <label className="text-[10px] text-muted-foreground">Min team invest. (USDT)</label>
                 <input type="number" value={seriesConditions.min_team_investment} onChange={e => setSeriesConditions({ ...seriesConditions, min_team_investment: e.target.value })} placeholder="0"
                   className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
               </div>
               <div>
-                <label className="text-[10px] text-muted-foreground">Membres actifs min</label>
+                <label className="text-[10px] text-muted-foreground">Min active members</label>
                 <input type="number" value={seriesConditions.min_active_members} onChange={e => setSeriesConditions({ ...seriesConditions, min_active_members: e.target.value })} placeholder="0"
                   className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
               </div>
             </div>
           </div>
-          <button onClick={saveSeries} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editingSeries ? "Modifier" : "Créer"}</button>
+          <button onClick={saveSeries} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editingSeries ? "Update" : "Create"}</button>
         </div>
       )}
 
       {showForm && (
         <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
-          <div className="flex justify-between"><h3 className="text-sm font-bold text-foreground">{editingProduct ? "Modifier produit" : "Nouveau produit"}</h3><button onClick={() => setShowForm(false)}><X size={16} className="text-muted-foreground" /></button></div>
-          <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nom" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary focus:border-primary outline-none" />
+          <div className="flex justify-between"><h3 className="text-sm font-bold text-foreground">{editingProduct ? "Edit product" : "New product"}</h3><button onClick={() => setShowForm(false)}><X size={16} className="text-muted-foreground" /></button></div>
+          <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Name" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary focus:border-primary outline-none" />
           <input ref={fileRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
           {form.image_url ? (
             <div className="relative h-28 rounded-xl overflow-hidden border border-secondary">
@@ -1143,24 +1143,24 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
             </div>
           ) : (
             <button onClick={() => fileRef.current?.click()} disabled={uploading} className="w-full h-20 rounded-xl border-2 border-dashed border-secondary hover:border-primary flex items-center justify-center gap-2 text-xs text-muted-foreground">
-              {uploading ? "Upload..." : <><UploadIcon size={16} /> Ajouter image</>}
+              {uploading ? "Upload..." : <><UploadIcon size={16} /> Add image</>}
             </button>
           )}
           <div className="grid grid-cols-2 gap-3">
             <div><label className="text-xs text-muted-foreground">Prix / Budget (USDT)</label><input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
-            <div><label className="text-xs text-muted-foreground">Retour (%)</label><input type="number" value={form.return_percent} onChange={e => setForm({ ...form, return_percent: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
-            <div><label className="text-xs text-muted-foreground">Revenu total</label><input type="number" value={form.total_revenue} onChange={e => setForm({ ...form, total_revenue: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
-            <div><label className="text-xs text-muted-foreground">Revenu quotidien</label><input type="number" value={form.daily_revenue} onChange={e => setForm({ ...form, daily_revenue: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
+            <div><label className="text-xs text-muted-foreground">Return (%)</label><input type="number" value={form.return_percent} onChange={e => setForm({ ...form, return_percent: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
+            <div><label className="text-xs text-muted-foreground">Total revenue</label><input type="number" value={form.total_revenue} onChange={e => setForm({ ...form, total_revenue: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
+            <div><label className="text-xs text-muted-foreground">Daily revenue</label><input type="number" value={form.daily_revenue} onChange={e => setForm({ ...form, daily_revenue: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
             <div><label className="text-xs text-muted-foreground">Cycles</label><input type="number" value={form.cycles} onChange={e => setForm({ ...form, cycles: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
-            <div><label className="text-xs text-muted-foreground">Achats max</label><input type="number" value={form.max_purchases} onChange={e => setForm({ ...form, max_purchases: e.target.value })} placeholder="Illimité" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
-            <label className="flex items-center gap-2 self-end pb-1"><input type="checkbox" checked={form.is_new} onChange={e => setForm({ ...form, is_new: e.target.checked })} className="accent-primary" /><span className="text-xs">Nouveau</span></label>
+            <div><label className="text-xs text-muted-foreground">Max purchases</label><input type="number" value={form.max_purchases} onChange={e => setForm({ ...form, max_purchases: e.target.value })} placeholder="Unlimited" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" /></div>
+            <label className="flex items-center gap-2 self-end pb-1"><input type="checkbox" checked={form.is_new} onChange={e => setForm({ ...form, is_new: e.target.checked })} className="accent-primary" /><span className="text-xs">New</span></label>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Description du produit</label>
-            <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Informations détaillées sur le produit..." rows={3}
+            <label className="text-xs text-muted-foreground">Product description</label>
+            <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Detailed product information..." rows={3}
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none resize-none mt-1" />
           </div>
-          <button onClick={saveProduct} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editingProduct ? "Modifier" : "Créer"}</button>
+          <button onClick={saveProduct} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editingProduct ? "Update" : "Create"}</button>
         </div>
       )}
 
@@ -1179,12 +1179,12 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
               </button>
               <div className="flex gap-1.5">
                 <button onClick={() => { setEditingSeries(s); setSeriesName(s.name); setSeriesColor(s.color || "primary"); setSeriesConditions({ min_vip_level: String(s.min_vip_level || 0), min_personal_investment: String(s.min_personal_investment || 0), min_team_investment: String(s.min_team_investment || 0), min_active_members: String(s.min_active_members || 0) }); setShowSeriesForm(true); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
-                <button onClick={async () => { await supabase.from("product_series").delete().eq("id", s.id); showSuccess("Supprimé", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+                <button onClick={async () => { await supabase.from("product_series").delete().eq("id", s.id); showSuccess("Deleted", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
               </div>
             </div>
             {isExpanded && (
               <div className="border-t border-secondary px-4 py-3 space-y-2">
-                {sp.length === 0 ? <p className="text-xs text-muted-foreground text-center py-3">Aucun produit</p> :
+                {sp.length === 0 ? <p className="text-xs text-muted-foreground text-center py-3">No products</p> :
                   sp.map((p: Product) => (
                     <div key={p.id} className={`py-2.5 px-3 rounded-lg ${p.is_active ? "bg-secondary/50" : "bg-secondary/20 opacity-60"}`}>
                       <div className="flex items-center justify-between">
@@ -1192,8 +1192,8 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm font-semibold text-foreground">{p.name}</span>
                             {p.is_new && <span className="text-[9px] bg-success/20 text-success px-1.5 py-0.5 rounded-full font-bold">NEW</span>}
-                            {p.stock_status === "sold_out" && <span className="text-[9px] bg-warning/20 text-warning px-1.5 py-0.5 rounded-full font-bold">ÉPUISÉ</span>}
-                            {p.stock_status === "terminated" && <span className="text-[9px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full font-bold">TERMINÉ</span>}
+                            {p.stock_status === "sold_out" && <span className="text-[9px] bg-warning/20 text-warning px-1.5 py-0.5 rounded-full font-bold">SOLD OUT</span>}
+                            {p.stock_status === "terminated" && <span className="text-[9px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full font-bold">ENDED</span>}
                           </div>
                           <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} USDT • {p.return_percent}%</span>
                         </div>
@@ -1206,11 +1206,11 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
                             if (count && count > 0) {
                               // Soft delete: deactivate for new purchases but keep existing investors safe
                               await supabase.from("products").update({ is_active: false, stock_status: "terminated" }).eq("id", p.id);
-                              showSuccess("Produit désactivé", `${count} utilisateur(s) conservent leurs gains actifs`);
+                              showSuccess("Product deactivated", `${count} user(s) retain their active earnings`);
                             } else {
                               // No purchases: safe to hard delete
                               await supabase.from("products").delete().eq("id", p.id);
-                              showSuccess("Produit supprimé", "");
+                              showSuccess("Product deleted", "");
                             }
                             reload();
                           }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
@@ -1221,24 +1221,24 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
                           onClick={() => setStockStatus(p, "available")}
                           className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "available" ? "bg-success/20 text-success border border-success/30" : "bg-secondary text-muted-foreground"}`}
                         >
-                          Disponible
+                          Available
                         </button>
                         <button
                           onClick={() => setStockStatus(p, "sold_out")}
                           className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "sold_out" ? "bg-warning/20 text-warning border border-warning/30" : "bg-secondary text-muted-foreground"}`}
                         >
-                          Épuisé
+                          Sold out
                         </button>
                         <button
                           onClick={() => setStockStatus(p, "terminated")}
                           className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "terminated" ? "bg-destructive/20 text-destructive border border-destructive/30" : "bg-secondary text-muted-foreground"}`}
                         >
-                          Terminé
+                          Ended
                         </button>
                       </div>
                     </div>
                   ))}
-                <button onClick={() => openProductForm(s.id)} className="w-full bg-secondary text-foreground font-semibold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2"><Plus size={14} /> Ajouter un produit</button>
+                <button onClick={() => openProductForm(s.id)} className="w-full bg-secondary text-foreground font-semibold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2"><Plus size={14} /> Add a product</button>
               </div>
             )}
           </div>
@@ -1262,17 +1262,17 @@ const BannersTab = ({ banners, reload, showSuccess, showError }: any) => {
     const ext = file.name.split('.').pop();
     const fileName = `banner-${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from('site-assets').upload(fileName, file);
-    if (error) { showError("Erreur", "Upload impossible"); setUploading(false); return; }
+    if (error) { showError("Error", "Upload failed"); setUploading(false); return; }
     const { data } = supabase.storage.from('site-assets').getPublicUrl(fileName);
     await supabase.from("banners").insert({ image_url: data.publicUrl, link_path: "/", sort_order: banners.length });
-    showSuccess("Bannière ajoutée ✅", "");
+    showSuccess("Banner added ✅", "");
     setUploading(false);
     reload();
   };
 
   const deleteBanner = async (id: string) => {
     await supabase.from("banners").delete().eq("id", id);
-    showSuccess("Bannière supprimée", "");
+    showSuccess("Banner deleted", "");
     reload();
   };
 
@@ -1283,7 +1283,7 @@ const BannersTab = ({ banners, reload, showSuccess, showError }: any) => {
 
   const updateLink = async (id: string) => {
     await supabase.from("banners").update({ link_path: linkPath }).eq("id", id);
-    showSuccess("Lien mis à jour ✅", "");
+    showSuccess("Link updated ✅", "");
     setEditingBanner(null);
     reload();
   };
@@ -1293,27 +1293,27 @@ const BannersTab = ({ banners, reload, showSuccess, showError }: any) => {
       <input ref={fileRef} type="file" accept="image/*" onChange={handleUpload} className="hidden" />
       <button onClick={() => fileRef.current?.click()} disabled={uploading}
         className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
-        <UploadIcon size={16} /> {uploading ? "Upload en cours..." : "Ajouter une bannière"}
+        <UploadIcon size={16} /> {uploading ? "Uploading..." : "Add a banner"}
       </button>
 
       {banners.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-10">Aucune bannière</p>
+        <p className="text-xs text-muted-foreground text-center py-10">No banners</p>
       ) : banners.map((b: Banner) => (
         <div key={b.id} className={`bg-card rounded-xl border overflow-hidden ${b.is_active ? "border-secondary" : "border-secondary opacity-60"}`}>
-          <img src={b.image_url} alt="Bannière" className="w-full h-32 object-cover" />
+          <img src={b.image_url} alt="Banner" className="w-full h-32 object-cover" />
           <div className="px-3 py-2">
             {editingBanner?.id === b.id ? (
               <div className="space-y-2">
-                <input value={linkPath} onChange={e => setLinkPath(e.target.value)} placeholder="Lien (ex: /loterie)"
+                <input value={linkPath} onChange={e => setLinkPath(e.target.value)} placeholder="Link (e.g. /lottery)"
                   className="w-full bg-secondary text-foreground rounded-xl px-3 py-2 text-sm border border-secondary outline-none" />
                 <div className="flex gap-2">
-                  <button onClick={() => updateLink(b.id)} className="flex-1 gradient-button text-primary-foreground text-xs font-bold py-2 rounded-xl">Sauver</button>
-                  <button onClick={() => setEditingBanner(null)} className="flex-1 bg-secondary text-foreground text-xs font-bold py-2 rounded-xl">Annuler</button>
+                  <button onClick={() => updateLink(b.id)} className="flex-1 gradient-button text-primary-foreground text-xs font-bold py-2 rounded-xl">Save</button>
+                  <button onClick={() => setEditingBanner(null)} className="flex-1 bg-secondary text-foreground text-xs font-bold py-2 rounded-xl">Cancel</button>
                 </div>
               </div>
             ) : (
               <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">Lien: {b.link_path}</p>
+                <p className="text-xs text-muted-foreground">Link: {b.link_path}</p>
                 <div className="flex gap-1.5">
                   <button onClick={() => toggleBanner(b)}
                     className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${b.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{b.is_active ? "ON" : "OFF"}</button>
@@ -1350,14 +1350,14 @@ const PaymentsTab = ({ methods, countries, apiConfigs, reload, showSuccess, show
     const ext = file.name.split('.').pop();
     const fileName = `payment-logo-${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from('site-assets').upload(fileName, file);
-    if (error) { showError("Erreur", "Upload impossible"); setUploading(false); return; }
+    if (error) { showError("Error", "Upload failed"); setUploading(false); return; }
     const { data } = supabase.storage.from('site-assets').getPublicUrl(fileName);
     setForm({ ...form, logo_url: data.publicUrl });
     setUploading(false);
   };
 
   const save = async () => {
-    if (!form.name.trim()) { showError("Erreur", "Nom requis"); return; }
+    if (!form.name.trim()) { showError("Error", "Nom requis"); return; }
     const payload = { ...form, country_id: form.country_id || null, external_url: form.external_url || null, logo_url: form.logo_url || null, api_config_id: form.api_config_id || null };
     if (editing) await supabase.from("payment_methods").update(payload).eq("id", editing.id);
     else await supabase.from("payment_methods").insert({ ...payload, sort_order: methods.length });
@@ -1369,15 +1369,15 @@ const PaymentsTab = ({ methods, countries, apiConfigs, reload, showSuccess, show
 
   return (
     <div className="space-y-3">
-      <button onClick={() => openForm()} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2"><Plus size={16} /> Ajouter un moyen de paiement</button>
+      <button onClick={() => openForm()} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2"><Plus size={16} /> Add a payment method</button>
 
       {showForm && (
         <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
-          <div className="flex justify-between"><h3 className="text-sm font-bold text-foreground">{editing ? "Modifier" : "Nouveau"}</h3><button onClick={() => setShowForm(false)}><X size={16} className="text-muted-foreground" /></button></div>
-          <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nom (ex: Orange Money)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+          <div className="flex justify-between"><h3 className="text-sm font-bold text-foreground">{editing ? "Edit" : "New"}</h3><button onClick={() => setShowForm(false)}><X size={16} className="text-muted-foreground" /></button></div>
+          <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Name (e.g. Orange Money)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
 
           <div>
-            <label className="text-xs text-muted-foreground">Type de paiement</label>
+            <label className="text-xs text-muted-foreground">Payment type</label>
             <div className="flex gap-2 mt-1">
               {[{ key: "manual", label: "Manuel" }, { key: "external", label: "Lien ext." }, { key: "api", label: "API auto" }].map(t => (
                 <button key={t.key} onClick={() => setForm({ ...form, payment_type: t.key })}
@@ -1394,50 +1394,50 @@ const PaymentsTab = ({ methods, countries, apiConfigs, reload, showSuccess, show
             {form.logo_url ? (
               <div className="flex items-center gap-3 mt-1">
                 <img src={form.logo_url} className="w-10 h-10 rounded-lg object-cover" />
-                <button onClick={() => setForm({ ...form, logo_url: "" })} className="text-xs text-destructive">Supprimer</button>
+                <button onClick={() => setForm({ ...form, logo_url: "" })} className="text-xs text-destructive">Delete</button>
               </div>
             ) : (
               <button onClick={() => logoRef.current?.click()} disabled={uploading} className="mt-1 w-full h-12 rounded-xl border-2 border-dashed border-secondary hover:border-primary flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                {uploading ? "Upload..." : <><UploadIcon size={14} /> Ajouter logo</>}
+                {uploading ? "Upload..." : <><UploadIcon size={14} /> Add logo</>}
               </button>
             )}
           </div>
 
           <select value={form.country_id} onChange={e => { const c = countries.find((ct: Country) => ct.id === e.target.value); setForm({ ...form, country_id: e.target.value, country: c?.name || form.country }); }}
             className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none">
-            <option value="">-- Selectionner un pays --</option>
+            <option value="">-- Select a country --</option>
             {countries.filter((c: Country) => c.is_active).map((c: Country) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
 
           {form.payment_type === "manual" && (
             <>
-              <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="Numero" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
-              <input value={form.holder_name} onChange={e => setForm({ ...form, holder_name: e.target.value })} placeholder="Nom du beneficiaire" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
-              <textarea value={form.instructions} onChange={e => setForm({ ...form, instructions: e.target.value })} placeholder="Instructions de paiement" rows={3} className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none resize-none" />
+              <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="Number" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+              <input value={form.holder_name} onChange={e => setForm({ ...form, holder_name: e.target.value })} placeholder="Account holder" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+              <textarea value={form.instructions} onChange={e => setForm({ ...form, instructions: e.target.value })} placeholder="Payment instructions" rows={3} className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none resize-none" />
             </>
           )}
 
           {form.payment_type === "external" && (
-            <input value={form.external_url} onChange={e => setForm({ ...form, external_url: e.target.value })} placeholder="URL de paiement externe (https://...)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+            <input value={form.external_url} onChange={e => setForm({ ...form, external_url: e.target.value })} placeholder="External payment URL (https://...)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
           )}
 
           {form.payment_type === "api" && (
             <div>
-              <label className="text-xs text-muted-foreground">Configuration API liée</label>
+              <label className="text-xs text-muted-foreground">Linked API configuration</label>
               <select value={form.api_config_id} onChange={e => setForm({ ...form, api_config_id: e.target.value })}
                 className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none">
-                <option value="">-- Sélectionner une API --</option>
+                <option value="">-- Select an API --</option>
                 {countryApiConfigs.filter((ac: ApiConfig) => ac.is_active).map((ac: ApiConfig) => (
                   <option key={ac.id} value={ac.id}>{ac.name} ({ac.provider}) - {ac.mode}</option>
                 ))}
               </select>
               {countryApiConfigs.length === 0 && (
-                <p className="text-[10px] text-warning mt-1">⚠️ Aucune API configurée. Allez dans l'onglet "APIs".</p>
+                <p className="text-[10px] text-warning mt-1">⚠️ No API configured. Go to the "APIs" tab.</p>
               )}
             </div>
           )}
 
-          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editing ? "Modifier" : "Creer"}</button>
+          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editing ? "Update" : "Create"}</button>
         </div>
       )}
 
@@ -1453,7 +1453,7 @@ const PaymentsTab = ({ methods, countries, apiConfigs, reload, showSuccess, show
               <div>
                 <p className="text-sm font-bold text-foreground">{m.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {m.country} • {m.payment_type === "external" ? "Lien externe" : m.payment_type === "api" ? "API auto ⚡" : `Manuel ${m.phone || "—"}`}
+                  {m.country} • {m.payment_type === "external" ? "External link" : m.payment_type === "api" ? "API auto ⚡" : `Manual ${m.phone || "—"}`}
                 </p>
                 {m.holder_name && <p className="text-xs text-muted-foreground">{m.holder_name}</p>}
               </div>
@@ -1478,7 +1478,7 @@ const LinksTab = ({ links, reload, showSuccess }: any) => {
 
   const save = async (id: string) => {
     await supabase.from("social_links").update({ url: editUrl }).eq("id", id);
-    showSuccess("Lien mis à jour ✅", "");
+    showSuccess("Link updated ✅", "");
     setEditId(null); reload();
   };
 
@@ -1491,8 +1491,8 @@ const LinksTab = ({ links, reload, showSuccess }: any) => {
               <p className="text-xs font-bold text-foreground">{l.label}</p>
               <input value={editUrl} onChange={e => setEditUrl(e.target.value)} placeholder="URL" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
               <div className="flex gap-2">
-                <button onClick={() => save(l.id)} className="flex-1 gradient-button text-primary-foreground text-sm font-bold py-2 rounded-xl flex items-center justify-center gap-1"><Save size={12} /> Sauver</button>
-                <button onClick={() => setEditId(null)} className="flex-1 bg-secondary text-foreground text-sm font-bold py-2 rounded-xl">Annuler</button>
+                <button onClick={() => save(l.id)} className="flex-1 gradient-button text-primary-foreground text-sm font-bold py-2 rounded-xl flex items-center justify-center gap-1"><Save size={12} /> Save</button>
+                <button onClick={() => setEditId(null)} className="flex-1 bg-secondary text-foreground text-sm font-bold py-2 rounded-xl">Cancel</button>
               </div>
             </div>
           ) : (
@@ -1539,28 +1539,28 @@ const AnnoncesTab = ({ reload, showSuccess, showError }: any) => {
       button_confirm: form.button_confirm, button_cancel: form.button_cancel || null,
       tabs: tabs.length > 0 ? tabs as any : null, is_active: form.is_active,
     }).eq("id", popup.id);
-    if (error) showError("Erreur", "Impossible de sauvegarder");
-    else { showSuccess("Sauvegardé ✅", "Annonce mise à jour"); load(); reload(); }
+    if (error) showError("Error", "Unable to save");
+    else { showSuccess("Saved ✅", "Announcement updated"); load(); reload(); }
   };
 
   if (loading) return <div className="flex justify-center py-10"><Loader2 className="animate-spin text-primary" size={24} /></div>;
-  if (!popup) return <p className="text-center text-muted-foreground py-10">Aucune annonce configurée</p>;
+  if (!popup) return <p className="text-center text-muted-foreground py-10">No announcement configured</p>;
 
   return (
     <div className="space-y-4">
       <div className="bg-card rounded-xl border border-secondary p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-foreground">Popup de bienvenue</h3>
+          <h3 className="text-sm font-bold text-foreground">Welcome popup</h3>
           <button onClick={async () => {
             await supabase.from("popup_messages").update({ is_active: !popup.is_active }).eq("id", popup.id);
             load(); reload();
           }} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${popup.is_active ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"}`}>
-            {popup.is_active ? "✅ Actif" : "❌ Inactif"}
+            {popup.is_active ? "✅ Active" : "❌ Inactive"}
           </button>
         </div>
 
         <div>
-          <label className="text-xs text-muted-foreground block mb-1">Titre</label>
+          <label className="text-xs text-muted-foreground block mb-1">Title</label>
           <input value={form.title || ""} onChange={e => setForm({ ...form, title: e.target.value })}
             className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
         </div>
@@ -1573,47 +1573,47 @@ const AnnoncesTab = ({ reload, showSuccess, showError }: any) => {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">Bouton Confirmer</label>
+            <label className="text-xs text-muted-foreground block mb-1">Confirm button</label>
             <input value={form.button_confirm || ""} onChange={e => setForm({ ...form, button_confirm: e.target.value })}
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">Bouton Annuler (vide = aucun)</label>
+            <label className="text-xs text-muted-foreground block mb-1">Cancel button (empty = none)</label>
             <input value={form.button_cancel || ""} onChange={e => setForm({ ...form, button_cancel: e.target.value })}
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
           </div>
         </div>
 
-        {/* Tabs / Onglets */}
+        {/* Tabs */}
         <div>
-          <label className="text-xs text-muted-foreground block mb-2">Onglets (boutons dans le popup)</label>
+          <label className="text-xs text-muted-foreground block mb-2">Tabs (buttons in the popup)</label>
           {tabs.map((tab, i) => (
             <div key={i} className="bg-secondary/50 rounded-lg p-3 mb-2 space-y-2">
               <input value={tab.label} onChange={e => {
                 const n = [...tabs]; n[i] = { ...n[i], label: e.target.value }; setTabs(n);
-              }} placeholder="Nom de l'onglet"
+              }} placeholder="Tab name"
                 className="w-full bg-secondary text-foreground rounded-lg px-3 py-2 text-sm outline-none" />
               <textarea value={tab.content} onChange={e => {
                 const n = [...tabs]; n[i] = { ...n[i], content: e.target.value }; setTabs(n);
-              }} rows={2} placeholder="Contenu"
+              }} rows={2} placeholder="Content"
                 className="w-full bg-secondary text-foreground rounded-lg px-3 py-2 text-sm outline-none resize-none" />
               <input value={tab.url || ""} onChange={e => {
                 const n = [...tabs]; n[i] = { ...n[i], url: e.target.value }; setTabs(n);
               }} placeholder="URL (ex: /service-chat, https://wa.me/...)"
                 className="w-full bg-secondary text-foreground rounded-lg px-3 py-2 text-sm outline-none" />
               <button onClick={() => setTabs(tabs.filter((_, idx) => idx !== i))} className="text-destructive text-xs flex items-center gap-1">
-                <Trash2 size={12} /> Supprimer
+                <Trash2 size={12} /> Delete
               </button>
             </div>
           ))}
           <button onClick={() => setTabs([...tabs, { label: "Nouveau", content: "", url: "" }])}
             className="text-primary text-xs flex items-center gap-1 mt-1">
-            <Plus size={12} /> Ajouter un onglet
+            <Plus size={12} /> Add a tab
           </button>
         </div>
 
         <button onClick={save} className="w-full gradient-button text-primary-foreground text-sm font-bold py-3 rounded-xl flex items-center justify-center gap-2">
-          <Save size={14} /> Sauvegarder l'annonce
+          <Save size={14} /> Save announcement
         </button>
       </div>
     </div>
@@ -1627,7 +1627,7 @@ const PopupsTab = ({ popups, reload, showSuccess, showError }: any) => {
   const save = async () => {
     if (!editing) return;
     await supabase.from("popup_messages").update({ title: form.title, message: form.message, button_confirm: form.button_confirm, button_cancel: form.button_cancel || null, is_active: form.is_active }).eq("id", editing);
-    showSuccess("Sauvegardé ✅", "");
+    showSuccess("Saved ✅", "");
     setEditing(null); reload();
   };
 
@@ -1638,15 +1638,15 @@ const PopupsTab = ({ popups, reload, showSuccess, showError }: any) => {
           {editing === m.id ? (
             <div className="space-y-3">
               <p className="text-xs font-mono text-primary">{m.trigger_key}</p>
-              <input value={form.title || ""} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Titre" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+              <input value={form.title || ""} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Title" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
               <textarea value={form.message || ""} onChange={e => setForm({ ...form, message: e.target.value })} rows={3} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none resize-none" />
               <div className="grid grid-cols-2 gap-3">
-                <input value={form.button_confirm || ""} onChange={e => setForm({ ...form, button_confirm: e.target.value })} placeholder="Bouton OK" className="bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
-                <input value={form.button_cancel || ""} onChange={e => setForm({ ...form, button_cancel: e.target.value })} placeholder="Bouton Annuler" className="bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+                <input value={form.button_confirm || ""} onChange={e => setForm({ ...form, button_confirm: e.target.value })} placeholder="OK button" className="bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+                <input value={form.button_cancel || ""} onChange={e => setForm({ ...form, button_cancel: e.target.value })} placeholder="Cancel button" className="bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
               </div>
               <div className="flex gap-2">
-                <button onClick={save} className="flex-1 gradient-button text-primary-foreground text-sm font-bold py-2.5 rounded-xl"><Save size={14} /> Sauver</button>
-                <button onClick={() => setEditing(null)} className="flex-1 bg-secondary text-foreground text-sm font-bold py-2.5 rounded-xl">Annuler</button>
+                <button onClick={save} className="flex-1 gradient-button text-primary-foreground text-sm font-bold py-2.5 rounded-xl"><Save size={14} /> Save</button>
+                <button onClick={() => setEditing(null)} className="flex-1 bg-secondary text-foreground text-sm font-bold py-2.5 rounded-xl">Cancel</button>
               </div>
             </div>
           ) : (
@@ -1766,7 +1766,7 @@ const SupportTab = ({ adminId }: { adminId: string }) => {
       const unread = userMsgs.filter((m) => m.sender === "user").length; // simplified
       return {
         user_id: uid,
-        full_name: profile?.full_name || "Utilisateur",
+        full_name: profile?.full_name || "User",
         phone: profile?.phone || "",
         last_message: lastMsg.message,
         last_time: lastMsg.created_at,
@@ -1813,12 +1813,12 @@ const SupportTab = ({ adminId }: { adminId: string }) => {
     const date = new Date(d);
     const now = new Date();
     if (date.toDateString() === now.toDateString()) {
-      return date.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" });
+      return date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" });
     }
-    return date.toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "America/Port-au-Prince" });
+    return date.toLocaleDateString("en-US", { day: "numeric", month: "short", timeZone: "America/Port-au-Prince" });
   };
 
-  if (loading) return <p className="text-xs text-muted-foreground text-center py-10">Chargement...</p>;
+  if (loading) return <p className="text-xs text-muted-foreground text-center py-10">Loading...</p>;
 
   // Chat view
   if (selectedUserId) {
@@ -1826,11 +1826,11 @@ const SupportTab = ({ adminId }: { adminId: string }) => {
     return (
       <div className="space-y-3">
         <button onClick={() => setSelectedUserId(null)} className="flex items-center gap-2 text-sm text-primary font-semibold">
-          <ArrowLeft size={16} /> Retour aux conversations
+          <ArrowLeft size={16} /> Back to conversations
         </button>
 
         <div className="bg-card rounded-xl border border-secondary p-3">
-          <p className="text-sm font-bold text-foreground">{convo?.full_name || "Utilisateur"}</p>
+          <p className="text-sm font-bold text-foreground">{convo?.full_name || "User"}</p>
           <p className="text-xs text-muted-foreground">{convo?.phone}</p>
         </div>
 
@@ -1865,7 +1865,7 @@ const SupportTab = ({ adminId }: { adminId: string }) => {
             value={replyText}
             onChange={(e) => setReplyText(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendReply(); } }}
-            placeholder="Répondre au client..."
+            placeholder="Reply to client..."
             className="flex-1 bg-card border border-secondary rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary"
           />
           <button
@@ -1888,7 +1888,7 @@ const SupportTab = ({ adminId }: { adminId: string }) => {
       </div>
 
       {conversations.length === 0 ? (
-        <p className="text-xs text-muted-foreground text-center py-10">Aucune conversation</p>
+        <p className="text-xs text-muted-foreground text-center py-10">No conversations</p>
       ) : (
         conversations.map((c) => (
           <button
@@ -1920,8 +1920,8 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
     const newVal = isEnabled ? "false" : "true";
     await supabase.from("site_settings").update({ value: newVal }).eq("key", "sarah_enabled");
     showSuccess(
-      newVal === "true" ? "Emma activée ✅" : "Emma désactivée",
-      newVal === "true" ? "L'IA prend le contrôle du chat" : "Le support humain est actif"
+      newVal === "true" ? "Emma activated ✅" : "Emma deactivated",
+      newVal === "true" ? "AI takes control of chat" : "Human support is active"
     );
     reload();
   };
@@ -1933,7 +1933,7 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
     } else {
       await supabase.from("site_settings").insert({ key: "sarah_ai_provider", value: provider, category: "sarah" });
     }
-    showSuccess("Moteur IA mis à jour", provider === "lovable" ? "Emma utilise maintenant Lovable AI" : "Emma utilise maintenant Google Gemini");
+    showSuccess("AI engine updated", provider === "lovable" ? "Emma now uses Lovable AI" : "Emma now uses Google Gemini");
     reload();
   };
 
@@ -1947,7 +1947,7 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
           <div className="flex-1">
             <h3 className="text-sm font-bold text-foreground">Assistante Emma</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {isEnabled ? "Emma répond aux messages des utilisateurs" : "Le support est géré manuellement"}
+              {isEnabled ? "Emma responds to user messages" : "Support is handled manually"}
             </p>
           </div>
           <button
@@ -1959,14 +1959,14 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
             }`}
           >
             <Power size={16} />
-            {isEnabled ? "Désactiver Emma" : "Activer Emma"}
+            {isEnabled ? "Disable Emma" : "Enable Emma"}
           </button>
         </div>
       </div>
 
       <div className="bg-card rounded-xl border border-secondary p-4">
-        <h4 className="text-xs font-bold text-muted-foreground mb-3">⚙️ CONFIGURATION IA</h4>
-        <p className="text-xs text-muted-foreground mb-4">Choisissez le moteur d'intelligence artificielle utilisé par Emma :</p>
+        <h4 className="text-xs font-bold text-muted-foreground mb-3">⚙️ AI CONFIGURATION</h4>
+        <p className="text-xs text-muted-foreground mb-4">Choose the AI engine used by Emma:</p>
         <div className="space-y-3">
           <button
             onClick={() => changeProvider("lovable")}
@@ -1983,10 +1983,10 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
             </div>
             <div className="flex-1 text-left">
               <p className="text-sm font-bold text-foreground">Lovable AI</p>
-              <p className="text-[10px] text-muted-foreground">IA intégrée • Gemini Pro via gateway • Pas de clé API requise</p>
+              <p className="text-[10px] text-muted-foreground">Built-in AI • Gemini Pro via gateway • No API key required</p>
             </div>
             {currentProvider === "lovable" && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-success/20 text-success">Actif</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-success/20 text-success">Active</span>
             )}
           </button>
 
@@ -2005,45 +2005,45 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
             </div>
             <div className="flex-1 text-left">
               <p className="text-sm font-bold text-foreground">Google Gemini</p>
-              <p className="text-[10px] text-muted-foreground">API directe Google • Clé API GEMINI_API_KEY requise</p>
+              <p className="text-[10px] text-muted-foreground">Direct Google API • GEMINI_API_KEY required</p>
             </div>
             {currentProvider === "gemini" && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-success/20 text-success">Actif</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-success/20 text-success">Active</span>
             )}
           </button>
         </div>
       </div>
 
       <div className="bg-card rounded-xl border border-secondary p-4">
-        <h4 className="text-xs font-bold text-muted-foreground mb-3">STATUT</h4>
+        <h4 className="text-xs font-bold text-muted-foreground mb-3">STATUS</h4>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-foreground">État actuel</span>
+            <span className="text-xs text-foreground">Current status</span>
             <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${isEnabled ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>
-              {isEnabled ? "🟢 En ligne" : "⚫ Hors ligne"}
+              {isEnabled ? "🟢 Online" : "⚫ Offline"}
             </span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-foreground">Mode support</span>
-            <span className="text-xs text-muted-foreground">{isEnabled ? "Automatique (IA)" : "Manuel (Humain)"}</span>
+            <span className="text-xs text-foreground">Support mode</span>
+            <span className="text-xs text-muted-foreground">{isEnabled ? "Automatique (IA)" : "Manual (Humain)"}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-foreground">Moteur IA</span>
+            <span className="text-xs text-foreground">AI engine</span>
             <span className="text-xs font-bold text-primary">{currentProvider === "lovable" ? "Lovable AI" : "Google Gemini"}</span>
           </div>
         </div>
       </div>
 
       <div className="bg-card rounded-xl border border-secondary p-4">
-        <h4 className="text-xs font-bold text-muted-foreground mb-3">CAPACITÉS D'EMMA</h4>
+        <h4 className="text-xs font-bold text-muted-foreground mb-3">EMMA'S CAPABILITIES</h4>
         <div className="space-y-2">
           {[
-            "Répond aux questions sur les produits",
-            "Explique le système VIP",
-            "Informe sur les frais et délais",
-            "Rassure les utilisateurs en attente",
-            "Utilise les données du site en temps réel",
-            "Transfère à l'humain si nécessaire",
+            "Answers questions about products",
+            "Explains the VIP system",
+            "Informs about fees and delays",
+            "Reassures waiting users",
+            "Uses site data in real time",
+            "Transfers to human if needed",
           ].map((cap, i) => (
             <div key={i} className="flex items-center gap-2">
               <CheckCircle2 size={14} className="text-success shrink-0" />
@@ -2055,7 +2055,7 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
 
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
         <p className="text-xs text-muted-foreground">
-          💡 Quand Emma est activée, elle utilise automatiquement les paramètres du site (frais, seuils VIP, produits) pour répondre aux utilisateurs dans le chat support.
+          💡 When Emma is activated, she automatically uses site settings (fees, VIP thresholds, products) to respond to users in the support chat.
         </p>
       </div>
     </div>
@@ -2085,7 +2085,7 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
       if (existing) await supabase.from("site_settings").update({ value }).eq("key", key);
       else await supabase.from("site_settings").insert({ key, value, category: "points" });
     }
-    showSuccess("Configuration Monnaie Eskom sauvegardée", "");
+    showSuccess("ESKOM Currency Configuration sauvegardée", "");
     setEdits({});
     reload();
   };
@@ -2097,11 +2097,11 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
   };
 
   const saveReward = async () => {
-    if (!form.name || !form.points_required || !form.money_value) { showError("Erreur", "Remplissez tous les champs obligatoires"); return; }
+    if (!form.name || !form.points_required || !form.money_value) { showError("Error", "Please fill in all required fields"); return; }
     const payload = { name: form.name, points_required: Number(form.points_required), money_value: Number(form.money_value), image_url: form.image_url || null };
     if (editing) await supabase.from("gift_rewards").update(payload).eq("id", editing.id);
     else await supabase.from("gift_rewards").insert({ ...payload, sort_order: rewards.length });
-    showSuccess(editing ? "Cadeau modifie" : "Cadeau ajoute", "");
+    showSuccess(editing ? "Reward updated" : "Reward added", "");
     setShowForm(false);
     loadRewards();
   };
@@ -2113,23 +2113,23 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
 
   const deleteReward = async (r: any) => {
     await supabase.from("gift_rewards").delete().eq("id", r.id);
-    showSuccess("Cadeau supprime", "");
+    showSuccess("Reward deleted", "");
     loadRewards();
   };
 
   const pointsKeys = [
-    { key: "points_per_active_member", label: "ESK par membre actif" },
-    { key: "points_per_vip_level_per_day", label: "ESK par niveau VIP / jour" },
-    { key: "points_per_deposit_type", label: "Type depot (fixed / percent)" },
-    { key: "points_per_deposit_value", label: "Valeur ESK par depot" },
-    { key: "points_per_withdrawal", label: "ESK par retrait" },
+    { key: "points_per_active_member", label: "ESK per active member" },
+    { key: "points_per_vip_level_per_day", label: "ESK per VIP level / day" },
+    { key: "points_per_deposit_type", label: "Deposit type (fixed / percent)" },
+    { key: "points_per_deposit_value", label: "ESK value per deposit" },
+    { key: "points_per_withdrawal", label: "ESK per withdrawal" },
   ];
 
   return (
     <div className="space-y-4">
       {/* Points configuration */}
       <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
-        <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Gift size={16} className="text-primary" /> Configuration Monnaie Eskom</h3>
+        <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Gift size={16} className="text-primary" /> ESKOM Currency Configuration</h3>
         {pointsKeys.map(k => (
           <div key={k.key}>
             <label className="text-xs text-muted-foreground">{k.label}</label>
@@ -2139,7 +2139,7 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
         ))}
         {Object.keys(edits).length > 0 && (
           <button onClick={saveSettings} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
-            <Save size={14} /> Sauvegarder
+            <Save size={14} /> Save
           </button>
         )}
       </div>
@@ -2147,29 +2147,29 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
       {/* Rewards catalog */}
       <div className="bg-card rounded-xl border border-secondary p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold text-foreground">Catalogue de conversion ESK</h3>
+          <h3 className="text-sm font-bold text-foreground">ESK Conversion Catalog</h3>
           <button onClick={() => openForm()} className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center"><Plus size={16} className="text-primary" /></button>
         </div>
 
         {showForm && (
           <div className="bg-secondary/30 rounded-xl p-4 mb-3 space-y-3">
-            <div className="flex justify-between"><span className="text-xs font-bold text-foreground">{editing ? "Modifier" : "Nouveau cadeau"}</span><button onClick={() => setShowForm(false)}><X size={14} className="text-muted-foreground" /></button></div>
-            <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nom du cadeau" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
-            <input type="number" value={form.points_required} onChange={e => setForm({ ...form, points_required: e.target.value })} placeholder="Points requis" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
-            <input type="number" value={form.money_value} onChange={e => setForm({ ...form, money_value: e.target.value })} placeholder="Montant en USDT" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
-            <input value={form.image_url} onChange={e => setForm({ ...form, image_url: e.target.value })} placeholder="URL image (optionnel)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
-            <button onClick={saveReward} className="w-full gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm">{editing ? "Modifier" : "Ajouter"}</button>
+            <div className="flex justify-between"><span className="text-xs font-bold text-foreground">{editing ? "Edit" : "New reward"}</span><button onClick={() => setShowForm(false)}><X size={14} className="text-muted-foreground" /></button></div>
+            <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Reward name" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+            <input type="number" value={form.points_required} onChange={e => setForm({ ...form, points_required: e.target.value })} placeholder="Points required" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+            <input type="number" value={form.money_value} onChange={e => setForm({ ...form, money_value: e.target.value })} placeholder="Amount in USDT" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+            <input value={form.image_url} onChange={e => setForm({ ...form, image_url: e.target.value })} placeholder="Image URL (optional)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+            <button onClick={saveReward} className="w-full gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm">{editing ? "Update" : "Add"}</button>
           </div>
         )}
 
-        {rewards.length === 0 ? <p className="text-xs text-muted-foreground text-center py-4">Aucun cadeau configure</p> :
+        {rewards.length === 0 ? <p className="text-xs text-muted-foreground text-center py-4">No rewards configured</p> :
           rewards.map((r: any) => (
             <div key={r.id} className={`flex items-center justify-between py-3 border-b border-secondary/50 last:border-0 ${!r.is_active ? "opacity-50" : ""}`}>
               <div className="flex items-center gap-3">
                 {r.image_url ? <img src={r.image_url} className="w-10 h-10 rounded-lg object-cover" /> : <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center"><Gift size={16} className="text-primary" /></div>}
                 <div>
                   <p className="text-sm font-semibold text-foreground">{r.name}</p>
-                  <p className="text-xs text-muted-foreground">{r.points_required} ESK → {Number(r.money_value || 0).toLocaleString("fr-FR")} USDT</p>
+                  <p className="text-xs text-muted-foreground">{r.points_required} ESK → {Number(r.money_value || 0).toLocaleString("en-US")} USDT</p>
                 </div>
               </div>
               <div className="flex gap-1.5">
@@ -2211,7 +2211,7 @@ const GiftCodesTab = ({ showSuccess, showError }: any) => {
   };
 
   const saveCode = async () => {
-    if (!form.code || !form.points_value) { showError("Erreur", "Code et valeur en points sont obligatoires"); return; }
+    if (!form.code || !form.points_value) { showError("Error", "Code and points value are required"); return; }
     const payload: any = {
       code: form.code.toUpperCase().trim(),
       points_value: Number(form.points_value),
@@ -2223,7 +2223,7 @@ const GiftCodesTab = ({ showSuccess, showError }: any) => {
     } else {
       await supabase.from("gift_codes").insert(payload);
     }
-    showSuccess(editing ? "Code modifié" : "Code créé", "");
+    showSuccess(editing ? "Code updated" : "Code created", "");
     setShowForm(false);
     loadCodes();
   };
@@ -2235,52 +2235,52 @@ const GiftCodesTab = ({ showSuccess, showError }: any) => {
 
   const deleteCode = async (c: any) => {
     await supabase.from("gift_codes").delete().eq("id", c.id);
-    showSuccess("Code supprimé", "");
+    showSuccess("Code deleted", "");
     loadCodes();
   };
 
   const formatDate = (d: string | null) => {
     if (!d) return "—";
-    return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Port-au-Prince" });
+    return new Date(d).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Port-au-Prince" });
   };
 
   return (
     <div className="space-y-4">
       <div className="bg-card rounded-xl border border-secondary p-4">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Gift size={16} className="text-primary" /> Codes d'échange</h3>
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Gift size={16} className="text-primary" /> Redemption codes</h3>
           <button onClick={() => openForm()} className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center"><Plus size={16} className="text-primary" /></button>
         </div>
 
         {showForm && (
           <div className="bg-secondary/30 rounded-xl p-4 mb-3 space-y-3">
-            <div className="flex justify-between"><span className="text-xs font-bold text-foreground">{editing ? "Modifier le code" : "Nouveau code"}</span><button onClick={() => setShowForm(false)}><X size={14} className="text-muted-foreground" /></button></div>
+            <div className="flex justify-between"><span className="text-xs font-bold text-foreground">{editing ? "Edit code" : "New code"}</span><button onClick={() => setShowForm(false)}><X size={14} className="text-muted-foreground" /></button></div>
             <div>
               <label className="text-xs text-muted-foreground">Code</label>
               <input value={form.code} onChange={e => setForm({ ...form, code: e.target.value })} placeholder="Ex: ESKOM2024" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none uppercase" />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground">Points à attribuer</label>
+              <label className="text-xs text-muted-foreground">Points to award</label>
               <input type="number" value={form.points_value} onChange={e => setForm({ ...form, points_value: e.target.value })} placeholder="Ex: 50" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground">Nombre d'utilisations max</label>
+              <label className="text-xs text-muted-foreground">Maximum uses</label>
               <input type="number" value={form.max_uses} onChange={e => setForm({ ...form, max_uses: e.target.value })} placeholder="1" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground">Date d'expiration (optionnel)</label>
+              <label className="text-xs text-muted-foreground">Expiration date (optional)</label>
               <input type="datetime-local" value={form.expires_at} onChange={e => setForm({ ...form, expires_at: e.target.value })} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
             </div>
-            <button onClick={saveCode} className="w-full gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm">{editing ? "Modifier" : "Créer le code"}</button>
+            <button onClick={saveCode} className="w-full gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm">{editing ? "Update" : "Create code"}</button>
           </div>
         )}
 
-        {codes.length === 0 ? <p className="text-xs text-muted-foreground text-center py-4">Aucun code créé</p> :
+        {codes.length === 0 ? <p className="text-xs text-muted-foreground text-center py-4">No codes created</p> :
           codes.map((c: any) => (
             <div key={c.id} className={`flex items-center justify-between py-3 border-b border-secondary/50 last:border-0 ${!c.is_active ? "opacity-50" : ""}`}>
               <div>
                 <p className="text-sm font-bold text-primary font-mono">{c.code}</p>
-                <p className="text-xs text-muted-foreground">{c.points_value} pts • {c.used_count}/{c.max_uses} utilisés</p>
+                <p className="text-xs text-muted-foreground">{c.points_value} pts • {c.used_count}/{c.max_uses} used</p>
                 {c.expires_at && <p className="text-[10px] text-muted-foreground">Expire: {formatDate(c.expires_at)}</p>}
               </div>
               <div className="flex gap-1.5">
@@ -2316,10 +2316,10 @@ const FaqTab = ({ showSuccess, showError }: any) => {
   };
 
   const save = async () => {
-    if (!form.question || !form.answer) { showError("Erreur", "Remplissez tous les champs"); return; }
+    if (!form.question || !form.answer) { showError("Error", "Please fill in all fields"); return; }
     if (editing) await supabase.from("faq_items").update(form).eq("id", editing.id);
     else await supabase.from("faq_items").insert({ ...form, sort_order: items.length });
-    showSuccess(editing ? "Question modifiee" : "Question ajoutee", "");
+    showSuccess(editing ? "Question updated" : "Question added", "");
     setShowForm(false); load();
   };
 
@@ -2330,21 +2330,21 @@ const FaqTab = ({ showSuccess, showError }: any) => {
 
   const remove = async (id: string) => {
     await supabase.from("faq_items").delete().eq("id", id);
-    showSuccess("Question supprimee", ""); load();
+    showSuccess("Question deleted", ""); load();
   };
 
   return (
     <div className="space-y-3">
       <button onClick={() => openForm()} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
-        <Plus size={16} /> Ajouter une question
+        <Plus size={16} /> Add a question
       </button>
 
       {showForm && (
         <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
-          <div className="flex justify-between"><span className="text-xs font-bold text-foreground">{editing ? "Modifier" : "Nouvelle question"}</span><button onClick={() => setShowForm(false)}><X size={14} className="text-muted-foreground" /></button></div>
+          <div className="flex justify-between"><span className="text-xs font-bold text-foreground">{editing ? "Edit" : "New question"}</span><button onClick={() => setShowForm(false)}><X size={14} className="text-muted-foreground" /></button></div>
           <input value={form.question} onChange={e => setForm({ ...form, question: e.target.value })} placeholder="Question" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
-          <textarea value={form.answer} onChange={e => setForm({ ...form, answer: e.target.value })} placeholder="Reponse" rows={3} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none resize-none" />
-          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm">{editing ? "Modifier" : "Ajouter"}</button>
+          <textarea value={form.answer} onChange={e => setForm({ ...form, answer: e.target.value })} placeholder="Answer" rows={3} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none resize-none" />
+          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm">{editing ? "Update" : "Add"}</button>
         </div>
       )}
 
@@ -2388,10 +2388,10 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
   };
 
   const save = async () => {
-    if (!form.title || !form.description) { showError("Erreur", "Remplissez tous les champs"); return; }
+    if (!form.title || !form.description) { showError("Error", "Please fill in all fields"); return; }
     if (editing) await supabase.from("info_items").update(form).eq("id", editing.id);
     else await supabase.from("info_items").insert({ ...form, sort_order: items.length });
-    showSuccess(editing ? "Annonce modifiée" : "Annonce ajoutée", "");
+    showSuccess(editing ? "Announcement updated" : "Announcement added", "");
     setShowForm(false); load();
   };
 
@@ -2402,24 +2402,24 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
 
   const remove = async (id: string) => {
     await supabase.from("info_items").delete().eq("id", id);
-    showSuccess("Annonce supprimée", ""); load();
+    showSuccess("Announcement deleted", ""); load();
   };
 
   const uploadImage = async (itemId: string, file: File) => {
-    if (file.size > 5 * 1024 * 1024) { showError("Fichier trop volumineux", "Maximum 5 Mo autorisé"); return; }
+    if (file.size > 5 * 1024 * 1024) { showError("File too large", "Maximum 5 MB allowed"); return; }
     setUploading(true);
     try {
       const ext = file.name.split(".").pop();
       const path = `annonces/${itemId}.${ext}`;
       const { error: upErr } = await supabase.storage.from("site-assets").upload(path, file, { upsert: true });
-      if (upErr) { showError("Erreur upload", upErr.message || "Vérifiez votre connexion"); setUploading(false); return; }
+      if (upErr) { showError("Upload error", upErr.message || "Check your connection"); setUploading(false); return; }
       const { data: urlData } = supabase.storage.from("site-assets").getPublicUrl(path);
       const { error: dbErr } = await supabase.from("info_items").update({ image_url: urlData.publicUrl }).eq("id", itemId);
-      if (dbErr) { showError("Erreur sauvegarde", dbErr.message); setUploading(false); return; }
-      showSuccess("Image ajoutée ✅", "");
+      if (dbErr) { showError("Save error", dbErr.message); setUploading(false); return; }
+      showSuccess("Image added ✅", "");
       load();
     } catch (err: any) {
-      showError("Erreur réseau", err?.message || "Vérifiez votre connexion internet");
+      showError("Network error", err?.message || "Check your internet connection");
     } finally {
       setUploading(false);
     }
@@ -2427,26 +2427,26 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
 
   const removeImage = async (itemId: string) => {
     await supabase.from("info_items").update({ image_url: null }).eq("id", itemId);
-    showSuccess("Image supprimée", "");
+    showSuccess("Image deleted", "");
     load();
   };
 
   return (
     <div className="space-y-3">
       <button onClick={() => openForm()} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
-        <Plus size={16} /> Ajouter une annonce
+        <Plus size={16} /> Add an announcement
       </button>
 
       {showForm && (
         <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
-          <div className="flex justify-between"><span className="text-xs font-bold text-foreground">{editing ? "Modifier" : "Nouvelle annonce"}</span><button onClick={() => setShowForm(false)}><X size={14} className="text-muted-foreground" /></button></div>
-          <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Titre" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
+          <div className="flex justify-between"><span className="text-xs font-bold text-foreground">{editing ? "Edit" : "New announcement"}</span><button onClick={() => setShowForm(false)}><X size={14} className="text-muted-foreground" /></button></div>
+          <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Title" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
           <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Description" rows={3} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none resize-none" />
-          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm">{editing ? "Modifier" : "Ajouter"}</button>
+          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm">{editing ? "Update" : "Add"}</button>
         </div>
       )}
 
-      {items.length === 0 ? <p className="text-xs text-muted-foreground text-center py-6">Aucune annonce</p> :
+      {items.length === 0 ? <p className="text-xs text-muted-foreground text-center py-6">No announcements</p> :
         items.map((item: any) => (
           <div key={item.id} className={`bg-card rounded-xl border border-secondary p-4 ${!item.is_active ? "opacity-50" : ""}`}>
             <div className="flex items-start justify-between gap-2">
@@ -2477,7 +2477,7 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
           </div>
         ))
       }
-      {uploading && <p className="text-xs text-center text-muted-foreground animate-pulse">Upload en cours...</p>}
+      {uploading && <p className="text-xs text-center text-muted-foreground animate-pulse">Uploading...</p>}
     </div>
   );
 };
@@ -2494,7 +2494,7 @@ const AppSettingsTab = ({ settings, reload, showSuccess }: any) => {
       if (existing) await supabase.from("site_settings").update({ value }).eq("key", key);
       else await supabase.from("site_settings").insert({ key, value, category: "app" });
     }
-    showSuccess("Parametres application sauvegardes", "");
+    showSuccess("App settings saved", "");
     setEdits({}); reload();
   };
 
@@ -2546,7 +2546,7 @@ const AppSettingsTab = ({ settings, reload, showSuccess }: any) => {
 
       {Object.keys(edits).length > 0 && (
         <button onClick={saveAll} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
-          <Save size={16} /> Sauvegarder
+          <Save size={16} /> Save
         </button>
       )}
     </div>
@@ -2595,7 +2595,7 @@ const DatesTab = ({ settings, reload, showSuccess }: any) => {
       <div className="bg-card rounded-xl border border-border/30 p-4 flex items-center justify-between">
         <div>
           <p className="text-sm font-semibold text-foreground">Utiliser les dates manuelles</p>
-          <p className="text-xs text-muted-foreground">Quand activé, le système utilisera ces dates au lieu des calculs automatiques</p>
+          <p className="text-xs text-muted-foreground">When enabled, the system will use these dates instead of automatic calculations</p>
         </div>
         <button
           onClick={() => setVal("use_manual_dates", getValue("use_manual_dates") === "true" ? "false" : "true")}
@@ -2623,7 +2623,7 @@ const DatesTab = ({ settings, reload, showSuccess }: any) => {
 
       <button onClick={saveAll} disabled={saving || Object.keys(edits).length === 0}
         className="w-full gradient-button text-primary-foreground font-semibold py-3 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-50">
-        <Save size={16} /> {saving ? "Sauvegarde..." : "Sauvegarder les dates"}
+        <Save size={16} /> {saving ? "Saving..." : "Save dates"}
       </button>
     </div>
   );
@@ -2645,49 +2645,49 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
         await supabase.from("site_settings").insert({ key, value, category: "finance" });
       }
     }
-    showSuccess("Parametres sauvegardes", "");
+    showSuccess("Settings saved", "");
     setEdits({});
     reload();
   };
 
   const groups: Record<string, { label: string; keys: { key: string; label: string }[] }> = {
-    general: { label: "General", keys: [{ key: "site_name", label: "Nom du site" }, { key: "welcome_text", label: "Texte d'accueil" }, { key: "terms_url", label: "URL Conditions generales" }] },
-    deposit: { label: "Depot", keys: [
-      { key: "deposit_amounts", label: "Montants predefinis (separes par virgules)" },
-      { key: "deposit_min", label: "Depot minimum (USDT)" },
-      { key: "deposit_max", label: "Depot maximum (USDT)" },
-      { key: "deposit_rules", label: "Regles (separees par |, {min} et {max} dynamiques)" },
-      { key: "require_screenshot", label: "Exiger capture (true/false)" },
+    general: { label: "General", keys: [{ key: "site_name", label: "Site name" }, { key: "welcome_text", label: "Welcome text" }, { key: "terms_url", label: "Terms URL" }] },
+    deposit: { label: "Deposit", keys: [
+      { key: "deposit_amounts", label: "Preset amounts (comma-separated)" },
+      { key: "deposit_min", label: "Minimum deposit (USDT)" },
+      { key: "deposit_max", label: "Maximum deposit (USDT)" },
+      { key: "deposit_rules", label: "Rules (separated by |, {min} and {max} dynamic)" },
+      { key: "require_screenshot", label: "Require screenshot (true/false)" },
     ]},
-    withdrawal: { label: "Retrait", keys: [
-      { key: "withdrawal_amounts", label: "Montants predefinis (separes par virgules)" },
-      { key: "withdrawal_min", label: "Retrait minimum (USDT)" },
-      { key: "withdrawal_max", label: "Retrait maximum (USDT)" },
-      { key: "withdrawal_fee_percent", label: "Frais de retrait (%)" },
-      { key: "withdrawal_rules", label: "Regles (separees par |, {min} {max} {fee} dynamiques)" },
-      { key: "max_withdrawals_per_day", label: "Nombre max de retraits par jour" },
-      { key: "max_withdrawals_enabled", label: "Limite retraits activee (true/false)" },
-      { key: "withdrawal_enabled", label: "Retraits actifs (true/false)" },
-      { key: "withdrawal_days", label: "Jours autorises (ex: 1,2,3,4,5,6,7 — 1=Lundi)" },
-      { key: "withdrawal_hour_start", label: "Heure d'ouverture (ex: 10)" },
-      { key: "withdrawal_hour_end", label: "Heure de fermeture (ex: 17)" },
+    withdrawal: { label: "Withdrawal", keys: [
+      { key: "withdrawal_amounts", label: "Preset amounts (comma-separated)" },
+      { key: "withdrawal_min", label: "Minimum withdrawal (USDT)" },
+      { key: "withdrawal_max", label: "Maximum withdrawal (USDT)" },
+      { key: "withdrawal_fee_percent", label: "Withdrawal fee (%)" },
+      { key: "withdrawal_rules", label: "Rules (separated by |, {min} {max} {fee} dynamic)" },
+      { key: "max_withdrawals_per_day", label: "Max withdrawals per day" },
+      { key: "max_withdrawals_enabled", label: "Withdrawal limit enabled (true/false)" },
+      { key: "withdrawal_enabled", label: "Withdrawals active (true/false)" },
+      { key: "withdrawal_days", label: "Allowed days (e.g. 1,2,3,4,5,6,7 — 1=Monday)" },
+      { key: "withdrawal_hour_start", label: "Opening time (e.g. 10)" },
+      { key: "withdrawal_hour_end", label: "Closing time (e.g. 17)" },
     ]},
-    referral: { label: "Bonus Parrainage", keys: [
-      { key: "referral_bonus_level_b", label: "Niveau E - Parrain direct (%)" },
-      { key: "referral_bonus_level_c", label: "Niveau F - 2eme niveau (%)" },
-      { key: "referral_bonus_level_d", label: "Niveau G - 3eme niveau (%)" },
-      { key: "referral_title", label: "Titre modal invitation" },
-      { key: "referral_subtitle", label: "Sous-titre gains invitation" },
-      { key: "referral_rules", label: "Règles (JSON array de textes)" },
+    referral: { label: "Referral Bonus", keys: [
+      { key: "referral_bonus_level_b", label: "Level E - Direct referrer (%)" },
+      { key: "referral_bonus_level_c", label: "Level F - 2nd level (%)" },
+      { key: "referral_bonus_level_d", label: "Level G - 3rd level (%)" },
+      { key: "referral_title", label: "Invitation modal title" },
+      { key: "referral_subtitle", label: "Invitation earnings subtitle" },
+      { key: "referral_rules", label: "Rules (JSON array of texts)" },
     ] },
-    vip: { label: "Seuils VIP", keys: [{ key: "vip_threshold_1", label: "VIP1 (USDT)" }, { key: "vip_threshold_2", label: "VIP2 (USDT)" }, { key: "vip_threshold_3", label: "VIP3 (USDT)" }, { key: "vip_threshold_4", label: "VIP4 (USDT)" }, { key: "vip_threshold_5", label: "VIP5 (USDT)" }] },
+    vip: { label: "VIP Thresholds", keys: [{ key: "vip_threshold_1", label: "VIP1 (USDT)" }, { key: "vip_threshold_2", label: "VIP2 (USDT)" }, { key: "vip_threshold_3", label: "VIP3 (USDT)" }, { key: "vip_threshold_4", label: "VIP4 (USDT)" }, { key: "vip_threshold_5", label: "VIP5 (USDT)" }] },
   };
 
   const toggleKeys = [
-    { key: "vip_conditions_enabled", label: "Conditions d'évolution VIP", desc: "Appliquer les règles pour passer au niveau VIP suivant" },
-    { key: "vip_progress_bar_enabled", label: "Barre de progression VIP", desc: "Afficher la barre de progression vers le prochain VIP sur le profil" },
-    { key: "profile_products_display_enabled", label: "Produits & VIP sur le profil", desc: "Afficher les produits achetés et le niveau VIP sur le profil utilisateur" },
-    { key: "withdrawal_mode_auto", label: "Mode retrait automatique", desc: "Activé = retraits validés automatiquement. Désactivé = retraits manuels" },
+    { key: "vip_conditions_enabled", label: "VIP progression conditions", desc: "Apply rules to advance to the next VIP level" },
+    { key: "vip_progress_bar_enabled", label: "VIP progress bar", desc: "Show progress bar toward next VIP on the profile" },
+    { key: "profile_products_display_enabled", label: "Products & VIP on profile", desc: "Show purchased products and VIP level on user profile" },
+    { key: "withdrawal_mode_auto", label: "Automatic withdrawal mode", desc: "Enabled = withdrawals validated automatically. Disabled = manual withdrawals" },
   ];
 
   const getToggleValue = (key: string): boolean => {
@@ -2704,7 +2704,7 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
     <div className="space-y-4">
       {/* Display toggles */}
       <div className="bg-card rounded-xl border border-secondary p-4 space-y-4">
-        <h3 className="text-sm font-bold text-foreground">Contrôles d'affichage</h3>
+        <h3 className="text-sm font-bold text-foreground">Display controls</h3>
         {toggleKeys.map(t => (
           <div key={t.key} className="flex items-center justify-between gap-3">
             <div className="flex-1 min-w-0">
@@ -2735,7 +2735,7 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
       ))}
       {Object.keys(edits).length > 0 && (
         <button onClick={saveAll} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
-          <Save size={16} /> Sauvegarder les paramètres
+          <Save size={16} /> Save settings
         </button>
       )}
     </div>
@@ -2745,11 +2745,11 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
 // ==================== OFFICIAL INFO ====================
 const OfficialInfoTab = ({ settings, reload, showSuccess }: { settings: SiteSetting[]; reload: () => void; showSuccess: (t: string, m: string) => void }) => {
   const fields = [
-    { key: "official_service_phone", label: "Numéro du service client", placeholder: "+509 XX XXX XXXX" },
-    { key: "official_whatsapp_link", label: "Lien WhatsApp", placeholder: "https://wa.me/243XXXXXXXX" },
-    { key: "official_whatsapp_group", label: "Lien Groupe WhatsApp", placeholder: "https://chat.whatsapp.com/..." },
-    { key: "official_private_group_msg", label: "Message Groupe Privé Investisseurs", placeholder: "Message affiché quand on demande le groupe privé...", multiline: true },
-    { key: "official_welcome_message", label: "Message automatique de bienvenue", placeholder: "Bienvenue sur ESKOM...", multiline: true },
+    { key: "official_service_phone", label: "Customer service number", placeholder: "+509 XX XXX XXXX" },
+    { key: "official_whatsapp_link", label: "WhatsApp link", placeholder: "https://wa.me/243XXXXXXXX" },
+    { key: "official_whatsapp_group", label: "WhatsApp Group link", placeholder: "https://chat.whatsapp.com/..." },
+    { key: "official_private_group_msg", label: "Private Investor Group message", placeholder: "Message shown when private group is requested...", multiline: true },
+    { key: "official_welcome_message", label: "Automatic welcome message", placeholder: "Welcome to ESKOM...", multiline: true },
   ];
 
   const [edits, setEdits] = useState<Record<string, string>>({});
@@ -2770,7 +2770,7 @@ const OfficialInfoTab = ({ settings, reload, showSuccess }: { settings: SiteSett
         await supabase.from("site_settings").insert({ key, value, category: "official_info" });
       }
     }
-    showSuccess("Informations officielles sauvegardées", "Les modifications sont effectives immédiatement ✅");
+    showSuccess("Official information saved", "Changes take effect immediately ✅");
     setEdits({});
     reload();
   };
@@ -2778,9 +2778,9 @@ const OfficialInfoTab = ({ settings, reload, showSuccess }: { settings: SiteSett
   return (
     <div className="space-y-4">
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
-        <h3 className="text-sm font-bold text-foreground mb-1">📋 Gestion des Informations Officielles</h3>
+        <h3 className="text-sm font-bold text-foreground mb-1">📋 Official Information Management</h3>
         <p className="text-xs text-muted-foreground">
-          Ces informations sont utilisées par Emma IA pour répondre aux questions des utilisateurs. Mettez-les à jour ici, elles seront prises en compte immédiatement.
+          This information is used by Emma AI to answer user questions. Update it here and changes take effect immediately.
         </p>
       </div>
 
@@ -2810,7 +2810,7 @@ const OfficialInfoTab = ({ settings, reload, showSuccess }: { settings: SiteSett
 
       {Object.keys(edits).length > 0 && (
         <button onClick={saveAll} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
-          <Save size={16} /> Sauvegarder les informations
+          <Save size={16} /> Save information
         </button>
       )}
     </div>
@@ -2838,14 +2838,14 @@ const OfficialDocsTab = ({ showSuccess, showError }: { showSuccess: (t: string, 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !title.trim()) {
-      showError("Erreur", "Veuillez saisir un titre avant d'uploader");
+      showError("Error", "Please enter a title before uploading");
       return;
     }
     setUploading(true);
     const ext = file.name.split(".").pop() || "jpg";
     const path = `official/${Date.now()}.${ext}`;
     const { error: upErr } = await supabase.storage.from("site-assets").upload(path, file, { upsert: true });
-    if (upErr) { showError("Erreur", "Échec de l'upload"); setUploading(false); return; }
+    if (upErr) { showError("Error", "Upload failed"); setUploading(false); return; }
     const { data: urlData } = supabase.storage.from("site-assets").getPublicUrl(path);
 
     await supabase.from("official_documents").insert({
@@ -2857,7 +2857,7 @@ const OfficialDocsTab = ({ showSuccess, showError }: { showSuccess: (t: string, 
     });
 
     setTitle(""); setDescription(""); setDocType("image");
-    showSuccess("Document ajouté", "Le document est maintenant disponible pour Emma IA ✅");
+    showSuccess("Document added", "The document is now available to Emma AI ✅");
     loadDocs();
     setUploading(false);
   };
@@ -2869,32 +2869,32 @@ const OfficialDocsTab = ({ showSuccess, showError }: { showSuccess: (t: string, 
 
   const deleteDoc = async (id: string) => {
     await supabase.from("official_documents").delete().eq("id", id);
-    showSuccess("Supprimé", "Document supprimé ✅");
+    showSuccess("Deleted", "Document deleted ✅");
     loadDocs();
   };
 
-  if (loading) return <p className="text-xs text-muted-foreground text-center py-10">Chargement...</p>;
+  if (loading) return <p className="text-xs text-muted-foreground text-center py-10">Loading...</p>;
 
   return (
     <div className="space-y-4">
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
-        <h3 className="text-sm font-bold text-foreground mb-1">📄 Documents Officiels & Preuves</h3>
+        <h3 className="text-sm font-bold text-foreground mb-1">📄 Official Documents & Proof</h3>
         <p className="text-xs text-muted-foreground">
-          Ajoutez vos certificats, documents légaux et images de preuve. Emma les utilisera automatiquement pour rassurer les utilisateurs.
+          Add your certificates, legal documents, and proof images. Emma will automatically use them to reassure users.
         </p>
       </div>
 
       {/* Add form */}
       <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
-        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Titre du document" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
-        <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description (optionnel)" rows={2} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none resize-none" />
+        <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Document title" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
+        <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description (optional)" rows={2} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none resize-none" />
         <select value={docType} onChange={e => setDocType(e.target.value)} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none">
           <option value="image">Image / Photo</option>
           <option value="certificate">Certificat</option>
           <option value="pdf">Document PDF</option>
         </select>
-        <button onClick={() => { if (!title.trim()) { showError("Erreur", "Saisissez un titre"); return; } fileRef.current?.click(); }} disabled={uploading} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
-          {uploading ? "Upload en cours..." : <><UploadIcon size={16} /> Uploader le fichier</>}
+        <button onClick={() => { if (!title.trim()) { showError("Error", "Enter a title"); return; } fileRef.current?.click(); }} disabled={uploading} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
+          {uploading ? "Uploading..." : <><UploadIcon size={16} /> Upload file</>}
         </button>
         <input ref={fileRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleUpload} />
       </div>
@@ -2915,7 +2915,7 @@ const OfficialDocsTab = ({ showSuccess, showError }: { showSuccess: (t: string, 
                 <p className="text-xs font-bold text-foreground truncate">{doc.title}</p>
                 {doc.description && <p className="text-[10px] text-muted-foreground line-clamp-2">{doc.description}</p>}
                 <span className={`inline-block text-[9px] mt-1 px-2 py-0.5 rounded-full ${doc.is_active ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"}`}>
-                  {doc.doc_type} • {doc.is_active ? "Actif" : "Inactif"}
+                  {doc.doc_type} • {doc.is_active ? "Active" : "Inactive"}
                 </span>
               </div>
               <div className="flex gap-1 flex-shrink-0">
@@ -2929,7 +2929,7 @@ const OfficialDocsTab = ({ showSuccess, showError }: { showSuccess: (t: string, 
             </div>
           </div>
         ))}
-        {docs.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">Aucun document ajouté</p>}
+        {docs.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">No documents added</p>}
       </div>
     </div>
   );
@@ -2963,8 +2963,8 @@ const SecurityTab = ({ logs, settings, reload, showSuccess, showError }: { logs:
 
   const addPhone = async () => {
     const clean = newPhone.replace(/\s/g, "").trim();
-    if (!clean) { showError("Erreur", "Veuillez entrer un numéro"); return; }
-    if (phones.includes(clean)) { showError("Erreur", "Ce numéro existe déjà"); return; }
+    if (!clean) { showError("Error", "Please enter a number"); return; }
+    if (phones.includes(clean)) { showError("Error", "This number already exists"); return; }
     await savePhones([...phones, clean]);
     setNewPhone("");
     showSuccess("Ajouté", `Numéro ${clean} ajouté`);
@@ -2979,8 +2979,8 @@ const SecurityTab = ({ logs, settings, reload, showSuccess, showError }: { logs:
     <div className="space-y-6">
       {/* Admin Phones Section */}
       <div className="space-y-3">
-        <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Smartphone size={16} /> Numéros administrateur</h3>
-        <p className="text-[11px] text-muted-foreground">Ajoutez les numéros de téléphone des administrateurs pour le support et les notifications.</p>
+        <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Smartphone size={16} /> Admin phone numbers</h3>
+        <p className="text-[11px] text-muted-foreground">Add administrator phone numbers for support and notifications.</p>
 
         <div className="flex gap-2">
           <input
@@ -2991,12 +2991,12 @@ const SecurityTab = ({ logs, settings, reload, showSuccess, showError }: { logs:
             className="flex-1 bg-input border border-secondary rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground"
           />
           <button onClick={addPhone} className="gradient-button text-foreground px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-1">
-            <Plus size={14} /> Ajouter
+            <Plus size={14} /> Add
           </button>
         </div>
 
         {phones.length === 0 ? (
-          <p className="text-xs text-muted-foreground text-center py-4">Aucun numéro administrateur enregistré</p>
+          <p className="text-xs text-muted-foreground text-center py-4">No admin numbers registered</p>
         ) : (
           <div className="space-y-2">
             {phones.map((p, i) => (
@@ -3016,8 +3016,8 @@ const SecurityTab = ({ logs, settings, reload, showSuccess, showError }: { logs:
 
       {/* Logs Section */}
       <div className="space-y-3">
-        <h3 className="text-sm font-bold text-foreground">Historique des actions</h3>
-        {logs.length === 0 ? <p className="text-xs text-muted-foreground text-center py-10">Aucune action enregistrée</p> :
+        <h3 className="text-sm font-bold text-foreground">Action history</h3>
+        {logs.length === 0 ? <p className="text-xs text-muted-foreground text-center py-10">No actions recorded</p> :
           logs.map(l => (
             <div key={l.id} className="bg-card rounded-xl border border-secondary px-4 py-3">
               <div className="flex items-center justify-between">
@@ -3025,7 +3025,7 @@ const SecurityTab = ({ logs, settings, reload, showSuccess, showError }: { logs:
                   <p className="text-xs font-bold text-foreground">{l.action}</p>
                   {l.details && <p className="text-[10px] text-muted-foreground">{l.details}</p>}
                 </div>
-                <span className="text-[10px] text-muted-foreground">{l.created_at ? new Date(l.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}</span>
+                <span className="text-[10px] text-muted-foreground">{l.created_at ? new Date(l.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}</span>
               </div>
             </div>
           ))}
@@ -3055,19 +3055,19 @@ const WithdrawalMethodsTab = ({ methods, countries, reload, showSuccess, showErr
     const ext = file.name.split('.').pop();
     const fileName = `wm-logo-${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from('site-assets').upload(fileName, file);
-    if (error) { showError("Erreur", "Upload impossible"); setUploading(false); return; }
+    if (error) { showError("Error", "Upload failed"); setUploading(false); return; }
     const { data } = supabase.storage.from('site-assets').getPublicUrl(fileName);
     setForm({ ...form, logo_url: data.publicUrl });
     setUploading(false);
   };
 
   const save = async () => {
-    if (!form.name.trim()) { showError("Erreur", "Nom requis"); return; }
-    if (!form.country_id) { showError("Erreur", "Pays requis"); return; }
+    if (!form.name.trim()) { showError("Error", "Nom requis"); return; }
+    if (!form.country_id) { showError("Error", "Country required"); return; }
     const payload = { name: form.name, country_id: form.country_id || null, payment_type: form.payment_type, api_provider: form.api_provider || null, logo_url: form.logo_url || null };
     if (editing) await supabase.from("withdrawal_methods").update(payload).eq("id", editing.id);
     else await supabase.from("withdrawal_methods").insert({ ...payload, sort_order: methods.length });
-    showSuccess(editing ? "Modifié" : "Créé", "");
+    showSuccess(editing ? "Updated" : "Created", "");
     setShowForm(false); reload();
   };
 
@@ -3078,20 +3078,20 @@ const WithdrawalMethodsTab = ({ methods, countries, reload, showSuccess, showErr
     <div className="space-y-3">
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
         <p className="text-xs text-muted-foreground">
-          Gérez les moyens de retrait disponibles par pays. Ces réseaux apparaîtront lors de l'ajout d'un portefeuille.
+          Manage available withdrawal methods by country. These networks will appear when adding a wallet.
         </p>
       </div>
 
-      <button onClick={() => openForm()} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2"><Plus size={16} /> Ajouter un moyen de retrait</button>
+      <button onClick={() => openForm()} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2"><Plus size={16} /> Add a withdrawal method</button>
 
       {showForm && (
         <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
-          <div className="flex justify-between"><h3 className="text-sm font-bold text-foreground">{editing ? "Modifier" : "Nouveau"}</h3><button onClick={() => setShowForm(false)}><X size={16} className="text-muted-foreground" /></button></div>
-          <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nom (ex: Orange Money)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+          <div className="flex justify-between"><h3 className="text-sm font-bold text-foreground">{editing ? "Edit" : "New"}</h3><button onClick={() => setShowForm(false)}><X size={16} className="text-muted-foreground" /></button></div>
+          <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Name (e.g. Orange Money)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
 
           <select value={form.country_id} onChange={e => setForm({ ...form, country_id: e.target.value })}
             className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none">
-            <option value="">-- Sélectionner un pays --</option>
+            <option value="">-- Select a country --</option>
             {activeCountries.map((c: Country) => <option key={c.id} value={c.id}>{c.name} ({c.country_code})</option>)}
           </select>
 
@@ -3100,17 +3100,17 @@ const WithdrawalMethodsTab = ({ methods, countries, reload, showSuccess, showErr
             <div className="flex gap-2 mt-1">
               <button onClick={() => setForm({ ...form, payment_type: "manual" })}
                 className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors ${form.payment_type === "manual" ? "gradient-button text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
-                Manuel
+                Manual
               </button>
               <button onClick={() => setForm({ ...form, payment_type: "api" })}
                 className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors ${form.payment_type === "api" ? "gradient-button text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
-                API (automatique)
+                API (automatic)
               </button>
             </div>
           </div>
 
           {form.payment_type === "api" && (
-            <input value={form.api_provider} onChange={e => setForm({ ...form, api_provider: e.target.value })} placeholder="Fournisseur API (ex: mtn, orange)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+            <input value={form.api_provider} onChange={e => setForm({ ...form, api_provider: e.target.value })} placeholder="API provider (e.g. mtn, orange)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
           )}
 
           {/* Logo */}
@@ -3120,16 +3120,16 @@ const WithdrawalMethodsTab = ({ methods, countries, reload, showSuccess, showErr
             {form.logo_url ? (
               <div className="flex items-center gap-3 mt-1">
                 <img src={form.logo_url} className="w-10 h-10 rounded-lg object-cover" />
-                <button onClick={() => setForm({ ...form, logo_url: "" })} className="text-xs text-destructive">Supprimer</button>
+                <button onClick={() => setForm({ ...form, logo_url: "" })} className="text-xs text-destructive">Delete</button>
               </div>
             ) : (
               <button onClick={() => logoRef.current?.click()} disabled={uploading} className="mt-1 w-full h-12 rounded-xl border-2 border-dashed border-secondary hover:border-primary flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                {uploading ? "Upload..." : <><UploadIcon size={14} /> Ajouter logo</>}
+                {uploading ? "Upload..." : <><UploadIcon size={14} /> Add logo</>}
               </button>
             )}
           </div>
 
-          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editing ? "Modifier" : "Créer"}</button>
+          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editing ? "Update" : "Create"}</button>
         </div>
       )}
 
@@ -3144,7 +3144,7 @@ const WithdrawalMethodsTab = ({ methods, countries, reload, showSuccess, showErr
             </div>
             <div className="p-2 space-y-1">
               {countryMethods.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-3">Aucun moyen de retrait</p>
+                <p className="text-xs text-muted-foreground text-center py-3">No withdrawal methods</p>
               ) : countryMethods.map((m: WithdrawalMethod) => (
                 <div key={m.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-secondary/20">
                   <div className="flex items-center gap-3">
@@ -3187,49 +3187,49 @@ const CountriesTab = ({ countries, methods, withdrawalMethods = [], reload, show
   };
 
   const save = async () => {
-    if (!form.name.trim()) { showError("Erreur", "Nom requis"); return; }
+    if (!form.name.trim()) { showError("Error", "Nom requis"); return; }
     const payload = { name: form.name, country_code: form.country_code, phone_digits: Number(form.phone_digits) || 8, validation_enabled: form.validation_enabled };
     if (editing) await supabase.from("countries").update(payload).eq("id", editing.id);
     else await supabase.from("countries").insert({ ...payload, sort_order: countries.length, api_enabled: true });
-    showSuccess(editing ? "Pays modifié" : "Pays ajouté", "");
+    showSuccess(editing ? "Country updated" : "Country added", "");
     setShowForm(false); reload();
   };
 
   const toggleActive = async (c: Country) => {
     await supabase.from("countries").update({ is_active: !c.is_active }).eq("id", c.id);
-    showSuccess(c.is_active ? "Pays désactivé" : "Pays activé ✅", "");
+    showSuccess(c.is_active ? "Country deactivated" : "Country activated ✅", "");
     reload();
   };
 
   const toggleApi = async (c: Country) => {
     await supabase.from("countries").update({ api_enabled: !(c as any).api_enabled }).eq("id", c.id);
-    showSuccess((c as any).api_enabled ? "API désactivée pour " + c.name : "API activée pour " + c.name + " ✅", "");
+    showSuccess((c as any).api_enabled ? "API disabled for " + c.name : "API enabled for " + c.name + " ✅", "");
     reload();
   };
 
   const deleteCountry = async (c: Country) => {
     await supabase.from("countries").delete().eq("id", c.id);
-    showSuccess("Pays supprimé", "");
+    showSuccess("Country deleted", "");
     reload();
   };
 
   return (
     <div className="space-y-3">
       <button onClick={() => openForm()} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
-        <Plus size={16} /> Ajouter un pays
+        <Plus size={16} /> Add a country
       </button>
 
       {showForm && (
         <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
-          <div className="flex justify-between"><h3 className="text-sm font-bold text-foreground">{editing ? "Modifier le pays" : "Nouveau pays"}</h3><button onClick={() => setShowForm(false)}><X size={16} className="text-muted-foreground" /></button></div>
-          <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nom du pays" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+          <div className="flex justify-between"><h3 className="text-sm font-bold text-foreground">{editing ? "Edit country" : "New country"}</h3><button onClick={() => setShowForm(false)}><X size={16} className="text-muted-foreground" /></button></div>
+          <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Country name" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-muted-foreground">Indicatif</label>
+              <label className="text-xs text-muted-foreground">Dial code</label>
               <input value={form.country_code} onChange={e => setForm({ ...form, country_code: e.target.value })} placeholder="+509" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
             </div>
             <div>
-              <label className="text-xs text-muted-foreground">Chiffres requis</label>
+              <label className="text-xs text-muted-foreground">Required digits</label>
               <input type="number" value={form.phone_digits} onChange={e => setForm({ ...form, phone_digits: e.target.value })} placeholder="8" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
             </div>
           </div>
@@ -3238,11 +3238,11 @@ const CountriesTab = ({ countries, methods, withdrawalMethods = [], reload, show
               <label className="text-xs text-muted-foreground">Validation</label>
               <button type="button" onClick={() => setForm({ ...form, validation_enabled: !form.validation_enabled })}
                 className={`w-full rounded-xl px-4 py-2.5 text-sm font-semibold ${form.validation_enabled ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>
-                {form.validation_enabled ? "Activee" : "Desactivee"}
+                {form.validation_enabled ? "Enabled" : "Disabled"}
               </button>
             </div>
           </div>
-          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editing ? "Modifier" : "Créer"}</button>
+          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editing ? "Update" : "Create"}</button>
         </div>
       )}
 
@@ -3256,7 +3256,7 @@ const CountriesTab = ({ countries, methods, withdrawalMethods = [], reload, show
                 <div className="flex items-center gap-2">
                   <div>
                     <p className="text-sm font-bold text-foreground">{c.name}</p>
-                    <p className="text-xs text-muted-foreground">{c.country_code} · {(c as any).phone_digits || 8} chiffres {(c as any).validation_enabled !== false ? "" : "(non validé)"}</p>
+                    <p className="text-xs text-muted-foreground">{c.country_code} · {(c as any).phone_digits || 8} digits {(c as any).validation_enabled !== false ? "" : "(unvalidated)"}</p>
                   </div>
                 </div>
                 <div className="flex gap-1.5">
@@ -3269,17 +3269,17 @@ const CountriesTab = ({ countries, methods, withdrawalMethods = [], reload, show
               {/* API toggle */}
               <div className="mt-2 pt-2 border-t border-secondary">
                 <div className="flex items-center justify-between">
-                  <p className="text-[10px] text-muted-foreground">⚡ API de paiement</p>
+                  <p className="text-[10px] text-muted-foreground">⚡ Payment API</p>
                   <button onClick={() => toggleApi(c)}
                     className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all ${(c as any).api_enabled ? "bg-success/20 text-success" : "bg-destructive/10 text-destructive"}`}>
-                    {(c as any).api_enabled ? "✅ Activée" : "❌ Désactivée"}
+                    {(c as any).api_enabled ? "✅ Enabled" : "❌ Disabled"}
                   </button>
                 </div>
               </div>
               {/* Deposit methods */}
               {countryMethods.length > 0 && (
                 <div className="mt-2 pt-2 border-t border-secondary">
-                  <p className="text-[10px] text-muted-foreground mb-1">💳 Moyens de dépôt :</p>
+                  <p className="text-[10px] text-muted-foreground mb-1">💳 Deposit methods:</p>
                   <div className="flex flex-wrap gap-1.5">
                     {countryMethods.map((m: PaymentMethod) => (
                       <span key={m.id} className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${m.is_active ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>
@@ -3292,7 +3292,7 @@ const CountriesTab = ({ countries, methods, withdrawalMethods = [], reload, show
               {/* Withdrawal methods */}
               {countryWMethods.length > 0 && (
                 <div className="mt-2 pt-2 border-t border-secondary">
-                  <p className="text-[10px] text-muted-foreground mb-1">📤 Moyens de retrait :</p>
+                  <p className="text-[10px] text-muted-foreground mb-1">📤 Withdrawal methods:</p>
                   <div className="flex flex-wrap gap-1.5">
                     {countryWMethods.map((m: WithdrawalMethod) => (
                       <span key={m.id} className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${m.is_active ? "bg-success/10 text-success" : "bg-secondary text-muted-foreground"}`}>
@@ -3338,7 +3338,7 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
       min_team_investment: Number(form.min_team_investment) || 0,
       condition_logic: form.condition_logic,
     }).eq("id", editingId);
-    showSuccess("Conditions VIP mises à jour", "");
+    showSuccess("VIP conditions updated", "");
     setEditingId(null);
     reload();
   };
@@ -3348,17 +3348,17 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
     const ext = file.name.split(".").pop();
     const path = `vip/level-${level}.${ext}`;
     const { error: upErr } = await supabase.storage.from("site-assets").upload(path, file, { upsert: true });
-    if (upErr) { showError("Erreur", "Upload échoué"); setUploading(false); return; }
+    if (upErr) { showError("Error", "Upload failed"); setUploading(false); return; }
     const { data: urlData } = supabase.storage.from("site-assets").getPublicUrl(path);
     await supabase.from("vip_conditions").update({ image_url: urlData.publicUrl }).eq("id", condId);
-    showSuccess("Image VIP ajoutée", "");
+    showSuccess("VIP image added", "");
     setUploading(false);
     reload();
   };
 
   const removeImage = async (condId: string) => {
     await supabase.from("vip_conditions").update({ image_url: null }).eq("id", condId);
-    showSuccess("Image supprimée", "");
+    showSuccess("Image deleted", "");
     reload();
   };
 
@@ -3366,7 +3366,7 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
     <div className="space-y-4">
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
         <p className="text-xs text-muted-foreground">
-          Configurez les conditions pour chaque niveau VIP. Logique <b>OU</b> = une seule condition suffit. <b>ET</b> = toutes requises.
+          Configure conditions for each VIP level. <b>OR</b> logic = one condition is enough. <b>AND</b> = all required.
         </p>
       </div>
 
@@ -3380,46 +3380,46 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs text-muted-foreground">Invest. perso min (USDT)</label>
+                  <label className="text-xs text-muted-foreground">Min. personal invest. (USDT)</label>
                   <input type="number" value={form.min_investment} onChange={e => setForm({ ...form, min_investment: e.target.value })}
                     className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">Invest. équipe min (USDT)</label>
+                  <label className="text-xs text-muted-foreground">Min. team invest. (USDT)</label>
                   <input type="number" value={form.min_team_investment} onChange={e => setForm({ ...form, min_team_investment: e.target.value })}
                     className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">Membres actifs min</label>
+                  <label className="text-xs text-muted-foreground">Min. active members</label>
                   <input type="number" value={form.min_active_members} onChange={e => setForm({ ...form, min_active_members: e.target.value })}
                     className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">Achats min</label>
+                  <label className="text-xs text-muted-foreground">Min. purchases</label>
                   <input type="number" value={form.min_purchases} onChange={e => setForm({ ...form, min_purchases: e.target.value })}
                     className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
                 </div>
                 <div>
-                  <label className="text-xs text-muted-foreground">Produits achetés min</label>
+                  <label className="text-xs text-muted-foreground">Min. products bought</label>
                   <input type="number" value={form.min_products_bought} onChange={e => setForm({ ...form, min_products_bought: e.target.value })}
                     className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
                 </div>
               </div>
               <div>
-                <label className="text-xs text-muted-foreground">Logique de condition</label>
+                <label className="text-xs text-muted-foreground">Condition logic</label>
                 <div className="flex gap-2 mt-1">
                   <button onClick={() => setForm({ ...form, condition_logic: "OR" })}
                     className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors ${form.condition_logic === "OR" ? "gradient-button text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
-                    OU (une suffit)
+                    OR (one suffices)
                   </button>
                   <button onClick={() => setForm({ ...form, condition_logic: "AND" })}
                     className={`flex-1 py-2 rounded-xl text-xs font-bold transition-colors ${form.condition_logic === "AND" ? "gradient-button text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
-                    ET (toutes requises)
+                    AND (all required)
                   </button>
                 </div>
               </div>
               <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
-                <Save size={14} /> Sauvegarder
+                <Save size={14} /> Save
               </button>
             </div>
           ) : (
@@ -3435,7 +3435,7 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
                     </div>
                   )}
                   <span className="text-sm font-bold text-primary">{c.level_name}</span>
-                  <span className="text-[9px] bg-secondary text-muted-foreground px-2 py-0.5 rounded-full">Niveau {c.level}</span>
+                  <span className="text-[9px] bg-secondary text-muted-foreground px-2 py-0.5 rounded-full">Level {c.level}</span>
                 </div>
                 <div className="flex gap-1.5">
                   <label className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center cursor-pointer">
@@ -3447,32 +3447,32 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-secondary/50 rounded-lg p-2">
-                  <p className="text-[10px] text-muted-foreground">Invest. perso</p>
+                  <p className="text-[10px] text-muted-foreground">Personal invest.</p>
                   <p className="text-xs font-bold text-foreground">{Number(c.min_investment).toLocaleString("en-US")} USDT</p>
                 </div>
                 <div className="bg-secondary/50 rounded-lg p-2">
-                  <p className="text-[10px] text-muted-foreground">Invest. équipe</p>
+                  <p className="text-[10px] text-muted-foreground">Team invest.</p>
                   <p className="text-xs font-bold text-foreground">{Number(c.min_team_investment || 0).toLocaleString("en-US")} USDT</p>
                 </div>
                 <div className="bg-secondary/50 rounded-lg p-2">
-                  <p className="text-[10px] text-muted-foreground">Membres actifs</p>
+                  <p className="text-[10px] text-muted-foreground">Active members</p>
                   <p className="text-xs font-bold text-foreground">{c.min_active_members}</p>
                 </div>
                 <div className="bg-secondary/50 rounded-lg p-2">
-                  <p className="text-[10px] text-muted-foreground">Achats min</p>
+                  <p className="text-[10px] text-muted-foreground">Min. purchases</p>
                   <p className="text-xs font-bold text-foreground">{c.min_purchases}</p>
                 </div>
                 <div className="bg-secondary/50 rounded-lg p-2">
-                  <p className="text-[10px] text-muted-foreground">Produits achetés</p>
+                  <p className="text-[10px] text-muted-foreground">Products bought</p>
                   <p className="text-xs font-bold text-foreground">{c.min_products_bought}</p>
                 </div>
               </div>
-              <p className="text-[10px] text-muted-foreground mt-2">Logique : <span className="font-bold text-primary">{c.condition_logic === "AND" ? "ET (toutes)" : "OU (une suffit)"}</span></p>
+              <p className="text-[10px] text-muted-foreground mt-2">Logic: <span className="font-bold text-primary">{c.condition_logic === "AND" ? "AND (all)" : "OR (one suffices)"}</span></p>
             </div>
           )}
         </div>
       ))}
-      {uploading && <p className="text-xs text-center text-muted-foreground animate-pulse">Upload en cours...</p>}
+      {uploading && <p className="text-xs text-center text-muted-foreground animate-pulse">Uploading...</p>}
     </div>
   );
 };
@@ -3496,29 +3496,29 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
   };
 
   const save = async () => {
-    if (!form.name.trim()) { showError("Erreur", "Nom requis"); return; }
+    if (!form.name.trim()) { showError("Error", "Nom requis"); return; }
     const payload = { ...form, country_id: form.country_id || null, api_key: form.api_key || null, secret_key: form.secret_key || null, endpoint_url: form.endpoint_url || null, callback_url: form.callback_url || null, notes: form.notes || null };
     if (editing) await supabase.from("payment_api_configs").update(payload).eq("id", editing.id);
     else await supabase.from("payment_api_configs").insert(payload);
-    showSuccess(editing ? "API modifiée" : "API ajoutée", "");
+    showSuccess(editing ? "API updated" : "API added", "");
     setShowForm(false); reload();
   };
 
   const toggleActive = async (c: ApiConfig) => {
     await supabase.from("payment_api_configs").update({ is_active: !c.is_active }).eq("id", c.id);
-    showSuccess(c.is_active ? "API désactivée" : "API activée ⚡", "");
+    showSuccess(c.is_active ? "API deactivated" : "API activated ⚡", "");
     reload();
   };
 
   const deleteConfig = async (id: string) => {
-    if (!confirm("Supprimer cette configuration API ?")) return;
+    if (!confirm("Delete this API configuration?")) return;
     await supabase.from("payment_api_configs").delete().eq("id", id);
-    showSuccess("Configuration supprimée", "");
+    showSuccess("Configuration deleted", "");
     reload();
   };
 
   const getCountryName = (id: string | null) => {
-    if (!id) return "Tous les pays";
+    if (!id) return "All countries";
     const c = countries.find((ct: Country) => ct.id === id);
     return c ? `${c.name} (${c.country_code})` : "—";
   };
@@ -3529,7 +3529,7 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
     { value: "fedapay", label: "FedaPay" },
     { value: "paydunia", label: "PayDunia" },
     { value: "flutterwave", label: "Flutterwave" },
-    { value: "custom", label: "Personnalisé" },
+    { value: "custom", label: "Custom" },
   ];
 
   // Auto-fill defaults when provider changes
@@ -3546,13 +3546,13 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
     <div className="space-y-3">
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
         <p className="text-xs text-muted-foreground">
-          Configurez vos APIs de paiement ici. Chaque API peut être liée à un pays spécifique et activée/désactivée en un clic. Les clés API sont stockées de manière sécurisée.
+          Configure your payment APIs here. Each API can be linked to a specific country and enabled/disabled with one click. API keys are stored securely.
         </p>
       </div>
 
       <div className="flex gap-2">
         <button onClick={() => openForm()} className="flex-1 gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
-          <Plus size={16} /> Ajouter une API
+          <Plus size={16} /> Add an API
         </button>
         <button onClick={() => setShowLogs(!showLogs)} className={`px-4 py-3 rounded-xl text-sm font-bold ${showLogs ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
           Logs
@@ -3562,14 +3562,14 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
       {showForm && (
         <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
           <div className="flex justify-between">
-            <h3 className="text-sm font-bold text-foreground">{editing ? "Modifier l'API" : "Nouvelle API"}</h3>
+            <h3 className="text-sm font-bold text-foreground">{editing ? "Edit API" : "New API"}</h3>
             <button onClick={() => setShowForm(false)}><X size={16} className="text-muted-foreground" /></button>
           </div>
 
-          <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Nom (ex: CinetPay CI)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+          <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Name (e.g. CinetPay CI)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
 
           <div>
-            <label className="text-xs text-muted-foreground">Fournisseur</label>
+            <label className="text-xs text-muted-foreground">Provider</label>
             <select value={form.provider} onChange={e => handleProviderChange(e.target.value)}
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none">
               {providers.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
@@ -3580,7 +3580,7 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
             <label className="text-xs text-muted-foreground">Pays</label>
             <select value={form.country_id} onChange={e => setForm({ ...form, country_id: e.target.value })}
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none">
-              <option value="">Tous les pays</option>
+              <option value="">All countries</option>
               {countries.filter((c: Country) => c.is_active).map((c: Country) => (
                 <option key={c.id} value={c.id}>{c.name} ({c.country_code})</option>
               ))}
@@ -3603,12 +3603,12 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
 
           <div>
             <label className="text-xs text-muted-foreground">API Key</label>
-            <input type="password" value={form.api_key} onChange={e => setForm({ ...form, api_key: e.target.value })} placeholder="Clé API" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+            <input type="password" value={form.api_key} onChange={e => setForm({ ...form, api_key: e.target.value })} placeholder="API key" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
           </div>
 
           <div>
             <label className="text-xs text-muted-foreground">Secret Key</label>
-            <input type="password" value={form.secret_key} onChange={e => setForm({ ...form, secret_key: e.target.value })} placeholder="Clé secrète" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
+            <input type="password" value={form.secret_key} onChange={e => setForm({ ...form, secret_key: e.target.value })} placeholder="Secret key" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
           </div>
 
           <div>
@@ -3623,16 +3623,16 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
 
           <div>
             <label className="text-xs text-muted-foreground">Notes</label>
-            <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Notes internes..." rows={2} className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none resize-none" />
+            <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} placeholder="Internal notes..." rows={2} className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none resize-none" />
           </div>
 
-          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editing ? "Modifier" : "Créer"}</button>
+          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editing ? "Update" : "Create"}</button>
         </div>
       )}
 
       {/* API Configs list */}
       {(configs || []).length === 0 && !showForm ? (
-        <p className="text-xs text-muted-foreground text-center py-10">Aucune API configurée</p>
+        <p className="text-xs text-muted-foreground text-center py-10">No APIs configured</p>
       ) : (configs || []).map((c: ApiConfig) => (
         <div key={c.id} className={`bg-card rounded-xl border overflow-hidden ${c.is_active ? "border-success/30" : "border-secondary"}`}>
           <div className="px-4 py-3">
@@ -3647,7 +3647,7 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {providers.find(p => p.value === c.provider)?.label || c.provider} • {getCountryName(c.country_id)}
                 </p>
-                {c.api_key && <p className="text-[10px] text-muted-foreground">🔑 Clé: ••••{c.api_key.slice(-4)}</p>}
+                {c.api_key && <p className="text-[10px] text-muted-foreground">🔑 Key: ••••{c.api_key.slice(-4)}</p>}
               </div>
               <div className="flex gap-1.5">
                 <button onClick={() => toggleActive(c)}
@@ -3665,9 +3665,9 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
       {/* Payment Logs */}
       {showLogs && (
         <div className="bg-card rounded-xl border border-secondary p-4 space-y-2">
-          <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Activity size={14} className="text-primary" /> Logs de paiement API</h3>
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Activity size={14} className="text-primary" /> API payment logs</h3>
           {(paymentLogs || []).length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-6">Aucun log</p>
+            <p className="text-xs text-muted-foreground text-center py-6">No logs</p>
           ) : (paymentLogs || []).slice(0, 50).map((log: PaymentLog) => (
             <div key={log.id} className="bg-secondary/30 rounded-lg px-3 py-2">
               <div className="flex items-center justify-between">
@@ -3682,7 +3682,7 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
                     "bg-warning/20 text-warning"
                   }`}>{log.status}</span>
                   <p className="text-[10px] text-muted-foreground mt-0.5">
-                    {log.created_at ? new Date(log.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}
+                    {log.created_at ? new Date(log.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}
                   </p>
                 </div>
               </div>

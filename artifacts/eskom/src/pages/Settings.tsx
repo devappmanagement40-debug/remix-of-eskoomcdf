@@ -6,9 +6,9 @@ import PremiumModal from "@/components/PremiumModal";
 import { supabase } from "@/integrations/supabase/client";
 
 const settingsItems = [
-  { label: "Changer Mot Passe", path: "/changer-mot-de-passe" },
-  { label: "Changer de langue", path: "/changer-langue" },
-  { label: "Déconnexion", action: "logout" },
+  { label: "Change Password", path: "/changer-mot-de-passe" },
+  { label: "Change Language", path: "/changer-langue" },
+  { label: "Sign Out", action: "logout" },
 ];
 
 const Settings = () => {
@@ -17,7 +17,7 @@ const Settings = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <PageHeader title="Paramètres" showBack />
+      <PageHeader title="Settings" showBack />
       <div className="px-4 pt-6 space-y-3">
         {settingsItems.map((item) => (
           <button

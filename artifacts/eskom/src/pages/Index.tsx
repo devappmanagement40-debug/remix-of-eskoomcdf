@@ -186,11 +186,11 @@ const Index = () => {
                     <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 mt-1">
                       <div>
                         <p className="text-[9px] text-muted-foreground">Total revenue</p>
-                        <p className="text-xs font-bold text-primary">{Number(product.total_revenue).toLocaleString("fr-FR")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p>
+                        <p className="text-xs font-bold text-primary">{Number(product.total_revenue).toLocaleString("en-US")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p>
                       </div>
                       <div>
                         <p className="text-[9px] text-muted-foreground">Daily revenue</p>
-                        <p className="text-xs font-bold text-primary">{Number(product.daily_revenue).toLocaleString("fr-FR")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p>
+                        <p className="text-xs font-bold text-primary">{Number(product.daily_revenue).toLocaleString("en-US")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p>
                       </div>
                       <div>
                         <p className="text-[9px] text-muted-foreground">Cycles</p>
@@ -198,7 +198,7 @@ const Index = () => {
                       </div>
                       <div>
                         <p className="text-[9px] text-muted-foreground">Price</p>
-                        <p className="text-xs font-bold text-primary">{Number(product.price).toLocaleString("fr-FR")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p>
+                        <p className="text-xs font-bold text-primary">{Number(product.price).toLocaleString("en-US")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p>
                       </div>
                     </div>
                   </div>

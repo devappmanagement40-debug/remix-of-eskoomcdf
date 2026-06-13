@@ -63,12 +63,12 @@ const PointsCadeaux = () => {
           const pvip = get("points_per_vip_level_per_day");
           const pdep = get("points_per_deposit_value");
           const pw = get("points_per_withdrawal");
-          if (pam && Number(pam) > 0) tips.push(`Chaque membre actif vous rapporte ${pam} ESK`);
-          if (pvip && Number(pvip) > 0) tips.push(`Gagnez ${pvip} ESK par niveau VIP chaque jour`);
-          if (pdep && Number(pdep) > 0) tips.push(`Chaque dépôt vous rapporte ${pdep} ESK`);
-          if (pw && Number(pw) > 0) tips.push(`Chaque retrait vous rapporte ${pw} ESK`);
-          tips.push("Invitez des amis et gagnez des ESK bonus par niveau");
-          tips.push("Utilisez un code d'échange pour obtenir des ESK gratuits");
+          if (pam && Number(pam) > 0) tips.push(`Each active member earns you ${pam} ESK`);
+          if (pvip && Number(pvip) > 0) tips.push(`Earn ${pvip} ESK per VIP level each day`);
+          if (pdep && Number(pdep) > 0) tips.push(`Each deposit earns you ${pdep} ESK`);
+          if (pw && Number(pw) > 0) tips.push(`Each withdrawal earns you ${pw} ESK`);
+          tips.push("Invite friends and earn bonus ESK per level");
+          tips.push("Use a redemption code to get free ESK");
           setHowToEarn(tips);
         }
       } catch (err) {
@@ -80,11 +80,11 @@ const PointsCadeaux = () => {
 
   const handleExchange = async (reward: Reward) => {
     if (points < reward.points_required) {
-      showError("ESK insuffisants", `Il vous faut ${reward.points_required} ESK pour échanger ce cadeau.`);
+      showError("Insufficient ESK", `You need ${reward.points_required} ESK to redeem this reward.`);
       return;
     }
     if (reward.money_value <= 0) {
-      showError("Erreur", "Ce cadeau n'a pas de valeur monétaire configurée.");
+      showError("Error", "This reward has no monetary value configured.");
       return;
     }
 
@@ -93,15 +93,14 @@ const PointsCadeaux = () => {
 
     setExchanging(reward.id);
     try {
-      // Get fresh profile
       const { data: profile } = await supabase.from("profiles")
         .select("gift_points, balance, earnings_balance")
         .eq("user_id", user.id).single();
-      if (!profile) { showError("Erreur", "Profil introuvable"); return; }
+      if (!profile) { showError("Error", "Profile not found"); return; }
 
       const currentPoints = (profile as any).gift_points || 0;
       if (currentPoints < reward.points_required) {
-        showError("ESK insuffisants", "Votre solde ESK a changé. Veuillez réessayer.");
+        showError("Insufficient ESK", "Your ESK balance has changed. Please try again.");
         setPoints(currentPoints);
         return;
       }
@@ -110,16 +109,14 @@ const PointsCadeaux = () => {
       const newBalance = (profile.balance || 0) + reward.money_value;
       const newEarnings = (profile.earnings_balance || 0) + reward.money_value;
 
-      // Update profile: deduct points, credit balance
       const { error: updateError } = await supabase.from("profiles").update({
         gift_points: newPoints,
         balance: newBalance,
         earnings_balance: newEarnings,
       } as any).eq("user_id", user.id);
 
-      if (updateError) { showError("Erreur", "Une erreur est survenue"); return; }
+      if (updateError) { showError("Error", "An error occurred"); return; }
 
-      // Log the exchange
       await supabase.from("point_exchanges").insert({
         user_id: user.id,
         reward_id: reward.id,
@@ -137,17 +134,17 @@ const PointsCadeaux = () => {
         created_at: new Date().toISOString(),
       }, ...prev]);
 
-      showSuccess("Conversion réussie ✅", `${reward.points_required} ESK convertis en ${reward.money_value.toLocaleString("fr-FR")} USDT. Le montant a été crédité sur votre compte.`);
+      showSuccess("Conversion successful ✅", `${reward.points_required} ESK converted to ${reward.money_value.toLocaleString("en-US")} USDT. The amount has been credited to your account.`);
     } finally {
       setExchanging(null);
     }
   };
 
-  const fmtDate = (d: string) => new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" });
+  const fmtDate = (d: string) => new Date(d).toLocaleDateString("en-US", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" });
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <PageHeader title="Monnaie Eskom" showBack />
+      <PageHeader title="Eskom Currency" showBack />
       <div className="px-4 pt-6 space-y-4">
 
         {/* Points balance card */}
@@ -158,12 +155,12 @@ const PointsCadeaux = () => {
               <Gift size={28} className="text-primary" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Monnaie Eskom disponible</p>
+              <p className="text-xs text-muted-foreground">Available Eskom Currency</p>
               <p className="text-3xl font-bold text-primary">{points} <span className="text-sm font-normal">ESK</span></p>
             </div>
           </div>
           {fullName && (
-            <p className="text-xs text-muted-foreground mt-3">Bonjour, <span className="text-foreground font-medium">{fullName}</span></p>
+            <p className="text-xs text-muted-foreground mt-3">Hello, <span className="text-foreground font-medium">{fullName}</span></p>
           )}
         </div>
 
@@ -174,27 +171,27 @@ const PointsCadeaux = () => {
             className="bg-card rounded-xl border border-secondary p-4 flex flex-col items-center gap-2 hover:border-primary transition-colors"
           >
             <ArrowRightLeft size={20} className="text-primary" />
-            <span className="text-[11px] font-medium text-foreground">Échanger code</span>
+            <span className="text-[11px] font-medium text-foreground">Redeem Code</span>
           </button>
           <button
             onClick={() => navigate("/historique")}
             className="bg-card rounded-xl border border-secondary p-4 flex flex-col items-center gap-2 hover:border-primary transition-colors"
           >
             <Clock size={20} className="text-muted-foreground" />
-            <span className="text-[11px] font-medium text-foreground">Historique</span>
+            <span className="text-[11px] font-medium text-foreground">History</span>
           </button>
           <button
             onClick={() => navigate("/equipe")}
             className="bg-card rounded-xl border border-secondary p-4 flex flex-col items-center gap-2 hover:border-primary transition-colors"
           >
             <Star size={20} className="text-muted-foreground" />
-            <span className="text-[11px] font-medium text-foreground">Gagner plus</span>
+            <span className="text-[11px] font-medium text-foreground">Earn More</span>
           </button>
         </div>
 
-        {/* Comment gagner */}
+        {/* How to earn */}
         <div className="bg-card rounded-xl border border-secondary p-5">
-          <h2 className="text-sm font-bold text-foreground mb-3">Comment gagner de la Monnaie Eskom ?</h2>
+          <h2 className="text-sm font-bold text-foreground mb-3">How to earn Eskom Currency?</h2>
           <ul className="space-y-2.5 text-xs text-muted-foreground">
             {howToEarn.map((tip, i) => (
               <li key={i} className="flex items-start gap-2">
@@ -207,9 +204,9 @@ const PointsCadeaux = () => {
 
         {/* Rewards catalog */}
         <div>
-          <h2 className="text-sm font-bold text-foreground mb-3">Convertir votre Monnaie Eskom</h2>
+          <h2 className="text-sm font-bold text-foreground mb-3">Convert your Eskom Currency</h2>
           {rewards.length === 0 ? (
-            <p className="text-xs text-muted-foreground text-center py-6">Aucune récompense disponible pour le moment</p>
+            <p className="text-xs text-muted-foreground text-center py-6">No rewards available at the moment</p>
           ) : (
             <div className="space-y-3">
               {rewards.map((item) => (
@@ -227,7 +224,7 @@ const PointsCadeaux = () => {
                     )}
                     <div>
                       <p className="text-sm font-medium text-foreground">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">{item.points_required} ESK → <span className="text-success font-semibold">{item.money_value.toLocaleString("fr-FR")} USDT</span></p>
+                      <p className="text-xs text-muted-foreground">{item.points_required} ESK → <span className="text-success font-semibold">{item.money_value.toLocaleString("en-US")} USDT</span></p>
                     </div>
                   </div>
                   <button
@@ -235,7 +232,7 @@ const PointsCadeaux = () => {
                     disabled={points < item.points_required || exchanging === item.id}
                     className="px-4 py-1.5 rounded-lg text-xs font-semibold gradient-button text-primary-foreground disabled:opacity-40"
                   >
-                    {exchanging === item.id ? "..." : "Convertir"}
+                    {exchanging === item.id ? "..." : "Convert"}
                   </button>
                 </div>
               ))}
@@ -246,7 +243,7 @@ const PointsCadeaux = () => {
         {/* Recent exchanges */}
         {exchanges.length > 0 && (
           <div>
-            <h2 className="text-sm font-bold text-foreground mb-3">Historique des conversions</h2>
+            <h2 className="text-sm font-bold text-foreground mb-3">Conversion history</h2>
             <div className="space-y-2">
               {exchanges.map((ex) => (
                 <div key={ex.id} className="bg-card rounded-xl border border-border/30 p-3 flex items-center justify-between">

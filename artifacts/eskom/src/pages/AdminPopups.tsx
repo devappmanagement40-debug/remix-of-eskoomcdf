@@ -50,8 +50,8 @@ const AdminPopups = () => {
       is_active: form.is_active,
     }).eq("id", editing);
 
-    if (error) showError("Erreur", "Erreur lors de la sauvegarde");
-    else { showSuccess("Sauvegardé", "Message mis à jour avec succès ✅"); cancelEdit(); load(); }
+    if (error) showError("Error", "Error saving changes");
+    else { showSuccess("Saved", "Message updated successfully ✅"); cancelEdit(); load(); }
   };
 
   const toggleActive = async (msg: PopupMsg) => {
@@ -59,11 +59,11 @@ const AdminPopups = () => {
     load();
   };
 
-  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Chargement...</p></div>;
+  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
 
   return (
     <div className="min-h-screen bg-background pb-10">
-      <PageHeader title="Admin — Messages Popup" showBack />
+      <PageHeader title="Admin — Popup Messages" showBack />
       <div className="px-4 pt-6 space-y-4">
         {messages.map((msg) => (
           <div key={msg.id} className="bg-card rounded-xl border border-secondary p-4 space-y-3">
@@ -71,11 +71,11 @@ const AdminPopups = () => {
               <>
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs text-muted-foreground block mb-1">Clé</label>
+                    <label className="text-xs text-muted-foreground block mb-1">Key</label>
                     <p className="text-xs font-mono text-primary">{msg.trigger_key}</p>
                   </div>
                   <div>
-                    <label className="text-xs text-muted-foreground block mb-1">Titre</label>
+                    <label className="text-xs text-muted-foreground block mb-1">Title</label>
                     <input value={form.title || ""} onChange={(e) => setForm({ ...form, title: e.target.value })}
                       className="w-full bg-secondary text-foreground rounded-lg px-3 py-2 text-sm outline-none" />
                   </div>
@@ -86,12 +86,12 @@ const AdminPopups = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs text-muted-foreground block mb-1">Bouton Confirmer</label>
+                      <label className="text-xs text-muted-foreground block mb-1">Confirm Button</label>
                       <input value={form.button_confirm || ""} onChange={(e) => setForm({ ...form, button_confirm: e.target.value })}
                         className="w-full bg-secondary text-foreground rounded-lg px-3 py-2 text-sm outline-none" />
                     </div>
                     <div>
-                      <label className="text-xs text-muted-foreground block mb-1">Bouton Annuler (vide = aucun)</label>
+                      <label className="text-xs text-muted-foreground block mb-1">Cancel Button (empty = none)</label>
                       <input value={form.button_cancel || ""} onChange={(e) => setForm({ ...form, button_cancel: e.target.value })}
                         className="w-full bg-secondary text-foreground rounded-lg px-3 py-2 text-sm outline-none" />
                     </div>
@@ -100,38 +100,38 @@ const AdminPopups = () => {
                   {/* Tabs editor */}
                   {form.tabs && Array.isArray(form.tabs) && (
                     <div>
-                      <label className="text-xs text-muted-foreground block mb-2">Onglets</label>
+                      <label className="text-xs text-muted-foreground block mb-2">Tabs</label>
                       {form.tabs.map((tab, i) => (
                         <div key={i} className="bg-secondary/50 rounded-lg p-3 mb-2 space-y-2">
                           <input value={tab.label} onChange={(e) => {
                             const newTabs = [...form.tabs!];
                             newTabs[i] = { ...newTabs[i], label: e.target.value };
                             setForm({ ...form, tabs: newTabs });
-                          }} placeholder="Nom de l'onglet"
+                          }} placeholder="Tab name"
                             className="w-full bg-secondary text-foreground rounded-lg px-3 py-2 text-sm outline-none" />
                           <textarea value={tab.content} onChange={(e) => {
                             const newTabs = [...form.tabs!];
                             newTabs[i] = { ...newTabs[i], content: e.target.value };
                             setForm({ ...form, tabs: newTabs });
-                          }} rows={2} placeholder="Contenu"
+                          }} rows={2} placeholder="Content"
                             className="w-full bg-secondary text-foreground rounded-lg px-3 py-2 text-sm outline-none resize-none" />
                           <input value={tab.url || ""} onChange={(e) => {
                             const newTabs = [...form.tabs!];
                             newTabs[i] = { ...newTabs[i], url: e.target.value };
                             setForm({ ...form, tabs: newTabs });
-                          }} placeholder="URL (ex: /service-chat, https://wa.me/..., https://t.me/...)"
+                          }} placeholder="URL (e.g.: /service-chat, https://wa.me/..., https://t.me/...)"
                             className="w-full bg-secondary text-foreground rounded-lg px-3 py-2 text-sm outline-none" />
                           <button onClick={() => {
                             const newTabs = form.tabs!.filter((_, idx) => idx !== i);
                             setForm({ ...form, tabs: newTabs });
                           }} className="text-destructive text-xs flex items-center gap-1">
-                            <Trash2 size={12} /> Supprimer
+                            <Trash2 size={12} /> Delete
                           </button>
                         </div>
                       ))}
-                      <button onClick={() => setForm({ ...form, tabs: [...(form.tabs || []), { label: "Nouveau", content: "", url: "" }] })}
+                      <button onClick={() => setForm({ ...form, tabs: [...(form.tabs || []), { label: "New", content: "", url: "" }] })}
                         className="text-primary text-xs flex items-center gap-1 mt-1">
-                        <Plus size={12} /> Ajouter un onglet
+                        <Plus size={12} /> Add tab
                       </button>
                     </div>
                   )}
@@ -139,15 +139,15 @@ const AdminPopups = () => {
                   <div className="flex items-center gap-2">
                     <input type="checkbox" checked={form.is_active ?? true} onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
                       className="accent-primary" />
-                    <span className="text-xs text-foreground">Actif</span>
+                    <span className="text-xs text-foreground">Active</span>
                   </div>
                 </div>
                 <div className="flex gap-2 pt-2">
                   <button onClick={saveEdit} className="flex-1 gradient-button text-primary-foreground text-sm font-bold py-2.5 rounded-xl flex items-center justify-center gap-2">
-                    <Save size={14} /> Sauvegarder
+                    <Save size={14} /> Save
                   </button>
                   <button onClick={cancelEdit} className="flex-1 bg-secondary text-foreground text-sm font-bold py-2.5 rounded-xl flex items-center justify-center gap-2">
-                    <X size={14} /> Annuler
+                    <X size={14} /> Cancel
                   </button>
                 </div>
               </>
@@ -173,7 +173,7 @@ const AdminPopups = () => {
                   <span className="bg-secondary px-2 py-1 rounded">{msg.button_confirm}</span>
                   {msg.button_cancel && <span className="bg-secondary px-2 py-1 rounded">{msg.button_cancel}</span>}
                   {msg.tabs && Array.isArray(msg.tabs) && msg.tabs.length > 0 && (
-                    <span className="bg-secondary px-2 py-1 rounded">{msg.tabs.length} onglets</span>
+                    <span className="bg-secondary px-2 py-1 rounded">{msg.tabs.length} tab{msg.tabs.length > 1 ? "s" : ""}</span>
                   )}
                 </div>
               </>

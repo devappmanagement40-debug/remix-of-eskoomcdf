@@ -154,10 +154,10 @@ const AdminRetraits = () => {
       ? "✅ Validé manuellement par l'admin"
       : "❌ Rejeté manuellement par l'admin";
     const { error } = await supabase.from("withdrawals").update({ status, admin_note: note }).eq("id", item.id);
-    if (error) { showError("Erreur", error.message); return; }
+    if (error) { showError("Error", error.message); return; }
     showSuccess(
-      status === "approved" ? "Retrait approuvé" : "Retrait refusé",
-      status === "approved" ? "Validé manuellement ✅" : "Refusé et montant recrédité ❌"
+      status === "approved" ? "Withdrawal approved" : "Withdrawal rejected",
+      status === "approved" ? "Manually validated ✅" : "Rejected and amount refunded ❌"
     );
     loadData();
   };
@@ -173,13 +173,13 @@ const AdminRetraits = () => {
       });
       const data = await res.json();
       if (data.success) {
-        showSuccess("Payout soumis", `Retrait envoyé via NowPayments ✅ (ID: ${data.payoutId})`);
+        showSuccess("Payout submitted", `Withdrawal sent via NowPayments ✅ (ID: ${data.payoutId})`);
         loadData();
       } else {
-        showError("Erreur NowPayments", data.error || "Payout échoué");
+        showError("NowPayments Error", data.error || "Payout failed");
       }
     } catch {
-      showError("Erreur", "Erreur de connexion au serveur");
+      showError("Error", "Server connection error");
     } finally {
       setAutoPayingId(null);
     }
@@ -196,10 +196,10 @@ const AdminRetraits = () => {
       status,
       admin_note: status === "approved" ? "✅ Paiement des frais confirmé" : (note || "❌ Paiement refusé"),
     }).eq("id", fp.id);
-    if (error) { showError("Erreur", error.message); return; }
+    if (error) { showError("Error", error.message); return; }
     showSuccess(
       status === "approved" ? "Frais confirmés" : "Frais refusés",
-      status === "approved" ? "L'utilisateur peut effectuer son retrait" : "Paiement refusé"
+      status === "approved" ? "The user can proceed with their withdrawal" : "Payment rejected"
     );
     loadFeePayments();
   };
@@ -247,12 +247,12 @@ const AdminRetraits = () => {
 
   const formatDate = (d: string | null) => {
     if (!d) return "—";
-    return new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+    return new Date(d).toLocaleDateString("en-US", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
   };
 
   if (loading) return (
     <div className="min-h-screen bg-background flex items-center justify-center">
-      <p className="text-muted-foreground">Chargement...</p>
+      <p className="text-muted-foreground">Loading...</p>
     </div>
   );
 
@@ -298,7 +298,7 @@ const AdminRetraits = () => {
             </div>
 
             {filteredFees.length === 0 ? (
-              <div className="text-center py-16"><p className="text-sm text-muted-foreground">Aucun paiement de frais</p></div>
+              <div className="text-center py-16"><p className="text-sm text-muted-foreground">No fee payments</p></div>
             ) : filteredFees.map(fp => {
               const profile = profiles[fp.user_id];
               return (
@@ -350,7 +350,7 @@ const AdminRetraits = () => {
                           <CheckCircle2 size={16} />Confirmer
                         </button>
                         <button onClick={() => handleFeeAction(fp, "rejected", "Preuve invalide")} className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm">
-                          <XCircle size={16} />Refuser
+                          <XCircle size={16} />Reject
                         </button>
                       </div>
                     )}
@@ -386,7 +386,7 @@ const AdminRetraits = () => {
             </div>
 
             {filtered.length === 0 ? (
-              <div className="text-center py-16"><p className="text-sm text-muted-foreground">Aucun retrait</p></div>
+              <div className="text-center py-16"><p className="text-sm text-muted-foreground">No withdrawals</p></div>
             ) : filtered.map(r => {
               const profile = profiles[r.user_id];
               const wallet = r.wallet_id ? wallets[r.wallet_id] : null;
@@ -401,10 +401,10 @@ const AdminRetraits = () => {
                     {/* Header */}
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <p className="text-lg font-bold text-foreground">{r.amount.toLocaleString("fr-FR")} USDT</p>
+                        <p className="text-lg font-bold text-foreground">{r.amount.toLocaleString("en-US")} USDT</p>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <ArrowDown size={12} className="text-success" />
-                          <span className="text-sm font-semibold text-success">Net : {r.net_amount.toLocaleString("fr-FR")} USDT</span>
+                          <span className="text-sm font-semibold text-success">Net: {r.net_amount.toLocaleString("en-US")} USDT</span>
                           <span className="text-xs text-muted-foreground">(- {feePercent} %)</span>
                         </div>
                       </div>
@@ -465,12 +465,12 @@ const AdminRetraits = () => {
                           <p className="text-xs font-semibold text-foreground">{profile?.full_name || "—"}</p>
                         </div>
                         <div>
-                          <p className="text-[10px] text-muted-foreground">Montant demandé :</p>
-                          <p className="text-xs font-semibold text-foreground">{r.amount.toLocaleString("fr-FR")} USDT</p>
+                          <p className="text-[10px] text-muted-foreground">Requested amount:</p>
+                          <p className="text-xs font-semibold text-foreground">{r.amount.toLocaleString("en-US")} USDT</p>
                         </div>
                         <div>
                           <p className="text-[10px] text-muted-foreground">Solde actuel :</p>
-                          <p className="text-xs font-semibold text-foreground">{profile ? `${(profile.balance || 0).toLocaleString("fr-FR")} USDT` : "—"}</p>
+                          <p className="text-xs font-semibold text-foreground">{profile ? `${(profile.balance || 0).toLocaleString("en-US")} USDT` : "—"}</p>
                         </div>
                         {crypto && (
                           <div className="col-span-2">
@@ -502,8 +502,8 @@ const AdminRetraits = () => {
                               <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 space-y-2">
                                 <p className="text-xs font-bold text-primary">Confirmer le payout NowPayments</p>
                                 <div className="text-[10px] text-muted-foreground space-y-0.5">
-                                  <p>Réseau : <span className="text-foreground font-semibold">{r.network}</span></p>
-                                  <p>Montant net : <span className="text-success font-bold">{r.net_amount.toLocaleString("fr-FR")} USDT</span></p>
+                                  <p>Network: <span className="text-foreground font-semibold">{r.network}</span></p>
+                                  <p>Net amount: <span className="text-success font-bold">{r.net_amount.toLocaleString("en-US")} USDT</span></p>
                                   <p className="font-mono break-all">Adresse : {r.phone}</p>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2 pt-1">
@@ -551,7 +551,7 @@ const AdminRetraits = () => {
                                     onClick={() => handleAction(r, "approved")}
                                     className="flex items-center justify-center gap-1.5 bg-secondary border border-border text-foreground font-semibold py-2.5 rounded-xl text-xs hover:bg-secondary/80"
                                   >
-                                    <Hand size={13} />Manuel
+                                    <Hand size={13} />Manual
                                   </button>
                                   <button
                                     onClick={() => handleAction(r, "rejected")}
@@ -566,7 +566,7 @@ const AdminRetraits = () => {
                         ) : (
                           <div className="grid grid-cols-2 gap-3">
                             <button onClick={() => handleAction(r, "approved")} className="flex items-center justify-center gap-2 bg-success text-white font-bold py-2.5 rounded-xl text-sm">
-                              <CheckCircle2 size={16} />Valider
+                              <CheckCircle2 size={16} />Approve
                             </button>
                             <button onClick={() => handleAction(r, "rejected")} className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10">
                               <XCircle size={16} />Rejeter

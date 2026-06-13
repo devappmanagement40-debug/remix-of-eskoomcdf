@@ -58,7 +58,7 @@ const Portefeuille = () => {
     ? profile.earnings_balance + profile.referral_balance
     : profile.balance;
 
-  const fmt = (n: number) => n.toLocaleString("fr-FR", { minimumFractionDigits: 2 });
+  const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 });
 
   return (
     <div className="min-h-screen bg-background pb-20">

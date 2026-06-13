@@ -100,7 +100,7 @@ export const AdminTeamTab = ({
         .maybeSingle();
 
       if (!data) {
-        showError("Introuvable", "Aucun utilisateur trouvé avec ce numéro");
+        showError("Not found", "No user found with this number");
         setSearching(false);
         return;
       }
@@ -126,7 +126,7 @@ export const AdminTeamTab = ({
 
       setSearchResult({ user_id: data.user_id, phone: data.phone || "", full_name: data.full_name || "" });
     } catch (err) {
-      showError("Erreur", "Erreur lors de la recherche");
+      showError("Error", "Search error");
     } finally {
       setSearching(false);
     }
@@ -164,7 +164,7 @@ export const AdminTeamTab = ({
       setSelectedPerms([]);
       await loadSubAdmins();
     } catch (err: any) {
-      showError("Erreur", err.message || "Impossible d'ajouter l'administrateur");
+      showError("Error", err.message || "Unable to add administrator");
     } finally {
       setSaving(false);
     }
@@ -181,7 +181,7 @@ export const AdminTeamTab = ({
       showSuccess("Supprimé", "Administrateur adjoint retiré");
       await loadSubAdmins();
     } catch (err) {
-      showError("Erreur", "Impossible de supprimer");
+      showError("Error", "Unable to delete");
     }
   };
 
@@ -195,7 +195,7 @@ export const AdminTeamTab = ({
       await logAction("toggle_permission", "user", userId, `${permission}: ${hasIt ? "retiré" : "ajouté"}`);
       await loadSubAdmins();
     } catch (err) {
-      showError("Erreur", "Impossible de modifier la permission");
+      showError("Error", "Unable to change permission");
     }
   };
 
@@ -218,14 +218,14 @@ export const AdminTeamTab = ({
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold gradient-button text-primary-foreground"
         >
           {showAddForm ? <X size={14} /> : <Plus size={14} />}
-          {showAddForm ? "Annuler" : "Ajouter"}
+          {showAddForm ? "Cancel" : "Add"}
         </button>
       </div>
 
       {/* Add form */}
       {showAddForm && (
         <div className="bg-card rounded-xl border border-primary/30 p-4 space-y-4">
-          <h3 className="text-sm font-bold text-foreground">Ajouter un administrateur adjoint</h3>
+          <h3 className="text-sm font-bold text-foreground">Add a deputy administrator</h3>
 
           {/* Search by phone */}
           <div className="flex gap-2">
@@ -309,7 +309,7 @@ export const AdminTeamTab = ({
       {subAdmins.length === 0 && !showAddForm ? (
         <div className="text-center py-16">
           <Shield size={40} className="text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">Aucun administrateur adjoint</p>
+          <p className="text-sm text-muted-foreground">No deputy administrators</p>
           <p className="text-xs text-muted-foreground mt-1">Ajoutez des membres à votre équipe d'administration</p>
         </div>
       ) : (

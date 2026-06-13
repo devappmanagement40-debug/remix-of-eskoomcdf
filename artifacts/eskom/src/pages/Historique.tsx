@@ -8,12 +8,12 @@ import { supabase } from "@/integrations/supabase/client";
 type TabKey = "tous" | "depots" | "retraits" | "achats" | "gains" | "parrainage" | "points";
 
 const tabs: { key: TabKey; label: string }[] = [
-  { key: "tous", label: "Tous" },
-  { key: "depots", label: "Dépôts" },
-  { key: "retraits", label: "Retraits" },
-  { key: "achats", label: "Achats" },
-  { key: "gains", label: "Gains" },
-  { key: "parrainage", label: "Parrainage" },
+  { key: "tous", label: "All" },
+  { key: "depots", label: "Deposits" },
+  { key: "retraits", label: "Withdrawals" },
+  { key: "achats", label: "Purchases" },
+  { key: "gains", label: "Earnings" },
+  { key: "parrainage", label: "Referral" },
   { key: "points", label: "Points" },
 ];
 
@@ -31,9 +31,9 @@ type Operation = {
 };
 
 const statusLabel = (s: string) => {
-  if (s === "approved" || s === "completed") return "Validé";
-  if (s === "pending") return "En attente";
-  if (s === "rejected") return "Refusé";
+  if (s === "approved" || s === "completed") return "Approved";
+  if (s === "pending") return "Pending";
+  if (s === "rejected") return "Rejected";
   return s;
 };
 
@@ -76,16 +76,16 @@ const Historique = () => {
         (depositsRes.data || []).forEach((d: any) => {
           ops.push({
             id: `dep-${d.id}`, rawId: d.id, type: "depots", amount: d.amount, date: d.created_at,
-            status: d.status, description: `Dépôt via ${d.payment_method || "USDT"}`,
+            status: d.status, description: `Deposit via ${d.payment_method || "USDT"}`,
             icon: ArrowDownLeft, color: "text-success",
             details: {
-              "N° de commande": d.id.substring(0, 8).toUpperCase(),
-              "Type": "Dépôt / Recharge",
-              "Montant": `${Number(d.amount).toLocaleString("en-US")} USDT`,
-              "Moyen de paiement": d.payment_method || "USDT",
-              "Téléphone": `${d.country_code || ""} ${d.phone || ""}`,
-              "Réf. transaction": d.transaction_ref || "—",
-              "Statut": statusLabel(d.status),
+              "Order #": d.id.substring(0, 8).toUpperCase(),
+              "Type": "Deposit / Top-up",
+              "Amount": `${Number(d.amount).toLocaleString("en-US")} USDT`,
+              "Payment method": d.payment_method || "USDT",
+              "Phone": `${d.country_code || ""} ${d.phone || ""}`,
+              "Transaction ref": d.transaction_ref || "—",
+              "Status": statusLabel(d.status),
               "Date": fmtDateFull(d.created_at),
             },
           });
@@ -94,17 +94,17 @@ const Historique = () => {
         (withdrawalsRes.data || []).forEach((w: any) => {
           ops.push({
             id: `ret-${w.id}`, rawId: w.id, type: "retraits", amount: w.amount, date: w.created_at,
-            status: w.status, description: `Retrait via ${w.network}`,
+            status: w.status, description: `Withdrawal via ${w.network}`,
             icon: ArrowUpRight, color: "text-destructive",
             details: {
-              "N° de commande": w.id.substring(0, 8).toUpperCase(),
-              "Type": "Retrait",
-              "Montant demandé": `${Number(w.amount).toLocaleString("en-US")} USDT`,
-              "Frais": `${Number(w.fee_amount).toLocaleString("en-US")} USDT`,
-              "Montant reçu": `${Number(w.net_amount).toLocaleString("en-US")} USDT`,
-              "Réseau": w.network || "—",
-              "Téléphone": `${w.country_code || ""} ${w.phone || ""}`,
-              "Statut": statusLabel(w.status),
+              "Order #": w.id.substring(0, 8).toUpperCase(),
+              "Type": "Withdrawal",
+              "Requested amount": `${Number(w.amount).toLocaleString("en-US")} USDT`,
+              "Fee": `${Number(w.fee_amount).toLocaleString("en-US")} USDT`,
+              "Amount received": `${Number(w.net_amount).toLocaleString("en-US")} USDT`,
+              "Network": w.network || "—",
+              "Phone": `${w.country_code || ""} ${w.phone || ""}`,
+              "Status": statusLabel(w.status),
               "Date": fmtDateFull(w.created_at),
             },
           });
@@ -114,31 +114,31 @@ const Historique = () => {
           const product = p.products;
           ops.push({
             id: `ach-${p.id}`, rawId: p.id, type: "achats", amount: Number(product?.price) || 0, date: p.purchased_at,
-            status: "completed", description: `Achat : ${product?.name || "Produit"}`,
+            status: "completed", description: `Purchase: ${product?.name || "Product"}`,
             icon: ShoppingBag, color: "text-primary",
             details: {
-              "N° de commande": p.id.substring(0, 8).toUpperCase(),
-              "Type": "Achat de produit",
-              "Produit": product?.name || "—",
-              "Prix": `${Number(product?.price || 0).toLocaleString("en-US")} USDT`,
-              "Revenu journalier": `${Number(product?.daily_revenue || 0).toLocaleString("en-US")} USDT`,
-              "Durée": `${product?.cycles || 365} jours`,
-              "Gains collectés": `${Number(p.total_collected || 0).toLocaleString("en-US")} USDT`,
-              "Statut": "Validé",
-              "Date d'achat": fmtDateFull(p.purchased_at),
+              "Order #": p.id.substring(0, 8).toUpperCase(),
+              "Type": "Product purchase",
+              "Product": product?.name || "—",
+              "Price": `${Number(product?.price || 0).toLocaleString("en-US")} USDT`,
+              "Daily revenue": `${Number(product?.daily_revenue || 0).toLocaleString("en-US")} USDT`,
+              "Duration": `${product?.cycles || 365} days`,
+              "Earnings collected": `${Number(p.total_collected || 0).toLocaleString("en-US")} USDT`,
+              "Status": "Approved",
+              "Purchase date": fmtDateFull(p.purchased_at),
             },
           });
           if ((p.total_collected || 0) > 0) {
             ops.push({
               id: `gain-${p.id}`, rawId: p.id, type: "gains", amount: p.total_collected, date: p.purchased_at,
-              status: "completed", description: `Gains : ${product?.name || "Produit"}`,
+              status: "completed", description: `Earnings: ${product?.name || "Product"}`,
               icon: TrendingUp, color: "text-success",
               details: {
-                "N° de commande": p.id.substring(0, 8).toUpperCase(),
-                "Type": "Gains produit",
-                "Produit": product?.name || "—",
-                "Total collecté": `${Number(p.total_collected).toLocaleString("en-US")} USDT`,
-                "Statut": "Validé",
+                "Order #": p.id.substring(0, 8).toUpperCase(),
+                "Type": "Product earnings",
+                "Product": product?.name || "—",
+                "Total collected": `${Number(p.total_collected).toLocaleString("en-US")} USDT`,
+                "Status": "Approved",
                 "Date": fmtDateFull(p.purchased_at),
               },
             });
@@ -148,34 +148,34 @@ const Historique = () => {
         (exchangesRes.data || []).forEach((ex: any) => {
           ops.push({
             id: `pts-${ex.id}`, rawId: ex.id, type: "points", amount: ex.money_credited, date: ex.created_at,
-            status: "completed", description: `Conversion : ${ex.reward_name} (${ex.points_spent} pts)`,
+            status: "completed", description: `Conversion: ${ex.reward_name} (${ex.points_spent} pts)`,
             icon: Gift, color: "text-primary",
             details: {
-              "N° de commande": ex.id.substring(0, 8).toUpperCase(),
-              "Type": "Échange de points",
-              "Récompense": ex.reward_name,
-              "Points dépensés": `${ex.points_spent} pts`,
-              "Montant crédité": `${Number(ex.money_credited).toLocaleString("en-US")} USDT`,
-              "Statut": "Validé",
+              "Order #": ex.id.substring(0, 8).toUpperCase(),
+              "Type": "Points exchange",
+              "Reward": ex.reward_name,
+              "Points spent": `${ex.points_spent} pts`,
+              "Amount credited": `${Number(ex.money_credited).toLocaleString("en-US")} USDT`,
+              "Status": "Approved",
               "Date": fmtDateFull(ex.created_at),
             },
           });
         });
 
         ((commissionsRes.data as any[]) || []).forEach((c: any) => {
-          const levelLabel = c.level === 'B' ? 'Niveau E (direct)' : c.level === 'C' ? 'Niveau F' : 'Niveau G';
+          const levelLabel = c.level === 'B' ? 'Level E (direct)' : c.level === 'C' ? 'Level F' : 'Level G';
           ops.push({
             id: `ref-${c.id}`, rawId: c.id, type: "parrainage", amount: c.commission_amount, date: c.created_at,
-            status: "completed", description: `Bonus parrainage ${levelLabel}`,
+            status: "completed", description: `Referral bonus ${levelLabel}`,
             icon: Users, color: "text-success",
             details: {
-              "N° de commande": c.id.substring(0, 8).toUpperCase(),
-              "Type": "Bonus de parrainage",
-              "Niveau": levelLabel,
-              "Prix du produit": `${Number(c.product_price).toLocaleString("en-US")} USDT`,
-              "Taux": `${c.commission_rate}%`,
-              "Bonus reçu": `${Number(c.commission_amount).toLocaleString("en-US")} USDT`,
-              "Statut": "Validé",
+              "Order #": c.id.substring(0, 8).toUpperCase(),
+              "Type": "Referral bonus",
+              "Level": levelLabel,
+              "Product price": `${Number(c.product_price).toLocaleString("en-US")} USDT`,
+              "Rate": `${c.commission_rate}%`,
+              "Bonus received": `${Number(c.commission_amount).toLocaleString("en-US")} USDT`,
+              "Status": "Approved",
               "Date": fmtDateFull(c.created_at),
             },
           });
@@ -205,15 +205,15 @@ const Historique = () => {
 
   const filtered = activeTab === "tous" ? operations : operations.filter((o) => o.type === activeTab);
 
-  const fmt = (n: number) => n.toLocaleString("fr-FR", { minimumFractionDigits: 2 });
+  const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 });
   const fmtDate = (d: string) => {
     const dt = new Date(d);
-    return dt.toLocaleDateString("fr-FR", { timeZone: "America/Port-au-Prince" }) + " " + dt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" });
+    return dt.toLocaleDateString("en-US", { timeZone: "America/Port-au-Prince" }) + " " + dt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" });
   };
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <PageHeader title="Historique" showBack />
+      <PageHeader title="History" showBack />
       <div className="px-4 pt-4">
         {/* Tabs */}
         <div className="flex gap-1.5 mb-5 overflow-x-auto no-scrollbar">
@@ -233,11 +233,11 @@ const Historique = () => {
         </div>
 
         {loading ? (
-          <p className="text-center text-muted-foreground py-10">Chargement...</p>
+          <p className="text-center text-muted-foreground py-10">Loading...</p>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center py-16">
             <History size={40} className="text-muted-foreground mb-4" />
-            <p className="text-sm text-muted-foreground">Aucune opération dans cette catégorie</p>
+            <p className="text-sm text-muted-foreground">No transactions in this category</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -290,7 +290,7 @@ const Historique = () => {
             >
               <div className="flex items-center gap-2">
                 <selectedOp.icon size={20} className="text-white" />
-                <h3 className="text-white font-bold text-base">Reçu de transaction</h3>
+                <h3 className="text-white font-bold text-base">Transaction receipt</h3>
               </div>
               <button onClick={() => setSelectedOp(null)} className="text-white/80 hover:text-white">
                 <X size={22} />
@@ -312,11 +312,11 @@ const Historique = () => {
                   <span className="text-xs text-muted-foreground">{key}</span>
                   <div className="flex items-center gap-1.5">
                     <span className={`text-xs font-semibold text-foreground text-right max-w-[180px] truncate ${
-                      key === "Statut" ? statusColor(selectedOp.status) : ""
+                      key === "Status" ? statusColor(selectedOp.status) : ""
                     }`}>
                       {value}
                     </span>
-                    {(key === "N° de commande" || key === "Réf. transaction") && value !== "—" && (
+                    {(key === "Order #" || key === "Transaction ref") && value !== "—" && (
                       <button
                         onClick={() => copyText(value, key)}
                         className="text-muted-foreground hover:text-foreground transition-colors"
@@ -340,7 +340,7 @@ const Historique = () => {
                     : "linear-gradient(135deg, hsl(174 72% 50%), hsl(200 80% 55%))",
                 }}
               >
-                Fermer
+                Close
               </button>
             </div>
           </div>
@@ -354,8 +354,8 @@ const Historique = () => {
 
 function fmtDateFull(d: string) {
   const dt = new Date(d);
-  return dt.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "America/Port-au-Prince" }) +
-    " à " + dt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "America/Port-au-Prince" });
+  return dt.toLocaleDateString("en-US", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "America/Port-au-Prince" }) +
+    " at " + dt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "America/Port-au-Prince" });
 }
 
 export default Historique;

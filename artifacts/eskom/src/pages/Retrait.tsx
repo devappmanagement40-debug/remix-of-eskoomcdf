@@ -211,7 +211,7 @@ const Retrait = () => {
         {/* Balance */}
         <div className="bg-card rounded-2xl border border-border/30 p-5 text-center">
           <p className="text-xs text-muted-foreground mb-1">Withdrawable balance</p>
-          <p className="text-3xl font-bold text-foreground">{withdrawableBalance.toLocaleString("fr-FR")} <span className="text-sm font-normal text-muted-foreground">USDT</span></p>
+          <p className="text-3xl font-bold text-foreground">{withdrawableBalance.toLocaleString("en-US")} <span className="text-sm font-normal text-muted-foreground">USDT</span></p>
           {depositNotWithdrawable && (
             <div className="flex justify-center gap-3 mt-3">
               <span className="text-[10px] bg-success/10 text-success px-2.5 py-1 rounded-full">Earnings: {earningsBalance.toLocaleString("en-US")} USDT</span>
@@ -275,15 +275,15 @@ const Retrait = () => {
             <div className="mt-3 space-y-1.5 pt-3 border-t border-border/20">
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">Requested amount</span>
-                <span className="text-foreground font-semibold">{numAmount.toLocaleString("fr-FR")} USDT</span>
+                <span className="text-foreground font-semibold">{numAmount.toLocaleString("en-US")} USDT</span>
               </div>
               <div className="flex justify-between text-xs">
                 <span className="text-muted-foreground">Fees ({feePercent}%)</span>
-                <span className="text-destructive font-semibold">- {feeAmount.toLocaleString("fr-FR")} USDT</span>
+                <span className="text-destructive font-semibold">- {feeAmount.toLocaleString("en-US")} USDT</span>
               </div>
               <div className="flex justify-between text-sm pt-1">
                 <span className="text-foreground font-bold">You will receive</span>
-                <span className="text-success font-bold">{netAmount.toLocaleString("fr-FR")} USDT</span>
+                <span className="text-success font-bold">{netAmount.toLocaleString("en-US")} USDT</span>
               </div>
             </div>
           )}

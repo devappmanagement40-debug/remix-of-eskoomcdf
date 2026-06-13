@@ -74,7 +74,7 @@ const Loterie = () => {
   const spin = async () => {
     if (spinning || segments.length === 0) return;
     if (spinsLeft <= 0) {
-      showError("Aucun tour disponible", "Vous n'avez pas de tour disponible. Achetez un produit ou invitez un ami qui achète un produit pour obtenir un tour gratuit.");
+      showError("No spins available", "You have no spins left. Buy a product or invite a friend who purchases a product to get a free spin.");
       return;
     }
 
@@ -84,7 +84,7 @@ const Loterie = () => {
       const res = await supabase.functions.invoke("spin-wheel", {});
 
       if (res.error || res.data?.error) {
-        showError("Erreur", res.data?.error || "Une erreur est survenue");
+        showError("Error", res.data?.error || "An error occurred");
         setSpinning(false);
         return;
       }
@@ -103,26 +103,26 @@ const Loterie = () => {
         if (prize.prize_type === "vip") {
           showPopup({
             type: "success",
-            title: "Félicitations !",
-            message: `Vous avez gagné le niveau VIP${prize.vip_level || 1} ! En attente de validation par l'administration.`,
+            title: "Congratulations!",
+            message: `You won VIP${prize.vip_level || 1} level! Awaiting admin validation.`,
           });
         } else if (Number(prize.value) > 0) {
           showPopup({
             type: "success",
-            title: "Félicitations !",
-            message: `Vous avez gagné ${Number(prize.value).toLocaleString("fr-FR")} USDT ! Le montant a été crédité sur votre compte.`,
+            title: "Congratulations!",
+            message: `You won ${Number(prize.value).toLocaleString("en-US")} USDT! The amount has been credited to your account.`,
           });
         } else {
           showPopup({
             type: "info",
-            title: "Merci pour votre participation",
-            message: "Vous n'avez rien gagné cette fois. Tentez encore votre chance !",
+            title: "Thanks for playing",
+            message: "You didn't win this time. Try again!",
           });
         }
         loadData();
       }, 4500);
     } catch (e: any) {
-      showError("Erreur", e.message || "Erreur réseau");
+      showError("Error", e.message || "Network error");
       setSpinning(false);
     }
   };
@@ -229,21 +229,21 @@ const Loterie = () => {
     );
   };
 
-  const wheelTitle = settings.wheel_title || "Roue de la Fortune";
-  const wheelSubtitle = settings.wheel_subtitle || "100% Gagnant";
-  const wheelInfoTitle = settings.wheel_info_title || "Règlement du jeu";
-  const wheelRules = settings.wheel_rules || "Règle 1 : Chaque investissement vous donne droit à un tirage.\nRègle 2 : Inviter un membre valide vous donne droit à un tirage.";
+  const wheelTitle = settings.wheel_title || "Fortune Wheel";
+  const wheelSubtitle = settings.wheel_subtitle || "100% Winner";
+  const wheelInfoTitle = settings.wheel_info_title || "Game rules";
+  const wheelRules = settings.wheel_rules || "Rule 1: Each investment gives you one spin.\nRule 2: Inviting a validated member gives you one spin.";
   const wheelBanner = settings.wheel_banner_url;
 
-  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Chargement...</p></div>;
+  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <PageHeader title="LOTERIE ESKOM" showBack />
+      <PageHeader title="ESKOM LOTTERY" showBack />
 
       {wheelBanner && (
         <div className="px-4 pt-4">
-          <img src={wheelBanner} alt="Bannière" className="w-full rounded-xl object-cover max-h-32" />
+          <img src={wheelBanner} alt="Banner" className="w-full rounded-xl object-cover max-h-32" />
         </div>
       )}
 
@@ -261,16 +261,16 @@ const Loterie = () => {
         {/* Stats */}
         <div className="bg-card rounded-xl border border-secondary p-4 flex">
           <div className="flex-1 text-center border-r border-secondary">
-            <p className="text-xl font-bold text-foreground">{totalWon.toLocaleString("fr-FR")} <span className="text-sm font-normal text-muted-foreground">USDT</span></p>
-            <p className="text-xs text-muted-foreground mt-1">Montant gagné</p>
+            <p className="text-xl font-bold text-foreground">{totalWon.toLocaleString("en-US")} <span className="text-sm font-normal text-muted-foreground">USDT</span></p>
+            <p className="text-xs text-muted-foreground mt-1">Amount won</p>
           </div>
           <div className="flex-1 text-center border-r border-secondary">
             <p className="text-xl font-bold text-foreground">{spins.length}</p>
-            <p className="text-xs text-muted-foreground mt-1">Tirages</p>
+            <p className="text-xs text-muted-foreground mt-1">Spins</p>
           </div>
           <div className="flex-1 text-center">
             <p className="text-xl font-bold text-warning">{spinsLeft}</p>
-            <p className="text-xs text-muted-foreground mt-1">Tours restants</p>
+            <p className="text-xs text-muted-foreground mt-1">Spins left</p>
           </div>
         </div>
       </div>
@@ -287,7 +287,7 @@ const Loterie = () => {
               ? "bg-gradient-to-r from-[#FFD54F] to-[#FF8F00] text-[hsl(220,20%,8%)] hover:shadow-warning/30 hover:shadow-xl active:scale-95"
               : "bg-secondary text-muted-foreground cursor-not-allowed"
           } disabled:opacity-50`}>
-          {spinning ? "En cours..." : spinsLeft > 0 ? "TOURNER" : "Aucun tour"}
+          {spinning ? "Spinning..." : spinsLeft > 0 ? "SPIN" : "No spins"}
         </button>
       </div>
 
@@ -311,25 +311,25 @@ const Loterie = () => {
       <div className="px-4 mt-4">
         <div className="bg-card rounded-xl border border-secondary p-4">
           <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">
-            <Trophy size={16} className="text-warning" /> Derniers gagnants
+            <Trophy size={16} className="text-warning" /> Recent winners
           </h3>
           <div className="border-t border-secondary">
             <div className="grid grid-cols-3 py-2.5 text-xs text-muted-foreground font-semibold">
-              <span>Heure</span><span>Utilisateur</span><span className="text-right">Gain</span>
+              <span>Time</span><span>User</span><span className="text-right">Prize</span>
             </div>
             {globalSpins.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-4">Aucun tirage</p>
+              <p className="text-xs text-muted-foreground text-center py-4">No spins yet</p>
             ) : (
               <div className="max-h-72 overflow-y-auto divide-y divide-secondary">
                 {globalSpins.map((s) => (
                   <div key={s.id} className="grid grid-cols-3 py-2.5 text-xs items-center">
                     <span className="text-muted-foreground">
-                      {new Date(s.created_at).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", timeZone: "America/Port-au-Prince" })}{" "}
-                      {new Date(s.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" })}
+                      {new Date(s.created_at).toLocaleDateString("en-US", { day: "2-digit", month: "2-digit", timeZone: "America/Port-au-Prince" })}{" "}
+                      {new Date(s.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" })}
                     </span>
                     <span className="font-bold text-foreground">{s.masked_phone}</span>
                     <span className="text-right font-bold text-warning">
-                      {s.prize_type === "vip" ? `VIP${s.vip_level || ""}` : `${Number(s.prize_value).toLocaleString("fr-FR")} USDT`}
+                      {s.prize_type === "vip" ? `VIP${s.vip_level || ""}` : `${Number(s.prize_value).toLocaleString("en-US")} USDT`}
                     </span>
                   </div>
                 ))}

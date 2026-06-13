@@ -101,7 +101,7 @@ const Profile = () => {
                         </span>
                         <span className={c.met ? "text-success font-bold" : "text-muted-foreground"}>
                           {typeof c.current === 'number' && c.current > 100
-                            ? `${c.current.toLocaleString('fr-FR')} / ${c.required.toLocaleString('fr-FR')}`
+                            ? `${c.current.toLocaleString('en-US')} / ${c.required.toLocaleString('en-US')}`
                             : `${c.current} / ${c.required}`
                           }
                         </span>
@@ -123,7 +123,7 @@ const Profile = () => {
           {loading ? (
             <div className="h-8 w-32 bg-secondary/50 rounded animate-pulse" />
           ) : (
-            <p className="text-2xl font-bold text-primary">{profile.balance.toLocaleString('fr-FR')} USDT</p>
+            <p className="text-2xl font-bold text-primary">{profile.balance.toLocaleString('en-US')} USDT</p>
           )}
         </div>
 

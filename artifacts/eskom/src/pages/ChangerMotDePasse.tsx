@@ -16,15 +16,15 @@ const ChangerMotDePasse = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!oldPassword || !newPassword || !confirmPassword) {
-      showError("Erreur", "Veuillez remplir tous les champs");
+      showError("Error", "Please fill in all fields");
       return;
     }
     if (newPassword.length < 6) {
-      showError("Erreur", "Le nouveau mot de passe doit contenir au moins 6 caractères");
+      showError("Error", "New password must be at least 6 characters");
       return;
     }
     if (newPassword !== confirmPassword) {
-      showError("Erreur", "Les mots de passe ne correspondent pas");
+      showError("Error", "Passwords do not match");
       return;
     }
 
@@ -32,7 +32,7 @@ const ChangerMotDePasse = () => {
 
     // Verify old password by re-signing in
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.email) { showError("Erreur", "Utilisateur non connecté"); setLoading(false); return; }
+    if (!user?.email) { showError("Error", "User not logged in"); setLoading(false); return; }
 
     const { error: signInError } = await supabase.auth.signInWithPassword({
       email: user.email,
@@ -40,16 +40,16 @@ const ChangerMotDePasse = () => {
     });
 
     if (signInError) {
-      showError("Erreur", "L'ancien mot de passe est incorrect");
+      showError("Error", "Current password is incorrect");
       setLoading(false);
       return;
     }
 
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) {
-      showError("Erreur", "Erreur lors de la mise à jour du mot de passe");
+      showError("Error", "Failed to update password");
     } else {
-      showSuccess("Succès", "Mot de passe modifié avec succès ✅");
+      showSuccess("Success", "Password updated successfully ✅");
       setTimeout(() => navigate("/parametres"), 1500);
     }
     setLoading(false);
@@ -57,28 +57,28 @@ const ChangerMotDePasse = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <PageHeader title="Changer Mot de Passe" showBack />
+      <PageHeader title="Change Password" showBack />
       <div className="px-4 pt-8">
         <form onSubmit={handleSubmit} className="space-y-4 max-w-sm mx-auto">
           <div className="input-glow rounded-lg bg-input">
-            <Input type="password" placeholder="Ancien mot de passe" value={oldPassword}
+            <Input type="password" placeholder="Current password" value={oldPassword}
               onChange={(e) => setOldPassword(e.target.value)}
               className="border-0 bg-transparent focus-visible:ring-0 text-foreground placeholder:text-muted-foreground" />
           </div>
           <div className="input-glow rounded-lg bg-input">
-            <Input type="password" placeholder="Nouveau mot de passe" value={newPassword}
+            <Input type="password" placeholder="New password" value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className="border-0 bg-transparent focus-visible:ring-0 text-foreground placeholder:text-muted-foreground" />
           </div>
           <div className="input-glow rounded-lg bg-input">
-            <Input type="password" placeholder="Confirmer le nouveau mot de passe" value={confirmPassword}
+            <Input type="password" placeholder="Confirm new password" value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="border-0 bg-transparent focus-visible:ring-0 text-foreground placeholder:text-muted-foreground" />
           </div>
           <div className="pt-4">
             <button type="submit" disabled={loading}
               className="w-full gradient-button text-foreground font-semibold py-3.5 rounded-xl text-base transition-opacity hover:opacity-90 disabled:opacity-50">
-              {loading ? "Modification..." : "Modifier le mot de passe"}
+              {loading ? "Updating..." : "Update password"}
             </button>
           </div>
         </form>

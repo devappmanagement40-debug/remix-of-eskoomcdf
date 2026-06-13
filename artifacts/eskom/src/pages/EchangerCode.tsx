@@ -13,14 +13,14 @@ const EchangerCode = () => {
   const handleConfirm = async () => {
     const trimmed = code.trim().toUpperCase();
     if (!trimmed) {
-      showError("Erreur", "Veuillez saisir un code");
+      showError("Error", "Please enter a code");
       return;
     }
 
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { showError("Erreur", "Vous devez être connecté"); return; }
+      if (!user) { showError("Error", "You must be logged in"); return; }
 
       // Find the code
       const { data: giftCode } = await supabase
@@ -31,19 +31,19 @@ const EchangerCode = () => {
         .single();
 
       if (!giftCode) {
-        showError("Code invalide", "Ce code est invalide ou a déjà été désactivé");
+        showError("Invalid code", "This code is invalid or has already been deactivated");
         return;
       }
 
       // Check expiration
       if ((giftCode as any).expires_at && new Date((giftCode as any).expires_at) < new Date()) {
-        showError("Code expiré", "Ce code a expiré et ne peut plus être utilisé");
+        showError("Expired code", "This code has expired and can no longer be used");
         return;
       }
 
       // Check max uses
       if ((giftCode as any).used_count >= (giftCode as any).max_uses) {
-        showError("Code épuisé", "Ce code a atteint le nombre maximum d'utilisations");
+        showError("Code exhausted", "This code has reached its maximum number of uses");
         return;
       }
 
@@ -55,7 +55,7 @@ const EchangerCode = () => {
         .eq("user_id", user.id);
 
       if ((count || 0) > 0) {
-        showError("Déjà utilisé", "Vous avez déjà utilisé ce code");
+        showError("Already used", "You have already used this code");
         return;
       }
 
@@ -85,11 +85,11 @@ const EchangerCode = () => {
         used_count: (giftCode as any).used_count + 1,
       } as any).eq("id", giftCode.id);
 
-      showSuccess("Code échangé avec succès ✅", `Vous avez reçu ${pointsValue} ESK (Monnaie Eskom) !`);
+      showSuccess("Code redeemed successfully ✅", `You received ${pointsValue} ESK (Eskom Currency)!`);
       setCode("");
     } catch (err) {
       console.error("Exchange code error:", err);
-      showError("Erreur", "Une erreur est survenue lors de l'échange");
+      showError("Error", "An error occurred while redeeming the code");
     } finally {
       setLoading(false);
     }
@@ -97,7 +97,7 @@ const EchangerCode = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <PageHeader title="Échanger Code" showBack />
+      <PageHeader title="Redeem Code" showBack />
 
       {/* Mascot area */}
       <div className="relative bg-card mx-4 mt-4 rounded-2xl overflow-hidden border border-border">
@@ -123,7 +123,7 @@ const EchangerCode = () => {
         <div className="bg-secondary/80 backdrop-blur-sm rounded-2xl mx-3 mb-4 p-5 space-y-4 border border-border">
           <Input
             type="text"
-            placeholder="Veuillez saisir le code d'échange"
+            placeholder="Enter your redemption code"
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
             className="bg-transparent border border-primary/40 text-foreground placeholder:text-muted-foreground h-12 rounded-lg focus-visible:ring-primary/50 uppercase"
@@ -133,7 +133,7 @@ const EchangerCode = () => {
             disabled={loading}
             className="w-full gradient-button text-foreground font-semibold py-3.5 rounded-xl text-base transition-opacity hover:opacity-90 disabled:opacity-50"
           >
-            {loading ? "Vérification..." : "Confirmer"}
+            {loading ? "Verifying..." : "Confirm"}
           </button>
         </div>
       </div>

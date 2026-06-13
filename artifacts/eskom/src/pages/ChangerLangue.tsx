@@ -17,13 +17,13 @@ const ChangerLangue = () => {
   const handleSelect = (code: string) => {
     setSelected(code);
     localStorage.setItem("eskom_lang", code);
-    showSuccess("Langue modifiée", `Langue définie sur ${languages.find(l => l.code === code)?.label}`);
+    showSuccess("Language updated", `Language set to ${languages.find(l => l.code === code)?.label}`);
     setTimeout(() => navigate("/parametres"), 1000);
   };
 
   return (
     <div className="min-h-screen bg-background">
-      <PageHeader title="Changer la Langue" showBack />
+      <PageHeader title="Change Language" showBack />
       <div className="px-4 pt-6 space-y-3">
         {languages.map((lang) => (
           <button

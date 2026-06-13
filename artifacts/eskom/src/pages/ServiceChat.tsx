@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Image, Paperclip, Smile, Check, CheckCheck, MoreVertical, Phone, Video, Bot } from "lucide-react";
+import { ArrowLeft, Send, Image, Paperclip, Smile, Check, CheckCheck, MoreVertical, Phone, Bot } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import emmaAvatar from "@/assets/emma-avatar.jpg";
 
@@ -91,7 +91,7 @@ const ServiceChat = () => {
         id: m.id,
         text: m.message,
         sender: m.sender === "user" ? "user" : "support",
-        time: new Date(m.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+        time: new Date(m.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
         status: "read",
         isAI: m.is_ai,
       }));
@@ -99,8 +99,8 @@ const ServiceChat = () => {
     } else {
       // First visit greeting
       const greetingText = enabled
-        ? "Bonjour ! 👋 Je suis Emma, votre assistante virtuelle ESKOM. Comment puis-je vous aider aujourd'hui ?\n\nEmma – Assistante virtuelle ESKOM"
-        : "Bonjour ! Bienvenue sur le support ESKOM. Comment pouvons-nous vous aider aujourd'hui ?";
+        ? "Hello! 👋 I'm Emma, your ESKOM virtual assistant. How can I help you today?\n\nEmma – ESKOM Virtual Assistant"
+        : "Hello! Welcome to ESKOM support. How can we help you today?";
 
       await supabase.from("chat_messages").insert({
         user_id: user.id,
@@ -120,7 +120,7 @@ const ServiceChat = () => {
           id: m.id,
           text: m.message,
           sender: m.sender === "user" ? "user" : "support",
-          time: new Date(m.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+          time: new Date(m.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
           status: "read",
           isAI: m.is_ai,
         })));
@@ -137,7 +137,6 @@ const ServiceChat = () => {
         { event: "INSERT", schema: "public", table: "chat_messages", filter: `user_id=eq.${user.id}` },
         (payload) => {
           const m = payload.new as any;
-          // Only add support messages not already added manually
           if (m.sender === "support") {
             if (manuallyAddedIds.current.has(m.id)) {
               manuallyAddedIds.current.delete(m.id);
@@ -149,7 +148,7 @@ const ServiceChat = () => {
                 id: m.id,
                 text: m.message,
                 sender: "support",
-                time: new Date(m.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+                time: new Date(m.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
                 status: "delivered",
                 isAI: m.is_ai,
               }];
@@ -188,7 +187,7 @@ const ServiceChat = () => {
         id: inserted.id,
         text: userText,
         sender: "user",
-        time: new Date(inserted.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+        time: new Date(inserted.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
         status: "sent",
       };
       setMessages((prev) => [...prev, newMsg]);
@@ -202,11 +201,9 @@ const ServiceChat = () => {
         });
 
         setIsTyping(false);
-        const replyText = data?.reply || "Je suis désolée, une erreur est survenue. Veuillez réessayer.";
+        const replyText = data?.reply || "I'm sorry, an error occurred. Please try again.";
 
-        // Reply is already saved server-side, just update UI
         const replyId = data?.savedReplyId || crypto.randomUUID();
-        // Mark as manually added so realtime subscription skips it
         if (data?.savedReplyId) manuallyAddedIds.current.add(data.savedReplyId);
         setMessages((prev) => [
           ...prev.map((m): Message => m.id === inserted?.id ? { ...m, status: "read" } : m),
@@ -214,19 +211,18 @@ const ServiceChat = () => {
             id: replyId,
             text: replyText,
             sender: "support",
-            time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+            time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
             status: "delivered",
             isAI: true,
           },
         ]);
       } catch {
         setIsTyping(false);
-        const errText = "Une erreur est survenue. Un agent humain prendra le relais bientôt. 🙏\n\nEmma – Assistante virtuelle ESKOM";
+        const errText = "An error occurred. A human agent will take over shortly. 🙏\n\nEmma – ESKOM Virtual Assistant";
         await supabase.from("chat_messages").insert({ user_id: userId, sender: "support", message: errText, is_ai: true });
       }
     } else {
       setIsTyping(false);
-      // No auto-reply when Emma is off - admin will reply from the panel
     }
   };
 
@@ -236,7 +232,6 @@ const ServiceChat = () => {
 
     setIsTyping(true);
 
-    // Upload to storage
     const ext = file.name.split(".").pop() || "jpg";
     const path = `${userId}/${Date.now()}.${ext}`;
     const { error: uploadErr } = await supabase.storage.from("chat-images").upload(path, file, { upsert: true });
@@ -248,8 +243,7 @@ const ServiceChat = () => {
     const { data: urlData } = supabase.storage.from("chat-images").getPublicUrl(path);
     const imageUrl = urlData.publicUrl;
 
-    // Save user message with image URL
-    const imgMsg = `📷 [Image envoyée]`;
+    const imgMsg = `📷 [Image sent]`;
     const { data: inserted } = await supabase
       .from("chat_messages")
       .insert({ user_id: userId, sender: "user", message: imgMsg, is_ai: false })
@@ -262,21 +256,20 @@ const ServiceChat = () => {
         text: "",
         image: imageUrl,
         sender: "user",
-        time: new Date(inserted.created_at).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+        time: new Date(inserted.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
         status: "sent",
       }]);
     }
 
-    // Send image to Emma for analysis if enabled
     if (emmaEnabled) {
       try {
         const history = messages.slice(-10).map((m) => ({ sender: m.sender, text: m.text }));
         const { data } = await supabase.functions.invoke("sarah-chat", {
-          body: { message: "L'utilisateur a envoyé une image.", history, userId, imageUrl },
+          body: { message: "The user sent an image.", history, userId, imageUrl },
         });
 
         setIsTyping(false);
-        const replyText = data?.reply || "Je suis désolée, une erreur est survenue. Veuillez réessayer.";
+        const replyText = data?.reply || "I'm sorry, an error occurred. Please try again.";
         const replyId = data?.savedReplyId || crypto.randomUUID();
         if (data?.savedReplyId) manuallyAddedIds.current.add(data.savedReplyId);
         setMessages((prev) => [
@@ -285,7 +278,7 @@ const ServiceChat = () => {
             id: replyId,
             text: replyText,
             sender: "support",
-            time: new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+            time: new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
             status: "delivered",
             isAI: true,
           },
@@ -304,7 +297,7 @@ const ServiceChat = () => {
     return <CheckCheck size={14} className="text-primary" />;
   };
 
-  if (loadingSettings) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground text-sm">Chargement...</p></div>;
+  if (loadingSettings) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground text-sm">Loading...</p></div>;
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -328,12 +321,12 @@ const ServiceChat = () => {
             {emmaEnabled ? "Emma" : "ESKOM Support"}
             {emmaEnabled && (
               <span className="inline-flex items-center gap-0.5 text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-semibold">
-                <Bot size={10} /> IA
+                <Bot size={10} /> AI
               </span>
             )}
           </h1>
           <p className="text-xs text-[#25D366] font-medium">
-            {emmaEnabled ? "Assistante IA • En ligne" : "En ligne"}
+            {emmaEnabled ? "AI Assistant • Online" : "Online"}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -356,7 +349,7 @@ const ServiceChat = () => {
       >
         <div className="flex justify-center mb-4">
           <span className="bg-card/80 backdrop-blur-sm text-muted-foreground text-[10px] px-3 py-1 rounded-full border border-secondary">
-            Aujourd'hui
+            Today
           </span>
         </div>
 
@@ -373,12 +366,12 @@ const ServiceChat = () => {
               {msg.sender === "support" && msg.isAI && (
                 <div className="flex items-center gap-1 mb-1">
                   <Bot size={10} className="text-primary" />
-                  <span className="text-[9px] text-primary font-semibold">Emma IA</span>
+                  <span className="text-[9px] text-primary font-semibold">Emma AI</span>
                 </div>
               )}
               {msg.image && (
                 <div className="mb-1.5 rounded-lg overflow-hidden">
-                  <img src={msg.image} alt="Image envoyée" className="max-w-full max-h-60 object-contain rounded-lg" />
+                  <img src={msg.image} alt="Image sent" className="max-w-full max-h-60 object-contain rounded-lg" />
                 </div>
               )}
               {msg.text && <p className="text-sm text-foreground leading-relaxed whitespace-pre-line"><LinkedText text={msg.text} /></p>}
@@ -415,7 +408,7 @@ const ServiceChat = () => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-            placeholder="Votre message..."
+            placeholder="Your message..."
             className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none resize-none max-h-24 leading-5"
             rows={1}
           />

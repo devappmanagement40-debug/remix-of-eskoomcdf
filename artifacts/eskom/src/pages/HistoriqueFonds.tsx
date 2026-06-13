@@ -14,9 +14,9 @@ type FundEntry = {
 };
 
 const statusLabel = (s: string) => {
-  if (s === "approved") return "Validé";
-  if (s === "pending") return "En attente";
-  if (s === "rejected") return "Refusé";
+  if (s === "approved") return "Approved";
+  if (s === "pending") return "Pending";
+  if (s === "rejected") return "Rejected";
   return s;
 };
 
@@ -58,22 +58,22 @@ const HistoriqueFonds = () => {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  const fmt = (n: number) => n.toLocaleString("fr-FR", { minimumFractionDigits: 2 });
+  const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 });
   const fmtDate = (d: string) => {
     const dt = new Date(d);
-    return dt.toLocaleDateString("fr-FR", { timeZone: "America/Port-au-Prince" }) + " " + dt.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" });
+    return dt.toLocaleDateString("en-US", { timeZone: "America/Port-au-Prince" }) + " " + dt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" });
   };
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <PageHeader title="Historique des fonds" showBack />
+      <PageHeader title="Fund History" showBack />
       <div className="px-4 pt-4">
         {loading ? (
-          <p className="text-center text-muted-foreground py-10">Chargement...</p>
+          <p className="text-center text-muted-foreground py-10">Loading...</p>
         ) : entries.length === 0 ? (
           <div className="flex flex-col items-center py-16">
             <Banknote size={40} className="text-muted-foreground mb-4" />
-            <p className="text-sm text-muted-foreground">Aucun fond enregistré</p>
+            <p className="text-sm text-muted-foreground">No transactions recorded</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -83,7 +83,7 @@ const HistoriqueFonds = () => {
                   {e.type === "deposit" ? <ArrowDownLeft size={18} className="text-success" /> : <ArrowUpRight size={18} className="text-destructive" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground">{e.type === "deposit" ? "Dépôt" : "Retrait"} via {e.method}</p>
+                  <p className="text-sm font-semibold text-foreground">{e.type === "deposit" ? "Deposit" : "Withdrawal"} via {e.method}</p>
                   <p className="text-[10px] text-muted-foreground">{fmtDate(e.date)}</p>
                 </div>
                 <div className="text-right shrink-0">

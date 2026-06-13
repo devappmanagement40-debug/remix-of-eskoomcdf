@@ -28,12 +28,12 @@ const Aide = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <PageHeader title="Centre d'aide" showBack />
+      <PageHeader title="Help Center" showBack />
       <div className="px-4 pt-6 space-y-3">
         {loading ? (
-          <p className="text-center text-sm text-muted-foreground py-10">Chargement...</p>
+          <p className="text-center text-sm text-muted-foreground py-10">Loading...</p>
         ) : faqItems.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-10">Aucune aide disponible</p>
+          <p className="text-center text-sm text-muted-foreground py-10">No help articles available</p>
         ) : (
           faqItems.map((item) => (
             <details key={item.id} className="bg-card rounded-xl border border-secondary overflow-hidden group">

@@ -28,7 +28,7 @@ interface LevelData {
 }
 
 const WHATSAPP_MESSAGE = encodeURIComponent(
-  `Bonjour à vous 👋\n\nVous vous êtes inscrit(e) avec mon lien sur la plateforme ESKOM.\nJe suis votre parrain et je me permets de vous contacter pour vous accompagner si besoin.\n\nN'hésitez pas à me poser vos questions.\n\nCordialement.`
+  `Hello 👋\n\nYou registered using my referral link on the ESKOM platform.\nI am your referrer and I'm reaching out to assist you if needed.\n\nFeel free to ask me any questions.\n\nBest regards.`
 );
 
 const Team = () => {
@@ -109,7 +109,6 @@ const Team = () => {
 
       let bonusMap = new Map<string, number>();
       if (allUserIds.length > 0) {
-        // Bonus is calculated on product purchases (price), not deposits
         const { data: userProds } = await supabase
           .from("user_products")
           .select("user_id, product_id, products(price)")
@@ -163,14 +162,14 @@ const Team = () => {
     const ok = await safeClipboardWrite(referralCode);
     if (ok) {
       setCopied(true);
-      showCopy("Code de parrainage copié !");
+      showCopy("Referral code copied!");
       setTimeout(() => setCopied(false), 2000);
     }
   };
 
   const formatDate = (d: string | null) => {
     if (!d) return "—";
-    return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric", timeZone: "America/Port-au-Prince" });
+    return new Date(d).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric", timeZone: "America/Port-au-Prince" });
   };
 
   // If a level is expanded, show member list view
@@ -186,14 +185,14 @@ const Team = () => {
             {level.label}
           </div>
           <div>
-            <h1 className="text-sm font-bold text-foreground">Niveau {level.label}</h1>
-            <p className="text-xs text-muted-foreground">{level.members.length} membre(s)</p>
+            <h1 className="text-sm font-bold text-foreground">Level {level.label}</h1>
+            <p className="text-xs text-muted-foreground">{level.members.length} member(s)</p>
           </div>
         </div>
 
         <div className="px-4 pt-4 space-y-3">
           {level.members.length === 0 ? (
-            <p className="text-center text-muted-foreground py-12 text-sm">Aucun membre à ce niveau.</p>
+            <p className="text-center text-muted-foreground py-12 text-sm">No members at this level.</p>
           ) : (
             level.members.map((member) => {
               const isActive = member.hasInvested;
@@ -205,7 +204,7 @@ const Team = () => {
                         {(member.full_name || member.phone || "?")[0].toUpperCase()}
                       </div>
                       <div>
-                        <p className="font-semibold text-foreground text-sm">{member.full_name || "Utilisateur"}</p>
+                        <p className="font-semibold text-foreground text-sm">{member.full_name || "User"}</p>
                         <p className="text-xs text-muted-foreground flex items-center gap-1">
                           <Phone size={12} /> {member.country_code}{member.phone}
                         </p>
@@ -213,7 +212,7 @@ const Team = () => {
                     </div>
                     <Badge variant={isActive ? "default" : "destructive"} className="text-[10px]">
                       <CircleDot size={10} className="mr-1" />
-                      {isActive ? "Actif" : "Inactif"}
+                      {isActive ? "Active" : "Inactive"}
                     </Badge>
                   </div>
 
@@ -229,7 +228,7 @@ const Team = () => {
                     className="w-full flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-semibold text-sm rounded-xl py-2.5 transition-colors"
                   >
                     <MessageCircle size={18} />
-                    Contacter via WhatsApp
+                    Contact via WhatsApp
                   </button>
                 </div>
               );
@@ -242,10 +241,10 @@ const Team = () => {
     );
   }
 
-  // Main view — matches reference screenshot
+  // Main view
   return (
     <div className="min-h-screen bg-background pb-20">
-      <PageHeader title="Mon équipe" showBack />
+      <PageHeader title="My Team" showBack />
 
       <div className="px-4 pt-4 space-y-4">
         {referralCode && (
@@ -253,7 +252,7 @@ const Team = () => {
             onClick={copyCode}
             className="w-full flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3"
           >
-            <span className="text-sm text-muted-foreground">Mon code de parrainage</span>
+            <span className="text-sm text-muted-foreground">My referral code</span>
             <span className="flex items-center gap-2 text-primary font-bold text-sm">
               {referralCode}
               {copied ? <Check size={16} /> : <Copy size={16} />}
@@ -267,19 +266,19 @@ const Team = () => {
             <div className="w-14 h-14 rounded-full bg-amber-500/20 flex items-center justify-center mb-3">
               <DollarSign size={28} className="text-amber-400" />
             </div>
-            <span className="text-xs text-muted-foreground mb-1">Revenu Total</span>
+            <span className="text-xs text-muted-foreground mb-1">Total Revenue</span>
             <span className="text-lg font-bold text-primary">{totalRevenue.toLocaleString()} <span className="text-xs font-normal text-muted-foreground">USDT</span></span>
           </div>
           <div className="bg-card border border-border rounded-xl p-5 flex flex-col items-center">
             <div className="w-14 h-14 rounded-full bg-cyan-500/20 flex items-center justify-center mb-3">
               <Users size={28} className="text-cyan-400" />
             </div>
-            <span className="text-xs text-muted-foreground mb-1">Taille l'équipe</span>
+            <span className="text-xs text-muted-foreground mb-1">Team Size</span>
             <span className="text-lg font-bold text-foreground">{totalMembers}</span>
           </div>
         </div>
 
-        {/* Level cards — matching reference */}
+        {/* Level cards */}
         {levels.map((level) => (
           <button
             key={level.label}
@@ -292,15 +291,15 @@ const Team = () => {
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
-                  <span className="font-semibold text-foreground">Niveau {level.label}</span>
+                  <span className="font-semibold text-foreground">Level {level.label}</span>
                   <ChevronRight size={20} className="text-muted-foreground" />
                 </div>
                 <div className="flex justify-between mt-1">
-                  <span className="text-sm text-muted-foreground">Taille</span>
+                  <span className="text-sm text-muted-foreground">Size</span>
                   <span className="text-sm text-foreground">{level.members.length}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Revenu</span>
+                  <span className="text-sm text-muted-foreground">Revenue</span>
                   <span className="text-sm text-foreground">{level.revenue.toLocaleString()} USDT</span>
                 </div>
               </div>

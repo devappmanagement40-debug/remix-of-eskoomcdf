@@ -2,16 +2,16 @@ import { Globe, Users, TrendingUp, Shield, Zap, MapPin } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 
 const stats = [
-  { label: "Pays couverts", value: "12+", icon: MapPin },
-  { label: "Investisseurs actifs", value: "50 000+", icon: Users },
-  { label: "Rendement moyen", value: "18%", icon: TrendingUp },
-  { label: "Projets financés", value: "200+", icon: Zap },
+  { label: "Countries covered", value: "12+", icon: MapPin },
+  { label: "Active investors", value: "50,000+", icon: Users },
+  { label: "Average return", value: "18%", icon: TrendingUp },
+  { label: "Funded projects", value: "200+", icon: Zap },
 ];
 
 const APropos = () => {
   return (
     <div className="min-h-screen bg-background pb-10">
-      <PageHeader title="À propos de nous" showBack />
+      <PageHeader title="About Us" showBack />
       <div className="px-4 pt-6 space-y-6">
         {/* Hero */}
         <div className="bg-card rounded-xl border border-secondary p-5">
@@ -21,30 +21,30 @@ const APropos = () => {
             </div>
             <div>
               <h2 className="text-lg font-bold text-foreground">ESKOM Energy</h2>
-              <p className="text-xs text-muted-foreground">Investir dans l'énergie africaine</p>
+              <p className="text-xs text-muted-foreground">Investing in African energy</p>
             </div>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            ESKOM est une plateforme d'investissement innovante dédiée au secteur énergétique en Afrique. 
-            Notre mission est de démocratiser l'accès aux opportunités d'investissement dans les 
-            énergies renouvelables et les infrastructures industrielles sur le continent africain.
+            ESKOM is an innovative investment platform dedicated to the energy sector in Africa.
+            Our mission is to democratize access to investment opportunities in renewable
+            energy and industrial infrastructure across the African continent.
           </p>
         </div>
 
         {/* Mission */}
         <div className="bg-card rounded-xl border border-secondary p-5">
-          <h3 className="text-base font-bold text-foreground mb-3">Notre mission</h3>
+          <h3 className="text-base font-bold text-foreground mb-3">Our mission</h3>
           <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-            Chez ESKOM, nous croyons fermement que l'Afrique détient un potentiel énergétique 
-            considérable et largement inexploité. Notre plateforme permet à chaque citoyen africain, 
-            quel que soit son niveau de revenu, de participer activement au développement 
-            énergétique du continent et d'en tirer des bénéfices concrets.
+            At ESKOM, we firmly believe that Africa holds considerable and largely untapped
+            energy potential. Our platform enables every African citizen, regardless of
+            income level, to actively participate in the continent's energy development
+            and reap concrete benefits.
           </p>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Nous proposons un modèle d'investissement accessible, transparent et rentable, 
-            conçu spécifiquement pour répondre aux réalités économiques du continent africain. 
-            Chaque investissement contribue directement au financement de projets d'énergie 
-            solaire, éolienne et d'infrastructures technologiques essentielles.
+            We offer an accessible, transparent, and profitable investment model,
+            designed specifically to meet the economic realities of the African continent.
+            Every investment directly contributes to financing solar energy, wind energy,
+            and essential technological infrastructure projects.
           </p>
         </div>
 
@@ -61,34 +61,33 @@ const APropos = () => {
 
         {/* Expansion */}
         <div className="bg-card rounded-xl border border-secondary p-5">
-          <h3 className="text-base font-bold text-foreground mb-3">Notre expansion en Afrique</h3>
+          <h3 className="text-base font-bold text-foreground mb-3">Our expansion in Africa</h3>
           <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-            Présent dans plusieurs pays africains, ESKOM s'est implanté stratégiquement 
-            en Afrique Centrale et en Afrique de l'Est. Notre réseau 
-            couvre notamment Haïti, le Cameroun, 
-            le Gabon et le Kenya.
+            Present in several African countries, ESKOM has strategically established itself
+            in Central Africa and East Africa. Our network covers
+            Haiti, Cameroon, Gabon, and Kenya.
           </p>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Cette présence continentale nous permet de diversifier nos investissements 
-            et d'offrir à nos membres des opportunités variées dans différents marchés 
-            énergétiques en pleine croissance. Chaque pays représente un potentiel unique 
-            en matière d'énergie solaire, éolienne et d'infrastructures numériques.
+            This continental presence allows us to diversify our investments
+            and offer our members varied opportunities in different
+            fast-growing energy markets. Each country represents a unique potential
+            in solar energy, wind energy, and digital infrastructure.
           </p>
         </div>
 
         {/* Why ESKOM */}
         <div className="bg-card rounded-xl border border-secondary p-5">
-          <h3 className="text-base font-bold text-foreground mb-3">Pourquoi choisir ESKOM ?</h3>
+          <h3 className="text-base font-bold text-foreground mb-3">Why choose ESKOM?</h3>
           <div className="space-y-4">
             <div className="flex gap-3">
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
                 <Shield size={16} className="text-primary" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">Sécurité des fonds</p>
+                <p className="text-sm font-semibold text-foreground">Fund security</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Vos investissements sont protégés par des protocoles de sécurité avancés. 
-                  Chaque transaction est vérifiée et chaque portefeuille est sécurisé.
+                  Your investments are protected by advanced security protocols.
+                  Every transaction is verified and every wallet is secured.
                 </p>
               </div>
             </div>
@@ -97,10 +96,10 @@ const APropos = () => {
                 <TrendingUp size={16} className="text-primary" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">Rendements attractifs</p>
+                <p className="text-sm font-semibold text-foreground">Attractive returns</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Nos produits d'investissement offrent des rendements compétitifs, 
-                  avec des revenus quotidiens versés directement dans votre portefeuille.
+                  Our investment products offer competitive returns,
+                  with daily income credited directly to your wallet.
                 </p>
               </div>
             </div>
@@ -109,10 +108,10 @@ const APropos = () => {
                 <Users size={16} className="text-primary" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">Communauté solidaire</p>
+                <p className="text-sm font-semibold text-foreground">Supportive community</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Rejoignez une communauté de plus de 50 000 investisseurs africains 
-                  qui partagent la même vision d'un continent prospère et autosuffisant en énergie.
+                  Join a community of over 50,000 African investors
+                  who share the same vision of a prosperous, energy-independent continent.
                 </p>
               </div>
             </div>
@@ -121,10 +120,10 @@ const APropos = () => {
 
         {/* Contact */}
         <div className="bg-card rounded-xl border border-secondary p-5">
-          <h3 className="text-base font-bold text-foreground mb-3">Nous contacter</h3>
+          <h3 className="text-base font-bold text-foreground mb-3">Contact us</h3>
           <p className="text-sm text-muted-foreground leading-relaxed mb-2">
-            Notre équipe de support est disponible 7j/7 pour répondre à toutes vos questions 
-            et vous accompagner dans vos investissements.
+            Our support team is available 7 days a week to answer all your questions
+            and guide you through your investments.
           </p>
           <p className="text-sm text-muted-foreground">
             📧 support@eskom-energy.com

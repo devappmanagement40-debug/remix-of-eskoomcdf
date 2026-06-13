@@ -40,7 +40,7 @@ class RouteErrorBoundaryInner extends Component<Props & { onNavigateHome: () => 
             <span className="text-2xl">⚠️</span>
           </div>
           <h1 className="text-lg font-bold text-foreground mb-2">
-            Erreur de chargement
+            Loading error
           </h1>
           <p className="text-sm text-muted-foreground mb-5 max-w-xs">
             Cette page a rencontré un problème. Essayez de réessayer.

@@ -55,7 +55,7 @@ const AdminWheelTab = ({ settings, reload, showSuccess, showError, logAction, ad
     { key: "images", label: "🖼 Images" },
   ];
 
-  if (loading) return <p className="text-xs text-muted-foreground text-center py-10">Chargement...</p>;
+  if (loading) return <p className="text-xs text-muted-foreground text-center py-10">Loading...</p>;
 
   return (
     <div className="space-y-4">
@@ -96,7 +96,7 @@ const PrizesSection = ({ prizes, reload, showSuccess, showError }: any) => {
   };
 
   const save = async () => {
-    if (!form.label.trim()) { showError("Erreur", "Label requis"); return; }
+    if (!form.label.trim()) { showError("Error", "Label required"); return; }
     const payload = {
       label: form.label,
       value: Number(form.value) || 0,
@@ -124,7 +124,7 @@ const PrizesSection = ({ prizes, reload, showSuccess, showError }: any) => {
 
       {showForm && (
         <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
-          <div className="flex justify-between"><h3 className="text-sm font-bold text-foreground">{editing ? "Modifier" : "Nouveau gain"}</h3><button onClick={() => setShowForm(false)}><X size={16} className="text-muted-foreground" /></button></div>
+          <div className="flex justify-between"><h3 className="text-sm font-bold text-foreground">{editing ? "Edit" : "New prize"}</h3><button onClick={() => setShowForm(false)}><X size={16} className="text-muted-foreground" /></button></div>
           <input value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} placeholder="Label (ex: 50, 3K, VIP1)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -154,7 +154,7 @@ const PrizesSection = ({ prizes, reload, showSuccess, showError }: any) => {
             <input type="number" value={form.probability} onChange={e => setForm({ ...form, probability: e.target.value })}
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
           </div>
-          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editing ? "Modifier" : "Créer"}</button>
+          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editing ? "Update" : "Create"}</button>
         </div>
       )}
 
@@ -240,7 +240,7 @@ const WinnersSection = ({ spins, reload }: { spins: WheelSpin[]; reload: () => v
           <p className="text-[10px] text-muted-foreground">Total gains</p>
         </div>
         <div className="bg-card rounded-xl border border-secondary p-3 text-center">
-          <p className="text-xl font-bold text-success">{totalCash.toLocaleString("fr-FR")}</p>
+          <p className="text-xl font-bold text-success">{totalCash.toLocaleString("en-US")}</p>
           <p className="text-[10px] text-muted-foreground">Cash (USDT)</p>
         </div>
         <div className="bg-card rounded-xl border border-secondary p-3 text-center">
@@ -271,7 +271,7 @@ const WinnersSection = ({ spins, reload }: { spins: WheelSpin[]; reload: () => v
 
       {/* Winners list */}
       {completedSpins.length === 0 ? (
-        <p className="text-center text-sm text-muted-foreground py-10">Aucun gagnant pour le moment</p>
+        <p className="text-center text-sm text-muted-foreground py-10">No winners yet</p>
       ) : (
         completedSpins.map(s => {
           const p = profiles[s.user_id];
@@ -287,7 +287,7 @@ const WinnersSection = ({ spins, reload }: { spins: WheelSpin[]; reload: () => v
                     {s.prize_type === "vip" ? `VIP${s.vip_level}` : `${Number(s.prize_value).toLocaleString("en-US")} USDT`}
                   </span>
                   <p className="text-[10px] text-muted-foreground">
-                    {new Date(s.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" })}
+                    {new Date(s.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" })}
                   </p>
                 </div>
               </div>
@@ -347,7 +347,7 @@ const SettingsSection = ({ settings, financeSettings, reload, showSuccess }: any
       </div>
       {Object.keys(edits).length > 0 && (
         <button onClick={saveAll} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
-          <Save size={16} /> Sauvegarder
+          <Save size={16} /> Save
         </button>
       )}
     </div>
@@ -418,7 +418,7 @@ const VipSpinsSection = ({ spins, reload, showSuccess, showError, logAction, adm
         ))}
       </div>
 
-      {filtered.length === 0 ? <p className="text-center text-sm text-muted-foreground py-10">Aucun gain VIP</p> :
+      {filtered.length === 0 ? <p className="text-center text-sm text-muted-foreground py-10">No VIP prizes</p> :
         filtered.map((s: WheelSpin) => {
           const p = profiles[s.user_id];
           return (
@@ -429,7 +429,7 @@ const VipSpinsSection = ({ spins, reload, showSuccess, showError, logAction, adm
                   <p className="text-xs text-muted-foreground">{p?.full_name || "Utilisateur"} • {p?.phone || ""}</p>
                   <p className="text-xs text-muted-foreground">VIP actuel : {p?.vip_level || 0} → VIP{s.vip_level}</p>
                 </div>
-                <span className="text-[10px] text-muted-foreground"><span className="text-[10px] text-muted-foreground">{new Date(s.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" })}</span></span>
+                <span className="text-[10px] text-muted-foreground"><span className="text-[10px] text-muted-foreground">{new Date(s.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" })}</span></span>
               </div>
               {s.status === "pending_vip" && (
                 <div className="grid grid-cols-2 gap-3 mt-3">
@@ -439,7 +439,7 @@ const VipSpinsSection = ({ spins, reload, showSuccess, showError, logAction, adm
                   </button>
                   <button onClick={() => handleAction(s, "vip_rejected")}
                     className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10">
-                    <XCircle size={16} /> Refuser
+                    <XCircle size={16} /> Reject
                   </button>
                 </div>
               )}
@@ -467,7 +467,7 @@ const ImagesSection = ({ settings, reload, showSuccess }: any) => {
     const ext = file.name.split(".").pop()?.toLowerCase() || "png";
     const path = `${folder}/${key}.${ext}`;
     const { error } = await supabase.storage.from("site-assets").upload(path, file, { upsert: true });
-    if (error) { showSuccess("Erreur upload", ""); setUploading(null); return; }
+    if (error) { showError("Upload error", ""); setUploading(null); return; }
     const { data: urlData } = supabase.storage.from("site-assets").getPublicUrl(path);
     const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
     await supabase.from("site_settings").update({ value: publicUrl }).eq("key", key);

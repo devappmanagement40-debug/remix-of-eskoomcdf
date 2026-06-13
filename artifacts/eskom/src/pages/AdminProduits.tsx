@@ -61,11 +61,11 @@ const AdminProduits = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { navigate("/connexion"); return; }
       const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
-      if (!data) { showError("Accès refusé", "Vous n'avez pas les droits d'administrateur"); navigate("/"); return; }
+      if (!data) { showError("Access denied", "You do not have administrator rights"); navigate("/"); return; }
       await loadAll();
     } catch (err) {
       console.error("Admin check error:", err);
-      showError("Erreur", "Impossible de vérifier les droits d'accès");
+      showError("Error", "Unable to verify access rights");
       setLoading(false);
     }
   };
@@ -80,7 +80,7 @@ const AdminProduits = () => {
       if (p.data) setProducts(p.data);
     } catch (err) {
       console.error("Load error:", err);
-      showError("Erreur", "Impossible de charger les données");
+      showError("Error", "Unable to load data");
     } finally {
       setLoading(false);
     }
@@ -94,13 +94,13 @@ const AdminProduits = () => {
   };
 
   const saveSeries = async () => {
-    if (!seriesName.trim()) { showError("Erreur", "Nom requis"); return; }
+    if (!seriesName.trim()) { showError("Error", "Name required"); return; }
     if (editingSeries) {
       await supabase.from("product_series").update({ name: seriesName, color: seriesColor }).eq("id", editingSeries.id);
-      showSuccess("Série modifiée", "La série a été mise à jour avec succès ✅");
+      showSuccess("Series updated", "Series updated successfully ✅");
     } else {
       await supabase.from("product_series").insert({ name: seriesName, color: seriesColor, sort_order: series.length });
-      showSuccess("Série créée", "La nouvelle série a été créée avec succès ✅");
+      showSuccess("Series created", "New series created successfully ✅");
     }
     setShowSeriesForm(false);
     loadAll();
@@ -115,7 +115,7 @@ const AdminProduits = () => {
         .in("product_id", seriesProductIds)
         .eq("is_active", true);
       if ((count || 0) > 0) {
-        showError("Impossible", "Des utilisateurs possèdent encore des produits actifs dans cette série. Désactivez les produits au lieu de les supprimer.");
+        showError("Cannot delete", "Users still have active products in this series. Deactivate products instead of deleting them.");
         return;
       }
     }
@@ -129,7 +129,7 @@ const AdminProduits = () => {
         for (const pid of seriesProductIds) {
           await supabase.from("products").update({ is_active: false }).eq("id", pid);
         }
-        showSuccess("Série désactivée", "Les produits ont été désactivés car des utilisateurs les ont déjà achetés. Leurs revenus continuent normalement.");
+        showSuccess("Series deactivated", "Products deactivated because users already purchased them. Their earnings continue normally.");
         loadAll();
         return;
       }
@@ -137,7 +137,7 @@ const AdminProduits = () => {
     // No purchases ever — safe to hard delete
     await supabase.from("products").delete().in("id", seriesProductIds);
     await supabase.from("product_series").delete().eq("id", id);
-    showSuccess("Supprimé", "La série a été supprimée");
+    showSuccess("Deleted", "Series deleted");
     loadAll();
   };
 
@@ -171,7 +171,7 @@ const AdminProduits = () => {
     try {
       setUploading(true);
       if (file.size > 5 * 1024 * 1024) {
-        showError("Erreur", "L'image ne doit pas dépasser 5 Mo");
+        showError("Error", "Image must not exceed 5 MB");
         return;
       }
       const ext = file.name.split('.').pop();
@@ -179,15 +179,15 @@ const AdminProduits = () => {
       const { error } = await supabase.storage.from('product-images').upload(fileName, file);
       if (error) {
         console.error("Upload error:", error);
-        showError("Erreur", "Impossible d'uploader l'image: " + (error.message || "erreur inconnue"));
+        showError("Error", "Unable to upload image: " + (error.message || "unknown error"));
         return;
       }
       const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
       setProductImageUrl(urlData.publicUrl);
-      showSuccess("Image uploadée", "L'image a été ajoutée avec succès ✅");
+      showSuccess("Image uploaded", "Image added successfully ✅");
     } catch (err) {
       console.error("Upload crash:", err);
-      showError("Erreur", "Une erreur inattendue s'est produite lors de l'upload");
+      showError("Error", "An unexpected error occurred during upload");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -195,7 +195,7 @@ const AdminProduits = () => {
   };
 
   const saveProduct = async () => {
-    if (!productName.trim()) { showError("Erreur", "Nom requis"); return; }
+    if (!productName.trim()) { showError("Error", "Name required"); return; }
     try {
       const payload = {
         series_id: productSeriesId || null,
@@ -213,18 +213,18 @@ const AdminProduits = () => {
       if (editingProduct) {
         const { error } = await supabase.from("products").update(payload).eq("id", editingProduct.id);
         if (error) throw error;
-        showSuccess("Produit modifié", "Le produit a été mis à jour avec succès ✅");
+        showSuccess("Product updated", "Product updated successfully ✅");
       } else {
         const seriesProducts = products.filter(p => p.series_id === productSeriesId);
         const { error } = await supabase.from("products").insert({ ...payload, sort_order: seriesProducts.length });
         if (error) throw error;
-        showSuccess("Produit créé", "Le nouveau produit a été créé avec succès ✅");
+        showSuccess("Product created", "New product created successfully ✅");
       }
       setShowProductForm(false);
       loadAll();
     } catch (err) {
       console.error("Save product error:", err);
-      showError("Erreur", "Impossible de sauvegarder le produit");
+      showError("Error", "Unable to save product");
     }
   };
 
@@ -237,20 +237,20 @@ const AdminProduits = () => {
     if ((count || 0) > 0) {
       // Users have purchased this product — soft delete (deactivate) instead
       await supabase.from("products").update({ is_active: false }).eq("id", id);
-      showSuccess("Produit désactivé", "Ce produit a été désactivé car des utilisateurs l'ont déjà acheté. Leurs revenus continuent normalement.");
+      showSuccess("Product deactivated", "This product was deactivated because users already purchased it. Their earnings continue normally.");
       loadAll();
       return;
     }
 
     // No purchases — safe to hard delete
     await supabase.from("products").delete().eq("id", id);
-    showSuccess("Supprimé", "Le produit a été supprimé définitivement");
+    showSuccess("Deleted", "Product permanently deleted");
     loadAll();
   };
 
   const toggleActive = async (p: Product) => {
     await supabase.from("products").update({ is_active: !p.is_active }).eq("id", p.id);
-    showSuccess("Mis à jour", p.is_active ? "Produit désactivé" : "Produit activé ✅");
+    showSuccess("Updated", p.is_active ? "Product deactivated" : "Product activated ✅");
     loadAll();
   };
 
@@ -274,44 +274,44 @@ const AdminProduits = () => {
       );
 
       const labels: Record<string, string> = {
-        available: "Produit disponible ✅",
-        sold_out: "Produit marqué en rupture de stock",
-        terminated: "Produit marqué comme terminé",
+        available: "Product available ✅",
+        sold_out: "Product marked as sold out",
+        terminated: "Product marked as ended",
       };
 
-      showSuccess("Mis à jour", labels[status] || "Statut mis à jour");
+      showSuccess("Updated", labels[status] || "Status updated");
     } catch (err) {
       console.error("Set stock status error:", err);
-      showError("Erreur", "Impossible de mettre à jour l'état du produit");
+      showError("Error", "Unable to update product status");
     }
   };
 
   if (loading) return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center gap-3">
       <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      <p className="text-foreground font-medium">Chargement...</p>
+      <p className="text-foreground font-medium">Loading...</p>
     </div>
   );
 
   return (
     <div className="min-h-screen bg-background pb-10">
-      <PageHeader title="Admin - Produits" showBack />
+      <PageHeader title="Admin — Products" showBack />
 
       <div className="px-4 pt-4">
         <button onClick={() => openSeriesForm()} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2 mb-4">
-          <Layers size={16} /> Ajouter une série
+          <Layers size={16} /> Add series
         </button>
 
         {showSeriesForm && (
           <div className="bg-card rounded-xl border border-secondary p-4 mb-4 space-y-3">
             <div className="flex justify-between items-center">
-              <h3 className="text-sm font-bold text-foreground">{editingSeries ? "Modifier la série" : "Nouvelle série"}</h3>
+              <h3 className="text-sm font-bold text-foreground">{editingSeries ? "Edit series" : "New series"}</h3>
               <button onClick={() => setShowSeriesForm(false)}><X size={16} className="text-muted-foreground" /></button>
             </div>
-            <input value={seriesName} onChange={e => setSeriesName(e.target.value)} placeholder="Nom de la série"
+            <input value={seriesName} onChange={e => setSeriesName(e.target.value)} placeholder="Series name"
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary focus:border-primary outline-none" />
             <div>
-              <label className="text-xs text-muted-foreground mb-2 block">Couleur</label>
+              <label className="text-xs text-muted-foreground mb-2 block">Color</label>
               <div className="flex gap-2 flex-wrap">
                 {colorOptions.map(c => (
                   <button key={c.value} onClick={() => setSeriesColor(c.value)}
@@ -321,7 +321,7 @@ const AdminProduits = () => {
               </div>
             </div>
             <button onClick={saveSeries} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">
-              {editingSeries ? "Modifier" : "Créer"}
+              {editingSeries ? "Save" : "Create"}
             </button>
           </div>
         )}
@@ -329,15 +329,15 @@ const AdminProduits = () => {
         {showProductForm && (
           <div className="bg-card rounded-xl border border-secondary p-4 mb-4 space-y-3">
             <div className="flex justify-between items-center">
-              <h3 className="text-sm font-bold text-foreground">{editingProduct ? "Modifier le produit" : "Nouveau produit"}</h3>
+              <h3 className="text-sm font-bold text-foreground">{editingProduct ? "Edit product" : "New product"}</h3>
               <button onClick={() => setShowProductForm(false)}><X size={16} className="text-muted-foreground" /></button>
             </div>
-            <input value={productName} onChange={e => setProductName(e.target.value)} placeholder="Nom du produit"
+            <input value={productName} onChange={e => setProductName(e.target.value)} placeholder="Product name"
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary focus:border-primary outline-none" />
             
             {/* Image upload */}
             <div>
-              <label className="text-xs text-muted-foreground mb-2 block">Image du produit</label>
+              <label className="text-xs text-muted-foreground mb-2 block">Product image</label>
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
               {productImageUrl ? (
                 <div className="relative w-full h-32 rounded-xl overflow-hidden border border-secondary">
@@ -353,11 +353,11 @@ const AdminProduits = () => {
                   className="w-full h-24 rounded-xl border-2 border-dashed border-secondary hover:border-primary flex flex-col items-center justify-center gap-2 transition-colors"
                 >
                   {uploading ? (
-                    <span className="text-xs text-muted-foreground">Upload en cours...</span>
+                    <span className="text-xs text-muted-foreground">Uploading...</span>
                   ) : (
                     <>
                       <Upload size={20} className="text-muted-foreground" />
-                      <span className="text-xs text-muted-foreground">Cliquez pour ajouter une image</span>
+                      <span className="text-xs text-muted-foreground">Click to add an image</span>
                     </>
                   )}
                 </button>
@@ -365,7 +365,7 @@ const AdminProduits = () => {
             </div>
             {/* Gain type selector */}
             <div>
-              <label className="text-xs text-muted-foreground mb-2 block">Type de gain</label>
+              <label className="text-xs text-muted-foreground mb-2 block">Gain type</label>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -376,7 +376,7 @@ const AdminProduits = () => {
                       : "border-secondary bg-secondary text-muted-foreground"
                   }`}
                 >
-                  Gain quotidien
+                  Daily gain
                 </button>
                 <button
                   type="button"
@@ -387,11 +387,11 @@ const AdminProduits = () => {
                       : "border-secondary bg-secondary text-muted-foreground"
                   }`}
                 >
-                  Gain bloqué
+                  Blocked gain
                 </button>
               </div>
               {productGainType === "blocked" && (
-                <p className="text-[10px] text-warning mt-1">⏳ Les gains seront bloqués jusqu'à la fin du cycle</p>
+                <p className="text-[10px] text-warning mt-1">⏳ Gains will be unlocked at the end of the cycle</p>
               )}
             </div>
 
@@ -407,19 +407,19 @@ const AdminProduits = () => {
                   className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
               </div>
               <div>
-                <label className="text-xs text-muted-foreground">{productGainType === "blocked" ? "Gain total prévu" : "Revenu total"}</label>
+                <label className="text-xs text-muted-foreground">{productGainType === "blocked" ? "Total expected gain" : "Total revenue"}</label>
                 <input type="number" value={productTotalRevenue} onChange={e => setProductTotalRevenue(e.target.value)} placeholder="78000"
                   className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
               </div>
               {productGainType === "daily" && (
                 <div>
-                  <label className="text-xs text-muted-foreground">Revenu quotidien</label>
+                  <label className="text-xs text-muted-foreground">Daily revenue</label>
                   <input type="number" value={productDailyRevenue} onChange={e => setProductDailyRevenue(e.target.value)} placeholder="200"
                     className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
                 </div>
               )}
               <div>
-                <label className="text-xs text-muted-foreground">Durée du cycle (jours)</label>
+                <label className="text-xs text-muted-foreground">Cycle duration (days)</label>
                 <input type="number" value={productCycles} onChange={e => setProductCycles(e.target.value)} placeholder="365"
                   className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
               </div>
@@ -427,19 +427,19 @@ const AdminProduits = () => {
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={productIsNew} onChange={e => setProductIsNew(e.target.checked)}
                     className="w-4 h-4 accent-primary" />
-                  <span className="text-xs text-foreground">Nouveau</span>
+                  <span className="text-xs text-foreground">New</span>
                 </label>
               </div>
               <div className="flex items-end gap-2 pb-1">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={productIsFeatured} onChange={e => setProductIsFeatured(e.target.checked)}
                     className="w-4 h-4 accent-primary" />
-                  <span className="text-xs text-foreground">Populaire</span>
+                  <span className="text-xs text-foreground">Popular</span>
                 </label>
               </div>
             </div>
             <button onClick={saveProduct} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">
-              {editingProduct ? "Modifier" : "Créer"}
+              {editingProduct ? "Save" : "Create"}
             </button>
           </div>
         )}
@@ -454,7 +454,7 @@ const AdminProduits = () => {
                 <div className="flex items-center justify-between px-4 py-3">
                   <button onClick={() => setExpandedSeries(isExpanded ? null : "__none__")} className="flex items-center gap-3 flex-1">
                     <div className="w-4 h-4 rounded-full bg-muted-foreground" />
-                    <span className="text-sm font-bold text-foreground">Sans série</span>
+                    <span className="text-sm font-bold text-foreground">No series</span>
                     <span className="text-xs text-muted-foreground">({unclassifiedProducts.length})</span>
                     {isExpanded ? <ChevronUp size={14} className="text-muted-foreground" /> : <ChevronDown size={14} className="text-muted-foreground" />}
                   </button>
@@ -470,10 +470,10 @@ const AdminProduits = () => {
                                 <span className="text-sm font-semibold text-foreground">{p.name}</span>
                                 {p.is_new && <span className="text-[9px] bg-success/20 text-success px-1.5 py-0.5 rounded-full font-bold">NEW</span>}
                                 {p.is_featured && <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold">POP</span>}
-                                {p.stock_status === "sold_out" && <span className="text-[9px] bg-warning/20 text-warning px-1.5 py-0.5 rounded-full font-bold">ÉPUISÉ</span>}
-                                {p.stock_status === "terminated" && <span className="text-[9px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full font-bold">TERMINÉ</span>}
+                                {p.stock_status === "sold_out" && <span className="text-[9px] bg-warning/20 text-warning px-1.5 py-0.5 rounded-full font-bold">SOLD OUT</span>}
+                                {p.stock_status === "terminated" && <span className="text-[9px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full font-bold">ENDED</span>}
                               </div>
-                              <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} USDT • {p.return_percent}% • {p.cycles}j {p.gain_type === "blocked" ? "• 🔒" : ""}</span>
+                              <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} USDT • {p.return_percent}% • {p.cycles}d {p.gain_type === "blocked" ? "• 🔒" : ""}</span>
                             </div>
                             <div className="flex gap-1.5">
                               <button onClick={() => toggleActive(p)} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>
@@ -488,16 +488,16 @@ const AdminProduits = () => {
                             </div>
                           </div>
                           <div className="flex gap-1.5 mt-2">
-                            <button onClick={() => setStockStatus(p, "available")} className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "available" ? "bg-success/20 text-success border border-success/30" : "bg-secondary text-muted-foreground"}`}>Disponible</button>
-                            <button onClick={() => setStockStatus(p, "sold_out")} className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "sold_out" ? "bg-warning/20 text-warning border border-warning/30" : "bg-secondary text-muted-foreground"}`}>Épuisé</button>
-                            <button onClick={() => setStockStatus(p, "terminated")} className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "terminated" ? "bg-destructive/20 text-destructive border border-destructive/30" : "bg-secondary text-muted-foreground"}`}>Terminé</button>
+                            <button onClick={() => setStockStatus(p, "available")} className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "available" ? "bg-success/20 text-success border border-success/30" : "bg-secondary text-muted-foreground"}`}>Available</button>
+                            <button onClick={() => setStockStatus(p, "sold_out")} className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "sold_out" ? "bg-warning/20 text-warning border border-warning/30" : "bg-secondary text-muted-foreground"}`}>Sold out</button>
+                            <button onClick={() => setStockStatus(p, "terminated")} className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "terminated" ? "bg-destructive/20 text-destructive border border-destructive/30" : "bg-secondary text-muted-foreground"}`}>Ended</button>
                           </div>
                         </div>
                       ))}
                     </div>
                     <div className="px-4 pb-3">
                       <button onClick={() => openProductForm(null)} className="w-full bg-secondary text-foreground font-semibold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2">
-                        <Plus size={14} /> Ajouter un produit sans série
+                        <Plus size={14} /> Add product without series
                       </button>
                     </div>
                   </div>
@@ -511,7 +511,7 @@ const AdminProduits = () => {
         {series.length === 0 && products.filter(p => !p.series_id).length === 0 ? (
           <div className="text-center py-16">
             <Layers size={40} className="text-muted-foreground mx-auto mb-3" />
-            <p className="text-sm text-muted-foreground">Aucune série créée et aucun produit</p>
+            <p className="text-sm text-muted-foreground">No series or products yet</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -543,7 +543,7 @@ const AdminProduits = () => {
                     <div className="border-t border-secondary">
                       <div className="px-4 py-3 space-y-2">
                         {seriesProducts.length === 0 ? (
-                          <p className="text-xs text-muted-foreground text-center py-3">Aucun produit</p>
+                          <p className="text-xs text-muted-foreground text-center py-3">No products</p>
                         ) : seriesProducts.map(p => (
                           <div key={p.id} className={`py-2.5 px-3 rounded-lg ${p.is_active ? "bg-secondary/50" : "bg-secondary/20 opacity-60"}`}>
                             <div className="flex items-center justify-between">
@@ -552,10 +552,10 @@ const AdminProduits = () => {
                                   <span className="text-sm font-semibold text-foreground">{p.name}</span>
                                   {p.is_new && <span className="text-[9px] bg-success/20 text-success px-1.5 py-0.5 rounded-full font-bold">NEW</span>}
                                   {p.is_featured && <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold">POP</span>}
-                                  {p.stock_status === "sold_out" && <span className="text-[9px] bg-warning/20 text-warning px-1.5 py-0.5 rounded-full font-bold">ÉPUISÉ</span>}
-                                  {p.stock_status === "terminated" && <span className="text-[9px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full font-bold">TERMINÉ</span>}
+                                  {p.stock_status === "sold_out" && <span className="text-[9px] bg-warning/20 text-warning px-1.5 py-0.5 rounded-full font-bold">SOLD OUT</span>}
+                                  {p.stock_status === "terminated" && <span className="text-[9px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full font-bold">ENDED</span>}
                                 </div>
-                                <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} USDT • {p.return_percent}% • {p.cycles}j {p.gain_type === "blocked" ? "• 🔒" : ""}</span>
+                                <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} USDT • {p.return_percent}% • {p.cycles}d {p.gain_type === "blocked" ? "• 🔒" : ""}</span>
                               </div>
                               <div className="flex gap-1.5">
                                 <button onClick={() => toggleActive(p)} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>
@@ -570,16 +570,16 @@ const AdminProduits = () => {
                               </div>
                             </div>
                             <div className="flex gap-1.5 mt-2">
-                              <button onClick={() => setStockStatus(p, "available")} className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "available" ? "bg-success/20 text-success border border-success/30" : "bg-secondary text-muted-foreground"}`}>Disponible</button>
-                              <button onClick={() => setStockStatus(p, "sold_out")} className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "sold_out" ? "bg-warning/20 text-warning border border-warning/30" : "bg-secondary text-muted-foreground"}`}>Épuisé</button>
-                              <button onClick={() => setStockStatus(p, "terminated")} className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "terminated" ? "bg-destructive/20 text-destructive border border-destructive/30" : "bg-secondary text-muted-foreground"}`}>Terminé</button>
+                              <button onClick={() => setStockStatus(p, "available")} className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "available" ? "bg-success/20 text-success border border-success/30" : "bg-secondary text-muted-foreground"}`}>Available</button>
+                              <button onClick={() => setStockStatus(p, "sold_out")} className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "sold_out" ? "bg-warning/20 text-warning border border-warning/30" : "bg-secondary text-muted-foreground"}`}>Sold out</button>
+                              <button onClick={() => setStockStatus(p, "terminated")} className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "terminated" ? "bg-destructive/20 text-destructive border border-destructive/30" : "bg-secondary text-muted-foreground"}`}>Ended</button>
                             </div>
                           </div>
                         ))}
                       </div>
                       <div className="px-4 pb-3">
                         <button onClick={() => openProductForm(s.id)} className="w-full bg-secondary text-foreground font-semibold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2">
-                          <Plus size={14} /> Ajouter un produit
+                          <Plus size={14} /> Add product
                         </button>
                       </div>
                     </div>

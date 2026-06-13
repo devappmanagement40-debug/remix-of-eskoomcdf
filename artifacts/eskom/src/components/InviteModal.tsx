@@ -13,8 +13,8 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
   const [referralCode, setReferralCode] = useState("");
   const [copied, setCopied] = useState(false);
   const [rules, setRules] = useState<{ text: string }[]>([]);
-  const [title, setTitle] = useState("Inviter des amis");
-  const [subtitle, setSubtitle] = useState("Gains d'invitation");
+  const [title, setTitle] = useState("Invite Friends");
+  const [subtitle, setSubtitle] = useState("Referral Earnings");
   const { showCopy } = useActionPopup();
 
   useEffect(() => {
@@ -40,7 +40,6 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
             const parsed = JSON.parse(map.referral_rules);
             if (Array.isArray(parsed)) setRules(parsed.map((r: string) => ({ text: r })));
           } catch {
-            // fallback: split by newline
             setRules(map.referral_rules.split("\n").filter(Boolean).map((t) => ({ text: t })));
           }
         }
@@ -56,19 +55,18 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
     const ok = await safeClipboardWrite(inviteLink);
     if (ok) {
       setCopied(true);
-      showCopy("Votre lien d'invitation a été copié dans le presse-papiers");
+      showCopy("Your invitation link has been copied to clipboard");
       setTimeout(() => setCopied(false), 2000);
     } else {
-      // Ultime fallback: prompt pour copie manuelle
-      window.prompt("Copiez ce lien manuellement :", inviteLink);
+      window.prompt("Copy this link manually:", inviteLink);
     }
   };
 
   const defaultRules = [
-    "Partagez votre lien d'invitation avec des amis pour qu'ils rejoignent et obtiennent bonus d'invitation et gagnez une commission",
-    "Gagnez 10% de commission sur vos directs (niveau E)",
-    "Supplémentaire 5% de commission sur les parrainages de second niveau (niveau F)",
-    "Supplémentaire 1% de commission sur les parrainages de troisième niveau (niveau G)",
+    "Share your invitation link with friends so they join and get an invitation bonus — you earn a commission",
+    "Earn 10% commission on direct referrals (level E)",
+    "Earn an additional 5% commission on second-level referrals (level F)",
+    "Earn an additional 1% commission on third-level referrals (level G)",
   ];
 
   const displayRules = rules.length > 0 ? rules.map((r) => r.text) : defaultRules;
@@ -89,7 +87,7 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
 
         <div className="px-5 pb-6 space-y-4">
           <div>
-            <p className="text-sm font-semibold text-primary mb-2 uppercase">Votre lien d'invitation</p>
+            <p className="text-sm font-semibold text-primary mb-2 uppercase">Your invitation link</p>
             <div className="bg-secondary rounded-lg p-3">
               <p className="text-xs text-foreground break-all">{inviteLink}</p>
             </div>
@@ -100,7 +98,7 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
             className="w-full gradient-button text-foreground font-bold py-3.5 rounded-xl text-sm uppercase tracking-wide transition-opacity hover:opacity-90 flex items-center justify-center gap-2"
           >
             {copied ? <Check size={18} /> : <Copy size={18} />}
-            {copied ? "Copié !" : "Copier lien"}
+            {copied ? "Copied!" : "Copy link"}
           </button>
 
           <div>
