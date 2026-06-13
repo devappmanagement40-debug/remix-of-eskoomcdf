@@ -79,7 +79,6 @@ const Recharge = () => {
         });
       });
 
-    // Load available currencies from NowPayments via our backend
     fetch("/api/nowpayments/currencies")
       .then((r) => r.json())
       .then((data: { currencies?: { code: string; name: string; logo: string }[] }) => {
@@ -149,7 +148,7 @@ const Recharge = () => {
             <div>
               <p className="text-sm font-bold text-primary-foreground">Automatic Crypto Deposit</p>
               <p className="text-[11px] text-primary-foreground/75">
-                Instant on-chain confirmation via NowPayments
+                Instant on-chain confirmation
               </p>
             </div>
           </div>

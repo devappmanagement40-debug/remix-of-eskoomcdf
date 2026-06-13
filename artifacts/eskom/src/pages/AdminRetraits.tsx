@@ -422,7 +422,7 @@ const AdminRetraits = () => {
                       </div>
                       {crypto && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-success/10 text-success font-semibold">
-                          NowPayments
+                          Crypto Auto
                         </span>
                       )}
                     </div>
@@ -500,7 +500,7 @@ const AdminRetraits = () => {
                             {/* Semi-auto confirmation panel */}
                             {isSemiAutoOpen && (
                               <div className="bg-primary/5 border border-primary/20 rounded-xl p-3 space-y-2">
-                                <p className="text-xs font-bold text-primary">Confirmer le payout NowPayments</p>
+                                <p className="text-xs font-bold text-primary">Confirmer le payout crypto</p>
                                 <div className="text-[10px] text-muted-foreground space-y-0.5">
                                   <p>Network: <span className="text-foreground font-semibold">{r.network}</span></p>
                                   <p>Net amount: <span className="text-success font-bold">{r.net_amount.toLocaleString("en-US")} USDT</span></p>
@@ -536,7 +536,7 @@ const AdminRetraits = () => {
                                   >
                                     {autoPayingId === r.id
                                       ? <><Loader2 size={13} className="animate-spin" />Envoi...</>
-                                      : <><Zap size={13} />Auto NP</>}
+                                      : <><Zap size={13} />Auto</>}
                                   </button>
                                   <button
                                     onClick={() => setSemiAutoId(r.id)}
@@ -581,7 +581,7 @@ const AdminRetraits = () => {
                       <div className="mt-3 p-3 rounded-lg bg-warning/10 border border-warning/20">
                         <div className="flex items-center gap-2 text-warning text-xs font-semibold mb-2">
                           <Loader2 size={14} className="animate-spin" />
-                          Payout NowPayments en cours…
+                          Payout crypto en cours…
                         </div>
                         <div className="grid grid-cols-2 gap-3">
                           <button onClick={() => handleAction(r, "approved")} className="flex items-center justify-center gap-1 bg-success/10 text-success font-semibold py-2 rounded-lg text-[11px] border border-success/20">
