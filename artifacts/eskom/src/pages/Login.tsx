@@ -5,7 +5,6 @@ import EskomLogo from "@/components/EskomLogo";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
-import CountryPicker from "@/components/CountryPicker";
 import PremiumModal from "@/components/PremiumModal";
 import { usePhoneValidation } from "@/hooks/usePhoneValidation";
 
@@ -15,7 +14,7 @@ const Login = () => {
   const { validatePhone } = usePhoneValidation();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [countryCode, setCountryCode] = useState("+509");
+  const countryCode = "+509";
   const [loading, setLoading] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const [userName, setUserName] = useState("");
@@ -74,9 +73,7 @@ const Login = () => {
         <form onSubmit={handleLogin} className="w-full max-w-sm space-y-4" translate="no">
           <div className="input-glow rounded-lg bg-input">
             <div className="flex items-center">
-              <span className="pl-3 pr-1">
-                <CountryPicker value={countryCode} onChange={setCountryCode} />
-              </span>
+              <span className="pl-3 pr-2 text-primary font-semibold text-sm whitespace-nowrap">+509</span>
               <span className="text-muted-foreground">|</span>
               <Input
                 type="tel"
