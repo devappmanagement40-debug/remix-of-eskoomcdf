@@ -180,9 +180,16 @@ const ADMIN_ONLY_WRITE_TABLES = new Set([
 
 // Tables scoped to the authenticated user — reads auto-filtered to user_id for non-admins
 const USER_SCOPED_TABLES = new Set([
-  "user_products", "recharges", "withdrawals", "user_wallets",
+  "profiles", "user_products", "recharges", "withdrawals", "user_wallets",
   "withdrawal_fee_payments", "gift_code_uses", "point_exchanges",
   "wheel_spins", "vip_history", "referral_commissions", "payment_logs",
+]);
+
+// Columns that non-admin users can never modify (financial and system fields)
+const PROTECTED_WRITE_COLUMNS = new Set([
+  "balance", "deposit_balance", "earnings_balance", "referral_balance",
+  "gift_points", "spins_balance", "vip_level", "is_suspended",
+  "user_id", "id", "referred_by", "referral_code", "created_at", "updated_at",
 ]);
 
 // Tables that require admin role for reads (internal/admin data)
@@ -302,6 +309,12 @@ router.post("/db", requireAuth, async (req, res) => {
         return res.status(403).json({ error: "Cannot write data for another user" });
       }
 
+      // Block non-admin writes to protected financial/system columns
+      if (!isAdmin) {
+        const protectedAttempt = Object.keys(row).map(k => toSnake(k)).find(c => PROTECTED_WRITE_COLUMNS.has(c));
+        if (protectedAttempt) return res.status(403).json({ error: `Column '${protectedAttempt}' is read-only` });
+      }
+
       const cols = Object.keys(row).map(k => toSnake(k)).filter(c => /^[a-z_][a-z0-9_]*$/.test(c));
       const origKeys = Object.keys(row);
       const vals = origKeys.map(k => row[k]);
@@ -340,6 +353,13 @@ router.patch("/db", requireAuth, async (req, res) => {
     }
 
     const updates = req.body;
+
+    // Block non-admin writes to protected financial/system columns
+    if (!isAdmin) {
+      const protectedAttempt = Object.keys(updates).map(k => toSnake(k)).find(c => PROTECTED_WRITE_COLUMNS.has(c));
+      if (protectedAttempt) return res.status(403).json({ error: `Column '${protectedAttempt}' is read-only` });
+    }
+
     const setCols = Object.keys(updates).map(k => toSnake(k)).filter(c => /^[a-z_][a-z0-9_]*$/.test(c));
     const origKeys = Object.keys(updates);
     const setVals = origKeys.map(k => updates[k]);
