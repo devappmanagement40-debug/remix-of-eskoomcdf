@@ -47,7 +47,7 @@ const Index = () => {
           supabase.from("info_items").select("*").eq("is_active", true).order("sort_order"),
         ]);
         if (bannersRes.status === "fulfilled" && bannersRes.value.data?.length) {
-          setBanners(bannersRes.value.data);
+          setBanners(bannersRes.value.data.map(b => ({ ...b, link_path: b.link_path ?? "/" })));
         }
         if (productsRes.status === "fulfilled" && productsRes.value.data) {
           setFeaturedProducts(productsRes.value.data);

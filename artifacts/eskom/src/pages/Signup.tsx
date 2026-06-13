@@ -64,10 +64,9 @@ const Signup = () => {
     } else {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        const updateData: Record<string, unknown> = { phone: cleanPhone, country_code: countryCode };
-        if (referrerId) updateData.referred_by = referrerId;
-        updateData.referral_code = cleanPhone.slice(-4).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
-        await supabase.from("profiles").update(updateData).eq("user_id", user.id);
+        const referralCode = cleanPhone.slice(-4).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
+        const updateData = { phone: cleanPhone, country_code: countryCode, referral_code: referralCode, ...(referrerId ? { referred_by: referrerId } : {}) };
+        await supabase.from("profiles").update(updateData as any).eq("user_id", user.id);
       }
       showSuccess("Sign up successful", "Your account has been created ✅");
       setTimeout(() => navigate("/"), 1500);

@@ -56,6 +56,7 @@ const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacem
           requestAnimationFrame(() => setVisible(true));
         }
       });
+      return;
     } else {
       setVisible(false);
       const t = setTimeout(() => setData(null), 300);

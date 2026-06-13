@@ -200,7 +200,7 @@ const AdminPanel = () => {
       if (s.data) setSeries(s.data);
       if (pr.data) setProducts(pr.data as Product[]);
       if (pm.data) setPaymentMethods(pm.data as PaymentMethod[]);
-      if (sl.data) setSocialLinks(sl.data);
+      if (sl.data) setSocialLinks(sl.data.map(l => ({ ...l, is_active: l.is_active ?? false })));
       if (ss.data) setSiteSettings(ss.data);
       if (pop.data) setPopups(pop.data as unknown as PopupMsg[]);
       if (logs.data) setAdminLogs(logs.data);
@@ -1524,7 +1524,7 @@ const AnnoncesTab = ({ reload, showSuccess, showError }: any) => {
     const { data } = await supabase.from("popup_messages").select("*").eq("trigger_key", "welcome_promo").maybeSingle();
     if (data) {
       setPopup(data as unknown as PopupMsg);
-      setForm({ title: data.title, message: data.message, button_confirm: data.button_confirm, button_cancel: data.button_cancel, is_active: data.is_active });
+      setForm({ title: data.title, message: data.message, button_confirm: data.button_confirm, button_cancel: data.button_cancel ?? undefined, is_active: data.is_active ?? true });
       setTabs(Array.isArray(data.tabs) ? (data.tabs as unknown as TabItem[]) : []);
     }
     setLoading(false);
@@ -1784,7 +1784,7 @@ const SupportTab = ({ adminId }: { adminId: string }) => {
       .select("*")
       .eq("user_id", uid)
       .order("created_at", { ascending: true });
-    setChatMessages(data || []);
+    setChatMessages((data || []).map(m => ({ ...m, is_ai: m.is_ai ?? false })) as any);
   };
 
   const sendReply = async () => {
