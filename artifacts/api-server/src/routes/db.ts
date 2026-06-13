@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db, pool } from "@workspace/db";
 import { userSessions, profiles } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { requireAuth } from "../middlewares/requireAuth";
+import { requireAuth, attachUser } from "../middlewares/requireAuth";
 
 const router = Router();
 
@@ -161,57 +161,36 @@ function toSnake(col: string): string {
   return CAMEL_TO_SNAKE[col] ?? col;
 }
 
-async function getUserFromReq(req: any) {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return null;
-  const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
-  if (!session || session.expiresAt < new Date()) return null;
-  const [profile] = await db.select().from(profiles).where(eq(profiles.userId, session.userId)).limit(1);
-  return profile ?? null;
-}
+// Tables readable without authentication (public config/catalog data)
+const PUBLIC_READ_TABLES = new Set([
+  "banners", "products", "product_series", "site_settings", "popup_messages",
+  "payment_methods", "withdrawal_methods", "countries", "info_items", "faq_items",
+  "social_links", "official_documents", "gift_codes", "gift_rewards",
+  "wheel_prizes", "vip_conditions",
+]);
 
-router.get("/db", async (req, res) => {
-  try {
-    const { table, select, filter, order, limit, count } = req.query as Record<string, string | string[]>;
-    const tableName = TABLE_ALLOWLIST[String(table)];
-    if (!tableName) return res.status(400).json({ error: "Unknown table" });
+// Tables that require admin role for any write operation
+const ADMIN_ONLY_WRITE_TABLES = new Set([
+  "admin_logs", "admin_permissions", "user_roles", "payment_api_configs",
+  "banners", "products", "product_series", "site_settings", "popup_messages",
+  "payment_methods", "withdrawal_methods", "countries", "info_items", "faq_items",
+  "social_links", "official_documents", "gift_codes", "gift_rewards",
+  "wheel_prizes", "vip_conditions",
+]);
 
-    // Handle count-only queries
-    if (count === "exact") {
-      const filters = Array.isArray(filter) ? filter : filter ? [filter] : [];
-      let countSql = `SELECT COUNT(*) FROM "${tableName}"`;
-      const params: any[] = [];
-      const conditions: string[] = [];
-      for (const f of filters) {
-        const [type, col, ...rest] = f.split(":");
-        const val = rest.join(":");
-        const colName = toSnake(col);
-        if (!/^[a-z_][a-z0-9_]*$/.test(colName)) continue;
-        params.push(val === "true" ? true : val === "false" ? false : val === "null" ? null : val);
-        const idx = params.length;
-        if (type === "eq") conditions.push(`"${colName}" = $${idx}`);
-        else if (type === "gt") conditions.push(`"${colName}" > $${idx}`);
-        else if (type === "gte") conditions.push(`"${colName}" >= $${idx}`);
-        else if (type === "lt") conditions.push(`"${colName}" < $${idx}`);
-        else if (type === "lte") conditions.push(`"${colName}" <= $${idx}`);
-      }
-      if (conditions.length) countSql += ` WHERE ${conditions.join(" AND ")}`;
-      const { rows } = await pool.query(countSql, params);
-      return res.json({ count: parseInt(rows[0].count) });
-    }
-
-    const selectedCols = select === "*" || !select ? "*" : (String(select)).split(",").map(c => `"${toSnake(c.trim())}"`).join(", ");
-
-    let sql = `SELECT ${selectedCols} FROM "${tableName}"`;
-    const params: any[] = [];
-    const filters = Array.isArray(filter) ? filter : filter ? [filter] : [];
-
-    const conditions: string[] = [];
-    for (const f of filters) {
-      const [type, col, ...rest] = f.split(":");
-      const val = rest.join(":");
-      const colName = toSnake(col);
-      if (!/^[a-z_][a-z0-9_]*$/.test(colName)) continue;
+function buildWhereClause(filters: string[], params: any[]): string[] {
+  const conditions: string[] = [];
+  for (const f of filters) {
+    const [type, col, ...rest] = f.split(":");
+    const val = rest.join(":");
+    const colName = toSnake(col);
+    if (!/^[a-z_][a-z0-9_]*$/.test(colName)) continue;
+    if (type === "in") {
+      const vals = val.split(",");
+      const placeholders = vals.map((_, i) => `$${params.length + i + 1}`).join(", ");
+      params.push(...vals);
+      conditions.push(`"${colName}" IN (${placeholders})`);
+    } else {
       params.push(val === "true" ? true : val === "false" ? false : val === "null" ? null : val);
       const idx = params.length;
       if (type === "eq") conditions.push(`"${colName}" = $${idx}`);
@@ -220,15 +199,46 @@ router.get("/db", async (req, res) => {
       else if (type === "gte") conditions.push(`"${colName}" >= $${idx}`);
       else if (type === "lt") conditions.push(`"${colName}" < $${idx}`);
       else if (type === "lte") conditions.push(`"${colName}" <= $${idx}`);
-      else if (type === "in") {
-        params.pop();
-        const vals = val.split(",");
-        const placeholders = vals.map((_, i) => `$${params.length + i + 1}`).join(", ");
-        params.push(...vals);
-        conditions.push(`"${colName}" IN (${placeholders})`);
-      }
+    }
+  }
+  return conditions;
+}
+
+router.get("/db", attachUser, async (req, res) => {
+  try {
+    const { table, select, filter, order, limit, count } = req.query as Record<string, string | string[]>;
+    const tableName = TABLE_ALLOWLIST[String(table)];
+    if (!tableName) return res.status(400).json({ error: "Unknown table" });
+
+    // Require auth for non-public tables
+    if (!PUBLIC_READ_TABLES.has(String(table)) && !req.authUser) {
+      return res.status(401).json({ error: "Authentication required" });
     }
 
+    // Admin-only tables require admin role
+    if (ADMIN_ONLY_WRITE_TABLES.has(String(table)) && !PUBLIC_READ_TABLES.has(String(table)) && req.authUser?.role !== "admin") {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
+    const filters = Array.isArray(filter) ? filter : filter ? [filter] : [];
+
+    // Handle count-only queries
+    if (count === "exact") {
+      const params: any[] = [];
+      const conditions = buildWhereClause(filters, params);
+      let countSql = `SELECT COUNT(*) FROM "${tableName}"`;
+      if (conditions.length) countSql += ` WHERE ${conditions.join(" AND ")}`;
+      const { rows } = await pool.query(countSql, params);
+      return res.json({ count: parseInt(rows[0].count) });
+    }
+
+    const selectedCols = select === "*" || !select
+      ? "*"
+      : (String(select)).split(",").map(c => `"${toSnake(c.trim())}"`).join(", ");
+
+    const params: any[] = [];
+    const conditions = buildWhereClause(filters, params);
+    let sql = `SELECT ${selectedCols} FROM "${tableName}"`;
     if (conditions.length) sql += ` WHERE ${conditions.join(" AND ")}`;
 
     if (order) {
@@ -258,10 +268,22 @@ router.post("/db", requireAuth, async (req, res) => {
     const tableName = TABLE_ALLOWLIST[String(table)];
     if (!tableName) return res.status(400).json({ error: "Unknown table" });
 
+    const isAdmin = req.authUser?.role === "admin";
+
+    // Admin tables require admin role
+    if (ADMIN_ONLY_WRITE_TABLES.has(String(table)) && !isAdmin) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
     const rows = Array.isArray(req.body) ? req.body : [req.body];
     const results = [];
 
     for (const row of rows) {
+      // For non-admin writes, enforce that user_id matches the authenticated user
+      if (!isAdmin && row.user_id && row.user_id !== req.authUser?.userId) {
+        return res.status(403).json({ error: "Cannot write data for another user" });
+      }
+
       const cols = Object.keys(row).map(k => toSnake(k)).filter(c => /^[a-z_][a-z0-9_]*$/.test(c));
       const origKeys = Object.keys(row);
       const vals = origKeys.map(k => row[k]);
@@ -273,7 +295,7 @@ router.post("/db", requireAuth, async (req, res) => {
 
       if (upsert === "true") {
         const idCol = cols.find(c => c === "id");
-        if (idCol) sql += ` ON CONFLICT (id) DO UPDATE SET ${cols.filter(c => c !== "id").map((c, i) => `"${c}" = $${cols.indexOf(c) + 1}`).join(", ")}`;
+        if (idCol) sql += ` ON CONFLICT (id) DO UPDATE SET ${cols.filter(c => c !== "id").map((c) => `"${c}" = $${cols.indexOf(c) + 1}`).join(", ")}`;
       }
 
       sql += " RETURNING *";
@@ -294,6 +316,11 @@ router.patch("/db", requireAuth, async (req, res) => {
     const tableName = TABLE_ALLOWLIST[String(table)];
     if (!tableName) return res.status(400).json({ error: "Unknown table" });
 
+    const isAdmin = req.authUser?.role === "admin";
+    if (ADMIN_ONLY_WRITE_TABLES.has(String(table)) && !isAdmin) {
+      return res.status(403).json({ error: "Admin access required" });
+    }
+
     const updates = req.body;
     const setCols = Object.keys(updates).map(k => toSnake(k)).filter(c => /^[a-z_][a-z0-9_]*$/.test(c));
     const origKeys = Object.keys(updates);
@@ -302,20 +329,21 @@ router.patch("/db", requireAuth, async (req, res) => {
     if (!setCols.length) return res.status(400).json({ error: "No updates" });
 
     const params: any[] = [...setVals];
-    let sql = `UPDATE "${tableName}" SET ${setCols.map((c, i) => `"${c}" = $${i + 1}`).join(", ")}`;
-
     const filters = Array.isArray(filter) ? filter : filter ? [String(filter)] : [];
-    const conditions: string[] = [];
-    for (const f of filters) {
-      const [type, col, ...rest] = f.split(":");
-      const val = rest.join(":");
-      const colName = toSnake(col);
-      if (!/^[a-z_][a-z0-9_]*$/.test(colName)) continue;
-      params.push(val === "true" ? true : val === "false" ? false : val === "null" ? null : val);
-      const idx = params.length;
-      if (type === "eq") conditions.push(`"${colName}" = $${idx}`);
+    const conditions = buildWhereClause(filters, params);
+
+    // For non-admin, only allow updates scoped to the authenticated user
+    if (!isAdmin) {
+      const hasUserFilter = filters.some(f => {
+        const [, col, ...rest] = f.split(":");
+        return toSnake(col) === "user_id" && rest.join(":") === req.authUser?.userId;
+      });
+      if (!hasUserFilter) {
+        return res.status(403).json({ error: "Must filter by your own user_id" });
+      }
     }
 
+    let sql = `UPDATE "${tableName}" SET ${setCols.map((c, i) => `"${c}" = $${i + 1}`).join(", ")}`;
     if (conditions.length) sql += ` WHERE ${conditions.join(" AND ")}`;
     sql += " RETURNING *";
 
@@ -333,20 +361,27 @@ router.delete("/db", requireAuth, async (req, res) => {
     const tableName = TABLE_ALLOWLIST[String(table)];
     if (!tableName) return res.status(400).json({ error: "Unknown table" });
 
-    const filters = Array.isArray(filter) ? filter : filter ? [String(filter)] : [];
-    const params: any[] = [];
-    const conditions: string[] = [];
-
-    for (const f of filters) {
-      const [type, col, ...rest] = f.split(":");
-      const val = rest.join(":");
-      const colName = toSnake(col);
-      if (!/^[a-z_][a-z0-9_]*$/.test(colName)) continue;
-      params.push(val);
-      if (type === "eq") conditions.push(`"${colName}" = $${params.length}`);
+    const isAdmin = req.authUser?.role === "admin";
+    if (ADMIN_ONLY_WRITE_TABLES.has(String(table)) && !isAdmin) {
+      return res.status(403).json({ error: "Admin access required" });
     }
 
+    const filters = Array.isArray(filter) ? filter : filter ? [String(filter)] : [];
+    const params: any[] = [];
+    const conditions = buildWhereClause(filters, params);
+
     if (!conditions.length) return res.status(400).json({ error: "No filter provided" });
+
+    // For non-admin, only allow deletes scoped to the authenticated user
+    if (!isAdmin) {
+      const hasUserFilter = filters.some(f => {
+        const [, col, ...rest] = f.split(":");
+        return toSnake(col) === "user_id" && rest.join(":") === req.authUser?.userId;
+      });
+      if (!hasUserFilter) {
+        return res.status(403).json({ error: "Must filter by your own user_id" });
+      }
+    }
 
     const sql = `DELETE FROM "${tableName}" WHERE ${conditions.join(" AND ")} RETURNING *`;
     const { rows } = await pool.query(sql, params);
