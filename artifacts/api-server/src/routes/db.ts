@@ -182,7 +182,7 @@ const ADMIN_ONLY_WRITE_TABLES = new Set([
 const USER_SCOPED_TABLES = new Set([
   "profiles", "user_products", "recharges", "withdrawals", "user_wallets",
   "withdrawal_fee_payments", "gift_code_uses", "point_exchanges",
-  "wheel_spins", "vip_history", "referral_commissions", "payment_logs",
+  "wheel_spins", "chat_messages", "vip_history", "referral_commissions", "payment_logs",
 ]);
 
 // Columns that non-admin users can never modify (financial and system fields)
@@ -196,6 +196,20 @@ const PROTECTED_WRITE_COLUMNS = new Set([
 const ADMIN_READ_TABLES = new Set([
   "admin_logs", "admin_permissions", "user_roles", "payment_api_configs",
 ]);
+
+// Startup assertion: every allowlisted table must belong to exactly one access tier.
+// This prevents new tables from being added without explicit access classification.
+for (const key of Object.keys(TABLE_ALLOWLIST)) {
+  const classified =
+    PUBLIC_READ_TABLES.has(key) ||
+    USER_SCOPED_TABLES.has(key) ||
+    ADMIN_READ_TABLES.has(key);
+  if (!classified) {
+    throw new Error(
+      `[db router] Table '${key}' is allowlisted but not classified in any access-control set (PUBLIC_READ_TABLES, USER_SCOPED_TABLES, or ADMIN_READ_TABLES). Add it before starting the server.`
+    );
+  }
+}
 
 function buildWhereClause(filters: string[], params: any[]): string[] {
   const conditions: string[] = [];
