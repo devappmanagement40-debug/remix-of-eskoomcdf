@@ -88,7 +88,7 @@ const HistoriqueFonds = () => {
                 </div>
                 <div className="text-right shrink-0">
                   <p className={`text-sm font-bold ${e.type === "deposit" ? "text-success" : "text-destructive"}`}>
-                    {e.type === "deposit" ? "+" : "-"}{fmt(e.amount)} F
+                    {e.type === "deposit" ? "+" : "-"}{fmt(e.amount)} USDT
                   </p>
                   <p className={`text-[10px] font-semibold ${statusColor(e.status)}`}>{statusLabel(e.status)}</p>
                 </div>

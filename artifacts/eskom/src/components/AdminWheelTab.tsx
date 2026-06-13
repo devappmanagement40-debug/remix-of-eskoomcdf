@@ -165,7 +165,7 @@ const PrizesSection = ({ prizes, reload, showSuccess, showError }: any) => {
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-foreground">{p.label}</span>
                 <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold ${p.prize_type === "vip" ? "bg-warning/20 text-warning" : "bg-primary/20 text-primary"}`}>
-                  {p.prize_type === "vip" ? `VIP${p.vip_level}` : `${Number(p.value).toLocaleString()} F`}
+                  {p.prize_type === "vip" ? `VIP${p.vip_level}` : `${Number(p.value).toLocaleString()} USDT`}
                 </span>
               </div>
               <p className="text-xs text-muted-foreground mt-0.5">Probabilité : {p.probability}%</p>
@@ -284,7 +284,7 @@ const WinnersSection = ({ spins, reload }: { spins: WheelSpin[]; reload: () => v
                 </div>
                 <div className="text-right">
                   <span className={`text-sm font-bold ${s.prize_type === "vip" ? "text-warning" : "text-primary"}`}>
-                    {s.prize_type === "vip" ? `VIP${s.vip_level}` : `${Number(s.prize_value).toLocaleString("fr-FR")} F`}
+                    {s.prize_type === "vip" ? `VIP${s.vip_level}` : `${Number(s.prize_value).toLocaleString("en-US")} USDT`}
                   </span>
                   <p className="text-[10px] text-muted-foreground">
                     {new Date(s.created_at).toLocaleDateString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" })}

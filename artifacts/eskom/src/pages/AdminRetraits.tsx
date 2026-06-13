@@ -323,11 +323,11 @@ const AdminRetraits = () => {
                     <div className="grid grid-cols-2 gap-3 mb-3">
                       <div className="bg-warning/10 rounded-xl p-3 text-center">
                         <p className="text-[10px] text-muted-foreground">Frais payés</p>
-                        <p className="text-sm font-bold text-warning">{fp.fee_amount.toLocaleString("fr-FR")} F</p>
+                        <p className="text-sm font-bold text-warning">{fp.fee_amount.toLocaleString("en-US")} USDT</p>
                       </div>
                       <div className="bg-primary/10 rounded-xl p-3 text-center">
                         <p className="text-[10px] text-muted-foreground">Capital</p>
-                        <p className="text-sm font-bold text-primary">{fp.capital_amount.toLocaleString("fr-FR")} F</p>
+                        <p className="text-sm font-bold text-primary">{fp.capital_amount.toLocaleString("en-US")} USDT</p>
                       </div>
                     </div>
 

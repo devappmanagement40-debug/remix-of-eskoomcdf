@@ -80,7 +80,7 @@ const Portefeuille = () => {
               <div className="absolute inset-0 bg-black/50" />
               <div className="relative z-10 p-3 text-center flex flex-col justify-center h-full">
                 <p className="text-[10px] text-white/80 mb-0.5">Deposit</p>
-                <p className="text-xs font-bold text-white">{profile.deposit_balance.toLocaleString("fr-FR")} F</p>
+                <p className="text-xs font-bold text-white">{profile.deposit_balance.toLocaleString("en-US")} USDT</p>
                 {depositNotWithdrawable && <p className="text-[8px] text-red-400 mt-0.5">Non-withdrawable</p>}
               </div>
             </div>
@@ -89,7 +89,7 @@ const Portefeuille = () => {
               <div className="absolute inset-0 bg-black/50" />
               <div className="relative z-10 p-3 text-center flex flex-col justify-center h-full">
                 <p className="text-[10px] text-white/80 mb-0.5">Earnings</p>
-                <p className="text-xs font-bold text-emerald-300">{profile.earnings_balance.toLocaleString("fr-FR")} F</p>
+                <p className="text-xs font-bold text-emerald-300">{profile.earnings_balance.toLocaleString("en-US")} USDT</p>
                 <p className="text-[8px] text-emerald-400 mt-0.5">Withdrawable</p>
               </div>
             </div>
@@ -98,7 +98,7 @@ const Portefeuille = () => {
               <div className="absolute inset-0 bg-black/50" />
               <div className="relative z-10 p-3 text-center flex flex-col justify-center h-full">
                 <p className="text-[10px] text-white/80 mb-0.5">Referral</p>
-                <p className="text-xs font-bold text-purple-300">{profile.referral_balance.toLocaleString("fr-FR")} F</p>
+                <p className="text-xs font-bold text-purple-300">{profile.referral_balance.toLocaleString("en-US")} USDT</p>
                 <p className="text-[8px] text-purple-400 mt-0.5">Withdrawable</p>
               </div>
             </div>

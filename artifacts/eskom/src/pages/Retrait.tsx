@@ -201,8 +201,8 @@ const Retrait = () => {
           <p className="text-3xl font-bold text-foreground">{withdrawableBalance.toLocaleString("fr-FR")} <span className="text-sm font-normal text-muted-foreground">USDT</span></p>
           {depositNotWithdrawable && (
             <div className="flex justify-center gap-3 mt-3">
-              <span className="text-[10px] bg-success/10 text-success px-2.5 py-1 rounded-full">Earnings: {earningsBalance.toLocaleString("fr-FR")} U</span>
-              <span className="text-[10px] bg-primary/10 text-primary px-2.5 py-1 rounded-full">Referral: {referralBalance.toLocaleString("fr-FR")} U</span>
+              <span className="text-[10px] bg-success/10 text-success px-2.5 py-1 rounded-full">Earnings: {earningsBalance.toLocaleString("en-US")} USDT</span>
+              <span className="text-[10px] bg-primary/10 text-primary px-2.5 py-1 rounded-full">Referral: {referralBalance.toLocaleString("en-US")} USDT</span>
             </div>
           )}
         </div>

@@ -460,11 +460,11 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
           <p className="text-sm font-bold text-foreground">{detailUser.full_name || "Sans nom"}</p>
           <p className="text-xs text-muted-foreground">{detailUser.country_code} {detailUser.phone}</p>
           <div className="grid grid-cols-2 gap-3 mt-3">
-            <div><p className="text-[10px] text-muted-foreground">Solde total</p><p className="text-xs font-bold text-primary">{(detailUser.balance || 0).toLocaleString("fr-FR")} F</p></div>
+            <div><p className="text-[10px] text-muted-foreground">Solde total</p><p className="text-xs font-bold text-primary">{(detailUser.balance || 0).toLocaleString("en-US")} USDT</p></div>
             <div><p className="text-[10px] text-muted-foreground">Niveau</p><p className="text-xs font-bold text-foreground">VIP{detailUser.vip_level || 0}</p></div>
-            <div><p className="text-[10px] text-muted-foreground">Dépôt</p><p className="text-xs font-bold text-foreground">{(detailUser.deposit_balance || 0).toLocaleString("fr-FR")} F</p></div>
-            <div><p className="text-[10px] text-muted-foreground">Gains</p><p className="text-xs font-bold text-success">{(detailUser.earnings_balance || 0).toLocaleString("fr-FR")} F</p></div>
-            <div><p className="text-[10px] text-muted-foreground">Parrainage</p><p className="text-xs font-bold text-primary">{(detailUser.referral_balance || 0).toLocaleString("fr-FR")} F</p></div>
+            <div><p className="text-[10px] text-muted-foreground">Dépôt</p><p className="text-xs font-bold text-foreground">{(detailUser.deposit_balance || 0).toLocaleString("en-US")} USDT</p></div>
+            <div><p className="text-[10px] text-muted-foreground">Gains</p><p className="text-xs font-bold text-success">{(detailUser.earnings_balance || 0).toLocaleString("en-US")} USDT</p></div>
+            <div><p className="text-[10px] text-muted-foreground">Parrainage</p><p className="text-xs font-bold text-primary">{(detailUser.referral_balance || 0).toLocaleString("en-US")} USDT</p></div>
             <div><p className="text-[10px] text-muted-foreground">ESK Points</p><p className="text-xs font-bold text-warning">{(detailUser.gift_points || 0).toLocaleString("fr-FR")} ESK</p></div>
             <div><p className="text-[10px] text-muted-foreground">Code</p><p className="text-xs font-semibold text-foreground">{detailUser.referral_code || "—"}</p></div>
           </div>
@@ -480,7 +480,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
                   <div key={up.id} className="flex items-center justify-between py-2 border-b border-secondary last:border-0">
                     <div>
                       <p className="text-xs font-semibold text-foreground">{up.products?.name || "Produit"}</p>
-                      <p className="text-[10px] text-muted-foreground">{Number(up.products?.price || 0).toLocaleString()} F • {up.products?.daily_revenue} F/jour</p>
+                      <p className="text-[10px] text-muted-foreground">{Number(up.products?.price || 0).toLocaleString("en-US")} USDT • {up.products?.daily_revenue} USDT/jour</p>
                     </div>
                     <button onClick={() => removeUserProduct(up.id)} className="w-7 h-7 rounded-lg bg-destructive/10 flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
                   </div>
@@ -491,7 +491,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
                   className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-xs border border-secondary outline-none">
                   <option value="">+ Ajouter un produit...</option>
                   {products.filter((pr: Product) => pr.is_active).map((pr: Product) => (
-                    <option key={pr.id} value={pr.id}>{pr.name} — {Number(pr.price).toLocaleString()} F</option>
+                    <option key={pr.id} value={pr.id}>{pr.name} — {Number(pr.price).toLocaleString("en-US")} USDT</option>
                   ))}
                 </select>
               </div>
@@ -511,7 +511,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
                     level.members.map((m: Profile) => (
                       <div key={m.id} className="flex items-center justify-between py-1.5 ml-2">
                         <p className="text-xs text-foreground">{m.full_name || m.phone || "—"}</p>
-                        <p className="text-[10px] text-muted-foreground">{(m.balance || 0).toLocaleString()} F</p>
+                        <p className="text-[10px] text-muted-foreground">{(m.balance || 0).toLocaleString("en-US")} USDT</p>
                       </div>
                     ))}
                 </div>
@@ -3448,11 +3448,11 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
               <div className="grid grid-cols-2 gap-2">
                 <div className="bg-secondary/50 rounded-lg p-2">
                   <p className="text-[10px] text-muted-foreground">Invest. perso</p>
-                  <p className="text-xs font-bold text-foreground">{Number(c.min_investment).toLocaleString()} F</p>
+                  <p className="text-xs font-bold text-foreground">{Number(c.min_investment).toLocaleString("en-US")} USDT</p>
                 </div>
                 <div className="bg-secondary/50 rounded-lg p-2">
                   <p className="text-[10px] text-muted-foreground">Invest. équipe</p>
-                  <p className="text-xs font-bold text-foreground">{Number(c.min_team_investment || 0).toLocaleString()} F</p>
+                  <p className="text-xs font-bold text-foreground">{Number(c.min_team_investment || 0).toLocaleString("en-US")} USDT</p>
                 </div>
                 <div className="bg-secondary/50 rounded-lg p-2">
                   <p className="text-[10px] text-muted-foreground">Membres actifs</p>

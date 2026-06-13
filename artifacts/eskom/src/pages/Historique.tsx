@@ -76,13 +76,13 @@ const Historique = () => {
         (depositsRes.data || []).forEach((d: any) => {
           ops.push({
             id: `dep-${d.id}`, rawId: d.id, type: "depots", amount: d.amount, date: d.created_at,
-            status: d.status, description: `Dépôt via ${d.payment_method || "Mobile Money"}`,
+            status: d.status, description: `Dépôt via ${d.payment_method || "USDT"}`,
             icon: ArrowDownLeft, color: "text-success",
             details: {
               "N° de commande": d.id.substring(0, 8).toUpperCase(),
               "Type": "Dépôt / Recharge",
-              "Montant": `${Number(d.amount).toLocaleString("fr-FR")} F`,
-              "Moyen de paiement": d.payment_method || "Mobile Money",
+              "Montant": `${Number(d.amount).toLocaleString("en-US")} USDT`,
+              "Moyen de paiement": d.payment_method || "USDT",
               "Téléphone": `${d.country_code || ""} ${d.phone || ""}`,
               "Réf. transaction": d.transaction_ref || "—",
               "Statut": statusLabel(d.status),
@@ -99,9 +99,9 @@ const Historique = () => {
             details: {
               "N° de commande": w.id.substring(0, 8).toUpperCase(),
               "Type": "Retrait",
-              "Montant demandé": `${Number(w.amount).toLocaleString("fr-FR")} F`,
-              "Frais": `${Number(w.fee_amount).toLocaleString("fr-FR")} F`,
-              "Montant reçu": `${Number(w.net_amount).toLocaleString("fr-FR")} F`,
+              "Montant demandé": `${Number(w.amount).toLocaleString("en-US")} USDT`,
+              "Frais": `${Number(w.fee_amount).toLocaleString("en-US")} USDT`,
+              "Montant reçu": `${Number(w.net_amount).toLocaleString("en-US")} USDT`,
               "Réseau": w.network || "—",
               "Téléphone": `${w.country_code || ""} ${w.phone || ""}`,
               "Statut": statusLabel(w.status),
@@ -120,10 +120,10 @@ const Historique = () => {
               "N° de commande": p.id.substring(0, 8).toUpperCase(),
               "Type": "Achat de produit",
               "Produit": product?.name || "—",
-              "Prix": `${Number(product?.price || 0).toLocaleString("fr-FR")} F`,
-              "Revenu journalier": `${Number(product?.daily_revenue || 0).toLocaleString("fr-FR")} F`,
+              "Prix": `${Number(product?.price || 0).toLocaleString("en-US")} USDT`,
+              "Revenu journalier": `${Number(product?.daily_revenue || 0).toLocaleString("en-US")} USDT`,
               "Durée": `${product?.cycles || 365} jours`,
-              "Gains collectés": `${Number(p.total_collected || 0).toLocaleString("fr-FR")} F`,
+              "Gains collectés": `${Number(p.total_collected || 0).toLocaleString("en-US")} USDT`,
               "Statut": "Validé",
               "Date d'achat": fmtDateFull(p.purchased_at),
             },
@@ -137,7 +137,7 @@ const Historique = () => {
                 "N° de commande": p.id.substring(0, 8).toUpperCase(),
                 "Type": "Gains produit",
                 "Produit": product?.name || "—",
-                "Total collecté": `${Number(p.total_collected).toLocaleString("fr-FR")} F`,
+                "Total collecté": `${Number(p.total_collected).toLocaleString("en-US")} USDT`,
                 "Statut": "Validé",
                 "Date": fmtDateFull(p.purchased_at),
               },
@@ -155,7 +155,7 @@ const Historique = () => {
               "Type": "Échange de points",
               "Récompense": ex.reward_name,
               "Points dépensés": `${ex.points_spent} pts`,
-              "Montant crédité": `${Number(ex.money_credited).toLocaleString("fr-FR")} F`,
+              "Montant crédité": `${Number(ex.money_credited).toLocaleString("en-US")} USDT`,
               "Statut": "Validé",
               "Date": fmtDateFull(ex.created_at),
             },
@@ -172,9 +172,9 @@ const Historique = () => {
               "N° de commande": c.id.substring(0, 8).toUpperCase(),
               "Type": "Bonus de parrainage",
               "Niveau": levelLabel,
-              "Prix du produit": `${Number(c.product_price).toLocaleString("fr-FR")} F`,
+              "Prix du produit": `${Number(c.product_price).toLocaleString("en-US")} USDT`,
               "Taux": `${c.commission_rate}%`,
-              "Bonus reçu": `${Number(c.commission_amount).toLocaleString("fr-FR")} F`,
+              "Bonus reçu": `${Number(c.commission_amount).toLocaleString("en-US")} USDT`,
               "Statut": "Validé",
               "Date": fmtDateFull(c.created_at),
             },
@@ -256,7 +256,7 @@ const Historique = () => {
                 </div>
                 <div className="text-right shrink-0">
                   <p className={`text-sm font-bold ${op.type === "retraits" ? "text-destructive" : "text-success"}`}>
-                    {op.type === "retraits" ? "-" : "+"}{fmt(op.amount)} F
+                    {op.type === "retraits" ? "-" : "+"}{fmt(op.amount)} USDT
                   </p>
                   <p className={`text-[10px] font-semibold ${statusColor(op.status)}`}>
                     {statusLabel(op.status)}
@@ -300,7 +300,7 @@ const Historique = () => {
             {/* Amount highlight */}
             <div className="bg-card px-5 py-4 text-center border-b border-border/20">
               <p className={`text-2xl font-black ${selectedOp.type === "retraits" ? "text-destructive" : "text-success"}`}>
-                {selectedOp.type === "retraits" ? "-" : "+"}{fmt(selectedOp.amount)} F
+                {selectedOp.type === "retraits" ? "-" : "+"}{fmt(selectedOp.amount)} USDT
               </p>
               <p className="text-xs text-muted-foreground mt-1">{selectedOp.description}</p>
             </div>

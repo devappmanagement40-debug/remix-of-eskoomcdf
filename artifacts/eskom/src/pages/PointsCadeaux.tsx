@@ -255,7 +255,7 @@ const PointsCadeaux = () => {
                     <p className="text-[10px] text-muted-foreground">{fmtDate(ex.created_at)}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs font-bold text-success">+{ex.money_credited.toLocaleString("fr-FR")} F</p>
+                    <p className="text-xs font-bold text-success">+{ex.money_credited.toLocaleString("en-US")} USDT</p>
                     <p className="text-[10px] text-muted-foreground">-{ex.points_spent} ESK</p>
                   </div>
                 </div>
