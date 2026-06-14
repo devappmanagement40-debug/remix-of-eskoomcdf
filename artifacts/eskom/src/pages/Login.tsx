@@ -7,11 +7,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PremiumModal from "@/components/PremiumModal";
 import { usePhoneValidation } from "@/hooks/usePhoneValidation";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Login = () => {
   const navigate = useNavigate();
   const { showError } = useActionPopup();
   const { validatePhone } = usePhoneValidation();
+  const { t } = useLanguage();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const countryCode = "+509";
@@ -21,7 +23,7 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone || !password) { showError("Error", "Please fill in all fields"); return; }
+    if (!phone || !password) { showError(t.common.error, t.login.errorFields); return; }
 
     const cleanPhone = phone.replace(/\D/g, "");
     let isAdminPhone = false;
@@ -42,7 +44,7 @@ const Login = () => {
 
     if (!isAdminPhone) {
       const phoneCheck = validatePhone(phone, countryCode);
-      if (!phoneCheck.valid) { showError("Invalid number", phoneCheck.message); return; }
+      if (!phoneCheck.valid) { showError(t.login.errorInvalidNumber, phoneCheck.message); return; }
     }
 
     setLoading(true);
@@ -57,7 +59,7 @@ const Login = () => {
       const data = await res.json();
 
       if (!res.ok || !data.ok) {
-        showError("Login failed", data.error || "Incorrect number or password");
+        showError(t.common.error, t.login.errorLogin);
         setLoading(false);
         return;
       }
@@ -76,7 +78,7 @@ const Login = () => {
       setUserName(profile?.full_name || profile?.phone || phone);
       setShowWelcome(true);
     } catch {
-      showError("Login failed", "Connection error, please try again");
+      showError(t.common.error, t.login.errorConnection);
     }
 
     setLoading(false);
@@ -84,10 +86,10 @@ const Login = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <PageHeader title="Sign in" showBack />
+      <PageHeader title={t.login.title} showBack />
       <div className="flex-1 flex flex-col items-center px-6 pt-8 pb-12">
-        <h2 className="text-2xl font-bold text-foreground text-center mb-1">Hello!</h2>
-        <p className="text-xl font-bold text-foreground text-center mb-8">Instant Login</p>
+        <h2 className="text-2xl font-bold text-foreground text-center mb-1">{t.login.hello}</h2>
+        <p className="text-xl font-bold text-foreground text-center mb-8">{t.login.instant}</p>
 
         <div className="mb-10">
           <EskomLogo size="md" />
@@ -100,7 +102,7 @@ const Login = () => {
               <span className="text-muted-foreground">|</span>
               <Input
                 type="tel"
-                placeholder="Phone number"
+                placeholder={t.login.phonePlaceholder}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                 className="border-0 bg-transparent focus-visible:ring-0 text-foreground placeholder:text-muted-foreground"
@@ -109,7 +111,7 @@ const Login = () => {
           </div>
 
           <div className="input-glow rounded-lg bg-input">
-            <Input type="password" placeholder="Enter your password" value={password}
+            <Input type="password" placeholder={t.login.passwordPlaceholder} value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="border-0 bg-transparent focus-visible:ring-0 text-foreground placeholder:text-muted-foreground" />
           </div>
@@ -117,13 +119,13 @@ const Login = () => {
           <div className="pt-6">
             <button type="submit" disabled={loading}
               className="w-full gradient-button text-foreground font-semibold py-3.5 rounded-xl text-base transition-opacity hover:opacity-90 disabled:opacity-50">
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? t.login.signingIn : t.login.signIn}
             </button>
           </div>
 
           <p className="text-center text-sm text-muted-foreground pt-2">
-            Don't have an account? /{" "}
-            <button type="button" onClick={() => navigate("/inscription")} className="text-primary font-medium hover:underline">Sign up</button>
+            {t.login.noAccount} /{" "}
+            <button type="button" onClick={() => navigate("/inscription")} className="text-primary font-medium hover:underline">{t.login.signUp}</button>
           </p>
         </form>
       </div>

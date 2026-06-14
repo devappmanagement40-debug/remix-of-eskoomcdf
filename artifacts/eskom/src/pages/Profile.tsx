@@ -1,6 +1,6 @@
 import { Wallet, Download, Clock, MessageCircle, Headphones, FileText, Smartphone, CreditCard, Lock, Gift, LogOut, Crown, ChevronRight, Package } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,23 +9,7 @@ import { useRealtimeProfile } from "@/hooks/useRealtimeProfile";
 import { useVipProgress } from "@/hooks/useVipProgress";
 import { useDisplaySettings } from "@/hooks/useDisplaySettings";
 import PremiumModal from "@/components/PremiumModal";
-
-const actionButtons = [
-  { icon: Wallet, label: "Deposit", path: "/portefeuille" },
-  { icon: Download, label: "Withdraw", path: "/retrait" },
-  { icon: Clock, label: "History", path: "/historique" },
-];
-
-const menuGrid = [
-  { icon: MessageCircle, label: "About us", path: "/a-propos" },
-  { icon: Headphones, label: "Customer support", path: "/aide" },
-  { icon: Clock, label: "Records", path: "/historique" },
-  { icon: FileText, label: "Rules", path: "/aide" },
-  { icon: Smartphone, label: "Download APP", path: "#" },
-  { icon: CreditCard, label: "Link bank card", path: "/lier-carte" },
-  { icon: Lock, label: "Change password", path: "/parametres" },
-  { icon: Gift, label: "Eskom Currency", path: "/points-cadeaux" },
-];
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -33,12 +17,30 @@ const Profile = () => {
   const { displaySettings } = useDisplaySettings();
   const { vipProgress } = useVipProgress(userId, profile.vip_level, profile.balance);
   const [showLogout, setShowLogout] = useState(false);
+  const { t } = useLanguage();
 
   const phone = profile.phone || "...";
 
+  const actionButtons = [
+    { icon: Wallet, label: t.profile.depositBtn, path: "/portefeuille" },
+    { icon: Download, label: t.profile.withdrawBtn, path: "/retrait" },
+    { icon: Clock, label: t.profile.historyBtn, path: "/historique" },
+  ];
+
+  const menuGrid = [
+    { icon: MessageCircle, label: t.profile.aboutUs, path: "/a-propos" },
+    { icon: Headphones, label: t.profile.support, path: "/aide" },
+    { icon: Clock, label: t.profile.records, path: "/historique" },
+    { icon: FileText, label: t.profile.rules, path: "/aide" },
+    { icon: Smartphone, label: t.profile.downloadApp, path: "#" },
+    { icon: CreditCard, label: t.profile.linkCard, path: "/lier-carte" },
+    { icon: Lock, label: t.profile.changePassword, path: "/parametres" },
+    { icon: Gift, label: t.profile.eskomCurrency, path: "/points-cadeaux" },
+  ];
+
   return (
     <div className="min-h-screen bg-background pb-20">
-      <PageHeader title="My Account" />
+      <PageHeader title={t.profile.title} />
       <div className="px-4 pt-6">
         {/* VIP Header */}
         <div className="relative bg-card rounded-2xl border border-secondary p-6 mb-4 overflow-hidden">
@@ -73,13 +75,13 @@ const Profile = () => {
             </div>
             {displaySettings.vip_progress_bar_enabled && vipProgress.nextLevelName && (
               <p className="text-xs text-primary font-medium">
-                Next VIP: <span className="font-bold">{vipProgress.nextLevelName}</span>
+                {t.profile.nextVip} <span className="font-bold">{vipProgress.nextLevelName}</span>
               </p>
             )}
             {displaySettings.vip_progress_bar_enabled && vipProgress.nextLevelName && (
               <div className="w-full mt-2 bg-secondary/50 rounded-xl p-4 border border-secondary">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-muted-foreground">Progress to {vipProgress.nextLevelName}</span>
+                  <span className="text-xs text-muted-foreground">{t.profile.progressTo} {vipProgress.nextLevelName}</span>
                   <span className="text-xs font-bold text-primary">{vipProgress.overallProgress}%</span>
                 </div>
                 <div className="relative h-3 w-full rounded-full bg-muted overflow-hidden">
@@ -110,7 +112,7 @@ const Profile = () => {
                   </div>
                 )}
                 <p className="text-[10px] text-muted-foreground mt-2 text-center">
-                  {vipProgress.allMet ? "Congratulations! All conditions met 🎉" : `${100 - vipProgress.overallProgress}% left to reach the next level`}
+                  {vipProgress.allMet ? t.profile.congrats : `${100 - vipProgress.overallProgress}${t.profile.leftToNext}`}
                 </p>
               </div>
             )}
@@ -119,7 +121,7 @@ const Profile = () => {
 
         {/* Balance */}
         <div className="bg-card rounded-xl border border-secondary p-5 mb-4">
-          <p className="text-xs text-muted-foreground mb-1">Available balance</p>
+          <p className="text-xs text-muted-foreground mb-1">{t.profile.availableBalance}</p>
           {loading ? (
             <div className="h-8 w-32 bg-secondary/50 rounded animate-pulse" />
           ) : (
@@ -153,7 +155,7 @@ const Profile = () => {
         {/* Déconnexion */}
         <button onClick={() => setShowLogout(true)} className="w-full bg-card rounded-xl border border-secondary p-4 flex items-center justify-center gap-3 hover:border-primary transition-colors">
           <LogOut size={20} className="text-primary" />
-          <span className="text-sm font-medium text-primary">Sign out</span>
+          <span className="text-sm font-medium text-primary">{t.profile.signOut}</span>
         </button>
       </div>
 

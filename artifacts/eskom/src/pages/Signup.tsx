@@ -6,12 +6,14 @@ import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import { usePhoneValidation } from "@/hooks/usePhoneValidation";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Signup = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { showSuccess, showError } = useActionPopup();
   const { validatePhone } = usePhoneValidation();
+  const { t } = useLanguage();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -26,12 +28,12 @@ const Signup = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!phone || !password || !confirmPassword) { showError("Error", "Please fill in all fields"); return; }
+    if (!phone || !password || !confirmPassword) { showError(t.common.error, t.signup.errorFields); return; }
     const phoneCheck = validatePhone(phone, countryCode);
-    if (!phoneCheck.valid) { showError("Invalid number", phoneCheck.message); return; }
-    if (password.length < 6) { showError("Error", "Password must be at least 6 characters"); return; }
-    if (password !== confirmPassword) { showError("Error", "Passwords do not match"); return; }
-    if (!inviteCode.trim()) { showError("Error", "Invitation code is required"); return; }
+    if (!phoneCheck.valid) { showError(t.login.errorInvalidNumber, phoneCheck.message); return; }
+    if (password.length < 6) { showError(t.common.error, t.signup.errorPassword); return; }
+    if (password !== confirmPassword) { showError(t.common.error, t.signup.errorPasswordMatch); return; }
+    if (!inviteCode.trim()) { showError(t.common.error, t.signup.errorInviteCode); return; }
 
     setLoading(true);
     const cleanPhone = phone.replace(/\s/g, "");
@@ -47,9 +49,9 @@ const Signup = () => {
 
       if (!res.ok || !data.ok) {
         if (data.error?.includes("already registered")) {
-          showError("Error", "This number is already registered");
+          showError(t.common.error, t.signup.errorAlreadyRegistered);
         } else {
-          showError("Error", data.error || "Sign up failed");
+          showError(t.common.error, data.error || t.signup.errorSignup);
         }
         setLoading(false);
         return;
@@ -62,10 +64,10 @@ const Signup = () => {
         });
       }
 
-      showSuccess("Sign up successful", "Your account has been created ✅");
+      showSuccess(t.signup.successTitle, t.signup.successMsg);
       setTimeout(() => navigate("/"), 1500);
     } catch {
-      showError("Error", "Connection error, please try again");
+      showError(t.common.error, t.signup.errorConnection);
     }
 
     setLoading(false);
@@ -73,10 +75,10 @@ const Signup = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <PageHeader title="Sign up" showBack />
+      <PageHeader title={t.signup.title} showBack />
       <div className="flex-1 flex flex-col items-center px-6 pt-8 pb-12">
-        <h2 className="text-2xl font-bold text-foreground text-center mb-1">Create</h2>
-        <p className="text-xl font-bold text-foreground text-center mb-8">New Account</p>
+        <h2 className="text-2xl font-bold text-foreground text-center mb-1">{t.signup.create}</h2>
+        <p className="text-xl font-bold text-foreground text-center mb-8">{t.signup.newAccount}</p>
 
         <div className="mb-10">
           <EskomLogo size="md" />
@@ -89,7 +91,7 @@ const Signup = () => {
               <span className="text-muted-foreground">|</span>
               <Input
                 type="tel"
-                placeholder="Phone number"
+                placeholder={t.signup.phonePlaceholder}
                 value={phone}
                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
                 className="border-0 bg-transparent focus-visible:ring-0 text-foreground placeholder:text-muted-foreground"
@@ -98,19 +100,19 @@ const Signup = () => {
           </div>
 
           <div className="input-glow rounded-lg bg-input">
-            <Input type="password" placeholder="Enter your password" value={password}
+            <Input type="password" placeholder={t.signup.passwordPlaceholder} value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="border-0 bg-transparent focus-visible:ring-0 text-foreground placeholder:text-muted-foreground" />
           </div>
 
           <div className="input-glow rounded-lg bg-input">
-            <Input type="password" placeholder="Confirm your password" value={confirmPassword}
+            <Input type="password" placeholder={t.signup.confirmPasswordPlaceholder} value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               className="border-0 bg-transparent focus-visible:ring-0 text-foreground placeholder:text-muted-foreground" />
           </div>
 
           <div className="input-glow rounded-lg bg-input">
-            <Input type="text" placeholder="Enter invitation code" value={inviteCode}
+            <Input type="text" placeholder={t.signup.inviteCodePlaceholder} value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value)}
               className="border-0 bg-transparent focus-visible:ring-0 text-foreground placeholder:text-muted-foreground" />
           </div>
@@ -118,13 +120,13 @@ const Signup = () => {
           <div className="pt-6">
             <button type="submit" disabled={loading}
               className="w-full gradient-button text-foreground font-semibold py-3.5 rounded-xl text-base transition-opacity hover:opacity-90 disabled:opacity-50">
-              {loading ? "Signing up..." : "Sign up"}
+              {loading ? t.signup.signingUp : t.signup.signUp}
             </button>
           </div>
 
           <p className="text-center text-sm text-muted-foreground pt-2">
-            Already have an account? /{" "}
-            <button type="button" onClick={() => navigate("/connexion")} className="text-primary font-medium hover:underline">Sign in</button>
+            {t.signup.hasAccount} /{" "}
+            <button type="button" onClick={() => navigate("/connexion")} className="text-primary font-medium hover:underline">{t.signup.signIn}</button>
           </p>
         </form>
       </div>

@@ -8,20 +8,7 @@ import InviteModal from "@/components/InviteModal";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import bannerHome from "@/assets/banner-home.jpg";
-
-
-const circleActions = [
-  { icon: ShoppingBag, label: "My products", path: "/mes-produits" },
-  { icon: Clock, label: "Deposit", path: "/recharge" },
-  { icon: Download, label: "Withdraw", path: "/portefeuille" },
-  { icon: Users, label: "My team", path: "/equipe" },
-];
-
-const quickActions = [
-  { icon: Headphones, label: "Support" },
-  { icon: Mail, label: "Invite friends" },
-  { icon: RefreshCw, label: "Exchange" },
-];
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const fallbackBanners = [
   { image_url: bannerHome, link_path: "/loterie" },
@@ -30,6 +17,7 @@ const fallbackBanners = [
 const Index = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [currentBanner, setCurrentBanner] = useState(0);
   const [showService, setShowService] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
@@ -37,6 +25,19 @@ const Index = () => {
   const [banners, setBanners] = useState<{ image_url: string; link_path: string }[]>(fallbackBanners);
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [annonces, setAnnonces] = useState<any[]>([]);
+
+  const circleActions = [
+    { icon: ShoppingBag, label: t.index.myProducts, path: "/mes-produits" },
+    { icon: Clock, label: t.index.depositAction, path: "/recharge" },
+    { icon: Download, label: t.index.withdrawAction, path: "/portefeuille" },
+    { icon: Users, label: t.index.myTeam, path: "/equipe" },
+  ];
+
+  const quickActions = [
+    { icon: Headphones, label: t.index.support, key: "Support" },
+    { icon: Mail, label: t.index.inviteFriends, key: "Invite" },
+    { icon: RefreshCw, label: t.index.exchange, key: "Exchange" },
+  ];
 
   useEffect(() => {
     const loadData = async () => {
@@ -62,16 +63,13 @@ const Index = () => {
     loadData();
   }, []);
 
-  // Auto-show promo popup every time user lands on home
   useEffect(() => {
     setShowPromo(false);
-
     const timer = setTimeout(() => {
       supabase.from("popup_messages").select("id").eq("trigger_key", "welcome_promo").eq("is_active", true).maybeSingle().then(({ data }) => {
         if (data) setShowPromo(true);
       });
     }, 1000);
-
     return () => clearTimeout(timer);
   }, [location.key]);
 
@@ -125,7 +123,7 @@ const Index = () => {
       <section className="px-4 mt-6">
         <div className="grid grid-cols-4 gap-4">
           {circleActions.map((action) => (
-            <button key={action.label} onClick={() => navigate(action.path)} className="flex flex-col items-center gap-2">
+            <button key={action.path} onClick={() => navigate(action.path)} className="flex flex-col items-center gap-2">
               <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center border border-muted hover:border-primary transition-colors">
                 <action.icon size={22} className="text-muted-foreground" />
               </div>
@@ -140,11 +138,11 @@ const Index = () => {
         <div className="grid grid-cols-3 gap-3">
           {quickActions.map((action) => (
             <button
-              key={action.label}
+              key={action.key}
               onClick={() => {
-                if (action.label === "Support") setShowService(true);
-                else if (action.label === "Invite friends") setShowInvite(true);
-                else if (action.label === "Exchange") navigate("/echanger-code");
+                if (action.key === "Support") setShowService(true);
+                else if (action.key === "Invite") setShowInvite(true);
+                else if (action.key === "Exchange") navigate("/echanger-code");
               }}
               className="flex flex-col items-center gap-2 bg-card rounded-xl py-4 px-2 border border-secondary hover:border-primary transition-colors"
             >
@@ -160,9 +158,9 @@ const Index = () => {
         <section className="mt-6 px-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-bold text-foreground flex items-center gap-2">
-              <TrendingUp size={18} className="text-primary" /> Popular products
+              <TrendingUp size={18} className="text-primary" /> {t.index.popularProducts}
             </h2>
-            <button onClick={() => navigate("/produits")} className="text-xs text-primary font-semibold">View all</button>
+            <button onClick={() => navigate("/produits")} className="text-xs text-primary font-semibold">{t.common.viewAll}</button>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-2 snap-x">
             {featuredProducts.map((product) => (
@@ -172,7 +170,7 @@ const Index = () => {
                     <div className="relative w-28 h-32 rounded-lg overflow-hidden flex-shrink-0">
                       <img src={product.image_url} alt={product.name} width={224} height={256} loading="lazy" className="w-full h-full object-cover" />
                       {product.is_new && (
-                        <Badge className="absolute top-1.5 left-1.5 bg-success text-success-foreground text-[9px] px-1.5 py-0.5">new</Badge>
+                        <Badge className="absolute top-1.5 left-1.5 bg-success text-success-foreground text-[9px] px-1.5 py-0.5">{t.common.new}</Badge>
                       )}
                     </div>
                   ) : (
@@ -185,19 +183,19 @@ const Index = () => {
                     <Badge className="bg-success text-success-foreground text-[10px] w-fit">{product.return_percent}%</Badge>
                     <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 mt-1">
                       <div>
-                        <p className="text-[9px] text-muted-foreground">Total revenue</p>
+                        <p className="text-[9px] text-muted-foreground">{t.index.totalRevenue}</p>
                         <p className="text-xs font-bold text-primary">{Number(product.total_revenue).toLocaleString("en-US")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p>
                       </div>
                       <div>
-                        <p className="text-[9px] text-muted-foreground">Daily revenue</p>
+                        <p className="text-[9px] text-muted-foreground">{t.index.dailyRevenue}</p>
                         <p className="text-xs font-bold text-primary">{Number(product.daily_revenue).toLocaleString("en-US")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p>
                       </div>
                       <div>
-                        <p className="text-[9px] text-muted-foreground">Cycles</p>
+                        <p className="text-[9px] text-muted-foreground">{t.index.cycles}</p>
                         <p className="text-xs font-bold text-primary">{product.cycles}d</p>
                       </div>
                       <div>
-                        <p className="text-[9px] text-muted-foreground">Price</p>
+                        <p className="text-[9px] text-muted-foreground">{t.index.price}</p>
                         <p className="text-xs font-bold text-primary">{Number(product.price).toLocaleString("en-US")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p>
                       </div>
                     </div>
@@ -205,7 +203,7 @@ const Index = () => {
                 </div>
                 <div className="px-3 pb-3">
                   <button onClick={() => navigate("/produits")} className="gradient-button w-full h-8 text-xs font-semibold flex items-center justify-center gap-1.5 rounded-lg text-primary-foreground">
-                    <ShoppingBag size={14} /> Buy
+                    <ShoppingBag size={14} /> {t.common.buy}
                   </button>
                 </div>
               </div>
@@ -217,7 +215,7 @@ const Index = () => {
       {/* Annonces */}
       {annonces.length > 0 && (
         <section className="mt-6 px-4">
-          <h2 className="text-lg font-bold text-foreground mb-4">Announcements</h2>
+          <h2 className="text-lg font-bold text-foreground mb-4">{t.index.announcements}</h2>
           <div className="space-y-3">
             {annonces.map((item) => (
               <div
@@ -228,7 +226,7 @@ const Index = () => {
                 <div className="flex-1 min-w-0">
                   <h3 className="text-sm font-bold text-foreground mb-1">{item.title}</h3>
                   <p className="text-xs text-muted-foreground line-clamp-3">{item.description}</p>
-                  <span className="text-[10px] text-primary font-semibold mt-2 inline-block">Read more →</span>
+                  <span className="text-[10px] text-primary font-semibold mt-2 inline-block">{t.common.readMore}</span>
                 </div>
                 {item.image_url && (
                   <div className="w-24 h-20 rounded-lg overflow-hidden flex-shrink-0">

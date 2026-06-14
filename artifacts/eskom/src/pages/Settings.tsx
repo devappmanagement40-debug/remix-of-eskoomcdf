@@ -4,20 +4,22 @@ import { useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import PremiumModal from "@/components/PremiumModal";
 import { supabase } from "@/integrations/supabase/client";
-
-const settingsItems = [
-  { label: "Change Password", path: "/changer-mot-de-passe" },
-  { label: "Change Language", path: "/changer-langue" },
-  { label: "Sign Out", action: "logout" },
-];
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Settings = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [showLogout, setShowLogout] = useState(false);
+
+  const settingsItems = [
+    { label: t.settings.changePassword, path: "/changer-mot-de-passe" },
+    { label: t.settings.changeLanguage, path: "/changer-langue" },
+    { label: t.settings.signOut, action: "logout" },
+  ];
 
   return (
     <div className="min-h-screen bg-background">
-      <PageHeader title="Settings" showBack />
+      <PageHeader title={t.settings.title} showBack />
       <div className="px-4 pt-6 space-y-3">
         {settingsItems.map((item) => (
           <button
