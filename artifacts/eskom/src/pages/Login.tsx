@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
-import EskomLogo from "@/components/EskomLogo";
 import PageHeader from "@/components/PageHeader";
 import CountryPicker from "@/components/CountryPicker";
 import { supabase } from "@/integrations/supabase/client";
@@ -93,7 +92,7 @@ const Login = () => {
         <p className="text-xl font-bold text-foreground text-center mb-8">{t.login.instant}</p>
 
         <div className="mb-10">
-          <EskomLogo size="md" />
+          <img src="/logo-ge.jpg" alt="Logo" className="w-24 h-24 rounded-full object-cover mx-auto" />
         </div>
 
         <form onSubmit={handleLogin} className="w-full max-w-sm space-y-4" translate="no">
