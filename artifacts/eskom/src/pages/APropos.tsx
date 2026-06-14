@@ -1,4 +1,4 @@
-import { Globe, Users, TrendingUp, Shield, Zap, MapPin } from "lucide-react";
+import { Users, TrendingUp, Shield, Zap, MapPin, Leaf } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 
 const stats = [
@@ -13,38 +13,22 @@ const APropos = () => {
     <div className="min-h-screen bg-background pb-10">
       <PageHeader title="About Us" showBack />
       <div className="px-4 pt-6 space-y-6">
-        {/* Hero */}
-        <div className="bg-card rounded-xl border border-secondary p-5">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <Globe size={24} className="text-primary" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-foreground">GE Energy</h2>
-              <p className="text-xs text-muted-foreground">Investing in African energy</p>
-            </div>
+
+        {/* Hero — Logo + Nom */}
+        <div className="bg-card rounded-xl border border-secondary p-6 flex flex-col items-center text-center gap-4">
+          <img
+            src="/logo-ge.jpg"
+            alt="GE Energy"
+            className="w-24 h-24 rounded-full object-cover shadow-lg"
+          />
+          <div>
+            <h2 className="text-xl font-bold text-foreground">GE Energy</h2>
+            <p className="text-xs text-primary font-medium mt-1">Powering Africa's Future</p>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            GE Energy is an innovative investment platform dedicated to the energy sector in Africa.
-            Our mission is to democratize access to investment opportunities in renewable
-            energy and industrial infrastructure across the African continent.
-          </p>
-        </div>
-
-        {/* Mission */}
-        <div className="bg-card rounded-xl border border-secondary p-5">
-          <h3 className="text-base font-bold text-foreground mb-3">Our mission</h3>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-            At GE Energy, we firmly believe that Africa holds considerable and largely untapped
-            energy potential. Our platform enables every African citizen, regardless of
-            income level, to actively participate in the continent's energy development
-            and reap concrete benefits.
-          </p>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            We offer an accessible, transparent, and profitable investment model,
-            designed specifically to meet the economic realities of the African continent.
-            Every investment directly contributes to financing solar energy, wind energy,
-            and essential technological infrastructure projects.
+            GE Energy is a global investment platform dedicated to the energy sector.
+            Our mission is to democratize access to profitable investment opportunities
+            in renewable energy and industrial infrastructure, accessible to everyone.
           </p>
         </div>
 
@@ -59,32 +43,53 @@ const APropos = () => {
           ))}
         </div>
 
-        {/* Expansion */}
+        {/* Mission */}
         <div className="bg-card rounded-xl border border-secondary p-5">
-          <h3 className="text-base font-bold text-foreground mb-3">Our expansion in Africa</h3>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-            Present in several African countries, GE Energy has strategically established itself
-            in Central Africa and East Africa. Our network covers
-            Haiti, Cameroon, Gabon, and Kenya.
+          <div className="flex items-center gap-2 mb-3">
+            <Leaf size={18} className="text-primary" />
+            <h3 className="text-base font-bold text-foreground">Our Mission</h3>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+            At GE Energy, we firmly believe that the world holds considerable and largely
+            untapped energy potential. Our platform enables every citizen, regardless of
+            income level, to actively participate in energy development and reap concrete benefits.
           </p>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            This continental presence allows us to diversify our investments
-            and offer our members varied opportunities in different
-            fast-growing energy markets. Each country represents a unique potential
-            in solar energy, wind energy, and digital infrastructure.
+            We offer an accessible, transparent, and profitable investment model.
+            Every investment directly contributes to financing solar energy, wind energy,
+            and essential technological infrastructure projects.
           </p>
         </div>
 
-        {/* Why ESKOM */}
+        {/* Expansion */}
         <div className="bg-card rounded-xl border border-secondary p-5">
-          <h3 className="text-base font-bold text-foreground mb-3">Why choose GE Energy?</h3>
+          <div className="flex items-center gap-2 mb-3">
+            <MapPin size={18} className="text-primary" />
+            <h3 className="text-base font-bold text-foreground">Our Global Presence</h3>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed mb-3">
+            Present in several countries, GE Energy has strategically established itself
+            in Africa, Central America, and beyond. Our network covers
+            Haiti, Cameroon, Gabon, Kenya, and more.
+          </p>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            This international presence allows us to diversify our investments
+            and offer our members varied opportunities across fast-growing
+            energy markets. Each region represents unique potential
+            in solar, wind, and digital infrastructure.
+          </p>
+        </div>
+
+        {/* Why GE Energy */}
+        <div className="bg-card rounded-xl border border-secondary p-5">
+          <h3 className="text-base font-bold text-foreground mb-4">Why choose GE Energy?</h3>
           <div className="space-y-4">
             <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                <Shield size={16} className="text-primary" />
+              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Shield size={18} className="text-primary" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">Fund security</p>
+                <p className="text-sm font-semibold text-foreground">Fund Security</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Your investments are protected by advanced security protocols.
                   Every transaction is verified and every wallet is secured.
@@ -92,11 +97,11 @@ const APropos = () => {
               </div>
             </div>
             <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                <TrendingUp size={16} className="text-primary" />
+              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <TrendingUp size={18} className="text-primary" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">Attractive returns</p>
+                <p className="text-sm font-semibold text-foreground">Attractive Returns</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   Our investment products offer competitive returns,
                   with daily income credited directly to your wallet.
@@ -104,14 +109,26 @@ const APropos = () => {
               </div>
             </div>
             <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                <Users size={16} className="text-primary" />
+              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Users size={18} className="text-primary" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">Supportive community</p>
+                <p className="text-sm font-semibold text-foreground">Supportive Community</p>
                 <p className="text-xs text-muted-foreground leading-relaxed">
-                  Join a community of over 50,000 African investors
-                  who share the same vision of a prosperous, energy-independent continent.
+                  Join a community of over 50,000 investors who share the same
+                  vision of a prosperous, energy-independent future.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Zap size={18} className="text-primary" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">Instant Payouts</p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Withdraw your earnings anytime, directly to your crypto wallet,
+                  with fast and reliable processing.
                 </p>
               </div>
             </div>
@@ -120,18 +137,17 @@ const APropos = () => {
 
         {/* Contact */}
         <div className="bg-card rounded-xl border border-secondary p-5">
-          <h3 className="text-base font-bold text-foreground mb-3">Contact us</h3>
-          <p className="text-sm text-muted-foreground leading-relaxed mb-2">
+          <h3 className="text-base font-bold text-foreground mb-3">Contact Us</h3>
+          <p className="text-sm text-muted-foreground leading-relaxed mb-3">
             Our support team is available 7 days a week to answer all your questions
             and guide you through your investments.
           </p>
-          <p className="text-sm text-muted-foreground">
-            📧 support@ge-energy.com
-          </p>
-          <p className="text-sm text-muted-foreground">
-            🌐 www.ge-energy.com
-          </p>
+          <div className="space-y-1.5">
+            <p className="text-sm text-muted-foreground">📧 support@ge-energy.com</p>
+            <p className="text-sm text-muted-foreground">🌐 www.ge-energy.com</p>
+          </div>
         </div>
+
       </div>
     </div>
   );
