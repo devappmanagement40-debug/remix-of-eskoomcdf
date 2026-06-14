@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ClipboardList, ShoppingCart, Package, Lock, Ban } from "lucide-react";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PremiumModal from "@/components/PremiumModal";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle,
   AlertDialogDescription, AlertDialogFooter, AlertDialogAction, AlertDialogCancel,
@@ -52,6 +53,7 @@ type UserAccessData = {
 
 const Products = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [series, setSeries] = useState<Series[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [activeSeries, setActiveSeries] = useState<string>("all");
@@ -111,7 +113,7 @@ const Products = () => {
   }, []);
 
   const checkSeriesAccess = (s: Series): string[] => {
-    if (!userAccess) return ["Sign in to purchase"];
+    if (!userAccess) return [t.products.signInToPurchase];
     const missing: string[] = [];
     if ((s.min_vip_level || 0) > 0 && userAccess.vipLevel < (s.min_vip_level || 0)) {
       missing.push(`VIP ${s.min_vip_level} required (you are VIP ${userAccess.vipLevel})`);
@@ -243,7 +245,7 @@ const Products = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <PageHeader title="Products" />
+      <PageHeader title={t.products.title} />
       <div className="px-4 pt-4">
         {/* Series tabs */}
         <div className="flex gap-2 mb-5 overflow-x-auto pb-1">
@@ -253,7 +255,7 @@ const Products = () => {
               activeSeries === "all" ? "gradient-button text-primary-foreground" : "bg-transparent border border-primary text-primary"
             }`}
           >
-            All
+            {t.products.all}
           </button>
           {series.map(s => {
             const isActive = activeSeries === s.id;
@@ -273,7 +275,7 @@ const Products = () => {
         </div>
 
         {loading ? (
-          <p className="text-center text-muted-foreground py-10">Loading...</p>
+          <p className="text-center text-muted-foreground py-10">{t.common.loading}</p>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center py-20">
             <div className="relative mb-6">
@@ -281,7 +283,7 @@ const Products = () => {
                 <ClipboardList size={40} className="text-muted-foreground/50" />
               </div>
             </div>
-            <p className="text-sm text-muted-foreground">No products available</p>
+            <p className="text-sm text-muted-foreground">{t.products.noProducts}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -301,16 +303,16 @@ const Products = () => {
                       <div className="relative w-24 h-28 rounded-lg overflow-hidden flex-shrink-0">
                         <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                         {product.is_new && !isUnavailable && (
-                          <Badge className="absolute top-1.5 left-1.5 bg-success text-success-foreground text-[9px] px-1.5 py-0.5">new</Badge>
+                          <Badge className="absolute top-1.5 left-1.5 bg-success text-success-foreground text-[9px] px-1.5 py-0.5">{t.products.new}</Badge>
                         )}
                         {isSoldOut && (
                           <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-                            <Badge className="bg-warning text-warning-foreground text-[10px] px-2 py-1 font-bold">Sold out</Badge>
+                            <Badge className="bg-warning text-warning-foreground text-[10px] px-2 py-1 font-bold">{t.products.soldOut}</Badge>
                           </div>
                         )}
                         {isTerminated && (
                           <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-                            <Badge className="bg-destructive text-destructive-foreground text-[10px] px-2 py-1 font-bold">Ended</Badge>
+                            <Badge className="bg-destructive text-destructive-foreground text-[10px] px-2 py-1 font-bold">{t.products.ended}</Badge>
                           </div>
                         )}
                       </div>
@@ -318,16 +320,16 @@ const Products = () => {
                       <div className="relative w-24 h-28 rounded-lg overflow-hidden flex-shrink-0 bg-secondary/30 flex items-center justify-center">
                         <Package size={28} className="text-muted-foreground/30" />
                         {product.is_new && !isUnavailable && (
-                          <Badge className="absolute top-1.5 left-1.5 bg-success text-success-foreground text-[9px] px-1.5 py-0.5">new</Badge>
+                          <Badge className="absolute top-1.5 left-1.5 bg-success text-success-foreground text-[9px] px-1.5 py-0.5">{t.products.new}</Badge>
                         )}
                         {isSoldOut && (
                           <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-                            <Badge className="bg-warning text-warning-foreground text-[10px] px-2 py-1 font-bold">Sold out</Badge>
+                            <Badge className="bg-warning text-warning-foreground text-[10px] px-2 py-1 font-bold">{t.products.soldOut}</Badge>
                           </div>
                         )}
                         {isTerminated && (
                           <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
-                            <Badge className="bg-destructive text-destructive-foreground text-[10px] px-2 py-1 font-bold">Ended</Badge>
+                            <Badge className="bg-destructive text-destructive-foreground text-[10px] px-2 py-1 font-bold">{t.products.ended}</Badge>
                           </div>
                         )}
                       </div>
@@ -336,29 +338,29 @@ const Products = () => {
                       <div className="flex gap-1.5 items-center flex-wrap">
                         <Badge variant="outline" className={`${colorBorderMap[seriesColor] || ""} text-[10px]`}>{product.name}</Badge>
                         <Badge className="bg-success text-success-foreground text-[10px]">{product.return_percent}%</Badge>
-                        <Badge className="bg-primary/90 text-primary-foreground text-[9px]">Live</Badge>
+                        <Badge className="bg-primary/90 text-primary-foreground text-[9px]">{t.products.live}</Badge>
                       </div>
                       <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 mt-1">
                         <div>
-                          <p className="text-[9px] text-muted-foreground">Total revenue</p>
+                          <p className="text-[9px] text-muted-foreground">{t.products.totalRevenue}</p>
                           <p className="text-xs font-bold text-primary">{Number(product.total_revenue).toLocaleString("en-US")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p>
                         </div>
                         <div>
-                          <p className="text-[9px] text-muted-foreground">Daily revenue</p>
+                          <p className="text-[9px] text-muted-foreground">{t.products.dailyRevenue}</p>
                           <p className="text-xs font-bold text-primary">{Number(product.daily_revenue).toLocaleString("en-US")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p>
                         </div>
                         <div>
-                          <p className="text-[9px] text-muted-foreground">Cycles</p>
-                          <p className="text-xs font-bold text-primary">{product.cycles}d</p>
+                          <p className="text-[9px] text-muted-foreground">{t.products.cycles}</p>
+                          <p className="text-xs font-bold text-primary">{product.cycles}{t.products.days}</p>
                         </div>
                         <div>
-                          <p className="text-[9px] text-muted-foreground">Price</p>
+                          <p className="text-[9px] text-muted-foreground">{t.products.price}</p>
                           <p className="text-xs font-bold text-primary">{Number(product.price).toLocaleString("en-US")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p>
                         </div>
                         {product.max_purchases && (
                           <div className="col-span-2 mt-0.5">
-                            <p className="text-[9px] text-muted-foreground">Purchase limit</p>
-                            <p className="text-xs font-bold text-warning">Max {product.max_purchases} purchase{product.max_purchases > 1 ? "s" : ""}</p>
+                            <p className="text-[9px] text-muted-foreground">{t.products.purchaseLimit}</p>
+                            <p className="text-xs font-bold text-warning">{t.products.max} {product.max_purchases}</p>
                           </div>
                         )}
                       </div>
@@ -381,15 +383,15 @@ const Products = () => {
                         disabled
                       >
                         <Ban size={14} />
-                        {isSoldOut ? "Out of stock" : "Product ended"}
+                        {isSoldOut ? t.products.outOfStock : t.products.productEnded}
                       </Button>
                     ) : isLocked ? (
                       <Button
                         className="w-full h-8 text-xs font-semibold gap-1.5 bg-secondary text-muted-foreground hover:bg-secondary"
-                        onClick={() => showError("Conditions not met", missingConditions.join("\n• "))}
+                        onClick={() => showError(t.products.requirements, missingConditions.join("\n• "))}
                       >
                         <Lock size={14} />
-                        Requirements
+                        {t.products.requirements}
                       </Button>
                     ) : (
                       <Button
@@ -398,7 +400,7 @@ const Products = () => {
                         onClick={() => setConfirmProduct(product)}
                       >
                         <ShoppingCart size={14} />
-                        {purchasing === product.id ? "Buying..." : "Buy"}
+                        {purchasing === product.id ? t.products.buying : t.products.buy}
                       </Button>
                     )}
                   </div>
@@ -413,7 +415,7 @@ const Products = () => {
       <AlertDialog open={!!confirmProduct} onOpenChange={(open) => { if (!open) setConfirmProduct(null); }}>
         <AlertDialogContent className="bg-card border-secondary rounded-2xl max-w-[90vw] sm:max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-foreground text-center">Confirm purchase</AlertDialogTitle>
+            <AlertDialogTitle className="text-foreground text-center">{t.products.confirmPurchase}</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3 pt-2">
                 {confirmProduct?.image_url && (
@@ -427,19 +429,19 @@ const Products = () => {
                 </div>
                 <div className="bg-secondary/50 rounded-xl p-3 grid grid-cols-2 gap-2 text-center">
                   <div>
-                    <p className="text-[10px] text-muted-foreground">Daily revenue</p>
+                    <p className="text-[10px] text-muted-foreground">{t.products.dailyRevenue}</p>
                     <p className="text-xs font-bold text-primary">{Number(confirmProduct?.daily_revenue || 0).toLocaleString("en-US")} U</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-muted-foreground">Cycles</p>
-                    <p className="text-xs font-bold text-primary">{confirmProduct?.cycles}d</p>
+                    <p className="text-[10px] text-muted-foreground">{t.products.cycles}</p>
+                    <p className="text-xs font-bold text-primary">{confirmProduct?.cycles}{t.products.days}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-muted-foreground">Yield</p>
+                    <p className="text-[10px] text-muted-foreground">{t.products.yieldLabel}</p>
                     <p className="text-xs font-bold text-success">{confirmProduct?.return_percent}%</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-muted-foreground">Total revenue</p>
+                    <p className="text-[10px] text-muted-foreground">{t.products.totalRevenue}</p>
                     <p className="text-xs font-bold text-primary">{Number(confirmProduct?.total_revenue || 0).toLocaleString("en-US")} U</p>
                   </div>
                 </div>
@@ -447,12 +449,12 @@ const Products = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row gap-3 sm:flex-row">
-            <AlertDialogCancel className="flex-1 rounded-xl font-bold">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="flex-1 rounded-xl font-bold">{t.common.cancel}</AlertDialogCancel>
             <AlertDialogAction
               className="flex-1 gradient-button rounded-xl font-bold"
               onClick={async () => { if (confirmProduct) { await handlePurchase(confirmProduct); } setConfirmProduct(null); }}
             >
-              Confirm purchase
+              {t.products.confirmPurchase}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

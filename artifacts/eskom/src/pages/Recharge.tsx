@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/PageHeader";
 import BottomNav from "@/components/BottomNav";
 import { ChevronRight, Zap, Loader2 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export type CryptoCurrency = {
   code: string;
@@ -57,6 +58,7 @@ export const CRYPTO_CURRENCIES = FALLBACK_CURRENCIES;
 
 const Recharge = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [amount, setAmount] = useState("");
   const [presetAmounts, setPresetAmounts] = useState<number[]>([10, 20, 50, 100, 200, 500]);
   const [minAmount, setMinAmount] = useState(5);
@@ -125,7 +127,7 @@ const Recharge = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <PageHeader title="Deposit" showBack />
+      <PageHeader title={t.recharge.title} showBack />
 
       <div className="px-4 pt-5 space-y-5">
         {/* Banner */}
@@ -146,9 +148,9 @@ const Recharge = () => {
               <Zap size={20} className="text-primary-foreground" />
             </div>
             <div>
-              <p className="text-sm font-bold text-primary-foreground">Automatic Crypto Deposit</p>
+              <p className="text-sm font-bold text-primary-foreground">{t.recharge.autoCryptoTitle}</p>
               <p className="text-[11px] text-primary-foreground/75">
-                Instant on-chain confirmation
+                {t.recharge.autoCryptoSubtitle}
               </p>
             </div>
           </div>
@@ -156,7 +158,7 @@ const Recharge = () => {
 
         {/* Amount */}
         <div className="bg-card rounded-2xl border border-border/30 p-4">
-          <label className="text-xs text-muted-foreground mb-2 block">Amount (USDT)</label>
+          <label className="text-xs text-muted-foreground mb-2 block">{t.recharge.amountLabel}</label>
           <div className="flex items-center bg-secondary/50 rounded-xl px-4 py-3">
             <input
               type="number"
@@ -186,7 +188,7 @@ const Recharge = () => {
 
           {amount && !amountValid && (
             <p className="text-xs text-destructive mt-2">
-              Amount must be between {minAmount.toLocaleString("en-US")} and{" "}
+              {t.recharge.amountBetween} {minAmount.toLocaleString("en-US")} {t.recharge.and}{" "}
               {maxAmount.toLocaleString("en-US")} USDT
             </p>
           )}
@@ -196,7 +198,7 @@ const Recharge = () => {
         <div>
           <div className="flex items-center justify-between mb-3 px-1">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Select deposit network
+              {t.recharge.selectNetwork}
             </p>
             {loadingCurrencies && (
               <Loader2 size={14} className="text-muted-foreground animate-spin" />
@@ -249,12 +251,12 @@ const Recharge = () => {
 
           {!amountValid && amount && (
             <p className="text-xs text-muted-foreground text-center mt-3">
-              Enter a valid amount to select a network
+              {t.recharge.enterValidAmount}
             </p>
           )}
           {!amount && (
             <p className="text-xs text-muted-foreground text-center mt-3">
-              Enter an amount above to enable selection
+              {t.recharge.enterAmountFirst}
             </p>
           )}
         </div>
