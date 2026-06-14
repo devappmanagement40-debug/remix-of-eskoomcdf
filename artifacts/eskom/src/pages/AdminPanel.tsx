@@ -1020,18 +1020,13 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { showError("File too large", "Maximum 5 MB allowed"); return; }
     setUploading(true);
     try {
-      const ext = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error } = await supabase.storage.from('product-images').upload(fileName, file);
-      if (error) { showError("Upload error", error.message || "Check your connection and try again"); setUploading(false); return; }
-      const { data } = supabase.storage.from('product-images').getPublicUrl(fileName);
-      setForm({ ...form, image_url: data.publicUrl });
-      showSuccess("Image uploaded", "");
+      const url = await uploadFile(file, "product-images");
+      setForm({ ...form, image_url: url });
+      showSuccess("Image uploadée ✅", "");
     } catch (err: any) {
-      showError("Network error", err?.message || "Check your internet connection");
+      showError("Erreur upload", err?.message || "Vérifiez votre connexion");
     } finally {
       setUploading(false);
     }
@@ -1248,6 +1243,31 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
   );
 };
 
+// ==================== UPLOAD HELPER ====================
+const uploadFile = async (file: File, bucket: string = "site-assets"): Promise<string> => {
+  if (file.size > 10 * 1024 * 1024) throw new Error("Fichier trop volumineux (max 10 Mo)");
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Impossible de lire le fichier"));
+    reader.onload = async () => {
+      try {
+        const base64 = (reader.result as string).split(",")[1];
+        const res = await fetch("/api/upload", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ base64, mimeType: file.type, fileName: file.name, bucket }),
+        });
+        const data = await res.json();
+        if (!res.ok) reject(new Error(data.error || "Upload échoué"));
+        else resolve(data.url);
+      } catch (err: any) {
+        reject(err);
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
 // ==================== BANNERS ====================
 const BannersTab = ({ banners, reload, showSuccess, showError }: any) => {
   const [uploading, setUploading] = useState(false);
@@ -1259,15 +1279,16 @@ const BannersTab = ({ banners, reload, showSuccess, showError }: any) => {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    const ext = file.name.split('.').pop();
-    const fileName = `banner-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from('site-assets').upload(fileName, file);
-    if (error) { showError("Error", "Upload failed"); setUploading(false); return; }
-    const { data } = supabase.storage.from('site-assets').getPublicUrl(fileName);
-    await supabase.from("banners").insert({ image_url: data.publicUrl, link_path: "/", sort_order: banners.length });
-    showSuccess("Banner added ✅", "");
-    setUploading(false);
-    reload();
+    try {
+      const url = await uploadFile(file, "site-assets");
+      await supabase.from("banners").insert({ image_url: url, link_path: "/", sort_order: banners.length });
+      showSuccess("Banner ajouté ✅", "");
+      reload();
+    } catch (err: any) {
+      showError("Erreur upload", err?.message || "Échec du téléchargement");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const deleteBanner = async (id: string) => {
@@ -1347,13 +1368,14 @@ const PaymentsTab = ({ methods, countries, apiConfigs, reload, showSuccess, show
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    const ext = file.name.split('.').pop();
-    const fileName = `payment-logo-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from('site-assets').upload(fileName, file);
-    if (error) { showError("Error", "Upload failed"); setUploading(false); return; }
-    const { data } = supabase.storage.from('site-assets').getPublicUrl(fileName);
-    setForm({ ...form, logo_url: data.publicUrl });
-    setUploading(false);
+    try {
+      const url = await uploadFile(file, "site-assets");
+      setForm({ ...form, logo_url: url });
+    } catch (err: any) {
+      showError("Erreur upload", err?.message || "Échec du téléchargement");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const save = async () => {
@@ -1910,32 +1932,74 @@ const SupportTab = ({ adminId }: { adminId: string }) => {
 };
 
 // ==================== EMMA IA ====================
-const SarahTab = ({ settings, reload, showSuccess }: any) => {
-  const sarahSetting = settings.find((s: SiteSetting) => s.key === "sarah_enabled");
-  const isEnabled = sarahSetting?.value === "true";
-  const providerSetting = settings.find((s: SiteSetting) => s.key === "sarah_ai_provider");
-  const currentProvider = providerSetting?.value || "lovable";
+const SarahTab = ({ settings, reload, showSuccess, showError }: any) => {
+  const [editKeys, setEditKeys] = useState<Record<string, string>>({});
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+
+  const isEnabled = settings.find((s: SiteSetting) => s.key === "sarah_enabled")?.value === "true";
+  const currentProvider = settings.find((s: SiteSetting) => s.key === "sarah_ai_provider")?.value || "lovable";
+  const getSetting = (key: string) => settings.find((s: SiteSetting) => s.key === key)?.value || "";
+
+  const saveSetting = async (key: string, value: string, category = "sarah") => {
+    const existing = settings.find((s: SiteSetting) => s.key === key);
+    if (existing) await supabase.from("site_settings").update({ value }).eq("key", key);
+    else await supabase.from("site_settings").insert({ key, value, category });
+    reload();
+  };
 
   const toggle = async () => {
     const newVal = isEnabled ? "false" : "true";
-    await supabase.from("site_settings").update({ value: newVal }).eq("key", "sarah_enabled");
+    await saveSetting("sarah_enabled", newVal);
     showSuccess(
-      newVal === "true" ? "Emma activated ✅" : "Emma deactivated",
-      newVal === "true" ? "AI takes control of chat" : "Human support is active"
+      newVal === "true" ? "Emma activée ✅" : "Emma désactivée",
+      newVal === "true" ? "L'IA prend en charge le chat" : "Support humain activé"
     );
-    reload();
   };
 
   const changeProvider = async (provider: string) => {
-    const existing = settings.find((s: SiteSetting) => s.key === "sarah_ai_provider");
-    if (existing) {
-      await supabase.from("site_settings").update({ value: provider }).eq("key", "sarah_ai_provider");
-    } else {
-      await supabase.from("site_settings").insert({ key: "sarah_ai_provider", value: provider, category: "sarah" });
-    }
-    showSuccess("AI engine updated", provider === "lovable" ? "Emma now uses Lovable AI" : "Emma now uses Google Gemini");
-    reload();
+    await saveSetting("sarah_ai_provider", provider);
+    showSuccess("Moteur IA mis à jour", `Emma utilise maintenant: ${provider}`);
   };
+
+  const saveApiKey = async (keyName: string, modelName: string | null, endpointName?: string) => {
+    setSavingKey(keyName);
+    try {
+      const keyVal = editKeys[keyName] ?? "";
+      if (keyVal.trim() && keyVal !== "••••••••••••••••") await saveSetting(keyName, keyVal.trim());
+      if (modelName) {
+        const modelVal = editKeys[modelName] ?? getSetting(modelName);
+        if (modelVal) await saveSetting(modelName, modelVal);
+      }
+      if (endpointName) {
+        const epVal = editKeys[endpointName] ?? getSetting(endpointName);
+        if (epVal) await saveSetting(endpointName, epVal);
+      }
+      showSuccess("Configuration sauvegardée ✅", "");
+      setEditKeys(prev => {
+        const u = { ...prev };
+        delete u[keyName];
+        if (modelName) delete u[modelName];
+        if (endpointName) delete u[endpointName];
+        return u;
+      });
+    } catch (err: any) {
+      showError("Erreur", err.message);
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
+  const providers = [
+    { id: "lovable", name: "Lovable AI", desc: "IA intégrée • Aucune clé API requise", icon: "🤖", hasKey: false },
+    { id: "openai", name: "OpenAI GPT", desc: "GPT-4o, GPT-4, GPT-3.5 • Clé API OpenAI requise", icon: "🌐", hasKey: true, keyName: "ai_openai_key", modelName: "ai_openai_model", placeholder: "sk-proj-...", models: ["gpt-4o", "gpt-4o-mini", "gpt-4-turbo", "gpt-4", "gpt-3.5-turbo"], defaultModel: "gpt-4o" },
+    { id: "grok", name: "Grok (xAI)", desc: "Grok-3, Grok-2 • Clé API xAI requise", icon: "⚡", hasKey: true, keyName: "ai_grok_key", modelName: "ai_grok_model", placeholder: "xai-...", models: ["grok-3-beta", "grok-3-mini-beta", "grok-2-1212"], defaultModel: "grok-3-beta" },
+    { id: "anthropic", name: "Anthropic Claude", desc: "Opus, Sonnet, Haiku • Clé API Anthropic requise", icon: "🧠", hasKey: true, keyName: "ai_anthropic_key", modelName: "ai_anthropic_model", placeholder: "sk-ant-...", models: ["claude-opus-4-5", "claude-sonnet-4-5", "claude-3-5-haiku-latest", "claude-3-5-sonnet-latest"], defaultModel: "claude-sonnet-4-5" },
+    { id: "gemini", name: "Google Gemini", desc: "Gemini 2.0 Flash, 1.5 Pro • Clé API Google requise", icon: "✨", hasKey: true, keyName: "ai_gemini_key", modelName: "ai_gemini_model", placeholder: "AIza...", models: ["gemini-2.0-flash-exp", "gemini-1.5-pro", "gemini-1.5-flash", "gemini-1.0-pro"], defaultModel: "gemini-2.0-flash-exp" },
+    { id: "mistral", name: "Mistral AI", desc: "Large, Medium, Small • Clé API Mistral requise", icon: "💨", hasKey: true, keyName: "ai_mistral_key", modelName: "ai_mistral_model", placeholder: "...", models: ["mistral-large-latest", "mistral-medium-latest", "mistral-small-latest"], defaultModel: "mistral-large-latest" },
+    { id: "custom", name: "API Personnalisée", desc: "Compatible OpenAI • Configurez votre propre API", icon: "🔧", hasKey: true, keyName: "ai_custom_key", modelName: "ai_custom_model", endpointName: "ai_custom_endpoint", placeholder: "sk-...", models: [], defaultModel: "" },
+  ] as const;
+
+  const activeProvider = providers.find(p => p.id === currentProvider);
 
   return (
     <div className="space-y-4">
@@ -1947,70 +2011,107 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
           <div className="flex-1">
             <h3 className="text-sm font-bold text-foreground">Assistante Emma</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {isEnabled ? "Emma responds to user messages" : "Support is handled manually"}
+              {isEnabled ? `Moteur actif : ${activeProvider?.name || currentProvider}` : "Support manuel activé"}
             </p>
           </div>
           <button
             onClick={toggle}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-colors ${
-              isEnabled
-                ? "bg-secondary text-foreground hover:bg-secondary/80"
-                : "bg-primary text-primary-foreground hover:opacity-90"
+              isEnabled ? "bg-secondary text-foreground hover:bg-secondary/80" : "bg-primary text-primary-foreground hover:opacity-90"
             }`}
           >
             <Power size={16} />
-            {isEnabled ? "Disable Emma" : "Enable Emma"}
+            {isEnabled ? "Désactiver" : "Activer Emma"}
           </button>
         </div>
       </div>
 
       <div className="bg-card rounded-xl border border-secondary p-4">
-        <h4 className="text-xs font-bold text-muted-foreground mb-3">⚙️ AI CONFIGURATION</h4>
-        <p className="text-xs text-muted-foreground mb-4">Choose the AI engine used by Emma:</p>
-        <div className="space-y-3">
-          <button
-            onClick={() => changeProvider("lovable")}
-            className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
-              currentProvider === "lovable"
-                ? "border-primary bg-primary/10"
-                : "border-secondary hover:border-muted-foreground"
-            }`}
-          >
-            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-              currentProvider === "lovable" ? "border-primary" : "border-muted-foreground"
-            }`}>
-              {currentProvider === "lovable" && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
-            </div>
-            <div className="flex-1 text-left">
-              <p className="text-sm font-bold text-foreground">Lovable AI</p>
-              <p className="text-[10px] text-muted-foreground">Built-in AI • Gemini Pro via gateway • No API key required</p>
-            </div>
-            {currentProvider === "lovable" && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-success/20 text-success">Active</span>
-            )}
-          </button>
+        <h4 className="text-xs font-bold text-muted-foreground mb-1">⚙️ MOTEUR D'INTELLIGENCE ARTIFICIELLE</h4>
+        <p className="text-xs text-muted-foreground mb-4">Choisissez le moteur IA et configurez les clés API :</p>
+        <div className="space-y-2">
+          {providers.map((provider) => {
+            const isActive = currentProvider === provider.id;
+            const hasKey = provider.hasKey && !!getSetting((provider as any).keyName);
+            return (
+              <div key={provider.id} className={`rounded-xl border transition-all ${isActive ? "border-primary bg-primary/10" : "border-secondary"}`}>
+                <button onClick={() => changeProvider(provider.id)} className="w-full flex items-center gap-3 p-3 text-left">
+                  <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${isActive ? "border-primary" : "border-muted-foreground"}`}>
+                    {isActive && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+                  </div>
+                  <span className="text-base">{provider.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-foreground">{provider.name}</p>
+                    <p className="text-[10px] text-muted-foreground leading-tight">{provider.desc}</p>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    {isActive && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-success/20 text-success">Actif</span>}
+                    {provider.hasKey && hasKey && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/20 text-primary">✓ Clé</span>}
+                  </div>
+                </button>
 
-          <button
-            onClick={() => changeProvider("gemini")}
-            className={`w-full flex items-center gap-3 p-3 rounded-xl border transition-all ${
-              currentProvider === "gemini"
-                ? "border-primary bg-primary/10"
-                : "border-secondary hover:border-muted-foreground"
-            }`}
-          >
-            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-              currentProvider === "gemini" ? "border-primary" : "border-muted-foreground"
-            }`}>
-              {currentProvider === "gemini" && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
-            </div>
-            <div className="flex-1 text-left">
-              <p className="text-sm font-bold text-foreground">Google Gemini</p>
-              <p className="text-[10px] text-muted-foreground">Direct Google API • GEMINI_API_KEY required</p>
-            </div>
-            {currentProvider === "gemini" && (
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-success/20 text-success">Active</span>
-            )}
-          </button>
+                {isActive && provider.hasKey && (
+                  <div className="px-3 pb-3 space-y-2 border-t border-primary/20">
+                    {(provider as any).endpointName && (
+                      <div className="pt-2">
+                        <label className="text-[10px] text-muted-foreground font-semibold block mb-1">ENDPOINT URL</label>
+                        <input
+                          type="url"
+                          value={editKeys[(provider as any).endpointName] ?? getSetting((provider as any).endpointName)}
+                          onChange={e => setEditKeys(prev => ({ ...prev, [(provider as any).endpointName]: e.target.value }))}
+                          placeholder="https://api.example.com/v1"
+                          className="w-full bg-secondary text-foreground rounded-xl px-3 py-2 text-xs border border-secondary outline-none"
+                        />
+                      </div>
+                    )}
+                    <div className="pt-2">
+                      <label className="text-[10px] text-muted-foreground font-semibold block mb-1">CLÉ API {provider.name.toUpperCase()}</label>
+                      <input
+                        type="password"
+                        value={editKeys[(provider as any).keyName] ?? (hasKey ? "••••••••••••••••" : "")}
+                        onFocus={e => { if (editKeys[(provider as any).keyName] === undefined) { setEditKeys(prev => ({ ...prev, [(provider as any).keyName]: "" })); e.target.value = ""; } }}
+                        onChange={e => setEditKeys(prev => ({ ...prev, [(provider as any).keyName]: e.target.value }))}
+                        placeholder={(provider as any).placeholder}
+                        className="w-full bg-secondary text-foreground rounded-xl px-3 py-2 text-xs border border-secondary outline-none"
+                      />
+                    </div>
+                    {(provider as any).models?.length > 0 && (
+                      <div>
+                        <label className="text-[10px] text-muted-foreground font-semibold block mb-1">MODÈLE</label>
+                        <select
+                          value={editKeys[(provider as any).modelName] ?? (getSetting((provider as any).modelName) || (provider as any).defaultModel)}
+                          onChange={e => setEditKeys(prev => ({ ...prev, [(provider as any).modelName]: e.target.value }))}
+                          className="w-full bg-secondary text-foreground rounded-xl px-3 py-2 text-xs border border-secondary outline-none"
+                        >
+                          {(provider as any).models.map((m: string) => <option key={m} value={m}>{m}</option>)}
+                        </select>
+                      </div>
+                    )}
+                    {provider.id === "custom" && (
+                      <div>
+                        <label className="text-[10px] text-muted-foreground font-semibold block mb-1">NOM DU MODÈLE</label>
+                        <input
+                          type="text"
+                          value={editKeys[(provider as any).modelName] ?? getSetting((provider as any).modelName)}
+                          onChange={e => setEditKeys(prev => ({ ...prev, [(provider as any).modelName]: e.target.value }))}
+                          placeholder="gpt-4o, llama-3.1-70b, etc."
+                          className="w-full bg-secondary text-foreground rounded-xl px-3 py-2 text-xs border border-secondary outline-none"
+                        />
+                      </div>
+                    )}
+                    <button
+                      onClick={() => saveApiKey((provider as any).keyName, (provider as any).modelName, (provider as any).endpointName)}
+                      disabled={savingKey === (provider as any).keyName}
+                      className="w-full gradient-button text-primary-foreground font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-1.5 disabled:opacity-60"
+                    >
+                      <Save size={12} />
+                      {savingKey === (provider as any).keyName ? "Sauvegarde..." : "Sauvegarder la configuration"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -2018,33 +2119,26 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
         <h4 className="text-xs font-bold text-muted-foreground mb-3">STATUS</h4>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-foreground">Current status</span>
+            <span className="text-xs text-foreground">État actuel</span>
             <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${isEnabled ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>
-              {isEnabled ? "🟢 Online" : "⚫ Offline"}
+              {isEnabled ? "🟢 En ligne" : "⚫ Hors ligne"}
             </span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-foreground">Support mode</span>
-            <span className="text-xs text-muted-foreground">{isEnabled ? "Automatique (IA)" : "Manual (Humain)"}</span>
+            <span className="text-xs text-foreground">Mode support</span>
+            <span className="text-xs text-muted-foreground">{isEnabled ? "Automatique (IA)" : "Manuel (Humain)"}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-foreground">AI engine</span>
-            <span className="text-xs font-bold text-primary">{currentProvider === "lovable" ? "Lovable AI" : "Google Gemini"}</span>
+            <span className="text-xs text-foreground">Moteur IA</span>
+            <span className="text-xs font-bold text-primary">{activeProvider?.name || currentProvider}</span>
           </div>
         </div>
       </div>
 
       <div className="bg-card rounded-xl border border-secondary p-4">
-        <h4 className="text-xs font-bold text-muted-foreground mb-3">EMMA'S CAPABILITIES</h4>
+        <h4 className="text-xs font-bold text-muted-foreground mb-3">CAPACITÉS D'EMMA</h4>
         <div className="space-y-2">
-          {[
-            "Answers questions about products",
-            "Explains the VIP system",
-            "Informs about fees and delays",
-            "Reassures waiting users",
-            "Uses site data in real time",
-            "Transfers to human if needed",
-          ].map((cap, i) => (
+          {["Répond aux questions sur les produits", "Explique le système VIP", "Informe sur les frais et délais", "Rassure les utilisateurs en attente", "Utilise les données du site en temps réel", "Transfère vers un humain si nécessaire"].map((cap, i) => (
             <div key={i} className="flex items-center gap-2">
               <CheckCircle2 size={14} className="text-success shrink-0" />
               <span className="text-xs text-foreground">{cap}</span>
@@ -2055,7 +2149,7 @@ const SarahTab = ({ settings, reload, showSuccess }: any) => {
 
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
         <p className="text-xs text-muted-foreground">
-          💡 When Emma is activated, she automatically uses site settings (fees, VIP thresholds, products) to respond to users in the support chat.
+          💡 Les clés API sont stockées de manière sécurisée dans les paramètres du site. Emma utilise automatiquement les données du site (frais, VIP, produits) pour répondre aux utilisateurs.
         </p>
       </div>
     </div>
@@ -2406,20 +2500,14 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
   };
 
   const uploadImage = async (itemId: string, file: File) => {
-    if (file.size > 5 * 1024 * 1024) { showError("File too large", "Maximum 5 MB allowed"); return; }
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop();
-      const path = `annonces/${itemId}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("site-assets").upload(path, file, { upsert: true });
-      if (upErr) { showError("Upload error", upErr.message || "Check your connection"); setUploading(false); return; }
-      const { data: urlData } = supabase.storage.from("site-assets").getPublicUrl(path);
-      const { error: dbErr } = await supabase.from("info_items").update({ image_url: urlData.publicUrl }).eq("id", itemId);
-      if (dbErr) { showError("Save error", dbErr.message); setUploading(false); return; }
-      showSuccess("Image added ✅", "");
+      const url = await uploadFile(file, "site-assets");
+      await supabase.from("info_items").update({ image_url: url }).eq("id", itemId);
+      showSuccess("Image ajoutée ✅", "");
       load();
     } catch (err: any) {
-      showError("Network error", err?.message || "Check your internet connection");
+      showError("Erreur upload", err?.message || "Vérifiez votre connexion");
     } finally {
       setUploading(false);
     }
@@ -2838,28 +2926,27 @@ const OfficialDocsTab = ({ showSuccess, showError }: { showSuccess: (t: string, 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !title.trim()) {
-      showError("Error", "Please enter a title before uploading");
+      showError("Erreur", "Veuillez entrer un titre avant d'uploader");
       return;
     }
     setUploading(true);
-    const ext = file.name.split(".").pop() || "jpg";
-    const path = `official/${Date.now()}.${ext}`;
-    const { error: upErr } = await supabase.storage.from("site-assets").upload(path, file, { upsert: true });
-    if (upErr) { showError("Error", "Upload failed"); setUploading(false); return; }
-    const { data: urlData } = supabase.storage.from("site-assets").getPublicUrl(path);
-
-    await supabase.from("official_documents").insert({
-      title: title.trim(),
-      description: description.trim() || null,
-      doc_type: docType,
-      file_url: urlData.publicUrl,
-      sort_order: docs.length,
-    });
-
-    setTitle(""); setDescription(""); setDocType("image");
-    showSuccess("Document added", "The document is now available to Emma AI ✅");
-    loadDocs();
-    setUploading(false);
+    try {
+      const url = await uploadFile(file, "site-assets");
+      await supabase.from("official_documents").insert({
+        title: title.trim(),
+        description: description.trim() || null,
+        doc_type: docType,
+        file_url: url,
+        sort_order: docs.length,
+      });
+      setTitle(""); setDescription(""); setDocType("image");
+      showSuccess("Document ajouté ✅", "Le document est maintenant disponible pour Emma AI");
+      loadDocs();
+    } catch (err: any) {
+      showError("Erreur upload", err?.message || "Échec du téléchargement");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const toggleActive = async (id: string, current: boolean) => {
@@ -3052,13 +3139,14 @@ const WithdrawalMethodsTab = ({ methods, countries, reload, showSuccess, showErr
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    const ext = file.name.split('.').pop();
-    const fileName = `wm-logo-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from('site-assets').upload(fileName, file);
-    if (error) { showError("Error", "Upload failed"); setUploading(false); return; }
-    const { data } = supabase.storage.from('site-assets').getPublicUrl(fileName);
-    setForm({ ...form, logo_url: data.publicUrl });
-    setUploading(false);
+    try {
+      const url = await uploadFile(file, "site-assets");
+      setForm({ ...form, logo_url: url });
+    } catch (err: any) {
+      showError("Erreur upload", err?.message || "Échec du téléchargement");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const save = async () => {
@@ -3343,17 +3431,18 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
     reload();
   };
 
-  const uploadImage = async (condId: string, level: number, file: File) => {
+  const uploadImage = async (condId: string, _level: number, file: File) => {
     setUploading(true);
-    const ext = file.name.split(".").pop();
-    const path = `vip/level-${level}.${ext}`;
-    const { error: upErr } = await supabase.storage.from("site-assets").upload(path, file, { upsert: true });
-    if (upErr) { showError("Error", "Upload failed"); setUploading(false); return; }
-    const { data: urlData } = supabase.storage.from("site-assets").getPublicUrl(path);
-    await supabase.from("vip_conditions").update({ image_url: urlData.publicUrl }).eq("id", condId);
-    showSuccess("VIP image added", "");
-    setUploading(false);
-    reload();
+    try {
+      const url = await uploadFile(file, "site-assets");
+      await supabase.from("vip_conditions").update({ image_url: url }).eq("id", condId);
+      showSuccess("Image VIP ajoutée ✅", "");
+      reload();
+    } catch (err: any) {
+      showError("Erreur upload", err?.message || "Échec du téléchargement");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const removeImage = async (condId: string) => {

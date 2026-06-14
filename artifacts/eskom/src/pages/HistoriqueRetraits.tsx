@@ -85,23 +85,26 @@ const HistoriqueRetraits = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const ext = file.name.split(".").pop() || "jpg";
-      const path = `${user.id}/fee-proof-${targetWithdrawalId.slice(0, 8)}-${Date.now()}.${ext}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from("chat-images")
-        .upload(path, file, { upsert: true });
-
-      if (uploadError) {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error("Impossible de lire le fichier"));
+        reader.onload = () => resolve((reader.result as string).split(",")[1]);
+        reader.readAsDataURL(file);
+      });
+      const uploadRes = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ base64, mimeType: file.type, fileName: file.name, bucket: "chat-images" }),
+      });
+      const uploadData = await uploadRes.json();
+      if (!uploadRes.ok) {
         toast.error("Error uploading proof");
         return;
       }
 
-      const { data: urlData } = supabase.storage.from("chat-images").getPublicUrl(path);
-
       const { error: updateError } = await supabase
         .from("withdrawals")
-        .update({ processing_fee_proof_url: urlData.publicUrl })
+        .update({ processing_fee_proof_url: uploadData.url })
         .eq("id", targetWithdrawalId);
 
       if (updateError) {

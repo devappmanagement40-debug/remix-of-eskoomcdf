@@ -462,18 +462,31 @@ const ImagesSection = ({ settings, reload, showSuccess }: any) => {
     { key: "support_icon_url", label: "Icône flottante Support", folder: "icons" },
   ];
 
-  const handleUpload = async (key: string, folder: string, file: File) => {
+  const handleUpload = async (key: string, _folder: string, file: File) => {
     setUploading(key);
-    const ext = file.name.split(".").pop()?.toLowerCase() || "png";
-    const path = `${folder}/${key}.${ext}`;
-    const { error } = await supabase.storage.from("site-assets").upload(path, file, { upsert: true });
-    if (error) { showError("Upload error", ""); setUploading(null); return; }
-    const { data: urlData } = supabase.storage.from("site-assets").getPublicUrl(path);
-    const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
-    await supabase.from("site_settings").update({ value: publicUrl }).eq("key", key);
-    showSuccess("Image uploadée ✅", "");
-    setUploading(null);
-    reload();
+    try {
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error("Impossible de lire le fichier"));
+        reader.onload = () => resolve((reader.result as string).split(",")[1]);
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ base64, mimeType: file.type, fileName: file.name, bucket: "site-assets" }),
+      });
+      const data = await res.json();
+      if (!res.ok) { showError("Erreur upload", data.error || "Échec"); setUploading(null); return; }
+      const publicUrl = `${data.url}?t=${Date.now()}`;
+      await supabase.from("site_settings").update({ value: publicUrl }).eq("key", key);
+      showSuccess("Image uploadée ✅", "");
+      reload();
+    } catch (err: any) {
+      showError("Erreur upload", err?.message || "Échec du téléchargement");
+    } finally {
+      setUploading(null);
+    }
   };
 
   const handleRemove = async (key: string) => {

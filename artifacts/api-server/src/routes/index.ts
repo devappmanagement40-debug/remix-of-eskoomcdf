@@ -8,6 +8,7 @@ import settingsRouter from "./settings";
 import contentRouter from "./content";
 import dbRouter from "./db";
 import nowpaymentsRouter from "./nowpayments";
+import uploadRouter from "./upload";
 
 const router: IRouter = Router();
 
@@ -20,5 +21,6 @@ router.use(settingsRouter);
 router.use(contentRouter);
 router.use(dbRouter);
 router.use(nowpaymentsRouter);
+router.use(uploadRouter);
 
 export default router;

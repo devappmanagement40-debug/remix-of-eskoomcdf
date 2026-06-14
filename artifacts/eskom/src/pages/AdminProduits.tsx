@@ -174,17 +174,24 @@ const AdminProduits = () => {
         showError("Error", "Image must not exceed 5 MB");
         return;
       }
-      const ext = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error } = await supabase.storage.from('product-images').upload(fileName, file);
-      if (error) {
-        console.error("Upload error:", error);
-        showError("Error", "Unable to upload image: " + (error.message || "unknown error"));
-        return;
-      }
-      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(fileName);
-      setProductImageUrl(urlData.publicUrl);
-      showSuccess("Image uploaded", "Image added successfully ✅");
+      const reader = new FileReader();
+      const url = await new Promise<string>((resolve, reject) => {
+        reader.onerror = () => reject(new Error("Impossible de lire le fichier"));
+        reader.onload = async () => {
+          const base64 = (reader.result as string).split(",")[1];
+          const res = await fetch("/api/upload", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ base64, mimeType: file.type, fileName: file.name, bucket: "product-images" }),
+          });
+          const data = await res.json();
+          if (!res.ok) reject(new Error(data.error || "Upload échoué"));
+          else resolve(data.url);
+        };
+        reader.readAsDataURL(file);
+      });
+      setProductImageUrl(url);
+      showSuccess("Image uploadée ✅", "Image ajoutée avec succès");
     } catch (err) {
       console.error("Upload crash:", err);
       showError("Error", "An unexpected error occurred during upload");
