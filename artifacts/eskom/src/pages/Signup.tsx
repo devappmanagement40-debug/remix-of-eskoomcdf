@@ -35,41 +35,39 @@ const Signup = () => {
 
     setLoading(true);
     const cleanPhone = phone.replace(/\s/g, "");
-    const email = `${cleanPhone}@users.eskom.app`;
 
-    const codeToCheck = inviteCode.trim();
-    const { data: referrerId, error: codeError } = await supabase
-      .rpc("validate_referral_code", { code: codeToCheck });
-    if (codeError || !referrerId) {
-      showError("Error", "Invalid invitation code");
-      setLoading(false);
-      return;
-    }
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: cleanPhone, password, inviteCode: inviteCode.trim() }),
+      });
 
-    const { data: signUpData, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { full_name: cleanPhone, phone: cleanPhone },
-      },
-    });
+      const data = await res.json();
 
-    if (error) {
-      if (error.message.includes("already registered")) {
-        showError("Error", "This number is already registered");
-      } else {
-        showError("Error", "Sign up failed");
+      if (!res.ok || !data.ok) {
+        if (data.error?.includes("already registered")) {
+          showError("Error", "This number is already registered");
+        } else {
+          showError("Error", data.error || "Sign up failed");
+        }
+        setLoading(false);
+        return;
       }
-    } else {
-      const user = signUpData?.user;
-      if (user) {
-        const referralCode = cleanPhone.slice(-4).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
-        const updateData = { phone: cleanPhone, country_code: countryCode, referral_code: referralCode, ...(referrerId ? { referred_by: referrerId } : {}) };
-        await supabase.from("profiles").update(updateData as any).eq("user_id", user.id);
+
+      if (data.session) {
+        await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
       }
+
       showSuccess("Sign up successful", "Your account has been created ✅");
       setTimeout(() => navigate("/"), 1500);
+    } catch {
+      showError("Error", "Connection error, please try again");
     }
+
     setLoading(false);
   };
 

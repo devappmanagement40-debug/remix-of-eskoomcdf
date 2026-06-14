@@ -46,16 +46,39 @@ const Login = () => {
     }
 
     setLoading(true);
-    const email = `${cleanPhone}@users.eskom.app`;
-    const { error, data: authData } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (error) {
-      showError("Login failed", "Incorrect number or password");
-    } else {
-      const { data: profile } = await supabase.from("profiles").select("full_name, phone").eq("user_id", authData.user.id).single();
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: cleanPhone, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        showError("Login failed", data.error || "Incorrect number or password");
+        setLoading(false);
+        return;
+      }
+
+      await supabase.auth.setSession({
+        access_token: data.session.access_token,
+        refresh_token: data.session.refresh_token,
+      });
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, phone")
+        .eq("user_id", data.user.id)
+        .single();
+
       setUserName(profile?.full_name || profile?.phone || phone);
       setShowWelcome(true);
+    } catch {
+      showError("Login failed", "Connection error, please try again");
     }
+
     setLoading(false);
   };
 
