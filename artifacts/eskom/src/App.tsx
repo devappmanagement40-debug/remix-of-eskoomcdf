@@ -6,41 +6,42 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import RequireAuth from "@/components/RequireAuth";
 
 // Eager load core pages
-import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import Products from "./pages/Products";
-import Profile from "./pages/Profile";
-import Portefeuille from "./pages/Portefeuille";
 import NotFound from "./pages/NotFound";
 
-// Lazy load secondary pages
-const Team = lazy(() => import("./pages/Team"));
-const Historique = lazy(() => import("./pages/Historique"));
-const Aide = lazy(() => import("./pages/Aide"));
-const Settings = lazy(() => import("./pages/Settings"));
-const Loterie = lazy(() => import("./pages/Loterie"));
-const ServiceChat = lazy(() => import("./pages/ServiceChat"));
-const APropos = lazy(() => import("./pages/APropos"));
-const NewsDetail = lazy(() => import("./pages/NewsDetail"));
+// Lazy load all protected pages
+const Index           = lazy(() => import("./pages/Index"));
+const Products        = lazy(() => import("./pages/Products"));
+const Profile         = lazy(() => import("./pages/Profile"));
+const Portefeuille    = lazy(() => import("./pages/Portefeuille"));
+const Team            = lazy(() => import("./pages/Team"));
+const Historique      = lazy(() => import("./pages/Historique"));
+const Aide            = lazy(() => import("./pages/Aide"));
+const Settings        = lazy(() => import("./pages/Settings"));
+const Loterie         = lazy(() => import("./pages/Loterie"));
+const ServiceChat     = lazy(() => import("./pages/ServiceChat"));
+const APropos         = lazy(() => import("./pages/APropos"));
+const NewsDetail      = lazy(() => import("./pages/NewsDetail"));
 const HistoriqueRetraits = lazy(() => import("./pages/HistoriqueRetraits"));
-const HistoriqueFonds = lazy(() => import("./pages/HistoriqueFonds"));
-const PointsCadeaux = lazy(() => import("./pages/PointsCadeaux"));
-const MesProduits = lazy(() => import("./pages/MesProduits"));
-const Recharge = lazy(() => import("./pages/Recharge"));
+const HistoriqueFonds    = lazy(() => import("./pages/HistoriqueFonds"));
+const PointsCadeaux   = lazy(() => import("./pages/PointsCadeaux"));
+const MesProduits     = lazy(() => import("./pages/MesProduits"));
+const Recharge        = lazy(() => import("./pages/Recharge"));
 const RechargePaiement = lazy(() => import("./pages/RechargePaiement"));
-const AdminRecharges = lazy(() => import("./pages/AdminRecharges"));
-const LierCarte = lazy(() => import("./pages/LierCarte"));
-const Retrait = lazy(() => import("./pages/Retrait"));
-const AdminRetraits = lazy(() => import("./pages/AdminRetraits"));
-const AdminProduits = lazy(() => import("./pages/AdminProduits"));
-const AdminPopups = lazy(() => import("./pages/AdminPopups"));
-const AdminPanel = lazy(() => import("./pages/AdminPanel"));
-const EchangerCode = lazy(() => import("./pages/EchangerCode"));
+const AdminRecharges  = lazy(() => import("./pages/AdminRecharges"));
+const LierCarte       = lazy(() => import("./pages/LierCarte"));
+const Retrait         = lazy(() => import("./pages/Retrait"));
+const AdminRetraits   = lazy(() => import("./pages/AdminRetraits"));
+const AdminProduits   = lazy(() => import("./pages/AdminProduits"));
+const AdminPopups     = lazy(() => import("./pages/AdminPopups"));
+const AdminPanel      = lazy(() => import("./pages/AdminPanel"));
+const EchangerCode    = lazy(() => import("./pages/EchangerCode"));
 const ChangerMotDePasse = lazy(() => import("./pages/ChangerMotDePasse"));
-const ChangerLangue = lazy(() => import("./pages/ChangerLangue"));
+const ChangerLangue   = lazy(() => import("./pages/ChangerLangue"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -63,6 +64,10 @@ const R = ({ children }: { children: React.ReactNode }) => (
   <RouteErrorBoundary>{children}</RouteErrorBoundary>
 );
 
+const Auth = ({ children }: { children: React.ReactNode }) => (
+  <RequireAuth><R>{children}</R></RequireAuth>
+);
+
 const App = () => (
   <ErrorBoundary>
     <LanguageProvider>
@@ -72,36 +77,40 @@ const App = () => (
             <BrowserRouter>
               <Suspense fallback={<Loading />}>
                 <Routes>
-                  <Route path="/" element={<R><Index /></R>} />
-                  <Route path="/connexion" element={<R><Login /></R>} />
+                  {/* Pages publiques — accessibles sans connexion */}
+                  <Route path="/connexion"   element={<R><Login /></R>} />
                   <Route path="/inscription" element={<R><Signup /></R>} />
-                  <Route path="/produits" element={<R><Products /></R>} />
-                  <Route path="/equipe" element={<R><Team /></R>} />
-                  <Route path="/portefeuille" element={<R><Portefeuille /></R>} />
-                  <Route path="/historique" element={<R><Historique /></R>} />
-                  <Route path="/aide" element={<R><Aide /></R>} />
-                  <Route path="/a-propos" element={<R><APropos /></R>} />
-                  <Route path="/actualite/:id" element={<R><NewsDetail /></R>} />
-                  <Route path="/historique-retraits" element={<R><HistoriqueRetraits /></R>} />
-                  <Route path="/historique-fonds" element={<R><HistoriqueFonds /></R>} />
-                  <Route path="/points-cadeaux" element={<R><PointsCadeaux /></R>} />
-                  <Route path="/mes-produits" element={<R><MesProduits /></R>} />
-                  <Route path="/recharge" element={<R><Recharge /></R>} />
-                  <Route path="/recharge/paiement" element={<R><RechargePaiement /></R>} />
-                  <Route path="/admin/recharges" element={<R><AdminRecharges /></R>} />
-                  <Route path="/lier-carte" element={<R><LierCarte /></R>} />
-                  <Route path="/retrait" element={<R><Retrait /></R>} />
-                  <Route path="/admin/retraits" element={<R><AdminRetraits /></R>} />
-                  <Route path="/admin/produits" element={<R><AdminProduits /></R>} />
-                  <Route path="/admin/popups" element={<R><AdminPopups /></R>} />
-                  <Route path="/admin" element={<R><AdminPanel /></R>} />
-                  <Route path="/echanger-code" element={<R><EchangerCode /></R>} />
-                  <Route path="/changer-mot-de-passe" element={<R><ChangerMotDePasse /></R>} />
-                  <Route path="/changer-langue" element={<R><ChangerLangue /></R>} />
-                  <Route path="/profil" element={<R><Profile /></R>} />
-                  <Route path="/parametres" element={<R><Settings /></R>} />
-                  <Route path="/loterie" element={<R><Loterie /></R>} />
-                  <Route path="/service-chat" element={<R><ServiceChat /></R>} />
+
+                  {/* Toutes les autres pages — connexion obligatoire */}
+                  <Route path="/"                    element={<Auth><Index /></Auth>} />
+                  <Route path="/produits"            element={<Auth><Products /></Auth>} />
+                  <Route path="/equipe"              element={<Auth><Team /></Auth>} />
+                  <Route path="/portefeuille"        element={<Auth><Portefeuille /></Auth>} />
+                  <Route path="/historique"          element={<Auth><Historique /></Auth>} />
+                  <Route path="/aide"                element={<Auth><Aide /></Auth>} />
+                  <Route path="/a-propos"            element={<Auth><APropos /></Auth>} />
+                  <Route path="/actualite/:id"       element={<Auth><NewsDetail /></Auth>} />
+                  <Route path="/historique-retraits" element={<Auth><HistoriqueRetraits /></Auth>} />
+                  <Route path="/historique-fonds"    element={<Auth><HistoriqueFonds /></Auth>} />
+                  <Route path="/points-cadeaux"      element={<Auth><PointsCadeaux /></Auth>} />
+                  <Route path="/mes-produits"        element={<Auth><MesProduits /></Auth>} />
+                  <Route path="/recharge"            element={<Auth><Recharge /></Auth>} />
+                  <Route path="/recharge/paiement"   element={<Auth><RechargePaiement /></Auth>} />
+                  <Route path="/admin/recharges"     element={<Auth><AdminRecharges /></Auth>} />
+                  <Route path="/lier-carte"          element={<Auth><LierCarte /></Auth>} />
+                  <Route path="/retrait"             element={<Auth><Retrait /></Auth>} />
+                  <Route path="/admin/retraits"      element={<Auth><AdminRetraits /></Auth>} />
+                  <Route path="/admin/produits"      element={<Auth><AdminProduits /></Auth>} />
+                  <Route path="/admin/popups"        element={<Auth><AdminPopups /></Auth>} />
+                  <Route path="/admin"               element={<Auth><AdminPanel /></Auth>} />
+                  <Route path="/echanger-code"       element={<Auth><EchangerCode /></Auth>} />
+                  <Route path="/changer-mot-de-passe" element={<Auth><ChangerMotDePasse /></Auth>} />
+                  <Route path="/changer-langue"      element={<Auth><ChangerLangue /></Auth>} />
+                  <Route path="/profil"              element={<Auth><Profile /></Auth>} />
+                  <Route path="/parametres"          element={<Auth><Settings /></Auth>} />
+                  <Route path="/loterie"             element={<Auth><Loterie /></Auth>} />
+                  <Route path="/service-chat"        element={<Auth><ServiceChat /></Auth>} />
+
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import PageHeader from "@/components/PageHeader";
 import CountryPicker from "@/components/CountryPicker";
@@ -11,6 +11,8 @@ import { useLanguage } from "@/contexts/LanguageContext";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: string })?.from || "/";
   const { showError } = useActionPopup();
   const { validatePhone } = usePhoneValidation();
   const { t } = useLanguage();
@@ -136,7 +138,7 @@ const Login = () => {
       <PremiumModal
         triggerKey="welcome"
         open={showWelcome}
-        onClose={() => { setShowWelcome(false); navigate("/"); }}
+        onClose={() => { setShowWelcome(false); navigate(from, { replace: true }); }}
         replacements={{ username: userName }}
       />
     </div>
