@@ -572,7 +572,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
             </select>
           </div>
           <div>
-            <label className="text-xs text-muted-foreground">Points ESK (Monnaie Eskom)</label>
+            <label className="text-xs text-muted-foreground">Points GE (Monnaie GE Energy)</label>
             <input type="number" value={editGiftPoints} onChange={e => setEditGiftPoints(e.target.value)}
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none" />
           </div>
@@ -2179,7 +2179,7 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
       if (existing) await supabase.from("site_settings").update({ value }).eq("key", key);
       else await supabase.from("site_settings").insert({ key, value, category: "points" });
     }
-    showSuccess("ESKOM Currency Configuration sauvegardée", "");
+    showSuccess("GE Energy Currency Configuration sauvegardée", "");
     setEdits({});
     reload();
   };
@@ -2223,7 +2223,7 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
     <div className="space-y-4">
       {/* Points configuration */}
       <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
-        <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Gift size={16} className="text-primary" /> ESKOM Currency Configuration</h3>
+        <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Gift size={16} className="text-primary" /> GE Energy Currency Configuration</h3>
         {pointsKeys.map(k => (
           <div key={k.key}>
             <label className="text-xs text-muted-foreground">{k.label}</label>
@@ -2298,7 +2298,7 @@ const GiftCodesTab = ({ showSuccess, showError }: any) => {
       setForm({ code: c.code, points_value: String(c.points_value), max_uses: String(c.max_uses), expires_at: c.expires_at ? c.expires_at.slice(0, 16) : "" });
     } else {
       setEditing(null);
-      const randomCode = "ESKOM" + Math.random().toString(36).substring(2, 8).toUpperCase();
+      const randomCode = "GE" + Math.random().toString(36).substring(2, 8).toUpperCase();
       setForm({ code: randomCode, points_value: "", max_uses: "1", expires_at: "" });
     }
     setShowForm(true);
@@ -2351,7 +2351,7 @@ const GiftCodesTab = ({ showSuccess, showError }: any) => {
             <div className="flex justify-between"><span className="text-xs font-bold text-foreground">{editing ? "Edit code" : "New code"}</span><button onClick={() => setShowForm(false)}><X size={14} className="text-muted-foreground" /></button></div>
             <div>
               <label className="text-xs text-muted-foreground">Code</label>
-              <input value={form.code} onChange={e => setForm({ ...form, code: e.target.value })} placeholder="Ex: ESKOM2024" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none uppercase" />
+              <input value={form.code} onChange={e => setForm({ ...form, code: e.target.value })} placeholder="Ex: GE2024" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none uppercase" />
             </div>
             <div>
               <label className="text-xs text-muted-foreground">Points to award</label>
@@ -2837,7 +2837,7 @@ const OfficialInfoTab = ({ settings, reload, showSuccess }: { settings: SiteSett
     { key: "official_whatsapp_link", label: "WhatsApp link", placeholder: "https://wa.me/243XXXXXXXX" },
     { key: "official_whatsapp_group", label: "WhatsApp Group link", placeholder: "https://chat.whatsapp.com/..." },
     { key: "official_private_group_msg", label: "Private Investor Group message", placeholder: "Message shown when private group is requested...", multiline: true },
-    { key: "official_welcome_message", label: "Automatic welcome message", placeholder: "Welcome to ESKOM...", multiline: true },
+    { key: "official_welcome_message", label: "Automatic welcome message", placeholder: "Welcome to GE Energy...", multiline: true },
   ];
 
   const [edits, setEdits] = useState<Record<string, string>>({});

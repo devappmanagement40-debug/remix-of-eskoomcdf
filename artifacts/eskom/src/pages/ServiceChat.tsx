@@ -99,8 +99,8 @@ const ServiceChat = () => {
     } else {
       // First visit greeting
       const greetingText = enabled
-        ? "Hello! 👋 I'm Emma, your ESKOM virtual assistant. How can I help you today?\n\nEmma – ESKOM Virtual Assistant"
-        : "Hello! Welcome to ESKOM support. How can we help you today?";
+        ? "Hello! 👋 I'm Emma, your GE Energy virtual assistant. How can I help you today?\n\nEmma – GE Energy Virtual Assistant"
+        : "Hello! Welcome to GE Energy support. How can we help you today?";
 
       await supabase.from("chat_messages").insert({
         user_id: user.id,

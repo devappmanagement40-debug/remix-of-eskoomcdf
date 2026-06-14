@@ -28,7 +28,7 @@ interface LevelData {
 }
 
 const WHATSAPP_MESSAGE = encodeURIComponent(
-  `Hello 👋\n\nYou registered using my referral link on the ESKOM platform.\nI am your referrer and I'm reaching out to assist you if needed.\n\nFeel free to ask me any questions.\n\nBest regards.`
+  `Hello 👋\n\nYou registered using my referral link on the GE Energy platform.\nI am your referrer and I'm reaching out to assist you if needed.\n\nFeel free to ask me any questions.\n\nBest regards.`
 );
 
 const Team = () => {

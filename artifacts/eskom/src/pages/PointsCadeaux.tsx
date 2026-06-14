@@ -144,7 +144,7 @@ const PointsCadeaux = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <PageHeader title="Eskom Currency" showBack />
+      <PageHeader title="GE Currency" showBack />
       <div className="px-4 pt-6 space-y-4">
 
         {/* Points balance card */}
@@ -155,7 +155,7 @@ const PointsCadeaux = () => {
               <Gift size={28} className="text-primary" />
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">Available Eskom Currency</p>
+              <p className="text-xs text-muted-foreground">Available GE Currency</p>
               <p className="text-3xl font-bold text-primary">{points} <span className="text-sm font-normal">ESK</span></p>
             </div>
           </div>
@@ -191,7 +191,7 @@ const PointsCadeaux = () => {
 
         {/* How to earn */}
         <div className="bg-card rounded-xl border border-secondary p-5">
-          <h2 className="text-sm font-bold text-foreground mb-3">How to earn Eskom Currency?</h2>
+          <h2 className="text-sm font-bold text-foreground mb-3">How to earn GE Currency?</h2>
           <ul className="space-y-2.5 text-xs text-muted-foreground">
             {howToEarn.map((tip, i) => (
               <li key={i} className="flex items-start gap-2">
@@ -204,7 +204,7 @@ const PointsCadeaux = () => {
 
         {/* Rewards catalog */}
         <div>
-          <h2 className="text-sm font-bold text-foreground mb-3">Convert your Eskom Currency</h2>
+          <h2 className="text-sm font-bold text-foreground mb-3">Convert your GE Currency</h2>
           {rewards.length === 0 ? (
             <p className="text-xs text-muted-foreground text-center py-6">No rewards available at the moment</p>
           ) : (

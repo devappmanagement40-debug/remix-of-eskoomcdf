@@ -20,12 +20,12 @@ const APropos = () => {
               <Globe size={24} className="text-primary" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-foreground">ESKOM Energy</h2>
+              <h2 className="text-lg font-bold text-foreground">GE Energy</h2>
               <p className="text-xs text-muted-foreground">Investing in African energy</p>
             </div>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            ESKOM is an innovative investment platform dedicated to the energy sector in Africa.
+            GE Energy is an innovative investment platform dedicated to the energy sector in Africa.
             Our mission is to democratize access to investment opportunities in renewable
             energy and industrial infrastructure across the African continent.
           </p>
@@ -35,7 +35,7 @@ const APropos = () => {
         <div className="bg-card rounded-xl border border-secondary p-5">
           <h3 className="text-base font-bold text-foreground mb-3">Our mission</h3>
           <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-            At ESKOM, we firmly believe that Africa holds considerable and largely untapped
+            At GE Energy, we firmly believe that Africa holds considerable and largely untapped
             energy potential. Our platform enables every African citizen, regardless of
             income level, to actively participate in the continent's energy development
             and reap concrete benefits.
@@ -63,7 +63,7 @@ const APropos = () => {
         <div className="bg-card rounded-xl border border-secondary p-5">
           <h3 className="text-base font-bold text-foreground mb-3">Our expansion in Africa</h3>
           <p className="text-sm text-muted-foreground leading-relaxed mb-4">
-            Present in several African countries, ESKOM has strategically established itself
+            Present in several African countries, GE Energy has strategically established itself
             in Central Africa and East Africa. Our network covers
             Haiti, Cameroon, Gabon, and Kenya.
           </p>
@@ -77,7 +77,7 @@ const APropos = () => {
 
         {/* Why ESKOM */}
         <div className="bg-card rounded-xl border border-secondary p-5">
-          <h3 className="text-base font-bold text-foreground mb-3">Why choose ESKOM?</h3>
+          <h3 className="text-base font-bold text-foreground mb-3">Why choose GE Energy?</h3>
           <div className="space-y-4">
             <div className="flex gap-3">
               <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
@@ -126,10 +126,10 @@ const APropos = () => {
             and guide you through your investments.
           </p>
           <p className="text-sm text-muted-foreground">
-            📧 support@eskom-energy.com
+            📧 support@ge-energy.com
           </p>
           <p className="text-sm text-muted-foreground">
-            🌐 www.eskom-energy.com
+            🌐 www.ge-energy.com
           </p>
         </div>
       </div>

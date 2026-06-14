@@ -80,8 +80,9 @@ const Signup = () => {
         <h2 className="text-2xl font-bold text-foreground text-center mb-1">{t.signup.create}</h2>
         <p className="text-xl font-bold text-foreground text-center mb-8">{t.signup.newAccount}</p>
 
-        <div className="mb-10">
-          <img src="/logo-ge.jpg" alt="Logo" className="w-24 h-24 rounded-full object-cover mx-auto" />
+        <div className="mb-10 flex flex-col items-center gap-2">
+          <img src="/logo-ge.jpg" alt="GE Energy" className="w-24 h-24 rounded-full object-cover" />
+          <span className="text-base font-bold text-foreground">GE Energy</span>
         </div>
 
         <form onSubmit={handleSignup} className="w-full max-w-sm space-y-4" translate="no">

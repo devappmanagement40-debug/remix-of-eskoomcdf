@@ -313,7 +313,7 @@ router.post("/nowpayments/create", async (req, res) => {
       price_currency:     "usd",
       pay_currency:       currency.toLowerCase(),
       order_id:           rechargeId,
-      order_description:  "ESKOM Energy deposit",
+      order_description:  "GE Energy deposit",
       is_fee_paid_by_user: false,
     };
     if (webhookUrl) body["ipn_callback_url"] = webhookUrl;
@@ -489,7 +489,7 @@ router.post("/nowpayments/payout", async (req, res) => {
           currency,
           amount,
           unique_external_id: withdrawalId,
-          payout_description: "ESKOM Energy withdrawal",
+          payout_description: "GE Energy withdrawal",
         },
       ],
     };
