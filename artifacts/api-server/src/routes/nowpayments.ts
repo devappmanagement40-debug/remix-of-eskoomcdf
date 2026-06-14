@@ -281,13 +281,15 @@ router.post("/nowpayments/create", async (req, res) => {
   try {
     const webhookUrl = getWebhookUrl("webhook");
     const payCurrency = currency.toLowerCase();
+    // price_currency is always "usd" so NowPayments converts the USD amount
+    // into the chosen crypto (TRX, BNB, USDT-TRC20, etc.) using live rates.
     const body: Record<string, unknown> = {
-      price_amount:       amount,
-      price_currency:     payCurrency,   // même devise = pas de conversion, l'utilisateur envoie exactement le montant saisi
-      pay_currency:       payCurrency,
-      order_id:           rechargeId,
-      order_description:  "GE Energy deposit",
-      is_fee_paid_by_user: false,         // les frais NowPayments sont à la charge du marchand, pas de l'utilisateur
+      price_amount:        amount,
+      price_currency:      "usd",
+      pay_currency:        payCurrency,
+      order_id:            rechargeId,
+      order_description:   "GE Energy deposit",
+      is_fee_paid_by_user: false,
     };
     if (webhookUrl) body["ipn_callback_url"] = webhookUrl;
 

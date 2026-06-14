@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/PageHeader";
 import BottomNav from "@/components/BottomNav";
-import { ChevronRight, Zap } from "lucide-react";
+import { ChevronRight, Zap, Loader2 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export type CryptoCurrency = {
@@ -34,6 +34,9 @@ const Recharge = () => {
   const [presetAmounts, setPresetAmounts] = useState<number[]>([10, 20, 50, 100, 200, 500]);
   const [minAmount, setMinAmount] = useState(5);
   const [maxAmount, setMaxAmount] = useState(100000);
+  const [estimates, setEstimates] = useState<Record<string, number | null>>({});
+  const [loadingEstimates, setLoadingEstimates] = useState(false);
+  const estimateDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currencies = ALLOWED_CURRENCIES;
 
   useEffect(() => {
@@ -50,8 +53,43 @@ const Recharge = () => {
           if (s.key === "deposit_max" && s.value) setMaxAmount(Number(s.value));
         });
       });
-
   }, []);
+
+  // Fetch real-time estimates from NowPayments for all currencies
+  const fetchEstimates = async (usdAmount: number) => {
+    setLoadingEstimates(true);
+    const results: Record<string, number | null> = {};
+    await Promise.all(
+      ALLOWED_CURRENCIES.map(async (c) => {
+        try {
+          const res = await fetch(
+            `/api/nowpayments/estimate?amount=${usdAmount}&currency_from=usd&currency_to=${c.code}`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            results[c.code] = typeof data.estimated_amount === "number" ? data.estimated_amount : null;
+          } else {
+            results[c.code] = null;
+          }
+        } catch {
+          results[c.code] = null;
+        }
+      })
+    );
+    setEstimates(results);
+    setLoadingEstimates(false);
+  };
+
+  const handleAmountChange = (val: string) => {
+    setAmount(val);
+    const parsed = parseFloat(val);
+    if (estimateDebounce.current) clearTimeout(estimateDebounce.current);
+    if (parsed >= 1) {
+      estimateDebounce.current = setTimeout(() => fetchEstimates(parsed), 600);
+    } else {
+      setEstimates({});
+    }
+  };
 
   const handleSelectCurrency = (currency: CryptoCurrency) => {
     const parsed = parseFloat(amount);
@@ -61,6 +99,15 @@ const Recharge = () => {
 
   const parsedAmount = parseFloat(amount);
   const amountValid = parsedAmount >= minAmount && parsedAmount <= maxAmount;
+
+  const formatEstimate = (code: string): string => {
+    const val = estimates[code];
+    if (val === null || val === undefined) return "";
+    // Format depending on magnitude
+    if (val >= 1000) return `≈ ${val.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+    if (val >= 1) return `≈ ${val.toFixed(4)}`;
+    return `≈ ${val.toFixed(6)}`;
+  };
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -101,7 +148,7 @@ const Recharge = () => {
               type="number"
               placeholder={`Min. ${minAmount.toLocaleString("en-US")}`}
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              onChange={(e) => handleAmountChange(e.target.value)}
               className="bg-transparent text-foreground text-lg font-semibold w-full outline-none placeholder:text-muted-foreground"
             />
             <span className="text-primary font-bold text-sm ml-2 whitespace-nowrap">USDT</span>
@@ -111,7 +158,7 @@ const Recharge = () => {
             {presetAmounts.map((p) => (
               <button
                 key={p}
-                onClick={() => setAmount(String(p))}
+                onClick={() => handleAmountChange(String(p))}
                 className={`py-2.5 rounded-xl text-xs font-bold transition-all ${
                   amount === String(p)
                     ? "gradient-button text-primary-foreground"
@@ -178,7 +225,19 @@ const Recharge = () => {
                   <p className="text-[11px] text-muted-foreground mt-0.5">{c.network}</p>
                 </div>
 
-                <ChevronRight size={16} className="text-muted-foreground flex-shrink-0" />
+                <div className="text-right flex-shrink-0">
+                  {amountValid && loadingEstimates && !estimates[c.code] && (
+                    <Loader2 size={14} className="text-muted-foreground animate-spin ml-auto" />
+                  )}
+                  {amountValid && formatEstimate(c.code) && (
+                    <p className="text-xs font-bold text-primary">{formatEstimate(c.code)}</p>
+                  )}
+                  {amountValid && formatEstimate(c.code) && (
+                    <p className="text-[10px] text-muted-foreground">{c.label}</p>
+                  )}
+                </div>
+
+                <ChevronRight size={16} className="text-muted-foreground flex-shrink-0 ml-1" />
               </button>
             ))}
           </div>
