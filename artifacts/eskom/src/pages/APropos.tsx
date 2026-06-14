@@ -1,5 +1,6 @@
 import { Users, TrendingUp, Shield, Zap, MapPin, Leaf } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import { useAppImages } from "@/contexts/AppImagesContext";
 
 const stats = [
   { label: "Countries covered", value: "12+", icon: MapPin },
@@ -9,6 +10,7 @@ const stats = [
 ];
 
 const APropos = () => {
+  const { appLogo } = useAppImages();
   return (
     <div className="min-h-screen bg-background pb-10">
       <PageHeader title="About Us" showBack />
@@ -17,7 +19,7 @@ const APropos = () => {
         {/* Hero — Logo + Nom */}
         <div className="bg-card rounded-xl border border-secondary p-6 flex flex-col items-center text-center gap-4">
           <img
-            src="/logo-ge.jpg"
+            src={appLogo}
             alt="GE Energy"
             className="w-24 h-24 rounded-full object-cover shadow-lg"
           />

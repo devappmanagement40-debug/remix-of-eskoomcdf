@@ -7,10 +7,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import { usePhoneValidation } from "@/hooks/usePhoneValidation";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAppImages } from "@/contexts/AppImagesContext";
 
 const Signup = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { appLogo } = useAppImages();
   const { showSuccess, showError } = useActionPopup();
   const { validatePhone } = usePhoneValidation();
   const { t } = useLanguage();
@@ -81,7 +83,7 @@ const Signup = () => {
         <p className="text-xl font-bold text-foreground text-center mb-8">{t.signup.newAccount}</p>
 
         <div className="mb-10 flex flex-col items-center gap-2">
-          <img src="/logo-ge.jpg" alt="GE Energy" className="w-24 h-24 rounded-full object-cover" />
+          <img src={appLogo} alt="GE Energy" className="w-24 h-24 rounded-full object-cover" />
           <span className="text-base font-bold text-foreground">GE Energy</span>
         </div>
 

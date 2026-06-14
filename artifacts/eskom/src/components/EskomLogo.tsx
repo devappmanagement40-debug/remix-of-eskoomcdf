@@ -1,6 +1,7 @@
-import eskomLogo from "@/assets/eskom-logo.png";
+import { useAppImages } from "@/contexts/AppImagesContext";
 
 const EskomLogo = ({ size = "md" }: { size?: "sm" | "md" | "lg" }) => {
+  const { appLogo } = useAppImages();
   const sizes = {
     sm: "h-10",
     md: "h-16",
@@ -9,7 +10,7 @@ const EskomLogo = ({ size = "md" }: { size?: "sm" | "md" | "lg" }) => {
 
   return (
     <div className="flex items-center justify-center">
-      <img src={eskomLogo} alt="ESKOM" className={`${sizes[size]} w-auto object-contain`} />
+      <img src={appLogo} alt="GE Energy" className={`${sizes[size]} w-auto object-contain`} />
     </div>
   );
 };

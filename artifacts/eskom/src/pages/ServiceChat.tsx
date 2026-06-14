@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Send, Image, Paperclip, Smile, Check, CheckCheck, MoreVertical, Phone, Bot } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import emmaAvatar from "@/assets/emma-avatar.jpg";
+import { useAppImages } from "@/contexts/AppImagesContext";
 
 /** Renders text with auto-linked URLs */
 const LinkedText = ({ text }: { text: string }) => {
@@ -51,6 +51,7 @@ interface Message {
 
 const ServiceChat = () => {
   const navigate = useNavigate();
+  const { emmaAvatar } = useAppImages();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);

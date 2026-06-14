@@ -5,19 +5,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { useRealtimeProfile } from "@/hooks/useRealtimeProfile";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
-import bgDepot from "@/assets/bg-depot.png";
-import bgGains from "@/assets/bg-gains.png";
-import bgParrainage from "@/assets/bg-parrainage.png";
-import bgTodayEarnings from "@/assets/bg-today-earnings.png";
-import bgTotalRevenue from "@/assets/bg-total-revenue.png";
-import bgTotalDeposit from "@/assets/bg-total-deposit.png";
-import bgTotalWithdraw from "@/assets/bg-total-withdraw.png";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAppImages } from "@/contexts/AppImagesContext";
 
 const Portefeuille = () => {
   const navigate = useNavigate();
   const { profile, loading } = useRealtimeProfile();
   const { t } = useLanguage();
+  const {
+    bgDepot, bgGains, bgParrainage,
+    bgTodayEarnings, bgTotalRevenue, bgTotalDeposit, bgTotalWithdraw,
+  } = useAppImages();
   const [depositNotWithdrawable, setDepositNotWithdrawable] = useState(true);
   const [totalDeposits, setTotalDeposits] = useState(0);
   const [totalWithdrawals, setTotalWithdrawals] = useState(0);

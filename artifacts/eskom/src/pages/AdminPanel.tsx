@@ -2598,8 +2598,91 @@ const AppSettingsTab = ({ settings, reload, showSuccess }: any) => {
     { key: "homescreen_instructions_text", label: "Instructions ecran d'accueil" },
   ];
 
+  const imageKeys = [
+    {
+      key: "img_app_logo",
+      label: "Logo de l'application",
+      desc: "Affiché sur l'écran de connexion, inscription et À propos",
+    },
+    {
+      key: "img_emma_avatar",
+      label: "Avatar Emma IA (Support)",
+      desc: "Photo de profil de l'assistante Emma dans le chat support",
+    },
+    {
+      key: "img_bg_depot",
+      label: "Fond carte Dépôt (portefeuille)",
+      desc: "Arrière-plan de la carte balance dépôt",
+    },
+    {
+      key: "img_bg_gains",
+      label: "Fond carte Gains (portefeuille)",
+      desc: "Arrière-plan de la carte balance gains",
+    },
+    {
+      key: "img_bg_parrainage",
+      label: "Fond carte Parrainage (portefeuille)",
+      desc: "Arrière-plan de la carte balance parrainage",
+    },
+    {
+      key: "img_bg_today_earnings",
+      label: "Fond statistique Gains du jour",
+      desc: "Arrière-plan de la tuile gains du jour",
+    },
+    {
+      key: "img_bg_total_revenue",
+      label: "Fond statistique Revenus totaux",
+      desc: "Arrière-plan de la tuile revenus totaux",
+    },
+    {
+      key: "img_bg_total_deposit",
+      label: "Fond statistique Dépôts totaux",
+      desc: "Arrière-plan de la tuile dépôts totaux",
+    },
+    {
+      key: "img_bg_total_withdraw",
+      label: "Fond statistique Retraits totaux",
+      desc: "Arrière-plan de la tuile retraits totaux",
+    },
+  ];
+
   return (
     <div className="space-y-4">
+      {/* === IMAGES === */}
+      <div className="bg-card rounded-xl border border-secondary p-4 space-y-4">
+        <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+          <ImageIcon size={16} className="text-primary" /> Images de l'application
+        </h3>
+        <p className="text-xs text-muted-foreground -mt-2">
+          Collez l'URL complète de chaque image (https://...). Laissez vide pour utiliser l'image par défaut.
+        </p>
+        {imageKeys.map(k => {
+          const url = getVal(k.key);
+          return (
+            <div key={k.key} className="space-y-1.5">
+              <label className="text-xs font-semibold text-foreground">{k.label}</label>
+              <p className="text-[11px] text-muted-foreground">{k.desc}</p>
+              <div className="flex gap-2 items-start">
+                {url && (
+                  <img
+                    src={url}
+                    alt={k.label}
+                    className="w-14 h-14 rounded-xl object-cover border border-secondary flex-shrink-0"
+                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                  />
+                )}
+                <input
+                  value={url}
+                  onChange={e => setVal(k.key, e.target.value)}
+                  placeholder="https://exemple.com/image.jpg"
+                  className="flex-1 bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary focus:border-primary outline-none"
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
       <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
         <h3 className="text-sm font-bold text-foreground flex items-center gap-2"><Smartphone size={16} className="text-primary" /> Application mobile</h3>
         {appKeys.map(k => (
@@ -2634,7 +2717,7 @@ const AppSettingsTab = ({ settings, reload, showSuccess }: any) => {
 
       {Object.keys(edits).length > 0 && (
         <button onClick={saveAll} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
-          <Save size={16} /> Save
+          <Save size={16} /> Enregistrer les modifications
         </button>
       )}
     </div>

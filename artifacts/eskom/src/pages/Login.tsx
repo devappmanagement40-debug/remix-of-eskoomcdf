@@ -8,10 +8,12 @@ import { useActionPopup } from "@/components/ActionPopupProvider";
 import PremiumModal from "@/components/PremiumModal";
 import { usePhoneValidation } from "@/hooks/usePhoneValidation";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAppImages } from "@/contexts/AppImagesContext";
 
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { appLogo } = useAppImages();
   const from = (location.state as { from?: string })?.from || "/";
   const { showError } = useActionPopup();
   const { validatePhone } = usePhoneValidation();
@@ -94,7 +96,7 @@ const Login = () => {
         <p className="text-xl font-bold text-foreground text-center mb-8">{t.login.instant}</p>
 
         <div className="mb-10 flex flex-col items-center gap-2">
-          <img src="/logo-ge.jpg" alt="GE Energy" className="w-24 h-24 rounded-full object-cover" />
+          <img src={appLogo} alt="GE Energy" className="w-24 h-24 rounded-full object-cover" />
           <span className="text-base font-bold text-foreground">GE Energy</span>
         </div>
 

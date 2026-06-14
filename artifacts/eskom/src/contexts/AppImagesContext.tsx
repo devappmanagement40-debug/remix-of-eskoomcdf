@@ -1,0 +1,77 @@
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+import fallbackEmma from "@/assets/emma-avatar.jpg";
+import fallbackBgDepot from "@/assets/bg-depot.png";
+import fallbackBgGains from "@/assets/bg-gains.png";
+import fallbackBgParrainage from "@/assets/bg-parrainage.png";
+import fallbackBgTodayEarnings from "@/assets/bg-today-earnings.png";
+import fallbackBgTotalRevenue from "@/assets/bg-total-revenue.png";
+import fallbackBgTotalDeposit from "@/assets/bg-total-deposit.png";
+import fallbackBgTotalWithdraw from "@/assets/bg-total-withdraw.png";
+
+export type AppImages = {
+  appLogo: string;
+  emmaAvatar: string;
+  bgDepot: string;
+  bgGains: string;
+  bgParrainage: string;
+  bgTodayEarnings: string;
+  bgTotalRevenue: string;
+  bgTotalDeposit: string;
+  bgTotalWithdraw: string;
+};
+
+const defaultImages: AppImages = {
+  appLogo:           "/logo-ge.jpg",
+  emmaAvatar:        fallbackEmma,
+  bgDepot:           fallbackBgDepot,
+  bgGains:           fallbackBgGains,
+  bgParrainage:      fallbackBgParrainage,
+  bgTodayEarnings:   fallbackBgTodayEarnings,
+  bgTotalRevenue:    fallbackBgTotalRevenue,
+  bgTotalDeposit:    fallbackBgTotalDeposit,
+  bgTotalWithdraw:   fallbackBgTotalWithdraw,
+};
+
+const KEY_MAP: Record<string, keyof AppImages> = {
+  img_app_logo:           "appLogo",
+  img_emma_avatar:        "emmaAvatar",
+  img_bg_depot:           "bgDepot",
+  img_bg_gains:           "bgGains",
+  img_bg_parrainage:      "bgParrainage",
+  img_bg_today_earnings:  "bgTodayEarnings",
+  img_bg_total_revenue:   "bgTotalRevenue",
+  img_bg_total_deposit:   "bgTotalDeposit",
+  img_bg_total_withdraw:  "bgTotalWithdraw",
+};
+
+const AppImagesContext = createContext<AppImages>(defaultImages);
+
+export const AppImagesProvider = ({ children }: { children: ReactNode }) => {
+  const [images, setImages] = useState<AppImages>(defaultImages);
+
+  useEffect(() => {
+    supabase
+      .from("site_settings")
+      .select("key, value")
+      .in("key", Object.keys(KEY_MAP))
+      .then(({ data }) => {
+        if (!data?.length) return;
+        const overrides: Partial<AppImages> = {};
+        for (const row of data) {
+          const field = KEY_MAP[row.key];
+          if (field && row.value) overrides[field] = row.value;
+        }
+        setImages((prev) => ({ ...prev, ...overrides }));
+      });
+  }, []);
+
+  return (
+    <AppImagesContext.Provider value={images}>
+      {children}
+    </AppImagesContext.Provider>
+  );
+};
+
+export const useAppImages = () => useContext(AppImagesContext);

@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import { LanguageProvider } from "@/contexts/LanguageContext";
+import { AppImagesProvider } from "@/contexts/AppImagesContext";
 import RequireAuth from "@/components/RequireAuth";
 
 // Eager load core pages
@@ -70,6 +71,7 @@ const Auth = ({ children }: { children: React.ReactNode }) => (
 
 const App = () => (
   <ErrorBoundary>
+    <AppImagesProvider>
     <LanguageProvider>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
@@ -119,6 +121,7 @@ const App = () => (
         </TooltipProvider>
       </QueryClientProvider>
     </LanguageProvider>
+    </AppImagesProvider>
   </ErrorBoundary>
 );
 
