@@ -73,7 +73,7 @@ const AdminWheelTab = ({ settings, reload, showSuccess, showError, logAction, ad
       {subTab === "winners" && <WinnersSection spins={spins} reload={() => { loadData(); reload(); }} />}
       {subTab === "settings" && <SettingsSection settings={wheelSettings} financeSettings={financeSettings} reload={reload} showSuccess={showSuccess} />}
       {subTab === "vip_spins" && <VipSpinsSection spins={spins} reload={() => { loadData(); reload(); }} showSuccess={showSuccess} showError={showError} logAction={logAction} adminId={adminId} />}
-      {subTab === "images" && <ImagesSection settings={wheelSettings} reload={reload} showSuccess={showSuccess} />}
+      {subTab === "images" && <ImagesSection settings={wheelSettings} reload={reload} showSuccess={showSuccess} showError={showError} />}
     </div>
   );
 };
@@ -451,7 +451,7 @@ const VipSpinsSection = ({ spins, reload, showSuccess, showError, logAction, adm
 };
 
 // ========== IMAGES MANAGEMENT ==========
-const ImagesSection = ({ settings, reload, showSuccess }: any) => {
+const ImagesSection = ({ settings, reload, showSuccess, showError }: any) => {
   const [uploading, setUploading] = useState<string | null>(null);
 
   const getValue = (key: string) => settings.find((s: SiteSetting) => s.key === key)?.value ?? "";

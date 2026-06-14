@@ -294,7 +294,7 @@ const AdminPanel = () => {
         {activeTab === "annonces" && <AnnoncesTab reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "popups" && <PopupsTab popups={popups} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "vip" && <VipTab conditions={vipConditions} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
-        {activeTab === "sarah" && <SarahTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
+        {activeTab === "sarah" && <SarahTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "officialinfo" && <OfficialInfoTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "officialdocs" && <OfficialDocsTab showSuccess={showSuccess} showError={showError} />}
         {activeTab === "support" && <SupportTab adminId={adminId} />}
@@ -1546,7 +1546,7 @@ const AnnoncesTab = ({ reload, showSuccess, showError }: any) => {
     const { data } = await supabase.from("popup_messages").select("*").eq("trigger_key", "welcome_promo").maybeSingle();
     if (data) {
       setPopup(data as unknown as PopupMsg);
-      setForm({ title: data.title, message: data.message, button_confirm: data.button_confirm, button_cancel: data.button_cancel ?? undefined, is_active: data.is_active ?? true });
+      setForm({ title: data.title, message: data.message, button_confirm: data.button_confirm ?? '', button_cancel: data.button_cancel ?? undefined, is_active: data.is_active ?? true });
       setTabs(Array.isArray(data.tabs) ? (data.tabs as unknown as TabItem[]) : []);
     }
     setLoading(false);

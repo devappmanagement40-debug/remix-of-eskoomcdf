@@ -1,15 +1,17 @@
 -- =============================================
--- ESKOM ENERGY — Schema complet Supabase
--- Collez ce script dans : Supabase Dashboard → SQL Editor → New query
+-- ESKOM ENERGY — Schéma complet Supabase
+-- Instructions : Supabase Dashboard → SQL Editor → New query → Coller → Run
+-- Ce script est idempotent (peut être rejoué sans risque)
 -- =============================================
 
--- ENUM
+-- ==================== ENUMS ====================
 DO $$ BEGIN
   CREATE TYPE app_role AS ENUM ('admin', 'moderator', 'user');
 EXCEPTION WHEN duplicate_object THEN null;
 END $$;
 
--- PROFILES
+-- ==================== TABLES ====================
+
 CREATE TABLE IF NOT EXISTS profiles (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   user_id TEXT NOT NULL UNIQUE,
@@ -30,14 +32,12 @@ CREATE TABLE IF NOT EXISTS profiles (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- USER ROLES
 CREATE TABLE IF NOT EXISTS user_roles (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   user_id TEXT NOT NULL,
   role app_role NOT NULL DEFAULT 'user'
 );
 
--- ADMIN PERMISSIONS
 CREATE TABLE IF NOT EXISTS admin_permissions (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   user_id TEXT NOT NULL,
@@ -46,23 +46,21 @@ CREATE TABLE IF NOT EXISTS admin_permissions (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- VIP CONDITIONS
 CREATE TABLE IF NOT EXISTS vip_conditions (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   level INTEGER NOT NULL,
   level_name TEXT NOT NULL,
-  min_investment NUMERIC(18,8),
-  min_purchases INTEGER,
-  min_products_bought INTEGER,
-  min_active_members INTEGER,
-  min_team_investment NUMERIC(18,8),
-  condition_logic TEXT,
+  min_investment NUMERIC(18,8) DEFAULT 0,
+  min_purchases INTEGER DEFAULT 0,
+  min_products_bought INTEGER DEFAULT 0,
+  min_active_members INTEGER DEFAULT 0,
+  min_team_investment NUMERIC(18,8) DEFAULT 0,
+  condition_logic TEXT DEFAULT 'OR',
   image_url TEXT,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- VIP HISTORY
 CREATE TABLE IF NOT EXISTS vip_history (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   user_id TEXT NOT NULL,
@@ -73,7 +71,6 @@ CREATE TABLE IF NOT EXISTS vip_history (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- USER SESSIONS
 CREATE TABLE IF NOT EXISTS user_sessions (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   user_id TEXT NOT NULL,
@@ -82,7 +79,6 @@ CREATE TABLE IF NOT EXISTS user_sessions (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- PRODUCT SERIES
 CREATE TABLE IF NOT EXISTS product_series (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   name TEXT NOT NULL,
@@ -95,7 +91,6 @@ CREATE TABLE IF NOT EXISTS product_series (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- PRODUCTS
 CREATE TABLE IF NOT EXISTS products (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   name TEXT NOT NULL,
@@ -118,7 +113,6 @@ CREATE TABLE IF NOT EXISTS products (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- USER PRODUCTS
 CREATE TABLE IF NOT EXISTS user_products (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   user_id TEXT NOT NULL,
@@ -130,7 +124,6 @@ CREATE TABLE IF NOT EXISTS user_products (
   total_collected NUMERIC(18,8) DEFAULT 0
 );
 
--- REFERRAL COMMISSIONS
 CREATE TABLE IF NOT EXISTS referral_commissions (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   beneficiary_id TEXT NOT NULL,
@@ -142,21 +135,19 @@ CREATE TABLE IF NOT EXISTS referral_commissions (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- COUNTRIES
 CREATE TABLE IF NOT EXISTS countries (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   name TEXT NOT NULL,
   country_code TEXT NOT NULL,
   flag_emoji TEXT,
-  phone_digits INTEGER,
+  phone_digits INTEGER DEFAULT 8,
   is_active BOOLEAN DEFAULT true,
   api_enabled BOOLEAN DEFAULT false,
-  validation_enabled BOOLEAN,
+  validation_enabled BOOLEAN DEFAULT true,
   sort_order INTEGER,
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- PAYMENT API CONFIGS
 CREATE TABLE IF NOT EXISTS payment_api_configs (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   name TEXT NOT NULL,
@@ -173,7 +164,6 @@ CREATE TABLE IF NOT EXISTS payment_api_configs (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- PAYMENT METHODS
 CREATE TABLE IF NOT EXISTS payment_methods (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   name TEXT NOT NULL,
@@ -191,7 +181,6 @@ CREATE TABLE IF NOT EXISTS payment_methods (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- RECHARGES (dépôts)
 CREATE TABLE IF NOT EXISTS recharges (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   user_id TEXT NOT NULL,
@@ -207,7 +196,6 @@ CREATE TABLE IF NOT EXISTS recharges (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- USER WALLETS
 CREATE TABLE IF NOT EXISTS user_wallets (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   user_id TEXT NOT NULL,
@@ -219,7 +207,6 @@ CREATE TABLE IF NOT EXISTS user_wallets (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- WITHDRAWAL METHODS
 CREATE TABLE IF NOT EXISTS withdrawal_methods (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   name TEXT NOT NULL,
@@ -232,7 +219,6 @@ CREATE TABLE IF NOT EXISTS withdrawal_methods (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- WITHDRAWALS (retraits)
 CREATE TABLE IF NOT EXISTS withdrawals (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   user_id TEXT NOT NULL,
@@ -252,7 +238,6 @@ CREATE TABLE IF NOT EXISTS withdrawals (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- WITHDRAWAL FEE PAYMENTS
 CREATE TABLE IF NOT EXISTS withdrawal_fee_payments (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   user_id TEXT NOT NULL,
@@ -265,7 +250,6 @@ CREATE TABLE IF NOT EXISTS withdrawal_fee_payments (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- PAYMENT LOGS
 CREATE TABLE IF NOT EXISTS payment_logs (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   user_id TEXT NOT NULL,
@@ -282,7 +266,6 @@ CREATE TABLE IF NOT EXISTS payment_logs (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- OMNIPAY CALLBACKS
 CREATE TABLE IF NOT EXISTS omnipay_callbacks (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   reference TEXT NOT NULL,
@@ -295,7 +278,6 @@ CREATE TABLE IF NOT EXISTS omnipay_callbacks (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- SITE SETTINGS
 CREATE TABLE IF NOT EXISTS site_settings (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   key TEXT NOT NULL UNIQUE,
@@ -304,7 +286,6 @@ CREATE TABLE IF NOT EXISTS site_settings (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- SOCIAL LINKS
 CREATE TABLE IF NOT EXISTS social_links (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   key TEXT NOT NULL,
@@ -314,7 +295,6 @@ CREATE TABLE IF NOT EXISTS social_links (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- OFFICIAL DOCUMENTS
 CREATE TABLE IF NOT EXISTS official_documents (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   title TEXT NOT NULL,
@@ -327,7 +307,6 @@ CREATE TABLE IF NOT EXISTS official_documents (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- POPUP MESSAGES
 CREATE TABLE IF NOT EXISTS popup_messages (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   trigger_key TEXT NOT NULL,
@@ -342,7 +321,6 @@ CREATE TABLE IF NOT EXISTS popup_messages (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- FAQ ITEMS
 CREATE TABLE IF NOT EXISTS faq_items (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   question TEXT NOT NULL,
@@ -353,7 +331,6 @@ CREATE TABLE IF NOT EXISTS faq_items (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- BANNERS
 CREATE TABLE IF NOT EXISTS banners (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   image_url TEXT NOT NULL,
@@ -363,7 +340,6 @@ CREATE TABLE IF NOT EXISTS banners (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- INFO ITEMS
 CREATE TABLE IF NOT EXISTS info_items (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   title TEXT NOT NULL,
@@ -375,7 +351,6 @@ CREATE TABLE IF NOT EXISTS info_items (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- CHAT MESSAGES
 CREATE TABLE IF NOT EXISTS chat_messages (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   user_id TEXT NOT NULL,
@@ -385,7 +360,6 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- GIFT CODES
 CREATE TABLE IF NOT EXISTS gift_codes (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   code TEXT NOT NULL UNIQUE,
@@ -398,7 +372,6 @@ CREATE TABLE IF NOT EXISTS gift_codes (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- GIFT CODE USES
 CREATE TABLE IF NOT EXISTS gift_code_uses (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   code_id TEXT NOT NULL REFERENCES gift_codes(id),
@@ -407,7 +380,6 @@ CREATE TABLE IF NOT EXISTS gift_code_uses (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- GIFT REWARDS
 CREATE TABLE IF NOT EXISTS gift_rewards (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   name TEXT NOT NULL,
@@ -420,7 +392,6 @@ CREATE TABLE IF NOT EXISTS gift_rewards (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- POINT EXCHANGES
 CREATE TABLE IF NOT EXISTS point_exchanges (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   user_id TEXT NOT NULL,
@@ -431,7 +402,6 @@ CREATE TABLE IF NOT EXISTS point_exchanges (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
--- WHEEL PRIZES
 CREATE TABLE IF NOT EXISTS wheel_prizes (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   label TEXT NOT NULL,
@@ -446,7 +416,6 @@ CREATE TABLE IF NOT EXISTS wheel_prizes (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- WHEEL SPINS
 CREATE TABLE IF NOT EXISTS wheel_spins (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   user_id TEXT NOT NULL,
@@ -460,7 +429,6 @@ CREATE TABLE IF NOT EXISTS wheel_spins (
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
--- ADMIN LOGS
 CREATE TABLE IF NOT EXISTS admin_logs (
   id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::text,
   admin_id TEXT NOT NULL,
@@ -470,3 +438,147 @@ CREATE TABLE IF NOT EXISTS admin_logs (
   details TEXT,
   created_at TIMESTAMP DEFAULT NOW()
 );
+
+-- ==================== DÉSACTIVER RLS ====================
+-- L'app utilise une auth personnalisée (téléphone), pas Supabase Auth.
+-- On désactive le RLS sur toutes les tables pour que la clé anon puisse lire/écrire.
+
+ALTER TABLE profiles DISABLE ROW LEVEL SECURITY;
+ALTER TABLE user_roles DISABLE ROW LEVEL SECURITY;
+ALTER TABLE admin_permissions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE vip_conditions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE vip_history DISABLE ROW LEVEL SECURITY;
+ALTER TABLE user_sessions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE product_series DISABLE ROW LEVEL SECURITY;
+ALTER TABLE products DISABLE ROW LEVEL SECURITY;
+ALTER TABLE user_products DISABLE ROW LEVEL SECURITY;
+ALTER TABLE referral_commissions DISABLE ROW LEVEL SECURITY;
+ALTER TABLE countries DISABLE ROW LEVEL SECURITY;
+ALTER TABLE payment_api_configs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE payment_methods DISABLE ROW LEVEL SECURITY;
+ALTER TABLE recharges DISABLE ROW LEVEL SECURITY;
+ALTER TABLE user_wallets DISABLE ROW LEVEL SECURITY;
+ALTER TABLE withdrawal_methods DISABLE ROW LEVEL SECURITY;
+ALTER TABLE withdrawals DISABLE ROW LEVEL SECURITY;
+ALTER TABLE withdrawal_fee_payments DISABLE ROW LEVEL SECURITY;
+ALTER TABLE payment_logs DISABLE ROW LEVEL SECURITY;
+ALTER TABLE omnipay_callbacks DISABLE ROW LEVEL SECURITY;
+ALTER TABLE site_settings DISABLE ROW LEVEL SECURITY;
+ALTER TABLE social_links DISABLE ROW LEVEL SECURITY;
+ALTER TABLE official_documents DISABLE ROW LEVEL SECURITY;
+ALTER TABLE popup_messages DISABLE ROW LEVEL SECURITY;
+ALTER TABLE faq_items DISABLE ROW LEVEL SECURITY;
+ALTER TABLE banners DISABLE ROW LEVEL SECURITY;
+ALTER TABLE info_items DISABLE ROW LEVEL SECURITY;
+ALTER TABLE chat_messages DISABLE ROW LEVEL SECURITY;
+ALTER TABLE gift_codes DISABLE ROW LEVEL SECURITY;
+ALTER TABLE gift_code_uses DISABLE ROW LEVEL SECURITY;
+ALTER TABLE gift_rewards DISABLE ROW LEVEL SECURITY;
+ALTER TABLE point_exchanges DISABLE ROW LEVEL SECURITY;
+ALTER TABLE wheel_prizes DISABLE ROW LEVEL SECURITY;
+ALTER TABLE wheel_spins DISABLE ROW LEVEL SECURITY;
+ALTER TABLE admin_logs DISABLE ROW LEVEL SECURITY;
+
+-- ==================== FONCTIONS RPC ====================
+
+-- has_role : vérifie si un user a un rôle donné (utilisé par l'AdminPanel)
+CREATE OR REPLACE FUNCTION has_role(_user_id TEXT, _role app_role)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM user_roles
+    WHERE user_id = _user_id AND role = _role
+  );
+END;
+$$;
+
+-- ==================== DONNÉES INITIALES ====================
+
+-- Pays : Haïti (données de départ — modifiable dans l'Admin → Countries)
+INSERT INTO countries (name, country_code, flag_emoji, phone_digits, is_active, api_enabled, validation_enabled, sort_order)
+VALUES ('Haïti', '+509', '🇭🇹', 8, true, false, true, 0)
+ON CONFLICT DO NOTHING;
+
+-- VIP Levels (niveaux 0 à 5 — modifiables dans Admin → Levels)
+INSERT INTO vip_conditions (level, level_name, min_investment, min_purchases, min_products_bought, min_active_members, min_team_investment, condition_logic)
+VALUES
+  (0, 'VIP 0 — Débutant',    0,    0, 0,  0,    0,    'OR'),
+  (1, 'VIP 1 — Bronze',     100,   1, 1,  0,    0,    'OR'),
+  (2, 'VIP 2 — Argent',     500,   2, 2,  3,  500,    'OR'),
+  (3, 'VIP 3 — Or',        1000,   3, 3,  5, 2000,    'OR'),
+  (4, 'VIP 4 — Platine',   3000,   5, 5, 10, 5000,    'OR'),
+  (5, 'VIP 5 — Diamant',  10000,  10, 8, 20,20000,    'OR')
+ON CONFLICT DO NOTHING;
+
+-- Popup d'accueil (utilisé par Admin → Announcements)
+INSERT INTO popup_messages (trigger_key, title, message, button_confirm, button_cancel, is_active, sort_order)
+VALUES (
+  'welcome_promo',
+  'Offre Spéciale 🎁',
+  'Bienvenue sur ESKOM Energy ! Commencez à investir dès aujourd''hui et gagnez des revenus quotidiens. Les nouveaux membres bénéficient d''un support prioritaire !',
+  'Commencer maintenant',
+  'Plus tard',
+  true,
+  0
+)
+ON CONFLICT DO NOTHING;
+
+-- Liens sociaux par défaut (Admin → Links)
+INSERT INTO social_links (key, label, url, is_active)
+VALUES
+  ('telegram',  'Telegram',   NULL, true),
+  ('whatsapp',  'WhatsApp',   NULL, true),
+  ('facebook',  'Facebook',   NULL, true),
+  ('instagram', 'Instagram',  NULL, true),
+  ('tiktok',    'TikTok',     NULL, false),
+  ('youtube',   'YouTube',    NULL, false)
+ON CONFLICT DO NOTHING;
+
+-- Paramètres du site par défaut (Admin → Site / Rewards / Emma AI / etc.)
+INSERT INTO site_settings (key, value, category)
+VALUES
+  -- Général
+  ('site_name',                     'ESKOM Energy',   'general'),
+  ('site_tagline',                  'Investissez intelligemment', 'general'),
+  ('site_contact_email',            '',               'general'),
+  ('site_contact_phone',            '',               'general'),
+  -- Finance
+  ('min_deposit',                   '10',             'finance'),
+  ('max_deposit',                   '100000',         'finance'),
+  ('min_withdrawal',                '10',             'finance'),
+  ('max_withdrawal',                '100000',         'finance'),
+  ('withdrawal_fee_percent',        '0',              'finance'),
+  ('processing_fee_enabled',        'false',          'finance'),
+  ('processing_fee_amount',         '0',              'finance'),
+  -- Emma AI
+  ('sarah_enabled',                 'false',          'sarah'),
+  ('sarah_ai_provider',             'lovable',        'sarah'),
+  -- Points ESK
+  ('points_per_active_member',      '0',              'points'),
+  ('points_per_vip_level_per_day',  '0',              'points'),
+  ('points_per_deposit_type',       'fixed',          'points'),
+  ('points_per_deposit_value',      '0',              'points'),
+  ('points_per_withdrawal',         '0',              'points'),
+  -- Roue
+  ('wheel_enabled',                 'false',          'wheel'),
+  ('wheel_spins_per_day',           '1',              'wheel'),
+  -- Référencement
+  ('referral_l1_rate',              '5',              'referral'),
+  ('referral_l2_rate',              '2',              'referral'),
+  ('referral_l3_rate',              '1',              'referral'),
+  -- App
+  ('app_store_url',                 '',               'app'),
+  ('play_store_url',                '',               'app'),
+  -- Dates
+  ('platform_launch_date',          '',               'dates'),
+  ('maintenance_mode',              'false',          'maintenance')
+ON CONFLICT (key) DO NOTHING;
+
+-- ==================== INFORMATIONS ====================
+-- Pour créer votre premier compte admin :
+-- 1. Créez un compte dans l'appli (téléphone + mot de passe)
+-- 2. Trouvez votre user_id dans la table "profiles"
+-- 3. Exécutez : INSERT INTO user_roles (user_id, role) VALUES ('VOTRE_USER_ID', 'admin');
