@@ -46495,72 +46495,118 @@ router2.post("/auth/signup", async (req, res) => {
   if (!SUPABASE_URL || !SUPABASE_KEY) {
     return res.status(500).json({ error: "Auth service not configured" });
   }
+  if (!SUPABASE_SERVICE_KEY) {
+    return res.status(500).json({ error: "Service key not configured" });
+  }
+  const SERVICE_HEADERS = {
+    "Content-Type": "application/json",
+    apikey: SUPABASE_SERVICE_KEY,
+    Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`
+  };
   try {
-    const { pool: pool2 } = await Promise.resolve().then(() => (init_src(), src_exports));
-    const { rows: codeRows } = await pool2.query(
-      `SELECT id FROM profiles WHERE UPPER(referral_code) = UPPER($1) LIMIT 1`,
-      [inviteCode.trim()]
+    const codeRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/profiles?select=id&referral_code=ilike.${encodeURIComponent(inviteCode.trim())}&limit=1`,
+      { headers: SERVICE_HEADERS }
     );
-    const referrerId = codeRows[0]?.id ?? null;
+    const codeData = codeRes.ok ? await codeRes.json() : [];
+    const referrerId = Array.isArray(codeData) && codeData.length > 0 ? codeData[0].id : null;
     if (!referrerId) {
       return res.status(400).json({ error: "Invalid invitation code" });
     }
     const email = phoneToIdentifier(phone);
-    const signupRes = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+    const existCheck = await fetch(
+      `${SUPABASE_URL}/rest/v1/profiles?select=user_id&phone=eq.${encodeURIComponent(phone)}&limit=1`,
+      { headers: SERVICE_HEADERS }
+    );
+    const existData = existCheck.ok ? await existCheck.json() : [];
+    if (Array.isArray(existData) && existData.length > 0) {
+      return res.status(409).json({ error: "This number is already registered" });
+    }
+    const signupRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: SUPABASE_KEY
-      },
-      body: JSON.stringify({ email, password })
+      headers: SERVICE_HEADERS,
+      body: JSON.stringify({
+        email,
+        password,
+        email_confirm: true,
+        // skip email confirmation — phone is already verified via invite code
+        user_metadata: { phone, country_code: countryCode || "+509" }
+      })
     });
     const signupData = await signupRes.json();
     if (!signupRes.ok || signupData.error) {
-      const msg = signupData.error?.message || signupData.msg || "Sign up failed";
-      if (msg.toLowerCase().includes("already registered")) {
+      const msg = signupData.error?.message || signupData.msg || signupData.message || "Sign up failed";
+      if (msg.toLowerCase().includes("already registered") || msg.toLowerCase().includes("already exists") || msg.toLowerCase().includes("duplicate")) {
         return res.status(409).json({ error: "This number is already registered" });
       }
       return res.status(400).json({ error: msg });
     }
-    const userId = signupData.user?.id || signupData.id;
+    const userId = signupData.id || signupData.user?.id;
     if (userId) {
       const referralCode = phone.slice(-4).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
+      const profileData = {
+        phone,
+        country_code: countryCode || "+509",
+        referral_code: referralCode,
+        referred_by: referrerId
+      };
       const patchRes = await fetch(
         `${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${encodeURIComponent(userId)}`,
         {
           method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: SUPABASE_KEY,
-            Authorization: `Bearer ${SUPABASE_KEY}`,
-            Prefer: "return=representation"
-          },
-          body: JSON.stringify({
-            phone,
-            country_code: countryCode || "+509",
-            referral_code: referralCode,
-            referred_by: referrerId
-          })
+          headers: { ...SERVICE_HEADERS, Prefer: "return=representation" },
+          body: JSON.stringify(profileData)
         }
       );
-      const patchData = await patchRes.json();
+      const patchData = patchRes.ok ? await patchRes.json() : [];
       if (!patchData || Array.isArray(patchData) && patchData.length === 0) {
-        await pool2.query(
-          `INSERT INTO profiles (id, user_id, phone, country_code, referral_code, referred_by, balance, deposit_balance, earnings_balance, referral_balance, gift_points, spins_balance, vip_level)
-           VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, 0, 0, 0, 0, 0, 0, 0)
-           ON CONFLICT (user_id) DO UPDATE SET
-             phone = EXCLUDED.phone,
-             country_code = EXCLUDED.country_code,
-             referral_code = EXCLUDED.referral_code,
-             referred_by = EXCLUDED.referred_by`,
-          [userId, phone, countryCode || "+509", referralCode, referrerId]
-        );
+        await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
+          method: "POST",
+          headers: {
+            ...SERVICE_HEADERS,
+            Prefer: "return=minimal,resolution=merge-duplicates"
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            balance: 0,
+            deposit_balance: 0,
+            earnings_balance: 0,
+            referral_balance: 0,
+            gift_points: 0,
+            spins_balance: 0,
+            vip_level: 0,
+            ...profileData
+          })
+        });
       }
+    }
+    let session = null;
+    try {
+      const tokenRes = await fetch(
+        `${SUPABASE_URL}/auth/v1/token?grant_type=password`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY },
+          body: JSON.stringify({ email, password })
+        }
+      );
+      if (tokenRes.ok) {
+        const tokenData = await tokenRes.json();
+        if (!tokenData.error) {
+          session = {
+            access_token: tokenData.access_token,
+            refresh_token: tokenData.refresh_token,
+            expires_at: tokenData.expires_at,
+            expires_in: tokenData.expires_in
+          };
+        }
+      }
+    } catch {
     }
     return res.json({
       ok: true,
-      session: signupData.session ?? null,
-      user: signupData.user ?? null
+      session,
+      user: signupData
     });
   } catch (err) {
     req.log.error(err);
@@ -46818,41 +46864,59 @@ router4.post("/user-products/buy/:productId", async (req, res) => {
     updatedAt: /* @__PURE__ */ new Date()
   }).where(eq(profiles.userId, me.userId));
   if (price > 0) {
-    try {
-      const { pool: pool2 } = await Promise.resolve().then(() => (init_src(), src_exports));
-      const RATES = [
-        { level: "L1", rate: 0.1 },
-        { level: "L2", rate: 0.05 },
-        { level: "L3", rate: 0.01 }
-      ];
-      let currentProfileId = me.referredBy ?? null;
-      for (const { level, rate } of RATES) {
-        if (!currentProfileId) break;
-        const { rows: referrerRows } = await pool2.query(
-          `SELECT id, user_id, referred_by FROM profiles WHERE id = $1 LIMIT 1`,
-          [currentProfileId]
-        );
-        if (!referrerRows.length) break;
-        const referrer = referrerRows[0];
-        const commission = Math.round(price * rate * 100) / 100;
-        await pool2.query(
-          `UPDATE profiles
-           SET referral_balance = referral_balance + $1,
-               balance = balance + $1,
-               updated_at = NOW()
-           WHERE user_id = $2`,
-          [commission, referrer.user_id]
-        );
-        await pool2.query(
-          `INSERT INTO referral_commissions
-             (id, beneficiary_id, buyer_id, product_price, commission_amount, commission_rate, level, created_at)
-           VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW())`,
-          [referrer.id, me.id, price, commission, rate, level]
-        );
-        currentProfileId = referrer.referred_by ?? null;
+    const SB_URL = process.env.VITE_SUPABASE_PROJECT_URL;
+    const SB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (SB_URL && SB_KEY) {
+      const SB_HEADERS = {
+        "Content-Type": "application/json",
+        apikey: SB_KEY,
+        Authorization: `Bearer ${SB_KEY}`
+      };
+      try {
+        const RATES = [
+          { level: "L1", rate: 0.1 },
+          { level: "L2", rate: 0.05 },
+          { level: "L3", rate: 0.01 }
+        ];
+        let currentProfileId = me.referredBy ?? null;
+        for (const { level, rate } of RATES) {
+          if (!currentProfileId) break;
+          const refRes = await fetch(
+            `${SB_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(currentProfileId)}&select=id,user_id,referred_by,balance,referral_balance&limit=1`,
+            { headers: SB_HEADERS }
+          );
+          if (!refRes.ok) break;
+          const refData = await refRes.json();
+          if (!Array.isArray(refData) || !refData.length) break;
+          const referrer = refData[0];
+          const commission = Math.round(price * rate * 100) / 100;
+          const newBalance = Number(referrer.balance ?? 0) + commission;
+          const newReferralBalance = Number(referrer.referral_balance ?? 0) + commission;
+          await fetch(
+            `${SB_URL}/rest/v1/profiles?user_id=eq.${encodeURIComponent(referrer.user_id)}`,
+            {
+              method: "PATCH",
+              headers: { ...SB_HEADERS, Prefer: "return=minimal" },
+              body: JSON.stringify({ balance: newBalance, referral_balance: newReferralBalance })
+            }
+          );
+          await fetch(`${SB_URL}/rest/v1/referral_commissions`, {
+            method: "POST",
+            headers: { ...SB_HEADERS, Prefer: "return=minimal" },
+            body: JSON.stringify({
+              beneficiary_id: referrer.id,
+              buyer_id: me.id,
+              product_price: price,
+              commission_amount: commission,
+              commission_rate: rate,
+              level
+            })
+          });
+          currentProfileId = referrer.referred_by ?? null;
+        }
+      } catch (commErr) {
+        console.error("[referral] Commission crediting error:", commErr);
       }
-    } catch (commErr) {
-      console.error("[referral] Commission crediting error:", commErr);
     }
   }
   return res.json(userProduct);
@@ -47320,34 +47384,44 @@ init_src();
 init_src();
 
 // src/middlewares/requireAuth.ts
-init_src();
-init_src();
 var SUPABASE_URL2 = process.env.VITE_SUPABASE_PROJECT_URL;
 var SUPABASE_KEY2 = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-async function resolveUser(token) {
-  if (SUPABASE_URL2 && SUPABASE_KEY2) {
-    try {
-      const res = await fetch(`${SUPABASE_URL2}/auth/v1/user`, {
-        headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_KEY2 }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const uid = data.id;
-        const [role] = await db.select({ role: userRoles.role }).from(userRoles).where(eq(userRoles.userId, uid)).limit(1);
-        return { userId: uid, role: role?.role ?? "user" };
-      }
-    } catch {
-    }
-  }
+var SUPABASE_SERVICE_KEY2 = process.env.SUPABASE_SERVICE_ROLE_KEY;
+async function getRoleViaApi(userId) {
+  if (!SUPABASE_URL2 || !SUPABASE_SERVICE_KEY2) return "user";
   try {
-    const now = /* @__PURE__ */ new Date();
-    const [session] = await db.select().from(userSessions).where(and(eq(userSessions.token, token), gt(userSessions.expiresAt, now))).limit(1);
-    if (!session) return null;
-    const [role] = await db.select({ role: userRoles.role }).from(userRoles).where(eq(userRoles.userId, session.userId)).limit(1);
-    return { userId: session.userId, role: role?.role ?? "user" };
+    const res = await fetch(
+      `${SUPABASE_URL2}/rest/v1/user_roles?user_id=eq.${encodeURIComponent(userId)}&select=role&limit=1`,
+      {
+        headers: {
+          apikey: SUPABASE_SERVICE_KEY2,
+          Authorization: `Bearer ${SUPABASE_SERVICE_KEY2}`
+        }
+      }
+    );
+    if (!res.ok) return "user";
+    const data = await res.json();
+    return data?.[0]?.role ?? "user";
   } catch {
-    return null;
+    return "user";
   }
+}
+async function resolveUser(token) {
+  if (!SUPABASE_URL2 || !SUPABASE_KEY2) return null;
+  try {
+    const res = await fetch(`${SUPABASE_URL2}/auth/v1/user`, {
+      headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_KEY2 }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const uid = data.id;
+      if (!uid) return null;
+      const role = await getRoleViaApi(uid);
+      return { userId: uid, role };
+    }
+  } catch {
+  }
+  return null;
 }
 async function attachUser(req, _res, next) {
   const token = req.headers.authorization?.replace("Bearer ", "").trim();
@@ -48065,9 +48139,9 @@ async function approveRechargeByPaymentId(paymentId) {
   if (!rows.length) return;
   const recharge = rows[0];
   const amount = Number(recharge.amount);
-  const profiles3 = await sbGet("profiles", `user_id=eq.${recharge.user_id}&select=user_id,balance,deposit_balance&limit=1`);
-  if (!profiles3.length) return;
-  const profile = profiles3[0];
+  const profiles2 = await sbGet("profiles", `user_id=eq.${recharge.user_id}&select=user_id,balance,deposit_balance&limit=1`);
+  if (!profiles2.length) return;
+  const profile = profiles2[0];
   const newBalance = Number(profile.balance ?? 0) + amount;
   const newDeposit = Number(profile.deposit_balance ?? 0) + amount;
   await sbUpdate("profiles", `user_id=eq.${recharge.user_id}`, {

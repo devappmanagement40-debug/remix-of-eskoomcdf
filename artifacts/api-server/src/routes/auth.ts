@@ -95,86 +95,153 @@ router.post("/auth/signup", async (req, res) => {
     return res.status(500).json({ error: "Auth service not configured" });
   }
 
+  if (!SUPABASE_SERVICE_KEY) {
+    return res.status(500).json({ error: "Service key not configured" });
+  }
+
+  const SERVICE_HEADERS = {
+    "Content-Type": "application/json",
+    apikey: SUPABASE_SERVICE_KEY,
+    Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+  };
+
   try {
-    // Validate referral code directly via DB (avoids needing a Supabase RPC function)
-    const { pool } = await import("@workspace/db");
-    const { rows: codeRows } = await pool.query(
-      `SELECT id FROM profiles WHERE UPPER(referral_code) = UPPER($1) LIMIT 1`,
-      [inviteCode.trim()]
+    // Step 1: Validate referral code via Supabase REST API (no direct DB pool needed)
+    // Use service role key to bypass RLS and ensure reliable lookup
+    const codeRes = await fetch(
+      `${SUPABASE_URL}/rest/v1/profiles?select=id&referral_code=ilike.${encodeURIComponent(inviteCode.trim())}&limit=1`,
+      { headers: SERVICE_HEADERS }
     );
-    const referrerId: string | null = codeRows[0]?.id ?? null;
+    const codeData = codeRes.ok ? await codeRes.json() : [];
+    const referrerId: string | null = Array.isArray(codeData) && codeData.length > 0
+      ? codeData[0].id
+      : null;
 
     if (!referrerId) {
       return res.status(400).json({ error: "Invalid invitation code" });
     }
 
+    // Step 2: Create Supabase auth user via Admin API
+    // Using admin endpoint + service key bypasses email format restrictions
+    // and marks the user as email_confirmed so they can log in immediately
     const email = phoneToIdentifier(phone);
-    const signupRes = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+
+    // First check if user already exists (avoid duplicate)
+    const existCheck = await fetch(
+      `${SUPABASE_URL}/rest/v1/profiles?select=user_id&phone=eq.${encodeURIComponent(phone)}&limit=1`,
+      { headers: SERVICE_HEADERS }
+    );
+    const existData = existCheck.ok ? await existCheck.json() : [];
+    if (Array.isArray(existData) && existData.length > 0) {
+      return res.status(409).json({ error: "This number is already registered" });
+    }
+
+    const signupRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: SUPABASE_KEY,
-      },
-      body: JSON.stringify({ email, password }),
+      headers: SERVICE_HEADERS,
+      body: JSON.stringify({
+        email,
+        password,
+        email_confirm: true,   // skip email confirmation — phone is already verified via invite code
+        user_metadata: { phone, country_code: countryCode || "+509" },
+      }),
     });
 
     const signupData = await signupRes.json();
 
     if (!signupRes.ok || signupData.error) {
-      const msg = signupData.error?.message || signupData.msg || "Sign up failed";
-      if (msg.toLowerCase().includes("already registered")) {
+      const msg =
+        signupData.error?.message ||
+        signupData.msg ||
+        signupData.message ||
+        "Sign up failed";
+      if (
+        msg.toLowerCase().includes("already registered") ||
+        msg.toLowerCase().includes("already exists") ||
+        msg.toLowerCase().includes("duplicate")
+      ) {
         return res.status(409).json({ error: "This number is already registered" });
       }
       return res.status(400).json({ error: msg });
     }
 
-    const userId: string = signupData.user?.id || signupData.id;
+    const userId: string = signupData.id || signupData.user?.id;
 
     if (userId) {
       const referralCode =
         phone.slice(-4).toUpperCase() +
         Math.random().toString(36).substring(2, 6).toUpperCase();
 
-      // Try PATCH first (profile may already exist from Supabase trigger), then INSERT
+      const profileData = {
+        phone,
+        country_code: countryCode || "+509",
+        referral_code: referralCode,
+        referred_by: referrerId,
+      };
+
+      // Step 3a: Try PATCH first (profile may already exist from a Supabase trigger)
       const patchRes = await fetch(
         `${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${encodeURIComponent(userId)}`,
         {
           method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: SUPABASE_KEY,
-            Authorization: `Bearer ${SUPABASE_KEY}`,
-            Prefer: "return=representation",
-          },
-          body: JSON.stringify({
-            phone,
-            country_code: countryCode || "+509",
-            referral_code: referralCode,
-            referred_by: referrerId,
-          }),
+          headers: { ...SERVICE_HEADERS, Prefer: "return=representation" },
+          body: JSON.stringify(profileData),
         }
       );
+      const patchData = patchRes.ok ? await patchRes.json() : [];
 
-      const patchData = await patchRes.json();
-      // If no rows were updated (empty array), insert a new profile row
+      // Step 3b: If no row was updated, insert a fresh profile row
       if (!patchData || (Array.isArray(patchData) && patchData.length === 0)) {
-        await pool.query(
-          `INSERT INTO profiles (id, user_id, phone, country_code, referral_code, referred_by, balance, deposit_balance, earnings_balance, referral_balance, gift_points, spins_balance, vip_level)
-           VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, 0, 0, 0, 0, 0, 0, 0)
-           ON CONFLICT (user_id) DO UPDATE SET
-             phone = EXCLUDED.phone,
-             country_code = EXCLUDED.country_code,
-             referral_code = EXCLUDED.referral_code,
-             referred_by = EXCLUDED.referred_by`,
-          [userId, phone, countryCode || "+509", referralCode, referrerId]
-        );
+        await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
+          method: "POST",
+          headers: {
+            ...SERVICE_HEADERS,
+            Prefer: "return=minimal,resolution=merge-duplicates",
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            balance: 0,
+            deposit_balance: 0,
+            earnings_balance: 0,
+            referral_balance: 0,
+            gift_points: 0,
+            spins_balance: 0,
+            vip_level: 0,
+            ...profileData,
+          }),
+        });
       }
     }
 
+    // Step 4: Generate a session so the user is logged in immediately after signup
+    // Admin API does not return a session — get one via password grant
+    let session = null;
+    try {
+      const tokenRes = await fetch(
+        `${SUPABASE_URL}/auth/v1/token?grant_type=password`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY! },
+          body: JSON.stringify({ email, password }),
+        }
+      );
+      if (tokenRes.ok) {
+        const tokenData = await tokenRes.json();
+        if (!tokenData.error) {
+          session = {
+            access_token: tokenData.access_token,
+            refresh_token: tokenData.refresh_token,
+            expires_at: tokenData.expires_at,
+            expires_in: tokenData.expires_in,
+          };
+        }
+      }
+    } catch { /* session optional — user can log in manually */ }
+
     return res.json({
       ok: true,
-      session: signupData.session ?? null,
-      user: signupData.user ?? null,
+      session,
+      user: signupData,
     });
   } catch (err) {
     req.log.error(err);
