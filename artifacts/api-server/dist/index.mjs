@@ -48106,13 +48106,16 @@ router9.post("/nowpayments/create", async (req, res) => {
   }
   try {
     const webhookUrl = getWebhookUrl("webhook");
+    const payCurrency = currency.toLowerCase();
     const body = {
       price_amount: amount,
-      price_currency: "usd",
-      pay_currency: currency.toLowerCase(),
+      price_currency: payCurrency,
+      // même devise = pas de conversion, l'utilisateur envoie exactement le montant saisi
+      pay_currency: payCurrency,
       order_id: rechargeId,
       order_description: "GE Energy deposit",
       is_fee_paid_by_user: false
+      // les frais NowPayments sont à la charge du marchand, pas de l'utilisateur
     };
     if (webhookUrl) body["ipn_callback_url"] = webhookUrl;
     console.log(`[NP] Creating payment: ${amount} USD \u2192 ${currency} | rechargeId=${rechargeId}`);
