@@ -129,6 +129,59 @@ router.post("/user-products/buy/:productId", async (req, res) => {
     updatedAt: new Date(),
   }).where(eq(profiles.userId, me.userId));
 
+  // Credit referral commissions to the upline (up to 3 levels)
+  // L1 (direct referrer): 10%, L2: 5%, L3: 1%
+  if (price > 0) {
+    try {
+      const { pool } = await import("@workspace/db");
+      const RATES = [
+        { level: "L1", rate: 0.10 },
+        { level: "L2", rate: 0.05 },
+        { level: "L3", rate: 0.01 },
+      ];
+
+      // me (buyer profile) — find their referral chain
+      // profiles.referred_by = the profile.id of the person who referred them
+      let currentProfileId: string | null = me.referredBy ?? null;
+
+      for (const { level, rate } of RATES) {
+        if (!currentProfileId) break;
+
+        const { rows: referrerRows } = await pool.query(
+          `SELECT id, user_id, referred_by FROM profiles WHERE id = $1 LIMIT 1`,
+          [currentProfileId]
+        );
+        if (!referrerRows.length) break;
+
+        const referrer = referrerRows[0];
+        const commission = Math.round(price * rate * 100) / 100;
+
+        // Credit referral_balance and total balance
+        await pool.query(
+          `UPDATE profiles
+           SET referral_balance = referral_balance + $1,
+               balance = balance + $1,
+               updated_at = NOW()
+           WHERE user_id = $2`,
+          [commission, referrer.user_id]
+        );
+
+        // Record in referral_commissions for history/audit
+        await pool.query(
+          `INSERT INTO referral_commissions
+             (id, beneficiary_id, buyer_id, product_price, commission_amount, commission_rate, level, created_at)
+           VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW())`,
+          [referrer.id, me.id, price, commission, rate, level]
+        );
+
+        currentProfileId = referrer.referred_by ?? null;
+      }
+    } catch (commErr) {
+      // Log but don't fail the purchase — commissions are secondary
+      console.error("[referral] Commission crediting error:", commErr);
+    }
+  }
+
   return res.json(userProduct);
 });
 

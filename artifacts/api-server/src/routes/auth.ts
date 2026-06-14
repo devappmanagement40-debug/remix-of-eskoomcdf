@@ -87,7 +87,7 @@ router.post("/auth/admin-setup", async (req, res) => {
 });
 
 router.post("/auth/signup", async (req, res) => {
-  const { phone, password, inviteCode } = req.body;
+  const { phone, password, inviteCode, countryCode } = req.body;
   if (!phone || !password || !inviteCode) {
     return res.status(400).json({ error: "phone, password and inviteCode are required" });
   }
@@ -96,22 +96,15 @@ router.post("/auth/signup", async (req, res) => {
   }
 
   try {
-    const { data: referrerId, error: codeError } = await (async () => {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/validate_referral_code`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`,
-        },
-        body: JSON.stringify({ code: inviteCode.trim() }),
-      });
-      if (!r.ok) return { data: null, error: true };
-      const data = await r.json();
-      return { data, error: null };
-    })();
+    // Validate referral code directly via DB (avoids needing a Supabase RPC function)
+    const { pool } = await import("@workspace/db");
+    const { rows: codeRows } = await pool.query(
+      `SELECT id FROM profiles WHERE UPPER(referral_code) = UPPER($1) LIMIT 1`,
+      [inviteCode.trim()]
+    );
+    const referrerId: string | null = codeRows[0]?.id ?? null;
 
-    if (codeError || !referrerId) {
+    if (!referrerId) {
       return res.status(400).json({ error: "Invalid invitation code" });
     }
 
@@ -141,14 +134,9 @@ router.post("/auth/signup", async (req, res) => {
       const referralCode =
         phone.slice(-4).toUpperCase() +
         Math.random().toString(36).substring(2, 6).toUpperCase();
-      const updateData: Record<string, unknown> = {
-        phone,
-        country_code: "+509",
-        referral_code: referralCode,
-        ...(referrerId ? { referred_by: referrerId } : {}),
-      };
 
-      await fetch(
+      // Try PATCH first (profile may already exist from Supabase trigger), then INSERT
+      const patchRes = await fetch(
         `${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${encodeURIComponent(userId)}`,
         {
           method: "PATCH",
@@ -156,11 +144,31 @@ router.post("/auth/signup", async (req, res) => {
             "Content-Type": "application/json",
             apikey: SUPABASE_KEY,
             Authorization: `Bearer ${SUPABASE_KEY}`,
-            Prefer: "return=minimal",
+            Prefer: "return=representation",
           },
-          body: JSON.stringify(updateData),
+          body: JSON.stringify({
+            phone,
+            country_code: countryCode || "+509",
+            referral_code: referralCode,
+            referred_by: referrerId,
+          }),
         }
       );
+
+      const patchData = await patchRes.json();
+      // If no rows were updated (empty array), insert a new profile row
+      if (!patchData || (Array.isArray(patchData) && patchData.length === 0)) {
+        await pool.query(
+          `INSERT INTO profiles (id, user_id, phone, country_code, referral_code, referred_by, balance, deposit_balance, earnings_balance, referral_balance, gift_points, spins_balance, vip_level)
+           VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, 0, 0, 0, 0, 0, 0, 0)
+           ON CONFLICT (user_id) DO UPDATE SET
+             phone = EXCLUDED.phone,
+             country_code = EXCLUDED.country_code,
+             referral_code = EXCLUDED.referral_code,
+             referred_by = EXCLUDED.referred_by`,
+          [userId, phone, countryCode || "+509", referralCode, referrerId]
+        );
+      }
     }
 
     return res.json({
