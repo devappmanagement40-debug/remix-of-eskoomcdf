@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import EskomLogo from "@/components/EskomLogo";
 import PageHeader from "@/components/PageHeader";
+import CountryPicker from "@/components/CountryPicker";
 import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import { usePhoneValidation } from "@/hooks/usePhoneValidation";
@@ -18,7 +19,7 @@ const Signup = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [inviteCode, setInviteCode] = useState("");
-  const countryCode = "+509";
+  const [countryCode, setCountryCode] = useState("+509");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -87,7 +88,9 @@ const Signup = () => {
         <form onSubmit={handleSignup} className="w-full max-w-sm space-y-4" translate="no">
           <div className="input-glow rounded-lg bg-input">
             <div className="flex items-center">
-              <span className="pl-3 pr-2 text-primary font-semibold text-sm whitespace-nowrap">+509</span>
+              <div className="pl-3 pr-2">
+                <CountryPicker value={countryCode} onChange={setCountryCode} />
+              </div>
               <span className="text-muted-foreground">|</span>
               <Input
                 type="tel"
