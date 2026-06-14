@@ -1,14 +1,11 @@
-# See https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files for more about ignoring files.
-
-# compiled output
-dist
+# compiled output — DO NOT ignore dist (pre-built for Plesk deployment)
 tmp
 out-tsc
 *.tsbuildinfo
 .expo
 .expo-shared
 
-# dependencies
+# dependencies — never commit node_modules
 node_modules
 
 # IDEs and editors
@@ -20,7 +17,7 @@ node_modules
 .settings/
 *.sublime-workspace
 
-# IDE - VSCode
+# VSCode
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
@@ -44,6 +41,6 @@ Thumbs.db
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
 
-# Replit
+# Replit — ne pas committer
 .cache/
 .local/
