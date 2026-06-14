@@ -100,10 +100,19 @@ const Recharge = () => {
   const parsedAmount = parseFloat(amount);
   const amountValid = parsedAmount >= minAmount && parsedAmount <= maxAmount;
 
+  // USDT variants are pegged 1:1 to USD — show exact entered amount, not NowPayments estimate
+  // (which may include their fee margin). Actual pay_amount from NowPayments with
+  // is_fee_paid_by_user=false will also be the exact amount.
+  const USDT_CODES = new Set(["usdtbsc", "usdttrc20", "usdterc20", "usdtmatic"]);
+
   const formatEstimate = (code: string): string => {
+    const parsed = parseFloat(amount);
+    // For USDT-pegged currencies, show exact entered amount (1 USD = 1 USDT)
+    if (USDT_CODES.has(code.toLowerCase()) && parsed >= 1) {
+      return `= ${parsed.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    }
     const val = estimates[code];
     if (val === null || val === undefined) return "";
-    // Format depending on magnitude
     if (val >= 1000) return `≈ ${val.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
     if (val >= 1) return `≈ ${val.toFixed(4)}`;
     return `≈ ${val.toFixed(6)}`;
@@ -131,11 +140,14 @@ const Recharge = () => {
             <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
               <Zap size={20} className="text-primary-foreground" />
             </div>
-            <div>
+            <div className="flex-1">
               <p className="text-sm font-bold text-primary-foreground">{t.recharge.autoCryptoTitle}</p>
               <p className="text-[11px] text-primary-foreground/75">
                 {t.recharge.autoCryptoSubtitle}
               </p>
+            </div>
+            <div className="flex-shrink-0 bg-white/20 rounded-full px-2.5 py-1">
+              <p className="text-[10px] font-bold text-primary-foreground whitespace-nowrap">0% frais</p>
             </div>
           </div>
         </div>

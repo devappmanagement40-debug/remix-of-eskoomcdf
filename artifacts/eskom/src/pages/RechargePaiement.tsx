@@ -279,10 +279,11 @@ const RechargePaiement = () => {
               <div className="bg-primary/8 rounded-xl border border-primary/20 px-4 py-3.5 mb-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[10px] uppercase tracking-wider text-primary/80 font-semibold">Send exactly</p>
+                    <p className="text-[10px] uppercase tracking-wider text-primary/80 font-semibold">Envoyer exactement</p>
                     <p className="text-xl font-black text-primary mt-0.5">
                       {paymentInfo.payAmount} <span className="text-sm font-medium">{paymentInfo.payCurrency.toUpperCase()}</span>
                     </p>
+                    <p className="text-[10px] text-success mt-1 font-semibold">✓ Zéro frais ajoutés — vous payez uniquement ce montant</p>
                   </div>
                   <button onClick={copyAmount} className="p-2.5 rounded-xl bg-primary/10 hover:bg-primary/20 transition-colors">
                     <Copy size={16} className="text-primary" />
