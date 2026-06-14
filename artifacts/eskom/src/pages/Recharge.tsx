@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/PageHeader";
 import BottomNav from "@/components/BottomNav";
-import { ChevronRight, Zap, Loader2 } from "lucide-react";
+import { ChevronRight, Zap } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export type CryptoCurrency = {
@@ -16,45 +16,16 @@ export type CryptoCurrency = {
   logoUrl?: string;
 };
 
-type CurrencyMeta = { label: string; network: string; color: string; symbol: string; bg: string; logo: string };
 
-// Local metadata: official logos from /crypto-logos/ (downloaded from official sources)
-const CURRENCY_META: Record<string, CurrencyMeta> = {
-  usdtbsc:    { label: "USDT",  network: "BNB Smart Chain (BEP20)", color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.15)",  logo: "/crypto-logos/usdt.png" },
-  usdtmatic:  { label: "USDT",  network: "Polygon (MATIC)",         color: "#8247E5", symbol: "₮", bg: "rgba(130,71,229,0.15)",  logo: "/crypto-logos/usdt.png" },
-  usdterc20:  { label: "USDT",  network: "Ethereum (ERC20)",        color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.15)",  logo: "/crypto-logos/usdt.png" },
-  usdttrc20:  { label: "USDT",  network: "TRON (TRC20)",            color: "#EF0027", symbol: "₮", bg: "rgba(239,0,39,0.15)",    logo: "/crypto-logos/usdt.png" },
-  trx:        { label: "TRX",   network: "TRON",                    color: "#EF0027", symbol: "◈", bg: "rgba(239,0,39,0.15)",    logo: "/crypto-logos/trx.png"  },
-  bnbbsc:     { label: "BNB",   network: "BNB Smart Chain (BEP20)", color: "#F0B90B", symbol: "⬡", bg: "rgba(240,185,11,0.15)",  logo: "/crypto-logos/bnb.png"  },
-  eth:        { label: "ETH",   network: "Ethereum",                color: "#627EEA", symbol: "Ξ", bg: "rgba(98,126,234,0.15)",  logo: "/crypto-logos/eth.png"  },
-  btc:        { label: "BTC",   network: "Bitcoin",                 color: "#F7931A", symbol: "₿", bg: "rgba(247,147,26,0.15)",  logo: "/crypto-logos/btc.png"  },
-  sol:        { label: "SOL",   network: "Solana",                  color: "#9945FF", symbol: "◎", bg: "rgba(153,69,255,0.15)",  logo: "/crypto-logos/sol.png"  },
-  ltc:        { label: "LTC",   network: "Litecoin",                color: "#BFBBBB", symbol: "Ł", bg: "rgba(191,187,187,0.15)", logo: "/crypto-logos/ltc.png"  },
-  doge:       { label: "DOGE",  network: "Dogecoin",                color: "#C2A633", symbol: "Ð", bg: "rgba(194,166,51,0.15)",  logo: "/crypto-logos/doge.png" },
-  xrp:        { label: "XRP",   network: "Ripple",                  color: "#00AAE4", symbol: "✕", bg: "rgba(0,170,228,0.15)",   logo: "/crypto-logos/xrp.png"  },
-  ada:        { label: "ADA",   network: "Cardano",                 color: "#0033AD", symbol: "₳", bg: "rgba(0,51,173,0.15)",    logo: "/crypto-logos/ada.png"  },
-  matic:      { label: "MATIC", network: "Polygon",                 color: "#8247E5", symbol: "⬡", bg: "rgba(130,71,229,0.15)",  logo: "/crypto-logos/matic.png"},
-  avax:       { label: "AVAX",  network: "Avalanche",               color: "#E84142", symbol: "▲", bg: "rgba(232,65,66,0.15)",   logo: "/crypto-logos/avax.png" },
-  usdteosio:  { label: "USDT",  network: "EOS",                     color: "#14191E", symbol: "₮", bg: "rgba(20,25,30,0.25)",    logo: "/crypto-logos/usdt.png" },
-};
-
-const DEFAULT_META: CurrencyMeta = { label: "", network: "", color: "#aaaaaa", symbol: "◉", bg: "rgba(170,170,170,0.18)", logo: "" };
-
-// Hardcoded fallback if backend unavailable
-const FALLBACK_CURRENCIES: CryptoCurrency[] = [
-  { code: "usdtbsc",   label: "USDT BEP20", network: "BNB Smart Chain (BEP20)", color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.18)" },
-  { code: "usdtmatic", label: "USDT",       network: "Polygon (MATIC)",         color: "#8247E5", symbol: "₮", bg: "rgba(130,71,229,0.18)" },
-  { code: "usdterc20", label: "USDT ERC20", network: "Ethereum (ERC20)",        color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.18)" },
-  { code: "usdttrc20", label: "USDT TRC20", network: "TRON (TRC20)",            color: "#EF0027", symbol: "₮", bg: "rgba(239,0,39,0.18)" },
-  { code: "trx",       label: "TRX",        network: "TRON",                    color: "#EF0027", symbol: "◈", bg: "rgba(239,0,39,0.18)" },
-  { code: "bnbbsc",    label: "BNB",        network: "BNB Smart Chain",         color: "#F0B90B", symbol: "⬡", bg: "rgba(240,185,11,0.18)" },
-  { code: "eth",       label: "ETH",        network: "Ethereum",                color: "#627EEA", symbol: "Ξ", bg: "rgba(98,126,234,0.18)" },
+// Uniquement ces 4 devises autorisées
+const ALLOWED_CURRENCIES: CryptoCurrency[] = [
+  { code: "usdtbsc",   label: "BEP20-USDT", network: "BNB Smart Chain (BEP20)", color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.18)", logoUrl: "/crypto-logos/usdt.png" },
+  { code: "usdttrc20", label: "TRC20-USDT", network: "TRON (TRC20)",            color: "#EF0027", symbol: "₮", bg: "rgba(239,0,39,0.18)",    logoUrl: "/crypto-logos/usdt.png" },
+  { code: "trx",       label: "TRX",        network: "TRON",                    color: "#EF0027", symbol: "◈", bg: "rgba(239,0,39,0.18)",    logoUrl: "/crypto-logos/trx.png"  },
+  { code: "bnbbsc",    label: "BNB",        network: "BNB Smart Chain (BEP20)", color: "#F0B90B", symbol: "⬡", bg: "rgba(240,185,11,0.18)", logoUrl: "/crypto-logos/bnb.png"  },
 ];
 
-// Priority codes shown first
-const PRIORITY_CODES = ["usdtbsc", "usdttrc20", "usdterc20", "usdtmatic", "trx", "bnbbsc", "eth", "btc", "sol"];
-
-export const CRYPTO_CURRENCIES = FALLBACK_CURRENCIES;
+export const CRYPTO_CURRENCIES = ALLOWED_CURRENCIES;
 
 const Recharge = () => {
   const navigate = useNavigate();
@@ -63,8 +34,7 @@ const Recharge = () => {
   const [presetAmounts, setPresetAmounts] = useState<number[]>([10, 20, 50, 100, 200, 500]);
   const [minAmount, setMinAmount] = useState(5);
   const [maxAmount, setMaxAmount] = useState(100000);
-  const [currencies, setCurrencies] = useState<CryptoCurrency[]>(FALLBACK_CURRENCIES);
-  const [loadingCurrencies, setLoadingCurrencies] = useState(true);
+  const currencies = ALLOWED_CURRENCIES;
 
   useEffect(() => {
     supabase
@@ -81,39 +51,6 @@ const Recharge = () => {
         });
       });
 
-    fetch("/api/nowpayments/currencies")
-      .then((r) => r.json())
-      .then((data: { currencies?: { code: string; name: string; logo: string }[] }) => {
-        if (data.currencies && data.currencies.length > 0) {
-          const mapped: CryptoCurrency[] = data.currencies.map((c) => {
-            const meta = CURRENCY_META[c.code.toLowerCase()] ?? DEFAULT_META;
-            const displayLabel = meta.label || c.name;
-            return {
-              code: c.code.toLowerCase(),
-              label: displayLabel,
-              network: meta.network || c.name,
-              color: meta.color,
-              symbol: meta.symbol,
-              bg: meta.bg,
-              logoUrl: meta.logo || c.logo || undefined,
-            };
-          });
-
-          // Sort: priority codes first, then alphabetical
-          mapped.sort((a, b) => {
-            const ia = PRIORITY_CODES.indexOf(a.code);
-            const ib = PRIORITY_CODES.indexOf(b.code);
-            if (ia !== -1 && ib !== -1) return ia - ib;
-            if (ia !== -1) return -1;
-            if (ib !== -1) return 1;
-            return a.code.localeCompare(b.code);
-          });
-
-          setCurrencies(mapped);
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoadingCurrencies(false));
   }, []);
 
   const handleSelectCurrency = (currency: CryptoCurrency) => {
@@ -200,9 +137,6 @@ const Recharge = () => {
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               {t.recharge.selectNetwork}
             </p>
-            {loadingCurrencies && (
-              <Loader2 size={14} className="text-muted-foreground animate-spin" />
-            )}
           </div>
 
           <div className="bg-card rounded-2xl border border-border/30 overflow-hidden">
