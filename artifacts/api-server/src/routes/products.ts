@@ -15,13 +15,17 @@ async function getProfileFromToken(token: string) {
 
 router.get("/products", async (req, res) => {
   const { seriesId, featured, active } = req.query;
-  let query = db.select().from(products);
-  const all = await db.select().from(products);
-  let filtered = all;
-  if (active !== undefined) filtered = filtered.filter(p => p.isActive === (active === "true"));
-  if (featured !== undefined) filtered = filtered.filter(p => p.isFeatured === (featured === "true"));
-  if (seriesId) filtered = filtered.filter(p => p.seriesId === seriesId);
-  return res.json(filtered.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  try {
+    const all = await db.select().from(products);
+    let filtered = all;
+    if (active !== undefined) filtered = filtered.filter(p => p.isActive === (active === "true"));
+    if (featured !== undefined) filtered = filtered.filter(p => p.isFeatured === (featured === "true"));
+    if (seriesId) filtered = filtered.filter(p => p.seriesId === seriesId);
+    return res.json(filtered.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  } catch (err: any) {
+    console.error("Products DB error:", err?.message, err?.cause?.message, err?.cause?.code);
+    return res.status(500).json({ error: "DB error", detail: err?.message, cause: err?.cause?.message });
+  }
 });
 
 router.get("/products/:id", async (req, res) => {

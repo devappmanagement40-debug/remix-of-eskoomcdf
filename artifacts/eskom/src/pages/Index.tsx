@@ -95,7 +95,7 @@ const Index = () => {
               <img
                 key={index}
                 src={banner.image_url}
-                alt="ESKOM Energy"
+                alt="GE Energy"
                 width={800}
                 height={400}
                 className="w-full h-44 object-cover flex-shrink-0 cursor-pointer"

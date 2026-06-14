@@ -17,12 +17,12 @@ const LanguageContext = createContext<LanguageContextType>({
 
 export const LanguageProvider = ({ children }: { children: ReactNode }) => {
   const [lang, setLangState] = useState<LangCode>(() => {
-    const stored = localStorage.getItem("eskom_lang") as LangCode | null;
+    const stored = localStorage.getItem("ge_energy_lang") as LangCode | null;
     return (stored && translations[stored]) ? stored : "fr";
   });
 
   const setLang = (code: LangCode) => {
-    localStorage.setItem("eskom_lang", code);
+    localStorage.setItem("ge_energy_lang", code);
     setLangState(code);
   };
 

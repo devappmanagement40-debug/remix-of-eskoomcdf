@@ -29,6 +29,7 @@ async function ensureBucket(supabaseUrl: string, serviceKey: string, bucket: str
 }
 
 router.post("/upload", async (req, res) => {
+  if (!req.body) return res.status(400).json({ error: "base64, mimeType and fileName are required" });
   const { base64, mimeType, fileName, bucket = "site-assets" } = req.body;
 
   if (!base64 || !mimeType || !fileName) {

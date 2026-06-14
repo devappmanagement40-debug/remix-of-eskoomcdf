@@ -239,7 +239,7 @@ const Loterie = () => {
 
   return (
     <div className="min-h-screen bg-background pb-20">
-      <PageHeader title="ESKOM LOTTERY" showBack />
+      <PageHeader title="GE Energy LOTTERY" showBack />
 
       {wheelBanner && (
         <div className="px-4 pt-4">

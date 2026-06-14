@@ -218,7 +218,7 @@ const ServiceChat = () => {
         ]);
       } catch {
         setIsTyping(false);
-        const errText = "An error occurred. A human agent will take over shortly. 🙏\n\nEmma – ESKOM Virtual Assistant";
+        const errText = "An error occurred. A human agent will take over shortly. 🙏\n\nEmma – GE Energy Virtual Assistant";
         await supabase.from("chat_messages").insert({ user_id: userId, sender: "support", message: errText, is_ai: true });
       }
     } else {
@@ -328,7 +328,7 @@ const ServiceChat = () => {
         </div>
         <div className="flex-1 min-w-0">
           <h1 className="text-sm font-bold text-foreground truncate flex items-center gap-1.5">
-            {emmaEnabled ? "Emma" : "ESKOM Support"}
+            {emmaEnabled ? "Emma" : "GE Energy Support"}
             {emmaEnabled && (
               <span className="inline-flex items-center gap-0.5 text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-semibold">
                 <Bot size={10} /> AI
