@@ -9,7 +9,7 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_PROJECT_URL;
 const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 function phoneToIdentifier(phone: string): string {
-  return `${phone}@users.eskom.app`;
+  return `${phone}@users.ge-energy.app`;
 }
 
 router.post("/auth/signup", async (req, res) => {
