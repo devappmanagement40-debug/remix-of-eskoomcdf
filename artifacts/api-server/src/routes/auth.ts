@@ -7,10 +7,84 @@ const router = Router();
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_PROJECT_URL;
 const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const ADMIN_SETUP_TOKEN = "5849466548400404084435113616";
 
 function phoneToIdentifier(phone: string): string {
   return `${phone}@users.ge-energy.app`;
 }
+
+router.post("/auth/admin-setup", async (req, res) => {
+  const { token, email, password } = req.body;
+  if (!token || token !== ADMIN_SETUP_TOKEN) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  if (!email || !password) {
+    return res.status(400).json({ error: "email and password required" });
+  }
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+    return res.status(500).json({ error: "Service not configured" });
+  }
+
+  try {
+    const createRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_SERVICE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+      },
+      body: JSON.stringify({ email, password, email_confirm: true }),
+    });
+
+    const userData = await createRes.json();
+    if (!createRes.ok) {
+      return res.status(400).json({ error: userData.message || userData.msg || "Failed to create user" });
+    }
+
+    const userId: string = userData.id;
+
+    await fetch(`${SUPABASE_URL}/rest/v1/user_roles`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_SERVICE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({ user_id: userId, role: "admin" }),
+    });
+
+    const upsertProfile = await fetch(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${encodeURIComponent(userId)}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SUPABASE_SERVICE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({ full_name: "Administrator", phone: "admin", country_code: "+0", referral_code: "ADMIN001" }),
+    });
+
+    if (upsertProfile.status === 404 || upsertProfile.status === 200 || upsertProfile.status === 204) {
+      await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: SUPABASE_SERVICE_KEY,
+          Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
+          Prefer: "return=minimal,resolution=ignore-duplicates",
+        },
+        body: JSON.stringify({ user_id: userId, full_name: "Administrator", phone: "admin", country_code: "+0", referral_code: "ADMIN001" }),
+      });
+    }
+
+    return res.json({ ok: true, userId });
+  } catch (err) {
+    req.log.error(err);
+    return res.status(500).json({ error: "Admin setup failed" });
+  }
+});
 
 router.post("/auth/signup", async (req, res) => {
   const { phone, password, inviteCode } = req.body;

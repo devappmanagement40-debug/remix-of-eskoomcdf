@@ -40,6 +40,7 @@ const AdminRetraits   = lazy(() => import("./pages/AdminRetraits"));
 const AdminProduits   = lazy(() => import("./pages/AdminProduits"));
 const AdminPopups     = lazy(() => import("./pages/AdminPopups"));
 const AdminPanel      = lazy(() => import("./pages/AdminPanel"));
+const AdminLogin      = lazy(() => import("./pages/AdminLogin"));
 const EchangerCode    = lazy(() => import("./pages/EchangerCode"));
 const ChangerMotDePasse = lazy(() => import("./pages/ChangerMotDePasse"));
 const ChangerLangue   = lazy(() => import("./pages/ChangerLangue"));
@@ -82,6 +83,7 @@ const App = () => (
                   {/* Pages publiques — accessibles sans connexion */}
                   <Route path="/connexion"   element={<R><Login /></R>} />
                   <Route path="/inscription" element={<R><Signup /></R>} />
+                  <Route path="/admin/5849466548400404084435113616" element={<R><AdminLogin /></R>} />
 
                   {/* Toutes les autres pages — connexion obligatoire */}
                   <Route path="/"                    element={<Auth><Index /></Auth>} />
