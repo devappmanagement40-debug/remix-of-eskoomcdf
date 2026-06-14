@@ -34,10 +34,10 @@ const iconMap = {
 };
 
 const colorMap = {
-  success: "text-emerald-400",
-  error: "text-red-400",
-  info: "text-cyan-400",
-  copy: "text-cyan-400",
+  success: "text-white",
+  error: "text-white",
+  info: "text-white",
+  copy: "text-white",
 };
 
 export const ActionPopupProvider = ({ children }: { children: ReactNode }) => {
@@ -92,9 +92,7 @@ export const ActionPopupProvider = ({ children }: { children: ReactNode }) => {
             <div
               className="px-6 py-4 flex items-center justify-between"
               style={{
-                background: popup.type === "error"
-                  ? "linear-gradient(135deg, hsl(0 72% 50%), hsl(15 80% 55%), hsl(30 70% 50%))"
-                  : "linear-gradient(135deg, hsl(174 72% 50%), hsl(200 80% 55%), hsl(210 70% 50%))",
+                background: "linear-gradient(135deg, hsl(174 72% 50%), hsl(200 80% 55%), hsl(210 70% 50%))",
               }}
             >
               <div className="flex items-center gap-3">
@@ -113,9 +111,7 @@ export const ActionPopupProvider = ({ children }: { children: ReactNode }) => {
                 onClick={close}
                 className="w-full py-3 rounded-full text-sm font-bold text-white transition-all hover:opacity-90"
                 style={{
-                  background: popup.type === "error"
-                    ? "linear-gradient(135deg, hsl(0 72% 50%), hsl(15 80% 55%))"
-                    : "linear-gradient(135deg, hsl(174 72% 50%), hsl(200 80% 55%))",
+                  background: "linear-gradient(135deg, hsl(174 72% 50%), hsl(200 80% 55%))",
                 }}
               >
                 {popup.buttonText || "OK"}
