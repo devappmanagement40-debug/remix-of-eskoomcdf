@@ -46,7 +46,7 @@ const Signup = () => {
       return;
     }
 
-    const { error } = await supabase.auth.signUp({
+    const { data: signUpData, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -61,7 +61,7 @@ const Signup = () => {
         showError("Error", "Sign up failed");
       }
     } else {
-      const { data: { user } } = await supabase.auth.getUser();
+      const user = signUpData?.user;
       if (user) {
         const referralCode = cleanPhone.slice(-4).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
         const updateData = { phone: cleanPhone, country_code: countryCode, referral_code: referralCode, ...(referrerId ? { referred_by: referrerId } : {}) };
