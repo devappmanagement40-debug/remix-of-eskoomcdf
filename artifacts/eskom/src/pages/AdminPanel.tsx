@@ -958,12 +958,19 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
               </div>
               <div className="border-t border-secondary my-2" />
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
-                <div><p className="text-[10px] text-muted-foreground">Client</p><p className="text-xs font-semibold text-foreground">{w.country_code} {w.phone}</p></div>
-                <div><p className="text-[10px] text-muted-foreground">Current balance</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("en-US")} USDT` : "—"}</p></div>
-                <div><p className="text-[10px] text-muted-foreground">Name</p><p className="text-xs font-semibold text-foreground">{p?.full_name || "—"}</p></div>
-                <div><p className="text-[10px] text-muted-foreground">Card holder</p><p className="text-xs font-semibold text-foreground">{wallet?.holder_name || "—"}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Client</p><p className="text-xs font-semibold text-foreground">{p?.full_name || "—"}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Solde actuel</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("en-US")} USDT` : "—"}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Titulaire</p><p className="text-xs font-semibold text-foreground">{wallet?.holder_name || w.phone.startsWith("0x") ? (wallet?.holder_name || "—") : "—"}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Tél. compte</p><p className="text-xs font-semibold text-foreground">{p?.country_code} {p?.phone}</p></div>
               </div>
-              <p className="text-[10px] text-muted-foreground mt-2 text-right">Click to view details →</p>
+              {/* Wallet address — most important info for admin to process payout */}
+              <div className="mt-3 bg-secondary/40 rounded-xl px-3 py-2.5">
+                <p className="text-[10px] text-muted-foreground mb-1">📤 Adresse de retrait ({w.network || "USDT BEP20"})</p>
+                <p className="text-xs font-mono font-bold text-primary break-all">
+                  {wallet?.phone || w.phone || "—"}
+                </p>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-2 text-right">Cliquer pour voir les détails →</p>
               {w.status === "pending" && (
                 <div className="grid grid-cols-2 gap-3 mt-4" onClick={e => e.stopPropagation()}>
                   <button onClick={() => handleAction(w, "approved")} disabled={autoPayingId === w.id} className="flex items-center justify-center gap-2 bg-success text-white font-bold py-2.5 rounded-xl text-sm disabled:opacity-50">
