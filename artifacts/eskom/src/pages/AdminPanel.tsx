@@ -79,7 +79,7 @@ const tabs = [
   { key: "links", icon: Link2, label: "Links" },
   { key: "popups", icon: Bell, label: "Popups" },
   { key: "vip", icon: TrendingUp, label: "Levels" },
-  { key: "sarah", icon: Bot, label: "Emma AI" },
+  { key: "sarah", icon: Bot, label: "Sarah AI" },
   { key: "officialdocs", icon: FileText, label: "Off. Docs" },
   { key: "officialinfo", icon: Globe, label: "Off. Info" },
   { key: "support", icon: MessageSquare, label: "Support" },
@@ -1870,7 +1870,7 @@ const SupportTab = ({ adminId }: { adminId: string }) => {
                 {m.sender === "support" && (
                   <div className="flex items-center gap-1 mb-0.5">
                     {m.is_ai ? <Bot size={10} className="text-primary" /> : <Shield size={10} className="text-primary" />}
-                    <span className="text-[9px] font-semibold text-primary">{m.is_ai ? "Emma IA" : "Admin"}</span>
+                    <span className="text-[9px] font-semibold text-primary">{m.is_ai ? "Sarah IA" : "Admin"}</span>
                   </div>
                 )}
                 <p className="text-xs text-foreground whitespace-pre-line">{m.message}</p>
@@ -1951,14 +1951,14 @@ const SarahTab = ({ settings, reload, showSuccess, showError }: any) => {
     const newVal = isEnabled ? "false" : "true";
     await saveSetting("sarah_enabled", newVal);
     showSuccess(
-      newVal === "true" ? "Emma activée ✅" : "Emma désactivée",
+      newVal === "true" ? "Sarah activée ✅" : "Sarah désactivée",
       newVal === "true" ? "L'IA prend en charge le chat" : "Support humain activé"
     );
   };
 
   const changeProvider = async (provider: string) => {
     await saveSetting("sarah_ai_provider", provider);
-    showSuccess("Moteur IA mis à jour", `Emma utilise maintenant: ${provider}`);
+    showSuccess("Moteur IA mis à jour", `Sarah utilise maintenant: ${provider}`);
   };
 
   const saveApiKey = async (keyName: string, modelName: string | null, endpointName?: string) => {
@@ -2009,7 +2009,7 @@ const SarahTab = ({ settings, reload, showSuccess, showError }: any) => {
             <Bot size={28} className={isEnabled ? "text-success" : "text-muted-foreground"} />
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-bold text-foreground">Assistante Emma</h3>
+            <h3 className="text-sm font-bold text-foreground">Assistante Sarah</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               {isEnabled ? `Moteur actif : ${activeProvider?.name || currentProvider}` : "Support manuel activé"}
             </p>
@@ -2021,7 +2021,7 @@ const SarahTab = ({ settings, reload, showSuccess, showError }: any) => {
             }`}
           >
             <Power size={16} />
-            {isEnabled ? "Désactiver" : "Activer Emma"}
+            {isEnabled ? "Désactiver" : "Activer Sarah"}
           </button>
         </div>
       </div>
@@ -2149,7 +2149,7 @@ const SarahTab = ({ settings, reload, showSuccess, showError }: any) => {
 
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
         <p className="text-xs text-muted-foreground">
-          💡 Les clés API sont stockées de manière sécurisée dans les paramètres du site. Emma utilise automatiquement les données du site (frais, VIP, produits) pour répondre aux utilisateurs.
+          💡 Les clés API sont stockées de manière sécurisée dans les paramètres du site. Sarah utilise automatiquement les données du site (frais, VIP, produits) pour répondre aux utilisateurs.
         </p>
       </div>
     </div>
@@ -2606,8 +2606,8 @@ const AppSettingsTab = ({ settings, reload, showSuccess }: any) => {
     },
     {
       key: "img_emma_avatar",
-      label: "Avatar Emma IA (Support)",
-      desc: "Photo de profil de l'assistante Emma dans le chat support",
+      label: "Avatar Sarah IA (Support)",
+      desc: "Photo de profil de l'assistante Sarah dans le chat support",
     },
     {
       key: "img_bg_depot",
@@ -2760,7 +2760,7 @@ const DatesTab = ({ settings, reload, showSuccess }: any) => {
   return (
     <div className="space-y-4">
       <h2 className="text-lg font-bold text-foreground flex items-center gap-2"><Clock size={18} /> Contrôle manuel des dates</h2>
-      <p className="text-xs text-muted-foreground">Définissez des dates fixes que Emma et le système utiliseront à la place des calculs automatiques.</p>
+      <p className="text-xs text-muted-foreground">Définissez des dates fixes que Sarah et le système utiliseront à la place des calculs automatiques.</p>
 
       {/* Toggle */}
       <div className="bg-card rounded-xl border border-border/30 p-4 flex items-center justify-between">
@@ -2951,7 +2951,7 @@ const OfficialInfoTab = ({ settings, reload, showSuccess }: { settings: SiteSett
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
         <h3 className="text-sm font-bold text-foreground mb-1">📋 Official Information Management</h3>
         <p className="text-xs text-muted-foreground">
-          This information is used by Emma AI to answer user questions. Update it here and changes take effect immediately.
+          This information is used by Sarah AI to answer user questions. Update it here and changes take effect immediately.
         </p>
       </div>
 
@@ -3023,7 +3023,7 @@ const OfficialDocsTab = ({ showSuccess, showError }: { showSuccess: (t: string, 
         sort_order: docs.length,
       });
       setTitle(""); setDescription(""); setDocType("image");
-      showSuccess("Document ajouté ✅", "Le document est maintenant disponible pour Emma AI");
+      showSuccess("Document ajouté ✅", "Le document est maintenant disponible pour Sarah AI");
       loadDocs();
     } catch (err: any) {
       showError("Erreur upload", err?.message || "Échec du téléchargement");
@@ -3050,7 +3050,7 @@ const OfficialDocsTab = ({ showSuccess, showError }: { showSuccess: (t: string, 
       <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
         <h3 className="text-sm font-bold text-foreground mb-1">📄 Official Documents & Proof</h3>
         <p className="text-xs text-muted-foreground">
-          Add your certificates, legal documents, and proof images. Emma will automatically use them to reassure users.
+          Add your certificates, legal documents, and proof images. Sarah will automatically use them to reassure users.
         </p>
       </div>
 

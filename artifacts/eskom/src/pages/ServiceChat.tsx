@@ -100,8 +100,8 @@ const ServiceChat = () => {
     } else {
       // First visit greeting
       const greetingText = enabled
-        ? "Hello! 👋 I'm Emma, your GE Energy virtual assistant. How can I help you today?\n\nEmma – GE Energy Virtual Assistant"
-        : "Hello! Welcome to GE Energy support. How can we help you today?";
+        ? "Bonjour ! 👋 Je suis Sarah, votre assistante virtuelle GE Energy. Comment puis-je vous aider aujourd'hui ?\n\nSarah – Assistante virtuelle GE Energy"
+        : "Bonjour ! Bienvenue sur le support GE Energy. Comment pouvons-nous vous aider ?";
 
       await supabase.from("chat_messages").insert({
         user_id: user.id,
@@ -219,7 +219,7 @@ const ServiceChat = () => {
         ]);
       } catch {
         setIsTyping(false);
-        const errText = "An error occurred. A human agent will take over shortly. 🙏\n\nEmma – GE Energy Virtual Assistant";
+        const errText = "Une erreur s'est produite. Un agent humain prendra le relais bientôt. 🙏\n\nSarah – Assistante virtuelle GE Energy";
         await supabase.from("chat_messages").insert({ user_id: userId, sender: "support", message: errText, is_ai: true });
       }
     } else {
@@ -319,7 +319,7 @@ const ServiceChat = () => {
         </button>
         <div className="relative">
           {emmaEnabled ? (
-            <img src={emmaAvatar} alt="Emma" className="w-10 h-10 rounded-full object-cover border-2 border-primary" />
+            <img src={emmaAvatar} alt="Sarah" className="w-10 h-10 rounded-full object-cover border-2 border-primary" />
           ) : (
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-bold text-sm">
               ES
@@ -329,15 +329,15 @@ const ServiceChat = () => {
         </div>
         <div className="flex-1 min-w-0">
           <h1 className="text-sm font-bold text-foreground truncate flex items-center gap-1.5">
-            {emmaEnabled ? "Emma" : "GE Energy Support"}
+            {emmaEnabled ? "Sarah" : "GE Energy Support"}
             {emmaEnabled && (
               <span className="inline-flex items-center gap-0.5 text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-semibold">
-                <Bot size={10} /> AI
+                <Bot size={10} /> IA
               </span>
             )}
           </h1>
           <p className="text-xs text-[#25D366] font-medium">
-            {emmaEnabled ? "AI Assistant • Online" : "Online"}
+            {emmaEnabled ? "Assistante IA • En ligne" : "En ligne"}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -367,7 +367,7 @@ const ServiceChat = () => {
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}>
             {msg.sender === "support" && emmaEnabled && (
-              <img src={emmaAvatar} alt="Emma" className="w-7 h-7 rounded-full object-cover mr-1.5 mt-1 flex-shrink-0" />
+              <img src={emmaAvatar} alt="Sarah" className="w-7 h-7 rounded-full object-cover mr-1.5 mt-1 flex-shrink-0" />
             )}
             <div className={`max-w-[75%] rounded-2xl px-3 py-2 relative ${
               msg.sender === "user"
@@ -377,7 +377,7 @@ const ServiceChat = () => {
               {msg.sender === "support" && msg.isAI && (
                 <div className="flex items-center gap-1 mb-1">
                   <Bot size={10} className="text-primary" />
-                  <span className="text-[9px] text-primary font-semibold">Emma AI</span>
+                  <span className="text-[9px] text-primary font-semibold">Sarah AI</span>
                 </div>
               )}
               {msg.image && (
@@ -396,7 +396,7 @@ const ServiceChat = () => {
 
         {isTyping && (
           <div className="flex justify-start items-end gap-1.5">
-            {emmaEnabled && <img src={emmaAvatar} alt="Emma" className="w-7 h-7 rounded-full object-cover" />}
+            {emmaEnabled && <img src={emmaAvatar} alt="Sarah" className="w-7 h-7 rounded-full object-cover" />}
             <div className="bg-card border border-secondary rounded-2xl rounded-bl-md px-4 py-3">
               <div className="flex gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-muted-foreground animate-bounce" style={{ animationDelay: "0ms" }} />
