@@ -24,7 +24,8 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const code = searchParams.get("code");
+    // Support ?invite_code= (lien de parrainage standard) et ?code= (ancien format)
+    const code = searchParams.get("invite_code") || searchParams.get("code");
     if (code) setInviteCode(decodeURIComponent(code).trim());
   }, [searchParams]);
 
@@ -44,7 +45,7 @@ const Signup = () => {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: cleanPhone, password, inviteCode: inviteCode.trim() }),
+        body: JSON.stringify({ phone: cleanPhone, password, inviteCode: inviteCode.trim(), countryCode }),
       });
 
       const data = await res.json();

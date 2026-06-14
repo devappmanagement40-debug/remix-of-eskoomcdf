@@ -77,12 +77,14 @@ const App = () => (
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <ActionPopupProvider>
-            <BrowserRouter>
+            <HashRouter>
               <Suspense fallback={<Loading />}>
                 <Routes>
                   {/* Pages publiques — accessibles sans connexion */}
                   <Route path="/connexion"   element={<R><Login /></R>} />
                   <Route path="/inscription" element={<R><Signup /></R>} />
+                  {/* /reg — alias anglais pour les liens de parrainage: /#/reg?invite_code=XXX */}
+                  <Route path="/reg"         element={<R><Signup /></R>} />
                   <Route path="/admin/5849466548400404084435113616" element={<R><AdminLogin /></R>} />
 
                   {/* Toutes les autres pages — connexion obligatoire */}
@@ -118,7 +120,7 @@ const App = () => (
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
-            </BrowserRouter>
+            </HashRouter>
           </ActionPopupProvider>
         </TooltipProvider>
       </QueryClientProvider>

@@ -158,12 +158,28 @@ const Team = () => {
     window.open(`https://wa.me/${code}${num}?text=${WHATSAPP_MESSAGE}`, "_blank");
   };
 
+  const getReferralLink = () => {
+    const base = window.location.origin + window.location.pathname;
+    return `${base}#/reg?invite_code=${referralCode}`;
+  };
+
+  const [copiedLink, setCopiedLink] = useState(false);
+
   const copyCode = async () => {
     const ok = await safeClipboardWrite(referralCode);
     if (ok) {
       setCopied(true);
-      showCopy("Referral code copied!");
+      showCopy("Code de parrainage copié !");
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const copyLink = async () => {
+    const ok = await safeClipboardWrite(getReferralLink());
+    if (ok) {
+      setCopiedLink(true);
+      showCopy("Lien de parrainage copié !");
+      setTimeout(() => setCopiedLink(false), 2000);
     }
   };
 
@@ -248,16 +264,32 @@ const Team = () => {
 
       <div className="px-4 pt-4 space-y-4">
         {referralCode && (
-          <button
-            onClick={copyCode}
-            className="w-full flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3"
-          >
-            <span className="text-sm text-muted-foreground">My referral code</span>
-            <span className="flex items-center gap-2 text-primary font-bold text-sm">
-              {referralCode}
-              {copied ? <Check size={16} /> : <Copy size={16} />}
-            </span>
-          </button>
+          <div className="space-y-2">
+            <button
+              onClick={copyCode}
+              className="w-full flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3"
+            >
+              <span className="text-sm text-muted-foreground">Mon code de parrainage</span>
+              <span className="flex items-center gap-2 text-primary font-bold text-sm">
+                {referralCode}
+                {copied ? <Check size={16} /> : <Copy size={16} />}
+              </span>
+            </button>
+            <button
+              onClick={copyLink}
+              className="w-full flex items-center justify-between bg-primary/10 border border-primary/30 rounded-xl px-4 py-3"
+            >
+              <div className="text-left">
+                <p className="text-sm font-semibold text-primary">Copier mon lien de parrainage</p>
+                <p className="text-[11px] text-muted-foreground truncate max-w-[220px]">
+                  {`.../#/reg?invite_code=${referralCode}`}
+                </p>
+              </div>
+              <span className="flex-shrink-0 ml-2">
+                {copiedLink ? <Check size={16} className="text-success" /> : <Copy size={16} className="text-primary" />}
+              </span>
+            </button>
+          </div>
         )}
 
         {/* Stats cards */}

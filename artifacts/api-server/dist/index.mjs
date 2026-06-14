@@ -46488,7 +46488,7 @@ router2.post("/auth/admin-setup", async (req, res) => {
   }
 });
 router2.post("/auth/signup", async (req, res) => {
-  const { phone, password, inviteCode } = req.body;
+  const { phone, password, inviteCode, countryCode } = req.body;
   if (!phone || !password || !inviteCode) {
     return res.status(400).json({ error: "phone, password and inviteCode are required" });
   }
@@ -46496,21 +46496,13 @@ router2.post("/auth/signup", async (req, res) => {
     return res.status(500).json({ error: "Auth service not configured" });
   }
   try {
-    const { data: referrerId, error: codeError } = await (async () => {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/validate_referral_code`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: SUPABASE_KEY,
-          Authorization: `Bearer ${SUPABASE_KEY}`
-        },
-        body: JSON.stringify({ code: inviteCode.trim() })
-      });
-      if (!r.ok) return { data: null, error: true };
-      const data = await r.json();
-      return { data, error: null };
-    })();
-    if (codeError || !referrerId) {
+    const { pool: pool2 } = await Promise.resolve().then(() => (init_src(), src_exports));
+    const { rows: codeRows } = await pool2.query(
+      `SELECT id FROM profiles WHERE UPPER(referral_code) = UPPER($1) LIMIT 1`,
+      [inviteCode.trim()]
+    );
+    const referrerId = codeRows[0]?.id ?? null;
+    if (!referrerId) {
       return res.status(400).json({ error: "Invalid invitation code" });
     }
     const email = phoneToIdentifier(phone);
@@ -46533,13 +46525,7 @@ router2.post("/auth/signup", async (req, res) => {
     const userId = signupData.user?.id || signupData.id;
     if (userId) {
       const referralCode = phone.slice(-4).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
-      const updateData = {
-        phone,
-        country_code: "+509",
-        referral_code: referralCode,
-        ...referrerId ? { referred_by: referrerId } : {}
-      };
-      await fetch(
+      const patchRes = await fetch(
         `${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${encodeURIComponent(userId)}`,
         {
           method: "PATCH",
@@ -46547,11 +46533,29 @@ router2.post("/auth/signup", async (req, res) => {
             "Content-Type": "application/json",
             apikey: SUPABASE_KEY,
             Authorization: `Bearer ${SUPABASE_KEY}`,
-            Prefer: "return=minimal"
+            Prefer: "return=representation"
           },
-          body: JSON.stringify(updateData)
+          body: JSON.stringify({
+            phone,
+            country_code: countryCode || "+509",
+            referral_code: referralCode,
+            referred_by: referrerId
+          })
         }
       );
+      const patchData = await patchRes.json();
+      if (!patchData || Array.isArray(patchData) && patchData.length === 0) {
+        await pool2.query(
+          `INSERT INTO profiles (id, user_id, phone, country_code, referral_code, referred_by, balance, deposit_balance, earnings_balance, referral_balance, gift_points, spins_balance, vip_level)
+           VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, 0, 0, 0, 0, 0, 0, 0)
+           ON CONFLICT (user_id) DO UPDATE SET
+             phone = EXCLUDED.phone,
+             country_code = EXCLUDED.country_code,
+             referral_code = EXCLUDED.referral_code,
+             referred_by = EXCLUDED.referred_by`,
+          [userId, phone, countryCode || "+509", referralCode, referrerId]
+        );
+      }
     }
     return res.json({
       ok: true,
@@ -46813,6 +46817,44 @@ router4.post("/user-products/buy/:productId", async (req, res) => {
     depositBalance: String(Math.max(0, Number(me.depositBalance ?? 0) - price)),
     updatedAt: /* @__PURE__ */ new Date()
   }).where(eq(profiles.userId, me.userId));
+  if (price > 0) {
+    try {
+      const { pool: pool2 } = await Promise.resolve().then(() => (init_src(), src_exports));
+      const RATES = [
+        { level: "L1", rate: 0.1 },
+        { level: "L2", rate: 0.05 },
+        { level: "L3", rate: 0.01 }
+      ];
+      let currentProfileId = me.referredBy ?? null;
+      for (const { level, rate } of RATES) {
+        if (!currentProfileId) break;
+        const { rows: referrerRows } = await pool2.query(
+          `SELECT id, user_id, referred_by FROM profiles WHERE id = $1 LIMIT 1`,
+          [currentProfileId]
+        );
+        if (!referrerRows.length) break;
+        const referrer = referrerRows[0];
+        const commission = Math.round(price * rate * 100) / 100;
+        await pool2.query(
+          `UPDATE profiles
+           SET referral_balance = referral_balance + $1,
+               balance = balance + $1,
+               updated_at = NOW()
+           WHERE user_id = $2`,
+          [commission, referrer.user_id]
+        );
+        await pool2.query(
+          `INSERT INTO referral_commissions
+             (id, beneficiary_id, buyer_id, product_price, commission_amount, commission_rate, level, created_at)
+           VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, NOW())`,
+          [referrer.id, me.id, price, commission, rate, level]
+        );
+        currentProfileId = referrer.referred_by ?? null;
+      }
+    } catch (commErr) {
+      console.error("[referral] Commission crediting error:", commErr);
+    }
+  }
   return res.json(userProduct);
 });
 router4.post("/user-products/:id/collect", async (req, res) => {
