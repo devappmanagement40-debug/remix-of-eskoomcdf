@@ -45,6 +45,7 @@ externalPort = 3000
 VITE_SUPABASE_PROJECT_URL = "https://dmuvuzjnsdckfyucnujn.supabase.co"
 VITE_SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtdXZ1empuc2Rja2Z5dWNudWpuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEzMDE4MDYsImV4cCI6MjA5Njg3NzgwNn0.WP7C1XiDtZ1VAo3IlUBP_VXIC4DyXiQ3hIwTYogEQ0A"
 SUPABASE_DATABASE_URL = "postgresql://postgres:Blanchard12%25446050@db.dmuvuzjnsdckfyucnujn.supabase.co:5432/postgres"
+NOWPAYMENTS_EMAIL = "devappmanagement40@gmail.com"
 
 [nix]
 channel = "stable-25_05"
