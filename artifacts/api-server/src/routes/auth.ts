@@ -58,34 +58,41 @@ router.post("/auth/admin-setup", async (req, res) => {
   }
 
   try {
+    const passwordHash = await bcrypt.hash(password, 12);
+
     const [existing] = await db
-      .select({ id: profiles.id })
+      .select({ id: profiles.id, userId: profiles.userId })
       .from(profiles)
       .where(eq(profiles.phone, phone))
       .limit(1);
 
+    let userId: string;
+
     if (existing) {
-      return res.status(409).json({ error: "Admin already exists" });
+      // Update password for existing account (password reset via admin token)
+      userId = existing.userId;
+      await db.update(profiles).set({ passwordHash }).where(eq(profiles.userId, userId));
+      // Ensure admin role exists
+      const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, userId)).limit(1);
+      if (!role) {
+        await db.insert(userRoles).values({ id: generateId(), userId, role: "admin" });
+      } else if (role.role !== "admin") {
+        await db.update(userRoles).set({ role: "admin" }).where(eq(userRoles.userId, userId));
+      }
+    } else {
+      userId = generateId();
+      await db.insert(profiles).values({
+        id: generateId(),
+        userId,
+        phone,
+        fullName: "Administrator",
+        countryCode: "+0",
+        referralCode: "ADMIN001",
+        passwordHash,
+        avatarUrl: generateAvatarUrl(),
+      });
+      await db.insert(userRoles).values({ id: generateId(), userId, role: "admin" });
     }
-
-    const passwordHash = await bcrypt.hash(password, 12);
-    const userId = generateId();
-
-    await db.insert(profiles).values({
-      id: generateId(),
-      userId,
-      phone,
-      fullName: "Administrator",
-      countryCode: "+0",
-      referralCode: "ADMIN001",
-      passwordHash,
-    });
-
-    await db.insert(userRoles).values({
-      id: generateId(),
-      userId,
-      role: "admin",
-    });
 
     const accessToken = await createSession(userId);
 

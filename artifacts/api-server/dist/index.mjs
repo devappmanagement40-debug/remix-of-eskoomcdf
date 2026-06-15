@@ -48184,26 +48184,32 @@ router2.post("/auth/admin-setup", async (req, res) => {
     return res.status(400).json({ error: "phone and password required" });
   }
   try {
-    const [existing] = await db.select({ id: profiles.id }).from(profiles).where(eq(profiles.phone, phone)).limit(1);
-    if (existing) {
-      return res.status(409).json({ error: "Admin already exists" });
-    }
     const passwordHash = await bcryptjs_default.hash(password, 12);
-    const userId = generateId();
-    await db.insert(profiles).values({
-      id: generateId(),
-      userId,
-      phone,
-      fullName: "Administrator",
-      countryCode: "+0",
-      referralCode: "ADMIN001",
-      passwordHash
-    });
-    await db.insert(userRoles).values({
-      id: generateId(),
-      userId,
-      role: "admin"
-    });
+    const [existing] = await db.select({ id: profiles.id, userId: profiles.userId }).from(profiles).where(eq(profiles.phone, phone)).limit(1);
+    let userId;
+    if (existing) {
+      userId = existing.userId;
+      await db.update(profiles).set({ passwordHash }).where(eq(profiles.userId, userId));
+      const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, userId)).limit(1);
+      if (!role) {
+        await db.insert(userRoles).values({ id: generateId(), userId, role: "admin" });
+      } else if (role.role !== "admin") {
+        await db.update(userRoles).set({ role: "admin" }).where(eq(userRoles.userId, userId));
+      }
+    } else {
+      userId = generateId();
+      await db.insert(profiles).values({
+        id: generateId(),
+        userId,
+        phone,
+        fullName: "Administrator",
+        countryCode: "+0",
+        referralCode: "ADMIN001",
+        passwordHash,
+        avatarUrl: generateAvatarUrl()
+      });
+      await db.insert(userRoles).values({ id: generateId(), userId, role: "admin" });
+    }
     const accessToken = await createSession(userId);
     return res.json({ ok: true, userId, session: { access_token: accessToken } });
   } catch (err) {
