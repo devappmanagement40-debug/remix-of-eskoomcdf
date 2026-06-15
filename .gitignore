@@ -1,4 +1,7 @@
 # compiled output — DO NOT ignore dist (pre-built for Plesk deployment)
+# Source maps excluded (too large for git; regenerated on each build)
+dist/*.map
+dist/**/*.map
 tmp
 out-tsc
 *.tsbuildinfo
