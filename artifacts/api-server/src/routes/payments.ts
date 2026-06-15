@@ -226,6 +226,78 @@ router.patch("/withdrawals/:id/reject", async (req, res) => {
   return res.json(updated);
 });
 
+// ─── Generic status route (approve or reject based on status value) ───────────
+router.patch("/recharges/:id/status", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
+
+  const { status, adminNote } = req.body as { status: string; adminNote?: string };
+  const [recharge] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
+  if (!recharge) return res.status(404).json({ error: "Not found" });
+
+  if (status === "approved" && recharge.status === "pending") {
+    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, recharge.userId)).limit(1);
+    if (profile) {
+      const amount = Number(recharge.amount);
+      await db.update(profiles).set({
+        balance: String(Number(profile.balance ?? 0) + amount),
+        depositBalance: String(Number(profile.depositBalance ?? 0) + amount),
+        updatedAt: new Date(),
+      }).where(eq(profiles.userId, recharge.userId));
+    }
+  }
+
+  const [updated] = await db.update(recharges)
+    .set({ status, adminNote: adminNote ?? null, updatedAt: new Date() })
+    .where(eq(recharges.id, req.params.id))
+    .returning();
+  return res.json(updated);
+});
+
+router.post("/withdrawals/:id/process", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
+
+  const [updated] = await db.update(withdrawals)
+    .set({ status: "processing", updatedAt: new Date() })
+    .where(eq(withdrawals.id, req.params.id))
+    .returning();
+  if (!updated) return res.status(404).json({ error: "Not found" });
+  return res.json(updated);
+});
+
+router.patch("/withdrawals/:id/status", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
+
+  const { status, adminNote } = req.body as { status: string; adminNote?: string };
+  const [withdrawal] = await db.select().from(withdrawals).where(eq(withdrawals.id, req.params.id)).limit(1);
+  if (!withdrawal) return res.status(404).json({ error: "Not found" });
+
+  if (status === "rejected" && withdrawal.status === "pending") {
+    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, withdrawal.userId)).limit(1);
+    if (profile) {
+      await db.update(profiles).set({
+        balance: String(Number(profile.balance ?? 0) + Number(withdrawal.amount)),
+        earningsBalance: String(Number(profile.earningsBalance ?? 0) + Number(withdrawal.amount)),
+        updatedAt: new Date(),
+      }).where(eq(profiles.userId, withdrawal.userId));
+    }
+  }
+
+  const [updated] = await db.update(withdrawals)
+    .set({ status, adminNote: adminNote ?? null, updatedAt: new Date() })
+    .where(eq(withdrawals.id, req.params.id))
+    .returning();
+  return res.json(updated);
+});
+
 // User proof upload for processing fee
 router.patch("/withdrawals/:id/proof", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");

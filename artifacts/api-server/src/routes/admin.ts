@@ -560,6 +560,110 @@ router.delete("/admin/product-series/:id", async (req, res) => {
   return res.json({ ok: true });
 });
 
+// ─── Products (admin) ────────────────────────────────────────────────────────
+router.get("/admin/products", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(products);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+
+router.post("/admin/products", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [product] = await db.insert(products).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  return res.json(product);
+});
+
+router.patch("/admin/products/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(products).set({ ...req.body, updatedAt: new Date() }).where(eq(products.id, req.params.id)).returning();
+  return res.json(updated);
+});
+
+router.delete("/admin/products/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(products).where(eq(products.id, req.params.id));
+  return res.json({ ok: true });
+});
+
+// ─── Payment methods (admin) ──────────────────────────────────────────────────
+router.get("/admin/payment-methods", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(paymentMethods);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+
+router.post("/admin/payment-methods", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [method] = await db.insert(paymentMethods).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  return res.json(method);
+});
+
+router.patch("/admin/payment-methods/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(paymentMethods).set({ ...req.body, updatedAt: new Date() }).where(eq(paymentMethods.id, req.params.id)).returning();
+  return res.json(updated);
+});
+
+router.delete("/admin/payment-methods/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(paymentMethods).where(eq(paymentMethods.id, req.params.id));
+  return res.json({ ok: true });
+});
+
+// ─── Popups / popup messages (admin) ─────────────────────────────────────────
+router.get("/admin/popups", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { trigger_key } = req.query as { trigger_key?: string };
+  const all = trigger_key
+    ? await db.select().from(popupMessages).where(eq(popupMessages.triggerKey, trigger_key))
+    : await db.select().from(popupMessages);
+  return res.json(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
+});
+
+router.post("/admin/popups", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [popup] = await db.insert(popupMessages).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  return res.json(popup);
+});
+
+router.patch("/admin/popups/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(popupMessages).set({ ...req.body, updatedAt: new Date() }).where(eq(popupMessages.id, req.params.id)).returning();
+  return res.json(updated);
+});
+
+router.delete("/admin/popups/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(popupMessages).where(eq(popupMessages.id, req.params.id));
+  return res.json({ ok: true });
+});
+
+// ─── Suspend / unsuspend user (admin) ─────────────────────────────────────────
+router.post("/admin/users/:userId/suspend", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { suspended } = req.body as { suspended?: boolean };
+  const newVal = suspended ?? true;
+  const [updated] = await db.update(profiles)
+    .set({ isSuspended: newVal, updatedAt: new Date() })
+    .where(eq(profiles.userId, req.params.userId))
+    .returning();
+  if (!updated) return res.status(404).json({ error: "User not found" });
+  return res.json(updated);
+});
+
 // ─── User products (admin) ────────────────────────────────────────────────────
 router.get("/admin/user-products", async (req, res) => {
   const auth = await requireAdmin(req, res);

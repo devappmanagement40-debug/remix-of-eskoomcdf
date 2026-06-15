@@ -48819,6 +48819,58 @@ router5.patch("/withdrawals/:id/reject", async (req, res) => {
   const [updated] = await db.update(withdrawals).set({ status: "rejected", adminNote: req.body.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
   return res.json(updated);
 });
+router5.patch("/recharges/:id/status", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken3(token);
+  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
+  const { status, adminNote } = req.body;
+  const [recharge] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
+  if (!recharge) return res.status(404).json({ error: "Not found" });
+  if (status === "approved" && recharge.status === "pending") {
+    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, recharge.userId)).limit(1);
+    if (profile) {
+      const amount = Number(recharge.amount);
+      await db.update(profiles).set({
+        balance: String(Number(profile.balance ?? 0) + amount),
+        depositBalance: String(Number(profile.depositBalance ?? 0) + amount),
+        updatedAt: /* @__PURE__ */ new Date()
+      }).where(eq(profiles.userId, recharge.userId));
+    }
+  }
+  const [updated] = await db.update(recharges).set({ status, adminNote: adminNote ?? null, updatedAt: /* @__PURE__ */ new Date() }).where(eq(recharges.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router5.post("/withdrawals/:id/process", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken3(token);
+  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
+  const [updated] = await db.update(withdrawals).set({ status: "processing", updatedAt: /* @__PURE__ */ new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
+  if (!updated) return res.status(404).json({ error: "Not found" });
+  return res.json(updated);
+});
+router5.patch("/withdrawals/:id/status", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken3(token);
+  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
+  const { status, adminNote } = req.body;
+  const [withdrawal] = await db.select().from(withdrawals).where(eq(withdrawals.id, req.params.id)).limit(1);
+  if (!withdrawal) return res.status(404).json({ error: "Not found" });
+  if (status === "rejected" && withdrawal.status === "pending") {
+    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, withdrawal.userId)).limit(1);
+    if (profile) {
+      await db.update(profiles).set({
+        balance: String(Number(profile.balance ?? 0) + Number(withdrawal.amount)),
+        earningsBalance: String(Number(profile.earningsBalance ?? 0) + Number(withdrawal.amount)),
+        updatedAt: /* @__PURE__ */ new Date()
+      }).where(eq(profiles.userId, withdrawal.userId));
+    }
+  }
+  const [updated] = await db.update(withdrawals).set({ status, adminNote: adminNote ?? null, updatedAt: /* @__PURE__ */ new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
+  return res.json(updated);
+});
 router5.patch("/withdrawals/:id/proof", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
@@ -50648,6 +50700,88 @@ router11.delete("/admin/product-series/:id", async (req, res) => {
   if (!auth) return;
   await db.delete(productSeries).where(eq(productSeries.id, req.params.id));
   return res.json({ ok: true });
+});
+router11.get("/admin/products", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(products);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router11.post("/admin/products", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [product] = await db.insert(products).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  return res.json(product);
+});
+router11.patch("/admin/products/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(products).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(products.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router11.delete("/admin/products/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(products).where(eq(products.id, req.params.id));
+  return res.json({ ok: true });
+});
+router11.get("/admin/payment-methods", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(paymentMethods);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router11.post("/admin/payment-methods", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [method] = await db.insert(paymentMethods).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  return res.json(method);
+});
+router11.patch("/admin/payment-methods/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(paymentMethods).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(paymentMethods.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router11.delete("/admin/payment-methods/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(paymentMethods).where(eq(paymentMethods.id, req.params.id));
+  return res.json({ ok: true });
+});
+router11.get("/admin/popups", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { trigger_key } = req.query;
+  const all = trigger_key ? await db.select().from(popupMessages).where(eq(popupMessages.triggerKey, trigger_key)) : await db.select().from(popupMessages);
+  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+});
+router11.post("/admin/popups", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [popup] = await db.insert(popupMessages).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  return res.json(popup);
+});
+router11.patch("/admin/popups/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(popupMessages).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(popupMessages.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router11.delete("/admin/popups/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(popupMessages).where(eq(popupMessages.id, req.params.id));
+  return res.json({ ok: true });
+});
+router11.post("/admin/users/:userId/suspend", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { suspended } = req.body;
+  const newVal = suspended ?? true;
+  const [updated] = await db.update(profiles).set({ isSuspended: newVal, updatedAt: /* @__PURE__ */ new Date() }).where(eq(profiles.userId, req.params.userId)).returning();
+  if (!updated) return res.status(404).json({ error: "User not found" });
+  return res.json(updated);
 });
 router11.get("/admin/user-products", async (req, res) => {
   const auth = await requireAdmin(req, res);
