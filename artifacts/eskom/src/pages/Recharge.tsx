@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import PageHeader from "@/components/PageHeader";
 import BottomNav from "@/components/BottomNav";
 import { ChevronRight, Zap, Loader2 } from "lucide-react";
@@ -40,19 +39,18 @@ const Recharge = () => {
   const currencies = ALLOWED_CURRENCIES;
 
   useEffect(() => {
-    supabase
-      .from("site_settings")
-      .select("key, value")
-      .in("key", ["deposit_amounts", "deposit_min", "deposit_max"])
-      .then(({ data }) => {
-        if (!data) return;
-        data.forEach((s) => {
+    const keys = ["deposit_amounts", "deposit_min", "deposit_max"];
+    Promise.all(keys.map((k) => fetch(`/api/site-settings/${k}`).then((r) => r.ok ? r.json() : null)))
+      .then((results) => {
+        results.forEach((s) => {
+          if (!s) return;
           if (s.key === "deposit_amounts" && s.value)
             setPresetAmounts(s.value.split(",").map(Number).filter(Boolean));
           if (s.key === "deposit_min" && s.value) setMinAmount(Number(s.value));
           if (s.key === "deposit_max" && s.value) setMaxAmount(Number(s.value));
         });
-      });
+      })
+      .catch(() => {});
   }, []);
 
   // Fetch real-time estimates from NowPayments for all currencies

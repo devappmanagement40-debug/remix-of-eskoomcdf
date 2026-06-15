@@ -31,7 +31,6 @@ module.exports = {
       max_memory_restart: "512M",
       env: {
         NODE_ENV : "production",
-        PORT     : process.env.PORT || "3000",
       },
       error_file      : path.join(ROOT, "logs/pm2-error.log"),
       out_file        : path.join(ROOT, "logs/pm2-out.log"),

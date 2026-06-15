@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Shield, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAppImages } from "@/contexts/AppImagesContext";
+import { localAuth } from "@/integrations/supabase/client";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -35,15 +36,15 @@ const AdminLogin = () => {
       }
 
       const data = await res.json();
-      localStorage.setItem("auth_token", data.session?.access_token ?? data.token);
-
       const token = data.session?.access_token ?? data.token;
+      localAuth.setSession(token, data.user ?? { id: "" });
+
       const checkRes = await fetch("/api/admin/check", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!checkRes.ok) {
-        localStorage.removeItem("auth_token");
+        localAuth.clearSession();
         setError("Accès refusé. Ce compte n'a pas les droits administrateur.");
         setLoading(false);
         return;

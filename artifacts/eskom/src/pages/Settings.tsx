@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import PageHeader from "@/components/PageHeader";
 import PremiumModal from "@/components/PremiumModal";
-import { getAuthToken } from "@/integrations/supabase/client";
+import { getAuthToken, localAuth } from "@/integrations/supabase/client";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const Settings = () => {
@@ -43,7 +43,7 @@ const Settings = () => {
         onConfirm={async () => {
           const token = getAuthToken();
           if (token) await fetch("/api/auth/logout", { method: "POST", headers: { Authorization: `Bearer ${token}` } });
-          localStorage.removeItem("auth_token");
+          localAuth.clearSession();
           navigate("/connexion");
         }}
         onCancel={() => setShowLogout(false)}

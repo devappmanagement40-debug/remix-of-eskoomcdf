@@ -4,7 +4,7 @@ import { useState } from "react";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getAuthToken } from "@/integrations/supabase/client";
+import { getAuthToken, localAuth } from "@/integrations/supabase/client";
 import { useRealtimeProfile } from "@/hooks/useRealtimeProfile";
 import { useVipProgress } from "@/hooks/useVipProgress";
 import { useDisplaySettings } from "@/hooks/useDisplaySettings";
@@ -163,7 +163,7 @@ const Profile = () => {
         triggerKey="logout_confirm"
         open={showLogout}
         onClose={() => setShowLogout(false)}
-        onConfirm={async () => { const token = getAuthToken(); if (token) await fetch("/api/auth/logout", { method: "POST", headers: { Authorization: `Bearer ${token}` } }); localStorage.removeItem("auth_token"); navigate("/connexion"); }}
+        onConfirm={async () => { const token = getAuthToken(); if (token) await fetch("/api/auth/logout", { method: "POST", headers: { Authorization: `Bearer ${token}` } }); localAuth.clearSession(); navigate("/connexion"); }}
         onCancel={() => setShowLogout(false)}
       />
       <BottomNav />
