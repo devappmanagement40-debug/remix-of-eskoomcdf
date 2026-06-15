@@ -8,6 +8,7 @@ import RouteErrorBoundary from "@/components/RouteErrorBoundary";
 import { LanguageProvider } from "@/contexts/LanguageContext";
 import { AppImagesProvider } from "@/contexts/AppImagesContext";
 import RequireAuth from "@/components/RequireAuth";
+import RequireAdmin from "@/components/RequireAdmin";
 
 // Eager load core pages
 import Login from "./pages/Login";
@@ -102,13 +103,13 @@ const App = () => (
                   <Route path="/mes-produits"        element={<Auth><MesProduits /></Auth>} />
                   <Route path="/recharge"            element={<Auth><Recharge /></Auth>} />
                   <Route path="/recharge/paiement"   element={<Auth><RechargePaiement /></Auth>} />
-                  <Route path="/admin/recharges"     element={<Auth><AdminRecharges /></Auth>} />
+                  <Route path="/admin/recharges"     element={<RequireAdmin><R><AdminRecharges /></R></RequireAdmin>} />
                   <Route path="/lier-carte"          element={<Auth><LierCarte /></Auth>} />
                   <Route path="/retrait"             element={<Auth><Retrait /></Auth>} />
-                  <Route path="/admin/retraits"      element={<Auth><AdminRetraits /></Auth>} />
-                  <Route path="/admin/produits"      element={<Auth><AdminProduits /></Auth>} />
-                  <Route path="/admin/popups"        element={<Auth><AdminPopups /></Auth>} />
-                  <Route path="/admin"               element={<Auth><AdminPanel /></Auth>} />
+                  <Route path="/admin/retraits"      element={<RequireAdmin><R><AdminRetraits /></R></RequireAdmin>} />
+                  <Route path="/admin/produits"      element={<RequireAdmin><R><AdminProduits /></R></RequireAdmin>} />
+                  <Route path="/admin/popups"        element={<RequireAdmin><R><AdminPopups /></R></RequireAdmin>} />
+                  <Route path="/admin"               element={<RequireAdmin><R><AdminPanel /></R></RequireAdmin>} />
                   <Route path="/echanger-code"       element={<Auth><EchangerCode /></Auth>} />
                   <Route path="/changer-mot-de-passe" element={<Auth><ChangerMotDePasse /></Auth>} />
                   <Route path="/changer-langue"      element={<Auth><ChangerLangue /></Auth>} />
