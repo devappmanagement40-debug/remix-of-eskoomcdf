@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import { Input } from "@/components/ui/input";
@@ -29,28 +29,12 @@ const ChangerMotDePasse = () => {
     }
 
     setLoading(true);
-
-    // Verify old password by re-signing in
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.email) { showError("Error", "User not logged in"); setLoading(false); return; }
-
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: user.email,
-      password: oldPassword,
-    });
-
-    if (signInError) {
-      showError("Error", "Current password is incorrect");
-      setLoading(false);
-      return;
-    }
-
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) {
-      showError("Error", "Failed to update password");
-    } else {
+    try {
+      await api.post("/auth/change-password", { oldPassword, newPassword });
       showSuccess("Success", "Password updated successfully ✅");
       setTimeout(() => navigate("/parametres"), 1500);
+    } catch (err: any) {
+      showError("Error", err?.message || "Failed to update password");
     }
     setLoading(false);
   };

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import { Info } from "lucide-react";
 
@@ -67,22 +67,15 @@ const MesProduits = () => {
 
   const load = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/connexion"); return; }
-
-      const [productsRes, seriesRes] = await Promise.all([
-        supabase
-          .from("user_products")
-          .select("*, products(name, price, daily_revenue, total_revenue, cycles, description, image_url, series_id, gain_type)")
-          .eq("user_id", user.id)
-          .order("purchased_at", { ascending: false }),
-        supabase.from("product_series").select("id, name, color"),
+      const [productsData, seriesData] = await Promise.all([
+        api.get("/user-products/my"),
+        api.get("/product-series"),
       ]);
 
-      if (productsRes.data) setUserProducts(productsRes.data as UserProduct[]);
-      if (seriesRes.data) {
+      if (productsData) setUserProducts(productsData as UserProduct[]);
+      if (seriesData) {
         const map: Record<string, Series> = {};
-        seriesRes.data.forEach((s: any) => { map[s.id] = s; });
+        seriesData.forEach((s: any) => { map[s.id] = s; });
         setSeriesMap(map);
       }
     } catch (err) {
@@ -94,11 +87,8 @@ const MesProduits = () => {
 
   useEffect(() => {
     load();
-    const channel = supabase
-      .channel("mes-produits-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "user_products" }, () => load())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const interval = setInterval(load, 30000);
+    return () => clearInterval(interval);
   }, [navigate]);
 
   const now = new Date();
@@ -143,9 +133,8 @@ const MesProduits = () => {
     setCollecting(up.id);
 
     try {
-      const { data, error } = await supabase.functions.invoke("collect-revenue", {
-        body: { user_product_id: up.id },
-      });
+      const data = await api.post("/products/collect", { userProductId: up.id });
+      const error = null;
 
       if (error) {
         showError("Error", "Unable to collect earnings");

@@ -1,40 +1,17 @@
 import { Router } from "express";
 import crypto from "crypto";
+import { db } from "../db";
+import { recharges, profiles, withdrawals } from "../db";
+import { eq, and } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 const router = Router();
 const NP_API = "https://api.nowpayments.io/v1";
 
-// ---- Config helpers ----
 function getApiKey(): string { return process.env["NOWPAYMENTS_API_KEY"] ?? ""; }
 function getIpnSecret(): string { return process.env["NOWPAYMENTS_IPN_SECRET"] ?? ""; }
 function getPayoutEmail(): string { return process.env["NOWPAYMENTS_EMAIL"] ?? ""; }
 function getPayoutPassword(): string { return process.env["NOWPAYMENTS_PASSWORD"] ?? ""; }
-
-const SUPABASE_URL = process.env["VITE_SUPABASE_PROJECT_URL"] ?? "";
-const SUPABASE_KEY = process.env["SUPABASE_SERVICE_ROLE_KEY"] ?? "";
-
-function sbHeaders() {
-  return {
-    "Content-Type": "application/json",
-    "apikey": SUPABASE_KEY,
-    "Authorization": `Bearer ${SUPABASE_KEY}`,
-  };
-}
-
-async function sbGet(table: string, query: string): Promise<any[]> {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, { headers: sbHeaders() });
-  if (!r.ok) throw new Error(`Supabase GET ${table} failed: ${await r.text()}`);
-  return r.json();
-}
-
-async function sbUpdate(table: string, query: string, body: Record<string, unknown>): Promise<void> {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
-    method: "PATCH",
-    headers: { ...sbHeaders(), "Prefer": "return=minimal" },
-    body: JSON.stringify(body),
-  });
-  if (!r.ok) throw new Error(`Supabase PATCH ${table} failed: ${await r.text()}`);
-}
 
 function getWebhookUrl(path: string): string {
   const base = process.env["NOWPAYMENTS_WEBHOOK_URL"];
@@ -47,7 +24,6 @@ function getWebhookUrl(path: string): string {
   return "";
 }
 
-// ---- HMAC-SHA512 signature verification ----
 function sortObjectKeys(obj: unknown): unknown {
   if (typeof obj !== "object" || obj === null) return obj;
   if (Array.isArray(obj)) return obj.map(sortObjectKeys);
@@ -67,67 +43,73 @@ function verifyNpSignature(secret: string, body: unknown, sig: string): boolean 
   return expected === sig;
 }
 
-// ---- Fallback currencies (when API key not configured) ----
 type CurrencyItem = { code: string; name: string; logo: string };
 
 const FALLBACK_CURRENCIES: CurrencyItem[] = [
-  { code: "usdtbsc",   name: "Tether USD (BEP20)",    logo: "" },
-  { code: "usdttrc20", name: "Tether USD (TRC20)",    logo: "" },
-  { code: "usdterc20", name: "Tether USD (ERC20)",    logo: "" },
-  { code: "usdtmatic", name: "Tether USD (Polygon)",  logo: "" },
-  { code: "trx",       name: "TRON",                  logo: "" },
-  { code: "bnbbsc",    name: "Binance Coin (BEP20)",  logo: "" },
-  { code: "eth",       name: "Ethereum",              logo: "" },
-  { code: "btc",       name: "Bitcoin",               logo: "" },
-  { code: "sol",       name: "Solana",                logo: "" },
-  { code: "ltc",       name: "Litecoin",              logo: "" },
+  { code: "usdtbsc",   name: "Tether USD (BEP20)",   logo: "" },
+  { code: "usdttrc20", name: "Tether USD (TRC20)",   logo: "" },
+  { code: "usdterc20", name: "Tether USD (ERC20)",   logo: "" },
+  { code: "usdtmatic", name: "Tether USD (Polygon)", logo: "" },
+  { code: "trx",       name: "TRON",                 logo: "" },
+  { code: "bnbbsc",    name: "Binance Coin (BEP20)", logo: "" },
+  { code: "eth",       name: "Ethereum",             logo: "" },
+  { code: "btc",       name: "Bitcoin",              logo: "" },
+  { code: "sol",       name: "Solana",               logo: "" },
+  { code: "ltc",       name: "Litecoin",             logo: "" },
 ];
 
-// ---- In-memory currencies cache (10 minutes) ----
 let currenciesCache: { data: CurrencyItem[]; ts: number } | null = null;
 
-// ---- DB helpers via Supabase REST API ----
 async function approveRechargeByPaymentId(paymentId: string): Promise<void> {
-  const rows = await sbGet("recharges", `transaction_ref=eq.${paymentId}&status=eq.pending&select=id,user_id,amount&limit=1`);
-  if (!rows.length) return;
-  const recharge = rows[0];
-  const amount = Number(recharge.amount);
+  const [recharge] = await db
+    .select()
+    .from(recharges)
+    .where(and(eq(recharges.transactionRef, paymentId), eq(recharges.status, "pending")))
+    .limit(1);
+  if (!recharge) return;
 
-  const profiles = await sbGet("profiles", `user_id=eq.${recharge.user_id}&select=user_id,balance,deposit_balance&limit=1`);
-  if (!profiles.length) return;
-  const profile = profiles[0];
+  const amount = Number(recharge.amount);
+  const [profile] = await db
+    .select()
+    .from(profiles)
+    .where(eq(profiles.userId, recharge.userId))
+    .limit(1);
+  if (!profile) return;
 
   const newBalance = Number(profile.balance ?? 0) + amount;
-  const newDeposit = Number(profile.deposit_balance ?? 0) + amount;
+  const newDeposit = Number(profile.depositBalance ?? 0) + amount;
 
-  await sbUpdate("profiles", `user_id=eq.${recharge.user_id}`, {
-    balance: newBalance,
-    deposit_balance: newDeposit,
-    updated_at: new Date().toISOString(),
-  });
+  await db.update(profiles).set({
+    balance: String(newBalance),
+    depositBalance: String(newDeposit),
+    updatedAt: new Date(),
+  }).where(eq(profiles.userId, recharge.userId));
 
-  await sbUpdate("recharges", `id=eq.${recharge.id}`, {
+  await db.update(recharges).set({
     status: "approved",
-    updated_at: new Date().toISOString(),
-  });
+    updatedAt: new Date(),
+  }).where(eq(recharges.id, recharge.id));
 
-  console.log(`[NP] Recharge approved: ${recharge.id} — ${amount} USDT → user ${recharge.user_id}`);
+  console.log(`[NP] Recharge approved: ${recharge.id} — ${amount} USDT → user ${recharge.userId}`);
 }
 
 async function approveWithdrawalByExternalId(externalId: string): Promise<void> {
-  const rows = await sbGet("withdrawals", `id=eq.${externalId}&select=id,status&limit=1`);
-  if (!rows.length || rows[0].status === "approved") return;
+  const [withdrawal] = await db
+    .select()
+    .from(withdrawals)
+    .where(eq(withdrawals.id, externalId))
+    .limit(1);
+  if (!withdrawal || withdrawal.status === "approved") return;
 
-  await sbUpdate("withdrawals", `id=eq.${externalId}`, {
+  await db.update(withdrawals).set({
     status: "approved",
-    admin_note: "✅ Auto-approved via NowPayments payout IPN",
-    updated_at: new Date().toISOString(),
-  });
+    adminNote: "✅ Auto-approved via NowPayments payout IPN",
+    updatedAt: new Date(),
+  }).where(eq(withdrawals.id, externalId));
 
   console.log(`[NP] Withdrawal auto-approved: ${externalId}`);
 }
 
-// ---- Payout JWT ----
 async function getPayoutToken(): Promise<string> {
   const email = getPayoutEmail();
   const password = getPayoutPassword();
@@ -148,11 +130,6 @@ async function getPayoutToken(): Promise<string> {
   return data.token;
 }
 
-// ============================================================
-// ROUTES
-// ============================================================
-
-// GET /nowpayments/ping
 router.get("/nowpayments/ping", async (_req, res) => {
   const apiKey = getApiKey();
   if (!apiKey) return res.json({ ok: false, reason: "NOWPAYMENTS_API_KEY not set" });
@@ -165,7 +142,6 @@ router.get("/nowpayments/ping", async (_req, res) => {
   }
 });
 
-// GET /nowpayments/currencies
 router.get("/nowpayments/currencies", async (_req, res) => {
   if (currenciesCache && Date.now() - currenciesCache.ts < 600_000) {
     return res.json({ currencies: currenciesCache.data });
@@ -177,7 +153,7 @@ router.get("/nowpayments/currencies", async (_req, res) => {
   try {
     const [fullRes, merchantRes] = await Promise.all([
       fetch(`${NP_API}/full-currencies`, { headers: { "x-api-key": apiKey } }),
-      fetch(`${NP_API}/merchant/coins`,  { headers: { "x-api-key": apiKey } }),
+      fetch(`${NP_API}/merchant/coins`, { headers: { "x-api-key": apiKey } }),
     ]);
 
     const merchantData = merchantRes.ok
@@ -226,14 +202,12 @@ router.get("/nowpayments/currencies", async (_req, res) => {
     const final = result.length > 0 ? result : currencies;
     currenciesCache = { data: final, ts: Date.now() };
     return res.json({ currencies: final });
-
   } catch (err) {
     console.error("[NP] currencies error:", err);
     return res.json({ currencies: FALLBACK_CURRENCIES });
   }
 });
 
-// GET /nowpayments/estimate
 router.get("/nowpayments/estimate", async (req, res) => {
   const apiKey = getApiKey();
   if (!apiKey) return res.status(503).json({ error: "Not configured" });
@@ -244,12 +218,11 @@ router.get("/nowpayments/estimate", async (req, res) => {
     const r = await fetch(url, { headers: { "x-api-key": apiKey } });
     if (!r.ok) return res.status(502).json({ error: "NowPayments estimate failed" });
     return res.json(await r.json());
-  } catch (err) {
+  } catch {
     return res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// GET /nowpayments/min-amount
 router.get("/nowpayments/min-amount", async (req, res) => {
   const apiKey = getApiKey();
   if (!apiKey) return res.status(503).json({ error: "Not configured" });
@@ -260,12 +233,11 @@ router.get("/nowpayments/min-amount", async (req, res) => {
     const r = await fetch(url, { headers: { "x-api-key": apiKey } });
     if (!r.ok) return res.status(502).json({ error: "NowPayments min-amount failed" });
     return res.json(await r.json());
-  } catch (err) {
+  } catch {
     return res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// POST /nowpayments/create — Create a crypto deposit payment
 router.post("/nowpayments/create", async (req, res) => {
   const apiKey = getApiKey();
   if (!apiKey) return res.status(503).json({ error: "Payment gateway not configured. Please contact support." });
@@ -281,14 +253,12 @@ router.post("/nowpayments/create", async (req, res) => {
   try {
     const webhookUrl = getWebhookUrl("webhook");
     const payCurrency = currency.toLowerCase();
-    // price_currency is always "usd" so NowPayments converts the USD amount
-    // into the chosen crypto (TRX, BNB, USDT-TRC20, etc.) using live rates.
     const body: Record<string, unknown> = {
-      price_amount:        amount,
-      price_currency:      "usd",
-      pay_currency:        payCurrency,
-      order_id:            rechargeId,
-      order_description:   "GE Energy deposit",
+      price_amount: amount,
+      price_currency: "usd",
+      pay_currency: payCurrency,
+      order_id: rechargeId,
+      order_description: "GE Energy deposit",
       is_fee_paid_by_user: false,
     };
     if (webhookUrl) body["ipn_callback_url"] = webhookUrl;
@@ -318,21 +288,20 @@ router.post("/nowpayments/create", async (req, res) => {
       network?: string;
     };
 
-    // Store payment_id via Supabase REST
-    await sbUpdate("recharges", `id=eq.${rechargeId}`, {
-      transaction_ref: String(data.payment_id),
-      updated_at: new Date().toISOString(),
-    });
+    await db.update(recharges).set({
+      transactionRef: String(data.payment_id),
+      updatedAt: new Date(),
+    }).where(eq(recharges.id, rechargeId));
 
     console.log(`[NP] Payment created: id=${data.payment_id} addr=${data.pay_address?.slice(0, 10)}...`);
 
     return res.json({
-      paymentId:      String(data.payment_id),
-      payAddress:     data.pay_address,
-      payAmount:      data.pay_amount,
-      payCurrency:    data.pay_currency,
-      status:         data.payment_status,
-      network:        data.network ?? null,
+      paymentId: String(data.payment_id),
+      payAddress: data.pay_address,
+      payAmount: data.pay_amount,
+      payCurrency: data.pay_currency,
+      status: data.payment_status,
+      network: data.network ?? null,
       expirationDate: data.expiration_estimate_date ?? null,
     });
   } catch (err) {
@@ -341,7 +310,6 @@ router.post("/nowpayments/create", async (req, res) => {
   }
 });
 
-// GET /nowpayments/status/:paymentId — Poll deposit status + auto-approve on finish
 router.get("/nowpayments/status/:paymentId", async (req, res) => {
   const apiKey = getApiKey();
   if (!apiKey) return res.status(503).json({ error: "Not configured" });
@@ -376,8 +344,8 @@ router.get("/nowpayments/status/:paymentId", async (req, res) => {
     return res.json({
       status,
       actuallyPaid: data.actually_paid ?? null,
-      payAmount:    data.pay_amount ?? null,
-      payCurrency:  data.pay_currency ?? null,
+      payAmount: data.pay_amount ?? null,
+      payCurrency: data.pay_currency ?? null,
     });
   } catch (err) {
     console.error("[NP] status exception:", err);
@@ -385,7 +353,6 @@ router.get("/nowpayments/status/:paymentId", async (req, res) => {
   }
 });
 
-// POST /nowpayments/webhook — IPN for incoming deposits (HMAC-SHA512 verified)
 router.post("/nowpayments/webhook", async (req, res) => {
   const ipnSecret = getIpnSecret();
   const sig = req.headers["x-nowpayments-sig"] as string | undefined;
@@ -418,7 +385,6 @@ router.post("/nowpayments/webhook", async (req, res) => {
   return res.status(200).json({ ok: true });
 });
 
-// POST /nowpayments/payout — Automatic withdrawal via NowPayments Payouts API
 router.post("/nowpayments/payout", async (req, res) => {
   const apiKey = getApiKey();
   if (!apiKey) return res.status(503).json({ error: "NowPayments not configured" });
@@ -427,17 +393,20 @@ router.post("/nowpayments/payout", async (req, res) => {
   if (!withdrawalId) return res.status(400).json({ error: "withdrawalId is required" });
 
   try {
-    const rows = await sbGet("withdrawals", `id=eq.${withdrawalId}&select=id,status,phone,country_code,net_amount&limit=1`);
-    if (!rows.length) return res.status(404).json({ error: "Withdrawal not found" });
-    const withdrawal = rows[0];
+    const [withdrawal] = await db
+      .select()
+      .from(withdrawals)
+      .where(eq(withdrawals.id, withdrawalId))
+      .limit(1);
 
+    if (!withdrawal) return res.status(404).json({ error: "Withdrawal not found" });
     if (withdrawal.status !== "pending") {
       return res.status(400).json({ error: `Withdrawal already ${withdrawal.status}` });
     }
 
-    const address  = withdrawal.phone;
-    const currency = (withdrawal.country_code ?? "").toLowerCase();
-    const amount   = Number(withdrawal.net_amount);
+    const address = withdrawal.phone;
+    const currency = (withdrawal.countryCode ?? "").toLowerCase();
+    const amount = Number(withdrawal.netAmount);
 
     if (!address) return res.status(400).json({ error: "Missing wallet address" });
     if (!currency) return res.status(400).json({ error: "Missing currency code" });
@@ -446,8 +415,8 @@ router.post("/nowpayments/payout", async (req, res) => {
     console.log(`[NP] Creating payout: ${amount} ${currency} → ${address.slice(0, 10)}... (id=${withdrawalId})`);
 
     const token = await getPayoutToken();
-
     const webhookUrl = getWebhookUrl("payout-webhook");
+
     const payoutBody: Record<string, unknown> = {
       withdrawals: [
         {
@@ -464,9 +433,9 @@ router.post("/nowpayments/payout", async (req, res) => {
     const r = await fetch(`${NP_API}/payout`, {
       method: "POST",
       headers: {
-        "x-api-key":      apiKey,
-        "Authorization":  `Bearer ${token}`,
-        "Content-Type":   "application/json",
+        "x-api-key": apiKey,
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(payoutBody),
     });
@@ -480,22 +449,20 @@ router.post("/nowpayments/payout", async (req, res) => {
     const data = (await r.json()) as { id?: string; batch_withdrawal_id?: string };
     const payoutId = data.id ?? data.batch_withdrawal_id ?? "unknown";
 
-    await sbUpdate("withdrawals", `id=eq.${withdrawalId}`, {
-      status:     "processing",
-      admin_note: `🚀 NowPayments payout submitted — batch ID: ${payoutId}`,
-      updated_at: new Date().toISOString(),
-    });
+    await db.update(withdrawals).set({
+      status: "processing",
+      adminNote: `🚀 NowPayments payout submitted — batch ID: ${payoutId}`,
+      updatedAt: new Date(),
+    }).where(eq(withdrawals.id, withdrawalId));
 
     console.log(`[NP] Payout submitted: batchId=${payoutId}`);
     return res.json({ success: true, payoutId });
-
   } catch (err) {
     console.error("[NP] payout exception:", err);
     return res.status(500).json({ error: String(err) });
   }
 });
 
-// GET /nowpayments/payout/:payoutId — Get payout batch status
 router.get("/nowpayments/payout/:payoutId", async (req, res) => {
   const apiKey = getApiKey();
   if (!apiKey) return res.status(503).json({ error: "Not configured" });
@@ -511,7 +478,6 @@ router.get("/nowpayments/payout/:payoutId", async (req, res) => {
   }
 });
 
-// POST /nowpayments/payout-webhook — IPN for outgoing payouts (HMAC-SHA512 verified)
 router.post("/nowpayments/payout-webhook", async (req, res) => {
   const ipnSecret = getIpnSecret();
   const sig = req.headers["x-nowpayments-sig"] as string | undefined;
@@ -527,7 +493,7 @@ router.post("/nowpayments/payout-webhook", async (req, res) => {
     }
   }
 
-  type PayoutItem = { id?: string; status?: string; unique_external_id?: string; };
+  type PayoutItem = { id?: string; status?: string; unique_external_id?: string };
   type PayoutWebhookPayload = {
     id?: string; batch_withdrawal_id?: string;
     status?: string; withdrawals?: PayoutItem[];
@@ -549,10 +515,6 @@ router.post("/nowpayments/payout-webhook", async (req, res) => {
         console.error("[NP] payout-webhook approveWithdrawal error:", err);
       }
     }
-  }
-
-  if (items.length === 0 && (batchStatus === "FINISHED" || batchStatus === "COMPLETE")) {
-    console.warn("[NP IPN payout] No withdrawal items in payload — cannot map to local withdrawal ID");
   }
 
   return res.status(200).json({ ok: true });

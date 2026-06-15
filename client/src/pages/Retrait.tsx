@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import { AlertTriangle, Wallet, ArrowUpRight, Clock } from "lucide-react";
@@ -55,53 +55,50 @@ const Retrait = () => {
 
   const loadData = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/connexion"); return; }
-
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-
-      const [walletsRes, profileRes, settingsRes, todayRes] = await Promise.all([
-        supabase.from("user_wallets").select("*").eq("user_id", user.id),
-        supabase.from("profiles").select("balance, deposit_balance, earnings_balance, referral_balance").eq("user_id", user.id).single(),
-        supabase.from("site_settings").select("key, value").in("key", [
-          "deposit_not_withdrawable", "withdrawal_amounts", "withdrawal_min",
-          "withdrawal_max", "withdrawal_fee_percent", "withdrawal_rules",
-          "max_withdrawals_per_day", "max_withdrawals_enabled",
-          "withdrawal_enabled", "withdrawal_days", "withdrawal_hour_start", "withdrawal_hour_end",
-        ]),
-        supabase.from("withdrawals").select("id").eq("user_id", user.id).gte("created_at", todayStart.toISOString()),
+      const [walletsData, profileData, settingsData, withdrawalData] = await Promise.all([
+        api.get("/wallets/my"),
+        api.get("/profiles/me"),
+        api.get("/site-settings"),
+        api.get("/withdrawals/my"),
       ]);
 
-      if (walletsRes.data) setWallets(walletsRes.data);
+      if (walletsData) setWallets(walletsData);
 
-      let dnw = true;
-      let wEnabled = true;
-      let wDays = [1,2,3,4,5,6,7];
-      let wHourStart = 0;
-      let wHourEnd = 24;
-      if (settingsRes.data) {
-        settingsRes.data.forEach(s => {
-          if (s.key === "deposit_not_withdrawable") dnw = s.value === "true";
-          if (s.key === "withdrawal_amounts" && s.value) setPresetAmounts(s.value.split(",").map(Number).filter(Boolean));
-          if (s.key === "withdrawal_min" && s.value) setMinAmount(Number(s.value));
-          if (s.key === "withdrawal_max" && s.value) setMaxAmount(Number(s.value));
-          if (s.key === "withdrawal_fee_percent" && s.value) setFeePercent(Number(s.value));
-          if (s.key === "max_withdrawals_per_day" && s.value) setMaxWithdrawalsPerDay(Number(s.value));
-          if (s.key === "max_withdrawals_enabled") setMaxWithdrawalsEnabled(s.value !== "false");
-          if (s.key === "withdrawal_enabled") wEnabled = s.value !== "false";
-          if (s.key === "withdrawal_days" && s.value) wDays = s.value.split(",").map(Number).filter(Boolean);
-          if (s.key === "withdrawal_hour_start" && s.value) wHourStart = Number(s.value);
-          if (s.key === "withdrawal_hour_end" && s.value) wHourEnd = Number(s.value);
-          if (s.key === "withdrawal_rules" && s.value) {
-            const parsed = s.value
-              .replace("{min}", String(Number(settingsRes.data?.find(x => x.key === "withdrawal_min")?.value || 800).toLocaleString()))
-              .replace("{max}", String(Number(settingsRes.data?.find(x => x.key === "withdrawal_max")?.value || 500000).toLocaleString()))
-              .replace("{fee}", settingsRes.data?.find(x => x.key === "withdrawal_fee_percent")?.value || "10");
-            setRules(parsed.split("|"));
-          }
-        });
+      const sArr: any[] = settingsData || [];
+      const get = (k: string) => sArr.find((s: any) => s.key === k)?.value;
+
+      let dnw = get("deposit_not_withdrawable") === "true";
+      let wEnabled = get("withdrawal_enabled") !== "false";
+      const wAmounts = get("withdrawal_amounts");
+      const wMin = get("withdrawal_min");
+      const wMax = get("withdrawal_max");
+      const wFee = get("withdrawal_fee_percent");
+      const wMaxPD = get("max_withdrawals_per_day");
+      const wMaxEnabled = get("max_withdrawals_enabled") !== "false";
+      const wDaysStr = get("withdrawal_days");
+      const wHourStartStr = get("withdrawal_hour_start");
+      const wHourEndStr = get("withdrawal_hour_end");
+      const wRules = get("withdrawal_rules");
+
+      if (wAmounts) setPresetAmounts(wAmounts.split(",").map(Number).filter(Boolean));
+      if (wMin) setMinAmount(Number(wMin));
+      if (wMax) setMaxAmount(Number(wMax));
+      if (wFee) setFeePercent(Number(wFee));
+      if (wMaxPD) setMaxWithdrawalsPerDay(Number(wMaxPD));
+      setMaxWithdrawalsEnabled(wMaxEnabled);
+
+      let wDays = wDaysStr ? wDaysStr.split(",").map(Number).filter(Boolean) : [1,2,3,4,5,6,7];
+      let wHourStart = wHourStartStr ? Number(wHourStartStr) : 0;
+      let wHourEnd = wHourEndStr ? Number(wHourEndStr) : 24;
+
+      if (wRules) {
+        const parsed = wRules
+          .replace("{min}", String(Number(wMin || 800).toLocaleString()))
+          .replace("{max}", String(Number(wMax || 500000).toLocaleString()))
+          .replace("{fee}", wFee || "10");
+        setRules(parsed.split("|"));
       }
+
       setDepositNotWithdrawable(dnw);
       setWithdrawalEnabled(wEnabled);
       setWithdrawalDays(wDays);
@@ -118,8 +115,7 @@ const Retrait = () => {
         setScheduleMessage("Withdrawals are temporarily disabled.");
       } else if (!wDays.includes(dayOfWeek)) {
         setIsWithinSchedule(false);
-        const allowedDayNames = wDays.map(d => dayNames[d]).join(", ");
-        setScheduleMessage(`Withdrawals are available only on: ${allowedDayNames}.`);
+        setScheduleMessage(`Withdrawals are available only on: ${wDays.map((d: number) => dayNames[d]).join(", ")}.`);
       } else if (currentHour < wHourStart || currentHour >= wHourEnd) {
         setIsWithinSchedule(false);
         setScheduleMessage(`Withdrawals are available only from ${wHourStart}:00 to ${wHourEnd}:00.`);
@@ -128,14 +124,20 @@ const Retrait = () => {
         setScheduleMessage("");
       }
 
-      if (todayRes.data) setTodayWithdrawals(todayRes.data.length);
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayWithdrawalsArr = (withdrawalData || []).filter((w: any) => {
+        const d = new Date(w.createdAt ?? w.created_at);
+        return d >= todayStart;
+      });
+      setTodayWithdrawals(todayWithdrawalsArr.length);
 
-      if (profileRes.data) {
-        const eb = profileRes.data.earnings_balance || 0;
-        const rb = profileRes.data.referral_balance || 0;
+      if (profileData) {
+        const eb = profileData.earningsBalance ?? profileData.earnings_balance ?? 0;
+        const rb = profileData.referralBalance ?? profileData.referral_balance ?? 0;
         setEarningsBalance(eb);
         setReferralBalance(rb);
-        setWithdrawableBalance(dnw ? eb + rb : profileRes.data.balance || 0);
+        setWithdrawableBalance(dnw ? eb + rb : (profileData.balance || 0));
       }
     } catch (err) {
       console.error("Load error:", err);
@@ -161,34 +163,18 @@ const Retrait = () => {
     if (numAmount > withdrawableBalance) { showError("Error", "Insufficient withdrawable balance"); return; }
 
     setSubmitting(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
     const wallet = wallets.find(w => w.id === selectedWallet);
     if (!wallet) return;
 
-    const { error } = await supabase.from("withdrawals").insert({
-      user_id: user.id, wallet_id: wallet.id, amount: numAmount,
-      fee_amount: feeAmount, net_amount: netAmount,
-      phone: wallet.phone, country_code: wallet.country_code, network: wallet.network,
-    });
-
-    if (error) {
-      showError("Error", "Withdrawal request failed");
-    } else {
-      const { data: pointSetting } = await supabase.from("site_settings")
-        .select("value").eq("key", "points_per_withdrawal").single();
-      const withdrawalPoints = Number(pointSetting?.value) || 0;
-      if (withdrawalPoints > 0) {
-        const { data: freshProfile } = await supabase.from("profiles")
-          .select("gift_points").eq("user_id", user.id).single();
-        if (freshProfile) {
-          await supabase.from("profiles").update({
-            gift_points: ((freshProfile as any).gift_points || 0) + withdrawalPoints,
-          }).eq("user_id", user.id);
-        }
-      }
+    try {
+      await api.post("/withdrawals", {
+        walletId: wallet.id, amount: numAmount,
+        feeAmount, netAmount,
+        phone: wallet.phone, countryCode: wallet.country_code, network: wallet.network,
+      });
       setShowSuccess(true);
+    } catch (err: any) {
+      showError("Error", err?.message || "Withdrawal request failed");
     }
     setSubmitting(false);
   };

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import { Search, Clock, CheckCircle2, XCircle, CreditCard, Image as ImageIcon, X, ZoomIn } from "lucide-react";
@@ -37,75 +37,48 @@ const AdminRecharges = () => {
 
   useEffect(() => {
     checkAdminAndLoad();
-    const channel = supabase
-      .channel("admin-recharges")
-      .on("postgres_changes", { event: "*", schema: "public", table: "recharges" }, () => loadRecharges())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const interval = setInterval(loadRecharges, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const checkAdminAndLoad = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/connexion"); return; }
-    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
-    const { data: isMod } = await supabase.rpc("has_role", { _user_id: user.id, _role: "moderator" });
-    if (!isAdmin && !isMod) { showError("Access denied", "You do not have administrator rights"); navigate("/"); return; }
-    if (isMod && !isAdmin) {
-      const { data: hasPerm } = await supabase.rpc("has_permission", { _user_id: user.id, _permission: "manage_deposits" });
-      if (!hasPerm) { showError("Access denied", "You do not have permission to manage deposits"); navigate("/"); return; }
+    try {
+      const adminCheck = await api.get("/admin/check");
+      if (!adminCheck.isAdmin && !adminCheck.isModerator) {
+        showError("Access denied", "You do not have administrator rights"); navigate("/"); return;
+      }
+      loadRecharges();
+    } catch {
+      navigate("/connexion");
     }
-    loadRecharges();
   };
 
   const loadRecharges = async () => {
-    const { data } = await supabase.from("recharges").select("*").order("created_at", { ascending: false });
-    if (data) {
-      setRecharges(data);
-      const userIds = [...new Set(data.map(d => d.user_id))];
-      if (userIds.length > 0) {
-        const { data: profilesData } = await supabase.from("profiles").select("user_id, full_name, phone, balance").in("user_id", userIds);
-        if (profilesData) {
-          const map: Record<string, ProfileInfo> = {};
-          profilesData.forEach(p => { map[p.user_id] = p; });
-          setProfiles(map);
-        }
+    try {
+      const data = await api.get("/admin/recharges");
+      if (data) {
+        setRecharges(data);
+        const map: Record<string, ProfileInfo> = {};
+        data.forEach((r: any) => {
+          if (r.profile) map[r.user_id] = r.profile;
+        });
+        setProfiles(map);
       }
-    }
+    } catch {}
     setLoading(false);
   };
 
   const handleAction = async (id: string, status: "approved" | "rejected", userId: string, amount: number) => {
-    const { error } = await supabase.from("recharges").update({ status }).eq("id", id);
-    if (error) { showError("Error", "Error updating record"); return; }
-
-    if (status === "approved") {
-      const { data: profile } = await supabase.from("profiles")
-        .select("balance, deposit_balance, referral_balance, referred_by, gift_points")
-        .eq("user_id", userId).single();
-      if (profile) {
-        const { data: pointSettings } = await supabase.from("site_settings")
-          .select("key, value").in("key", ["points_per_deposit_type", "points_per_deposit_value"]);
-        const getPS = (k: string) => pointSettings?.find((s: any) => s.key === k)?.value || "0";
-        const depositPointType = getPS("points_per_deposit_type")?.trim().toLowerCase();
-        const depositPointValue = Number(getPS("points_per_deposit_value")) || 0;
-        let earnedPoints = 0;
-        if (depositPointValue > 0) {
-          earnedPoints = depositPointType === "percent" ? Math.floor(amount * depositPointValue / 100) : depositPointValue;
-        }
-
-        await supabase.from("profiles").update({
-          balance: (profile.balance || 0) + amount,
-          deposit_balance: (profile.deposit_balance || 0) + amount,
-          ...(earnedPoints > 0 ? { gift_points: (profile.gift_points || 0) + earnedPoints } : {}),
-        }).eq("user_id", userId);
-      }
+    try {
+      await api.patch(`/admin/recharges/${id}`, { status, userId, amount });
+      showSuccess(
+        status === "approved" ? "Deposit approved" : "Deposit rejected",
+        status === "approved" ? "Deposit validated and balance credited ✅" : "Deposit rejected ❌"
+      );
+      loadRecharges();
+    } catch {
+      showError("Error", "Error updating record");
     }
-
-    showSuccess(
-      status === "approved" ? "Deposit approved" : "Deposit rejected",
-      status === "approved" ? "Deposit validated and balance credited ✅" : "Deposit rejected ❌"
-    );
-    loadRecharges();
   };
 
   const counts = {

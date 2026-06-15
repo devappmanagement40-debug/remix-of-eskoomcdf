@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Trophy, Zap } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import BottomNav from "@/components/BottomNav";
@@ -36,30 +36,29 @@ const Loterie = () => {
 
   const loadData = async () => {
     try {
-      const [pz, ss] = await Promise.all([
-        supabase.from("wheel_prizes").select("*").eq("is_active", true).order("sort_order"),
-        supabase.from("site_settings").select("key, value").eq("category", "wheel"),
+      const [prizes, settings, profile, recentWinners] = await Promise.allSettled([
+        api.get("/wheel-prizes"),
+        api.get("/site-settings"),
+        api.get("/profiles/me"),
+        api.get("/wheel/recent-winners?limit=30"),
       ]);
-      if (pz.data) setPrizes(pz.data as WheelPrize[]);
-      const settingsMap: Record<string, string> = {};
-      (ss.data || []).forEach((s: WheelSetting) => { if (s.value) settingsMap[s.key] = s.value; });
-      setSettings(settingsMap);
-
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const [spinRes, profileRes] = await Promise.all([
-          supabase.from("wheel_spins").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(20),
-          supabase.from("profiles").select("spins_balance").eq("user_id", user.id).single(),
-        ]);
-        if (spinRes.data) {
-          setSpins(spinRes.data as SpinRecord[]);
-          const total = spinRes.data.filter(s => s.prize_type === "cash").reduce((sum, s) => sum + Number(s.prize_value), 0);
+      if (prizes.status === "fulfilled") setPrizes(prizes.value as WheelPrize[]);
+      if (settings.status === "fulfilled") {
+        const settingsMap: Record<string, string> = {};
+        (settings.value || []).forEach((s: WheelSetting) => { if (s.value) settingsMap[s.key] = s.value; });
+        setSettings(settingsMap);
+      }
+      if (profile.status === "fulfilled" && profile.value) {
+        setSpinsLeft((profile.value as any).spinsBalance ?? (profile.value as any).spins_balance ?? 0);
+        const mySpins = await api.get("/wheel/my-spins").catch(() => []);
+        if (mySpins?.length) {
+          setSpins(mySpins as SpinRecord[]);
+          const total = mySpins.filter((s: any) => s.prizeType === "cash" || s.prize_type === "cash")
+            .reduce((sum: number, s: any) => sum + Number(s.prizeValue ?? s.prize_value ?? 0), 0);
           setTotalWon(total);
         }
-        setSpinsLeft((profileRes.data as any)?.spins_balance || 0);
       }
-      const { data: globalData } = await supabase.rpc("get_recent_winners", { lim: 30 });
-      if (globalData) setGlobalSpins(globalData);
+      if (recentWinners.status === "fulfilled") setGlobalSpins(recentWinners.value || []);
     } catch (err) {
       console.error("Loterie load error:", err);
     } finally {
@@ -81,15 +80,17 @@ const Loterie = () => {
     setSpinning(true);
 
     try {
-      const res = await supabase.functions.invoke("spin-wheel", {});
+      const res = await api.post("/wheel/spin", {});
 
-      if (res.error || res.data?.error) {
-        showError("Error", res.data?.error || "An error occurred");
+      if (!res || res.error) {
+        showError("Error", res?.error || "An error occurred");
         setSpinning(false);
         return;
       }
 
-      const { winIndex, prize, spins_left } = res.data;
+      const prize = res;
+      const winIndex = segments.findIndex((s: any) => s.id === prize.prizeId);
+      const spins_left = (spinsLeft - 1);
       setSpinsLeft(spins_left);
 
       // Animate

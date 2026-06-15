@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 
 type Tab = { label: string; content: string; url?: string };
 
@@ -32,12 +32,10 @@ const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacem
   useEffect(() => {
     if (open) {
       Promise.all([
-        supabase.from("popup_messages").select("*").eq("trigger_key", triggerKey).eq("is_active", true).single(),
-        supabase.from("site_settings").select("key, value").in("key", [
-          "official_whatsapp_link",
-          "official_whatsapp_group",
-        ]),
-      ]).then(([{ data: msg }, { data: settings }]) => {
+        api.get(`/popup-messages?triggerKey=${encodeURIComponent(triggerKey)}`),
+        api.get("/site-settings"),
+      ]).then(([msgs, settings]) => {
+        const msg = Array.isArray(msgs) ? msgs[0] : null;
         if (msg) {
           const urlMap: Record<string, string> = {};
           (settings || []).forEach((s: any) => { if (s.value) urlMap[s.key] = s.value; });
@@ -55,7 +53,7 @@ const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacem
           setData({ ...(msg as unknown as PopupMessage), tabs: enrichedTabs });
           requestAnimationFrame(() => setVisible(true));
         }
-      });
+      }).catch(() => {});
       return;
     } else {
       setVisible(false);

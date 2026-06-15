@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import {
   Plus, X, Save, Edit2, Trash2, CheckCircle2, XCircle, Clock,
   ImageIcon, UploadIcon, Pencil
@@ -35,12 +35,12 @@ const AdminWheelTab = ({ settings, reload, showSuccess, showError, logAction, ad
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
-    const [pz, sp] = await Promise.all([
-      supabase.from("wheel_prizes").select("*").order("sort_order"),
-      supabase.from("wheel_spins").select("*").order("created_at", { ascending: false }).limit(100),
+    const [prizes, spins] = await Promise.all([
+      api.get("/admin/wheel-prizes").catch(() => []),
+      api.get("/admin/wheel-spins").catch(() => []),
     ]);
-    if (pz.data) setPrizes(pz.data as WheelPrize[]);
-    if (sp.data) setSpins(sp.data as WheelSpin[]);
+    setPrizes((prizes || []) as WheelPrize[]);
+    setSpins((spins || []) as WheelSpin[]);
     setLoading(false);
   };
 
@@ -104,8 +104,8 @@ const PrizesSection = ({ prizes, reload, showSuccess, showError }: any) => {
       vip_level: form.prize_type === "vip" ? (Number(form.vip_level) || 1) : null,
       probability: Number(form.probability) || 10,
     };
-    if (editing) await supabase.from("wheel_prizes").update(payload).eq("id", editing.id);
-    else await supabase.from("wheel_prizes").insert({ ...payload, sort_order: prizes.length });
+    if (editing) await api.patch(`/admin/wheel-prizes/${editing.id}`, payload).catch(() => {});
+    else await api.post("/admin/wheel-prizes", { ...payload, sortOrder: prizes.length }).catch(() => {});
     showSuccess(editing ? "Gain modifié ✅" : "Gain ajouté ✅", "");
     setShowForm(false); reload();
   };
@@ -171,12 +171,12 @@ const PrizesSection = ({ prizes, reload, showSuccess, showError }: any) => {
               <p className="text-xs text-muted-foreground mt-0.5">Probabilité : {p.probability}%</p>
             </div>
             <div className="flex gap-1.5">
-              <button onClick={async () => { await supabase.from("wheel_prizes").update({ is_active: !p.is_active }).eq("id", p.id); reload(); }}
+              <button onClick={async () => { await api.patch(`/admin/wheel-prizes/${p.id}`, { isActive: !p.is_active }).catch(() => {}); reload(); }}
                 className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{p.is_active ? "ON" : "OFF"}</button>
-              <button onClick={async () => { await supabase.from("wheel_prizes").update({ is_winnable: !(p as any).is_winnable }).eq("id", p.id); reload(); }}
+              <button onClick={async () => { await api.patch(`/admin/wheel-prizes/${p.id}`, { isWinnable: !(p as any).is_winnable }).catch(() => {}); reload(); }}
                 className={`h-7 px-1.5 rounded-lg flex items-center justify-center text-[9px] font-bold ${(p as any).is_winnable !== false ? "bg-warning/20 text-warning" : "bg-destructive/20 text-destructive"}`}>{(p as any).is_winnable !== false ? "WIN" : "NO WIN"}</button>
               <button onClick={() => openForm(p)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
-              <button onClick={async () => { await supabase.from("wheel_prizes").delete().eq("id", p.id); showSuccess("Supprimé", ""); reload(); }}
+              <button onClick={async () => { await api.delete(`/admin/wheel-prizes/${p.id}`).catch(() => {}); showSuccess("Supprimé", ""); reload(); }}
                 className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
             </div>
           </div>
@@ -194,12 +194,11 @@ const WinnersSection = ({ spins, reload }: { spins: WheelSpin[]; reload: () => v
   useEffect(() => {
     const userIds: string[] = [...new Set(spins.map(s => s.user_id))] as string[];
     if (userIds.length === 0) return;
-    supabase.from("profiles").select("user_id, full_name, phone").in("user_id", userIds)
-      .then(({ data }) => {
-        const map: Record<string, any> = {};
-        (data || []).forEach((p: any) => { map[p.user_id] = p; });
-        setProfiles(map);
-      });
+    api.get(`/admin/profiles-by-ids?ids=${userIds.join(",")}`).then((data: any) => {
+      const map: Record<string, any> = {};
+      (data || []).forEach((p: any) => { map[p.user_id] = p; });
+      setProfiles(map);
+    }).catch(() => {});
   }, [spins]);
 
   const handleRefresh = async () => {
@@ -219,7 +218,7 @@ const WinnersSection = ({ spins, reload }: { spins: WheelSpin[]; reload: () => v
     if (!confirm("⚠️ Êtes-vous sûr de vouloir supprimer TOUS les gagnants ? Cette action est irréversible.")) return;
     setResetting(true);
     try {
-      await supabase.from("wheel_spins").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+      await api.delete("/admin/wheel-spins/all").catch(() => {});
       reload();
     } finally {
       setResetting(false);
@@ -312,7 +311,7 @@ const SettingsSection = ({ settings, financeSettings, reload, showSuccess }: any
 
   const saveAll = async () => {
     for (const [key, value] of Object.entries(edits)) {
-      await supabase.from("site_settings").update({ value }).eq("key", key);
+      await api.patch("/admin/site-settings", { key, value, category: "wheel" }).catch(() => {});
     }
     showSuccess("Paramètres roue sauvegardés ✅", "");
     setEdits({});
@@ -369,33 +368,15 @@ const VipSpinsSection = ({ spins, reload, showSuccess, showError, logAction, adm
   const loadProfiles = async () => {
     const userIds: string[] = [...new Set(spins.map((s: WheelSpin) => s.user_id))] as string[];
     if (userIds.length === 0) return;
-    const { data } = await supabase.from("profiles").select("user_id, full_name, phone, vip_level").in("user_id", userIds);
+    const data = await api.get(`/admin/profiles-by-ids?ids=${userIds.join(",")}`).catch(() => []);
     const map: Record<string, any> = {};
     (data || []).forEach((p: any) => { map[p.user_id] = p; });
     setProfiles(map);
   };
 
   const handleAction = async (spin: WheelSpin, action: "vip_approved" | "vip_rejected") => {
-    await supabase.from("wheel_spins").update({ status: action }).eq("id", spin.id);
-    
-    if (action === "vip_approved" && spin.vip_level) {
-      // Update user's VIP level
-      const profile = profiles[spin.user_id];
-      const oldLevel = profile?.vip_level || 0;
-      await supabase.from("profiles").update({ vip_level: spin.vip_level }).eq("user_id", spin.user_id);
-      // Log VIP history
-      await supabase.from("vip_history").insert({
-        user_id: spin.user_id,
-        old_level: oldLevel,
-        new_level: spin.vip_level,
-        reason: `Gain roue de la fortune - ${spin.prize_label}`,
-        changed_by: adminId,
-      });
-      logAction("vip_wheel_approved", "wheel_spin", spin.id, `VIP${spin.vip_level} pour ${profile?.full_name || spin.user_id}`);
-    } else {
-      logAction("vip_wheel_rejected", "wheel_spin", spin.id, spin.prize_label);
-    }
-    
+    await api.patch(`/admin/wheel-spins/${spin.id}`, { status: action, adminId }).catch(() => {});
+    logAction(action === "vip_approved" ? "vip_wheel_approved" : "vip_wheel_rejected", "wheel_spin", spin.id, spin.prize_label);
     showSuccess(action === "vip_approved" ? "VIP activé ✅" : "VIP refusé", "");
     reload();
   };
@@ -479,7 +460,7 @@ const ImagesSection = ({ settings, reload, showSuccess, showError }: any) => {
       const data = await res.json();
       if (!res.ok) { showError("Erreur upload", data.error || "Échec"); setUploading(null); return; }
       const publicUrl = `${data.url}?t=${Date.now()}`;
-      await supabase.from("site_settings").update({ value: publicUrl }).eq("key", key);
+      await api.patch("/admin/site-settings", { key, value: publicUrl, category: "wheel" }).catch(() => {});
       showSuccess("Image uploadée ✅", "");
       reload();
     } catch (err: any) {
@@ -490,7 +471,7 @@ const ImagesSection = ({ settings, reload, showSuccess, showError }: any) => {
   };
 
   const handleRemove = async (key: string) => {
-    await supabase.from("site_settings").update({ value: "" }).eq("key", key);
+    await api.patch("/admin/site-settings", { key, value: "", category: "wheel" }).catch(() => {});
     showSuccess("Image supprimée", "");
     reload();
   };

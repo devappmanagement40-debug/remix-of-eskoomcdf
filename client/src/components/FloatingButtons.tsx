@@ -1,7 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-
+import { api } from "@/lib/api";
 
 const FloatingButtons = () => {
   const navigate = useNavigate();
@@ -12,12 +11,12 @@ const FloatingButtons = () => {
   const [supportIconUrl, setSupportIconUrl] = useState("");
 
   useEffect(() => {
-    supabase.from("site_settings").select("key, value").in("key", ["wheel_icon_url", "support_icon_url"]).then(({ data }) => {
+    api.get("/site-settings").then((data: any[]) => {
       (data || []).forEach((s: any) => {
         if (s.key === "wheel_icon_url" && s.value) setWheelIconUrl(s.value);
         if (s.key === "support_icon_url" && s.value) setSupportIconUrl(s.value);
       });
-    });
+    }).catch(() => {});
   }, []);
 
   const getClientPos = (e: React.TouchEvent | React.MouseEvent) => {

@@ -2,7 +2,7 @@ import { Users, DollarSign, Copy, Check, MessageCircle, Phone, Calendar, CircleD
 import { useState, useEffect } from "react";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import { safeClipboardWrite } from "@/lib/clipboard";
 import { Badge } from "@/components/ui/badge";
@@ -49,92 +49,42 @@ const Team = () => {
 
   const fetchTeam = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
-      if (!user) return;
+      const data = await api.get("/user/team");
+      if (!data) return;
 
-      const { data: myProfile } = await supabase
-        .from("profiles")
-        .select("id, referral_code")
-        .eq("user_id", user.id)
-        .single();
+      setReferralCode(data.referralCode || "");
 
-      if (!myProfile) return;
-      setReferralCode(myProfile.referral_code || "");
+      const bRaw = data.l1 || [];
+      const cRaw = data.l2 || [];
+      const dRaw = data.l3 || [];
 
-      const { data: levelB } = await supabase
-        .from("profiles")
-        .select("id, full_name, phone, country_code, balance, created_at, is_suspended, user_id")
-        .eq("referred_by", myProfile.id);
-      const bRaw = levelB || [];
-
-      const bIds = bRaw.map((m) => m.id);
-      let cRaw: any[] = [];
-      if (bIds.length > 0) {
-        const { data: levelC } = await supabase
-          .from("profiles")
-          .select("id, full_name, phone, country_code, balance, created_at, is_suspended, user_id")
-          .in("referred_by", bIds);
-        cRaw = levelC || [];
-      }
-
-      const cIds = cRaw.map((m) => m.id);
-      let dRaw: any[] = [];
-      if (cIds.length > 0) {
-        const { data: levelD } = await supabase
-          .from("profiles")
-          .select("id, full_name, phone, country_code, balance, created_at, is_suspended, user_id")
-          .in("referred_by", cIds);
-        dRaw = levelD || [];
-      }
-
-      const allMembers = [...bRaw, ...cRaw, ...dRaw];
-      const allUserIds = allMembers.map((m) => m.user_id).filter(Boolean);
-
-      let investedUserIds = new Set<string>();
-      if (allUserIds.length > 0) {
-        const { data: products } = await supabase
-          .from("user_products")
-          .select("user_id")
-          .in("user_id", allUserIds);
-        investedUserIds = new Set((products || []).map((p: any) => p.user_id));
-      }
-
-      const enrichMembers = (members: any[], rate: number): TeamMember[] =>
-        members.map((m) => ({
-          ...m,
-          hasInvested: investedUserIds.has(m.user_id),
-          bonusEarned: 0,
-        }));
-
-      let bonusMap = new Map<string, number>();
-      if (allUserIds.length > 0) {
-        const { data: userProds } = await supabase
-          .from("user_products")
-          .select("user_id, product_id, products(price)")
-          .in("user_id", allUserIds);
-        if (userProds) {
-          const bUserIds = new Set(bRaw.map(m => m.user_id));
-          const cUserIds = new Set(cRaw.map(m => m.user_id));
-          const dUserIds = new Set(dRaw.map(m => m.user_id));
-          for (const up of userProds) {
-            const price = Number((up as any).products?.price) || 0;
-            const rate = bUserIds.has(up.user_id) ? 0.10 : cUserIds.has(up.user_id) ? 0.05 : dUserIds.has(up.user_id) ? 0.01 : 0;
-            bonusMap.set(up.user_id, (bonusMap.get(up.user_id) || 0) + price * rate);
-          }
-        }
-      }
-
-      const buildMembers = (members: any[]): TeamMember[] =>
-        members.map((m) => ({
-          ...m,
-          hasInvested: investedUserIds.has(m.user_id),
-          bonusEarned: bonusMap.get(m.user_id) || 0,
-        }));
-
-      const bMembers = buildMembers(bRaw);
-      const cMembers = buildMembers(cRaw);
-      const dMembers = buildMembers(dRaw);
+      const bMembers: TeamMember[] = bRaw.map((m: any) => ({
+        ...m,
+        full_name: m.fullName ?? m.full_name ?? null,
+        country_code: m.countryCode ?? m.country_code ?? null,
+        is_suspended: m.isSuspended ?? m.is_suspended ?? null,
+        user_id: m.userId ?? m.user_id,
+        hasInvested: m.hasInvested ?? false,
+        bonusEarned: m.bonusEarned ?? 0,
+      }));
+      const cMembers: TeamMember[] = cRaw.map((m: any) => ({
+        ...m,
+        full_name: m.fullName ?? m.full_name ?? null,
+        country_code: m.countryCode ?? m.country_code ?? null,
+        is_suspended: m.isSuspended ?? m.is_suspended ?? null,
+        user_id: m.userId ?? m.user_id,
+        hasInvested: m.hasInvested ?? false,
+        bonusEarned: m.bonusEarned ?? 0,
+      }));
+      const dMembers: TeamMember[] = dRaw.map((m: any) => ({
+        ...m,
+        full_name: m.fullName ?? m.full_name ?? null,
+        country_code: m.countryCode ?? m.country_code ?? null,
+        is_suspended: m.isSuspended ?? m.is_suspended ?? null,
+        user_id: m.userId ?? m.user_id,
+        hasInvested: m.hasInvested ?? false,
+        bonusEarned: m.bonusEarned ?? 0,
+      }));
 
       setLevels([
         { label: "E", color: "from-cyan-400 to-teal-400", members: bMembers, revenue: bMembers.reduce((s, m) => s + m.bonusEarned, 0) },
@@ -188,7 +138,6 @@ const Team = () => {
     return new Date(d).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric", timeZone: "America/Port-au-Prince" });
   };
 
-  // If a level is expanded, show member list view
   if (expandedLevel) {
     const level = levels.find((l) => l.label === expandedLevel)!;
     return (
@@ -257,7 +206,6 @@ const Team = () => {
     );
   }
 
-  // Main view
   return (
     <div className="min-h-screen bg-background pb-20">
       <PageHeader title="My Team" showBack />
@@ -292,7 +240,6 @@ const Team = () => {
           </div>
         )}
 
-        {/* Stats cards */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-card border border-border rounded-xl p-5 flex flex-col items-center">
             <div className="w-14 h-14 rounded-full bg-amber-500/20 flex items-center justify-center mb-3">
@@ -310,7 +257,6 @@ const Team = () => {
           </div>
         </div>
 
-        {/* Level cards */}
         {levels.map((level) => (
           <button
             key={level.label}

@@ -3,7 +3,7 @@ import { History, ArrowDownLeft, ArrowUpRight, ShoppingBag, TrendingUp, Gift, Us
 import { safeClipboardWrite } from "@/lib/clipboard";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 
 type TabKey = "tous" | "depots" | "retraits" | "achats" | "gains" | "parrainage" | "points";
 
@@ -60,16 +60,12 @@ const Historique = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const [depositsRes, withdrawalsRes, purchasesRes, exchangesRes, commissionsRes] = await Promise.all([
-          supabase.from("recharges").select("id, amount, status, created_at, payment_method, phone, country_code, transaction_ref").eq("user_id", user.id).order("created_at", { ascending: false }),
-          supabase.from("withdrawals").select("id, amount, net_amount, fee_amount, status, created_at, network, phone, country_code").eq("user_id", user.id).order("created_at", { ascending: false }),
-          supabase.from("user_products").select("id, purchased_at, total_collected, products(name, price, daily_revenue, cycles)").eq("user_id", user.id).order("purchased_at", { ascending: false }),
-          supabase.from("point_exchanges").select("id, points_spent, money_credited, reward_name, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
-          supabase.from("referral_commissions").select("id, product_price, commission_rate, commission_amount, level, created_at").eq("beneficiary_id", user.id).order("created_at", { ascending: false }),
-        ]);
+        const history = await api.get("/user/history");
+        const depositsRes = { data: history.deposits };
+        const withdrawalsRes = { data: history.withdrawals };
+        const purchasesRes = { data: history.purchases };
+        const exchangesRes = { data: history.exchanges };
+        const commissionsRes = { data: history.commissions };
 
         const ops: Operation[] = [];
 
@@ -192,15 +188,8 @@ const Historique = () => {
 
     load();
 
-    const channel = supabase
-      .channel("history-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "recharges" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "withdrawals" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "user_products" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "referral_commissions" }, () => load())
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+    const interval = setInterval(() => load(), 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const filtered = activeTab === "tous" ? operations : operations.filter((o) => o.type === activeTab);

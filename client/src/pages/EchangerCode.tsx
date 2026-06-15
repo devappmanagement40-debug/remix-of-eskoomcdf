@@ -3,7 +3,7 @@ import { useActionPopup } from "@/components/ActionPopupProvider";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 
 const EchangerCode = () => {
   const [code, setCode] = useState("");
@@ -19,77 +19,12 @@ const EchangerCode = () => {
 
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { showError("Error", "You must be logged in"); return; }
-
-      // Find the code
-      const { data: giftCode } = await supabase
-        .from("gift_codes")
-        .select("*")
-        .eq("code", trimmed)
-        .eq("is_active", true)
-        .single();
-
-      if (!giftCode) {
-        showError("Invalid code", "This code is invalid or has already been deactivated");
-        return;
-      }
-
-      // Check expiration
-      if ((giftCode as any).expires_at && new Date((giftCode as any).expires_at) < new Date()) {
-        showError("Expired code", "This code has expired and can no longer be used");
-        return;
-      }
-
-      // Check max uses
-      if ((giftCode as any).used_count >= (giftCode as any).max_uses) {
-        showError("Code exhausted", "This code has reached its maximum number of uses");
-        return;
-      }
-
-      // Check if user already used this code
-      const { count } = await supabase
-        .from("gift_code_uses")
-        .select("*", { count: "exact", head: true })
-        .eq("code_id", giftCode.id)
-        .eq("user_id", user.id);
-
-      if ((count || 0) > 0) {
-        showError("Already used", "You have already used this code");
-        return;
-      }
-
-      // Credit points to user
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("gift_points")
-        .eq("user_id", user.id)
-        .single();
-
-      const currentPoints = (profile as any)?.gift_points || 0;
-      const pointsValue = (giftCode as any).points_value;
-
-      await supabase.from("profiles").update({
-        gift_points: currentPoints + pointsValue,
-      } as any).eq("user_id", user.id);
-
-      // Record usage
-      await supabase.from("gift_code_uses").insert({
-        code_id: giftCode.id,
-        user_id: user.id,
-        points_awarded: pointsValue,
-      } as any);
-
-      // Increment used_count
-      await supabase.from("gift_codes").update({
-        used_count: (giftCode as any).used_count + 1,
-      } as any).eq("id", giftCode.id);
-
-      showSuccess("Code redeemed successfully ✅", `You received ${pointsValue} GE (GE Currency)!`);
+      const result = await api.post("/gift-codes/redeem", { code: trimmed });
+      showSuccess("Code redeemed successfully ✅", `You received ${result.pointsAwarded} GE (GE Currency)!`);
       setCode("");
-    } catch (err) {
-      console.error("Exchange code error:", err);
-      showError("Error", "An error occurred while redeeming the code");
+    } catch (err: any) {
+      const msg = err?.message || "An error occurred while redeeming the code";
+      showError("Error", msg);
     } finally {
       setLoading(false);
     }

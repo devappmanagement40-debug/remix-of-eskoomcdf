@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import PageHeader from "@/components/PageHeader";
 import CountryPicker from "@/components/CountryPicker";
-import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PremiumModal from "@/components/PremiumModal";
 import { usePhoneValidation } from "@/hooks/usePhoneValidation";
@@ -33,12 +32,9 @@ const Login = () => {
     let isAdminPhone = false;
 
     try {
-      const { data: setting } = await supabase
-        .from("site_settings")
-        .select("value")
-        .eq("key", "admin_phones")
-        .maybeSingle();
-
+      const res = await fetch("/api/site-settings");
+      const settings: { key: string; value: string }[] = res.ok ? await res.json() : [];
+      const setting = settings.find(s => s.key === "admin_phones");
       const adminPhones = setting?.value ? JSON.parse(setting.value) : [];
       const normalizedAdminPhones = adminPhones.map((value: string) => value.replace(/\D/g, ""));
       isAdminPhone = normalizedAdminPhones.includes(cleanPhone);
@@ -68,18 +64,9 @@ const Login = () => {
         return;
       }
 
-      await supabase.auth.setSession({
-        access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token,
-      });
+      localStorage.setItem("auth_token", data.token);
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name, phone")
-        .eq("user_id", data.user.id)
-        .single();
-
-      setUserName(profile?.full_name || profile?.phone || phone);
+      setUserName(data.profile?.fullName || data.profile?.full_name || data.profile?.phone || phone);
       setShowWelcome(true);
     } catch {
       showError(t.common.error, t.login.errorConnection);

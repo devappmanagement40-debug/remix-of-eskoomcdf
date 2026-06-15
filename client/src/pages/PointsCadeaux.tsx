@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 
 type Reward = {
@@ -36,29 +36,23 @@ const PointsCadeaux = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
-        const [profileRes, rewardsRes, settingsRes, exchangesRes] = await Promise.all([
-          supabase.from("profiles").select("full_name, gift_points").eq("user_id", user.id).single(),
-          supabase.from("gift_rewards").select("*").eq("is_active", true).order("sort_order"),
-          supabase.from("site_settings").select("key, value").in("key", [
-            "points_per_active_member", "points_per_vip_level_per_day",
-            "points_per_deposit_value", "points_per_withdrawal"
-          ]),
-          supabase.from("point_exchanges").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(10),
+        const [profileData, rewardsData, settingsData, exchangesData] = await Promise.all([
+          api.get("/profiles/me"),
+          api.get("/gift-rewards"),
+          api.get("/site-settings"),
+          api.get("/point-exchanges/my"),
         ]);
 
-        if (profileRes.data) {
-          setFullName(profileRes.data.full_name || "");
-          setPoints((profileRes.data as any).gift_points || 0);
+        if (profileData) {
+          setFullName(profileData.fullName ?? profileData.full_name ?? "");
+          setPoints(profileData.giftPoints ?? profileData.gift_points ?? 0);
         }
-        if (rewardsRes.data) setRewards(rewardsRes.data as unknown as Reward[]);
-        if (exchangesRes.data) setExchanges(exchangesRes.data as unknown as Exchange[]);
+        if (rewardsData) setRewards(rewardsData as unknown as Reward[]);
+        if (exchangesData) setExchanges(exchangesData as unknown as Exchange[]);
 
-        if (settingsRes.data) {
+        if (settingsData) {
           const tips: string[] = [];
-          const get = (k: string) => settingsRes.data?.find(s => s.key === k)?.value;
+          const get = (k: string) => settingsData.find((s: any) => s.key === k)?.value;
           const pam = get("points_per_active_member");
           const pvip = get("points_per_vip_level_per_day");
           const pdep = get("points_per_deposit_value");
@@ -88,44 +82,10 @@ const PointsCadeaux = () => {
       return;
     }
 
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-
     setExchanging(reward.id);
     try {
-      const { data: profile } = await supabase.from("profiles")
-        .select("gift_points, balance, earnings_balance")
-        .eq("user_id", user.id).single();
-      if (!profile) { showError("Error", "Profile not found"); return; }
-
-      const currentPoints = (profile as any).gift_points || 0;
-      if (currentPoints < reward.points_required) {
-        showError("Insufficient ESK", "Your ESK balance has changed. Please try again.");
-        setPoints(currentPoints);
-        return;
-      }
-
-      const newPoints = currentPoints - reward.points_required;
-      const newBalance = (profile.balance || 0) + reward.money_value;
-      const newEarnings = (profile.earnings_balance || 0) + reward.money_value;
-
-      const { error: updateError } = await supabase.from("profiles").update({
-        gift_points: newPoints,
-        balance: newBalance,
-        earnings_balance: newEarnings,
-      } as any).eq("user_id", user.id);
-
-      if (updateError) { showError("Error", "An error occurred"); return; }
-
-      await supabase.from("point_exchanges").insert({
-        user_id: user.id,
-        reward_id: reward.id,
-        points_spent: reward.points_required,
-        money_credited: reward.money_value,
-        reward_name: reward.name,
-      } as any);
-
-      setPoints(newPoints);
+      const result = await api.post("/point-exchanges", { rewardId: reward.id });
+      setPoints(result.newPoints);
       setExchanges(prev => [{
         id: crypto.randomUUID(),
         points_spent: reward.points_required,
@@ -133,8 +93,9 @@ const PointsCadeaux = () => {
         reward_name: reward.name,
         created_at: new Date().toISOString(),
       }, ...prev]);
-
       showSuccess("Conversion successful ✅", `${reward.points_required} ESK converted to ${reward.money_value.toLocaleString("en-US")} USDT. The amount has been credited to your account.`);
+    } catch (err: any) {
+      showError("Error", err?.message || "An error occurred");
     } finally {
       setExchanging(null);
     }

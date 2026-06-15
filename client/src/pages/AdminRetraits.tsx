@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import {
@@ -80,86 +80,65 @@ const AdminRetraits = () => {
 
   useEffect(() => {
     checkAdminAndLoad();
-    const channel = supabase
-      .channel("admin-withdrawals")
-      .on("postgres_changes", { event: "*", schema: "public", table: "withdrawals" }, () => loadData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "withdrawal_fee_payments" }, () => loadFeePayments())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const interval = setInterval(() => { loadData(); loadFeePayments(); }, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const checkAdminAndLoad = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/connexion"); return; }
-    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
-    const { data: isMod } = await supabase.rpc("has_role", { _user_id: user.id, _role: "moderator" });
-    if (!isAdmin && !isMod) { showError("Accès refusé", "Droits admin requis"); navigate("/"); return; }
-    if (isMod && !isAdmin) {
-      const { data: hasPerm } = await supabase.rpc("has_permission", { _user_id: user.id, _permission: "manage_withdrawals" });
-      if (!hasPerm) { showError("Accès refusé", "Permission refusée"); navigate("/"); return; }
+    try {
+      const adminCheck = await api.get("/admin/check");
+      if (!adminCheck.isAdmin && !adminCheck.isModerator) {
+        showError("Accès refusé", "Droits admin requis"); navigate("/"); return;
+      }
+      loadData();
+      loadFeePayments();
+    } catch {
+      navigate("/connexion");
     }
-    loadData();
-    loadFeePayments();
   };
 
   const loadFeePayments = async () => {
-    const { data } = await supabase.from("withdrawal_fee_payments").select("*").order("created_at", { ascending: false });
-    if (data) {
-      setFeePayments(data as FeePayment[]);
-      const userIds = [...new Set(data.map((d: any) => d.user_id))];
-      if (userIds.length > 0) {
-        const { data: profilesData } = await supabase.from("profiles").select("user_id, full_name, phone, balance").in("user_id", userIds);
-        if (profilesData) {
-          setProfiles(prev => {
-            const map = { ...prev };
-            profilesData.forEach(p => { map[p.user_id] = p; });
-            return map;
-          });
-        }
+    try {
+      const data = await api.get("/admin/withdrawal-fee-payments");
+      if (data) {
+        setFeePayments(data as FeePayment[]);
+        const map: Record<string, ProfileInfo> = {};
+        data.forEach((fp: any) => { if (fp.profile) map[fp.user_id] = fp.profile; });
+        setProfiles(prev => ({ ...prev, ...map }));
       }
-    }
+    } catch {}
   };
 
   const loadData = async () => {
-    const { data } = await supabase.from("withdrawals").select("*").order("created_at", { ascending: false });
-    if (data) {
-      setItems(data);
-      const userIds = [...new Set(data.map(d => d.user_id))];
-      const walletIds = data.map(d => d.wallet_id).filter(Boolean) as string[];
-      if (userIds.length > 0) {
-        const { data: profilesData } = await supabase.from("profiles").select("user_id, full_name, phone, balance").in("user_id", userIds);
-        if (profilesData) {
-          setProfiles(prev => {
-            const map = { ...prev };
-            profilesData.forEach(p => { map[p.user_id] = p; });
-            return map;
-          });
-        }
+    try {
+      const data = await api.get("/admin/withdrawals");
+      if (data) {
+        setItems(data);
+        const profileMap: Record<string, ProfileInfo> = {};
+        const walletMap: Record<string, WalletInfo> = {};
+        data.forEach((w: any) => {
+          if (w.profile) profileMap[w.user_id] = w.profile;
+          if (w.wallet) walletMap[w.wallet_id] = w.wallet;
+        });
+        setProfiles(prev => ({ ...prev, ...profileMap }));
+        setWallets(walletMap);
       }
-      if (walletIds.length > 0) {
-        const { data: walletsData } = await supabase.from("user_wallets").select("id, holder_name, phone, network").in("id", walletIds);
-        if (walletsData) {
-          const wmap: Record<string, WalletInfo> = {};
-          walletsData.forEach(w => { wmap[w.id] = w; });
-          setWallets(wmap);
-        }
-      }
-    }
+    } catch {}
     setLoading(false);
   };
 
   // Manual approve / reject
   const handleAction = async (item: Withdrawal, status: "approved" | "rejected") => {
-    const note = status === "approved"
-      ? "✅ Validé manuellement par l'admin"
-      : "❌ Rejeté manuellement par l'admin";
-    const { error } = await supabase.from("withdrawals").update({ status, admin_note: note }).eq("id", item.id);
-    if (error) { showError("Error", error.message); return; }
-    showSuccess(
-      status === "approved" ? "Withdrawal approved" : "Withdrawal rejected",
-      status === "approved" ? "Manually validated ✅" : "Rejected and amount refunded ❌"
-    );
-    loadData();
+    try {
+      await api.patch(`/admin/withdrawals/${item.id}`, { status });
+      showSuccess(
+        status === "approved" ? "Withdrawal approved" : "Withdrawal rejected",
+        status === "approved" ? "Manually validated ✅" : "Rejected and amount refunded ❌"
+      );
+      loadData();
+    } catch (err: any) {
+      showError("Error", err?.message || "Update failed");
+    }
   };
 
   // Automatic NowPayments payout
@@ -192,16 +171,16 @@ const AdminRetraits = () => {
   };
 
   const handleFeeAction = async (fp: FeePayment, status: "approved" | "rejected", note?: string) => {
-    const { error } = await supabase.from("withdrawal_fee_payments").update({
-      status,
-      admin_note: status === "approved" ? "✅ Paiement des frais confirmé" : (note || "❌ Paiement refusé"),
-    }).eq("id", fp.id);
-    if (error) { showError("Error", error.message); return; }
-    showSuccess(
-      status === "approved" ? "Frais confirmés" : "Frais refusés",
-      status === "approved" ? "The user can proceed with their withdrawal" : "Payment rejected"
-    );
-    loadFeePayments();
+    try {
+      await api.patch(`/admin/withdrawal-fee-payments/${fp.id}`, { status, note });
+      showSuccess(
+        status === "approved" ? "Frais confirmés" : "Frais refusés",
+        status === "approved" ? "The user can proceed with their withdrawal" : "Payment rejected"
+      );
+      loadFeePayments();
+    } catch (err: any) {
+      showError("Error", err?.message || "Update failed");
+    }
   };
 
   const counts = {

@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Shield, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAppImages } from "@/contexts/AppImagesContext";
 
 const AdminLogin = () => {
   const navigate = useNavigate();
   const { appLogo } = useAppImages();
-  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -16,36 +15,34 @@ const AdminLogin = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!email.trim() || !password) {
+    if (!phone.trim() || !password) {
       setError("Veuillez remplir tous les champs");
       return;
     }
 
     setLoading(true);
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: phone.trim().replace(/\D/g, ""), password }),
       });
 
-      if (signInError || !data.user) {
-        setError("Email ou mot de passe incorrect");
+      const data = await res.json();
+
+      if (!res.ok || !data.ok) {
+        setError("Numéro ou mot de passe incorrect");
         setLoading(false);
         return;
       }
 
-      const { data: isAdmin } = await supabase.rpc("has_role", {
-        _user_id: data.user.id,
-        _role: "admin",
-      });
-
-      if (!isAdmin) {
-        await supabase.auth.signOut();
+      if (!data.isAdmin) {
         setError("Accès refusé. Ce compte n'a pas les droits administrateur.");
         setLoading(false);
         return;
       }
 
+      localStorage.setItem("auth_token", data.token);
       navigate("/admin", { replace: true });
     } catch {
       setError("Erreur de connexion. Réessayez.");
@@ -56,7 +53,6 @@ const AdminLogin = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        {/* Logo + titre */}
         <div className="flex flex-col items-center mb-8">
           {appLogo ? (
             <img src={appLogo} alt="Logo" className="w-16 h-16 rounded-2xl object-cover mb-4" />
@@ -69,25 +65,22 @@ const AdminLogin = () => {
           <p className="text-sm text-muted-foreground mt-1">Accès réservé aux administrateurs</p>
         </div>
 
-        {/* Formulaire */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="bg-card border border-secondary rounded-2xl p-5 space-y-4">
-            {/* Email */}
             <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Adresse e-mail</label>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Numéro de téléphone</label>
               <div className="input-glow rounded-xl bg-secondary px-4 py-3">
                 <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@exemple.com"
-                  autoComplete="email"
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="50912345678"
+                  autoComplete="tel"
                   className="w-full bg-transparent text-foreground text-sm outline-none placeholder:text-muted-foreground"
                 />
               </div>
             </div>
 
-            {/* Mot de passe */}
             <div>
               <label className="text-xs text-muted-foreground mb-1.5 block">Mot de passe</label>
               <div className="input-glow rounded-xl bg-secondary px-4 py-3 flex items-center gap-2">
@@ -109,14 +102,12 @@ const AdminLogin = () => {
               </div>
             </div>
 
-            {/* Erreur */}
             {error && (
               <div className="bg-destructive/10 border border-destructive/30 rounded-xl px-4 py-3">
                 <p className="text-xs text-destructive font-medium">{error}</p>
               </div>
             )}
 
-            {/* Bouton */}
             <button
               type="submit"
               disabled={loading}

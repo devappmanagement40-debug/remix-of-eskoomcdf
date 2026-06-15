@@ -87,6 +87,11 @@ router.get("/faq", async (req, res) => {
   return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
 });
 
+router.get("/faq-items", async (req, res) => {
+  const all = await db.select().from(faqItems).where(eq(faqItems.isActive, true));
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+
 router.get("/social-links", async (req, res) => {
   const all = await db.select().from(socialLinks).where(eq(socialLinks.isActive, true));
   return res.json(all);

@@ -6,9 +6,11 @@ import productsRouter from "./products";
 import paymentsRouter from "./payments";
 import settingsRouter from "./settings";
 import contentRouter from "./content";
+import adminRouter from "./admin";
 import dbRouter from "./db";
 import nowpaymentsRouter from "./nowpayments";
 import uploadRouter from "./upload";
+import aiRouter from "./ai";
 
 const router: IRouter = Router();
 
@@ -19,8 +21,10 @@ router.use(productsRouter);
 router.use(paymentsRouter);
 router.use(settingsRouter);
 router.use(contentRouter);
+router.use(adminRouter);
 router.use(dbRouter);
 router.use(nowpaymentsRouter);
 router.use(uploadRouter);
+router.use(aiRouter);
 
 export default router;

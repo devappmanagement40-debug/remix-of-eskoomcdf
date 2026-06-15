@@ -5,7 +5,7 @@ import BottomNav from "@/components/BottomNav";
 import FloatingButtons from "@/components/FloatingButtons";
 import PremiumModal from "@/components/PremiumModal";
 import InviteModal from "@/components/InviteModal";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import bannerHome from "@/assets/banner-home.jpg";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -42,19 +42,19 @@ const Index = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [bannersRes, productsRes, annoncesRes] = await Promise.allSettled([
-          supabase.from("banners").select("image_url, link_path").eq("is_active", true).order("sort_order"),
-          supabase.from("products").select("*").eq("is_active", true).eq("is_featured", true).order("sort_order"),
-          supabase.from("info_items").select("*").eq("is_active", true).order("sort_order"),
+        const [bannersData, productsData, annoncesData] = await Promise.allSettled([
+          api.get("/banners"),
+          api.get("/products"),
+          api.get("/info-items"),
         ]);
-        if (bannersRes.status === "fulfilled" && bannersRes.value.data?.length) {
-          setBanners(bannersRes.value.data.map(b => ({ ...b, link_path: b.link_path ?? "/" })));
+        if (bannersData.status === "fulfilled" && bannersData.value?.length) {
+          setBanners(bannersData.value.map((b: any) => ({ ...b, link_path: b.linkPath ?? b.link_path ?? "/" })));
         }
-        if (productsRes.status === "fulfilled" && productsRes.value.data) {
-          setFeaturedProducts(productsRes.value.data);
+        if (productsData.status === "fulfilled" && productsData.value) {
+          setFeaturedProducts(productsData.value.filter((p: any) => p.isFeatured || p.is_featured));
         }
-        if (annoncesRes.status === "fulfilled" && annoncesRes.value.data) {
-          setAnnonces(annoncesRes.value.data);
+        if (annoncesData.status === "fulfilled" && annoncesData.value) {
+          setAnnonces(annoncesData.value);
         }
       } catch (err) {
         console.error("Index load error:", err);
@@ -66,9 +66,9 @@ const Index = () => {
   useEffect(() => {
     setShowPromo(false);
     const timer = setTimeout(() => {
-      supabase.from("popup_messages").select("id").eq("trigger_key", "welcome_promo").eq("is_active", true).maybeSingle().then(({ data }) => {
-        if (data) setShowPromo(true);
-      });
+      api.get("/popup-messages?triggerKey=welcome_promo").then((data: any[]) => {
+        if (data?.length > 0) setShowPromo(true);
+      }).catch(() => {});
     }, 1000);
     return () => clearTimeout(timer);
   }, [location.key]);

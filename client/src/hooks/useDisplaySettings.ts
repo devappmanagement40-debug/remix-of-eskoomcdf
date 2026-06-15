@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 export type DisplaySettings = {
   vip_conditions_enabled: boolean;
@@ -19,28 +18,20 @@ export const useDisplaySettings = () => {
 
   useEffect(() => {
     let cancelled = false;
-    const load = async () => {
-      const { data } = await supabase
-        .from("site_settings")
-        .select("key, value")
-        .in("key", [
-          "vip_conditions_enabled",
-          "vip_progress_bar_enabled",
-          "profile_products_display_enabled",
-        ]);
-      if (cancelled) return;
-      if (data) {
+    fetch("/api/site-settings")
+      .then(r => r.ok ? r.json() : [])
+      .then((data: { key: string; value: string }[]) => {
+        if (cancelled) return;
         const map: Record<string, string> = {};
-        data.forEach((d: any) => { map[d.key] = d.value; });
+        (data || []).forEach((d: any) => { map[d.key] = d.value; });
         setSettings({
           vip_conditions_enabled: map.vip_conditions_enabled !== "false",
           vip_progress_bar_enabled: map.vip_progress_bar_enabled !== "false",
           profile_products_display_enabled: map.profile_products_display_enabled !== "false",
         });
-      }
-      setLoading(false);
-    };
-    load();
+        setLoading(false);
+      })
+      .catch(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
 

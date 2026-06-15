@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 
 const RequireAuth = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
@@ -8,17 +7,9 @@ const RequireAuth = ({ children }: { children: React.ReactNode }) => {
   const [authenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setAuthenticated(!!session);
-      setChecking(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setAuthenticated(!!session);
-      setChecking(false);
-    });
-
-    return () => subscription.unsubscribe();
+    const token = localStorage.getItem("auth_token");
+    setAuthenticated(!!token);
+    setChecking(false);
   }, []);
 
   if (checking) {

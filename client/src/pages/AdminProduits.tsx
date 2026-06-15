@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import { Plus, Edit2, Trash2, Package, Layers, ChevronDown, ChevronUp, X, Upload, ImageIcon, Ban, AlertTriangle } from "lucide-react";
@@ -58,26 +58,25 @@ const AdminProduits = () => {
 
   const checkAdminAndLoad = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/connexion"); return; }
-      const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
-      if (!data) { showError("Access denied", "You do not have administrator rights"); navigate("/"); return; }
+      const adminCheck = await api.get("/admin/check");
+      if (!adminCheck.isAdmin) { showError("Access denied", "You do not have administrator rights"); navigate("/"); return; }
       await loadAll();
     } catch (err) {
       console.error("Admin check error:", err);
       showError("Error", "Unable to verify access rights");
+      navigate("/connexion");
       setLoading(false);
     }
   };
 
   const loadAll = async () => {
     try {
-      const [s, p] = await Promise.all([
-        supabase.from("product_series").select("*").order("sort_order"),
-        supabase.from("products").select("*").order("sort_order"),
+      const [seriesData, productsData] = await Promise.all([
+        api.get("/product-series"),
+        api.get("/products"),
       ]);
-      if (s.data) setSeries(s.data);
-      if (p.data) setProducts(p.data);
+      setSeries(seriesData || []);
+      setProducts(productsData || []);
     } catch (err) {
       console.error("Load error:", err);
       showError("Error", "Unable to load data");
@@ -95,50 +94,27 @@ const AdminProduits = () => {
 
   const saveSeries = async () => {
     if (!seriesName.trim()) { showError("Error", "Name required"); return; }
-    if (editingSeries) {
-      await supabase.from("product_series").update({ name: seriesName, color: seriesColor }).eq("id", editingSeries.id);
-      showSuccess("Series updated", "Series updated successfully ✅");
-    } else {
-      await supabase.from("product_series").insert({ name: seriesName, color: seriesColor, sort_order: series.length });
-      showSuccess("Series created", "New series created successfully ✅");
-    }
-    setShowSeriesForm(false);
-    loadAll();
+    try {
+      if (editingSeries) {
+        await api.patch(`/admin/product-series/${editingSeries.id}`, { name: seriesName, color: seriesColor });
+        showSuccess("Series updated", "Series updated successfully ✅");
+      } else {
+        await api.post("/admin/product-series", { name: seriesName, color: seriesColor, sortOrder: series.length });
+        showSuccess("Series created", "New series created successfully ✅");
+      }
+      setShowSeriesForm(false);
+      loadAll();
+    } catch { showError("Error", "Unable to save series"); }
   };
 
   const deleteSeries = async (id: string) => {
-    // Check if any products in this series have active user purchases
-    const seriesProductIds = products.filter(p => p.series_id === id).map(p => p.id);
-    if (seriesProductIds.length > 0) {
-      const { count } = await supabase.from("user_products")
-        .select("*", { count: "exact", head: true })
-        .in("product_id", seriesProductIds)
-        .eq("is_active", true);
-      if ((count || 0) > 0) {
-        showError("Cannot delete", "Users still have active products in this series. Deactivate products instead of deleting them.");
-        return;
-      }
+    try {
+      await api.delete(`/admin/product-series/${id}`);
+      showSuccess("Deleted", "Series deleted");
+      loadAll();
+    } catch (err: any) {
+      showError("Cannot delete", err?.message || "Unable to delete series");
     }
-    // Check if any products exist in this series at all (with past purchases)
-    if (seriesProductIds.length > 0) {
-      const { count: totalPurchases } = await supabase.from("user_products")
-        .select("*", { count: "exact", head: true })
-        .in("product_id", seriesProductIds);
-      if ((totalPurchases || 0) > 0) {
-        // Soft delete: deactivate all products instead of deleting
-        for (const pid of seriesProductIds) {
-          await supabase.from("products").update({ is_active: false }).eq("id", pid);
-        }
-        showSuccess("Series deactivated", "Products deactivated because users already purchased them. Their earnings continue normally.");
-        loadAll();
-        return;
-      }
-    }
-    // No purchases ever — safe to hard delete
-    await supabase.from("products").delete().in("id", seriesProductIds);
-    await supabase.from("product_series").delete().eq("id", id);
-    showSuccess("Deleted", "Series deleted");
-    loadAll();
   };
 
   const openProductForm = (seriesId: string | null, p?: Product) => {
@@ -205,26 +181,24 @@ const AdminProduits = () => {
     if (!productName.trim()) { showError("Error", "Name required"); return; }
     try {
       const payload = {
-        series_id: productSeriesId || null,
+        seriesId: productSeriesId || null,
         name: productName,
-        image_url: productImageUrl || null,
-        return_percent: Number(productReturnPercent) || 0,
-        total_revenue: Number(productTotalRevenue) || 0,
-        daily_revenue: productGainType === "blocked" ? 0 : (Number(productDailyRevenue) || 0),
+        imageUrl: productImageUrl || null,
+        returnPercent: Number(productReturnPercent) || 0,
+        totalRevenue: Number(productTotalRevenue) || 0,
+        dailyRevenue: productGainType === "blocked" ? 0 : (Number(productDailyRevenue) || 0),
         cycles: Number(productCycles) || 365,
         price: Number(productPrice) || 0,
-        is_new: productIsNew,
-        is_featured: productIsFeatured,
-        gain_type: productGainType,
+        isNew: productIsNew,
+        isFeatured: productIsFeatured,
+        gainType: productGainType,
+        sortOrder: products.filter(p => p.series_id === productSeriesId).length,
       };
       if (editingProduct) {
-        const { error } = await supabase.from("products").update(payload).eq("id", editingProduct.id);
-        if (error) throw error;
+        await api.patch(`/admin/products/${editingProduct.id}`, payload);
         showSuccess("Product updated", "Product updated successfully ✅");
       } else {
-        const seriesProducts = products.filter(p => p.series_id === productSeriesId);
-        const { error } = await supabase.from("products").insert({ ...payload, sort_order: seriesProducts.length });
-        if (error) throw error;
+        await api.post("/admin/products", payload);
         showSuccess("Product created", "New product created successfully ✅");
       }
       setShowProductForm(false);
@@ -236,27 +210,17 @@ const AdminProduits = () => {
   };
 
   const deleteProduct = async (id: string) => {
-    // Check if any user has ever purchased this product
-    const { count } = await supabase.from("user_products")
-      .select("*", { count: "exact", head: true })
-      .eq("product_id", id);
-
-    if ((count || 0) > 0) {
-      // Users have purchased this product — soft delete (deactivate) instead
-      await supabase.from("products").update({ is_active: false }).eq("id", id);
-      showSuccess("Product deactivated", "This product was deactivated because users already purchased it. Their earnings continue normally.");
+    try {
+      await api.delete(`/admin/products/${id}`);
+      showSuccess("Deleted", "Product deleted");
       loadAll();
-      return;
+    } catch (err: any) {
+      showError("Error", err?.message || "Unable to delete product");
     }
-
-    // No purchases — safe to hard delete
-    await supabase.from("products").delete().eq("id", id);
-    showSuccess("Deleted", "Product permanently deleted");
-    loadAll();
   };
 
   const toggleActive = async (p: Product) => {
-    await supabase.from("products").update({ is_active: !p.is_active }).eq("id", p.id);
+    await api.patch(`/admin/products/${p.id}`, { isActive: !p.is_active }).catch(() => {});
     showSuccess("Updated", p.is_active ? "Product deactivated" : "Product activated ✅");
     loadAll();
   };
@@ -269,12 +233,7 @@ const AdminProduits = () => {
         is_active: true,
       };
 
-      const { error } = await supabase
-        .from("products")
-        .update(updatePayload)
-        .eq("id", p.id);
-
-      if (error) throw error;
+      await api.patch(`/admin/products/${p.id}`, { stockStatus: status, isActive: true });
 
       setProducts((prev) =>
         prev.map((item) => (item.id === p.id ? { ...item, ...updatePayload } : item))

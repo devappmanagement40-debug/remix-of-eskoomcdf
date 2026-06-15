@@ -1,6 +1,6 @@
 import { X, Copy, Check } from "lucide-react";
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import { safeClipboardWrite } from "@/lib/clipboard";
 
@@ -20,31 +20,24 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
   useEffect(() => {
     if (!open) return;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        supabase.from("profiles").select("referral_code").eq("user_id", session.user.id).single().then(({ data }) => {
-          if (data?.referral_code) setReferralCode(data.referral_code);
-        });
-      }
-    });
+    api.get("/profiles/me").then((profile: any) => {
+      if (profile?.referralCode) setReferralCode(profile.referralCode);
+    }).catch(() => {});
 
-    // Fetch dynamic referral info from site_settings
-    supabase.from("site_settings").select("key, value").eq("category", "referral").then(({ data }) => {
-      if (data) {
-        const map: Record<string, string> = {};
-        data.forEach((s) => { map[s.key] = s.value || ""; });
-        if (map.referral_title) setTitle(map.referral_title);
-        if (map.referral_subtitle) setSubtitle(map.referral_subtitle);
-        if (map.referral_rules) {
-          try {
-            const parsed = JSON.parse(map.referral_rules);
-            if (Array.isArray(parsed)) setRules(parsed.map((r: string) => ({ text: r })));
-          } catch {
-            setRules(map.referral_rules.split("\n").filter(Boolean).map((t) => ({ text: t })));
-          }
+    api.get("/site-settings").then((data: any[]) => {
+      const map: Record<string, string> = {};
+      (data || []).forEach((s: any) => { map[s.key] = s.value || ""; });
+      if (map.referral_title) setTitle(map.referral_title);
+      if (map.referral_subtitle) setSubtitle(map.referral_subtitle);
+      if (map.referral_rules) {
+        try {
+          const parsed = JSON.parse(map.referral_rules);
+          if (Array.isArray(parsed)) setRules(parsed.map((r: string) => ({ text: r })));
+        } catch {
+          setRules(map.referral_rules.split("\n").filter(Boolean).map((t) => ({ text: t })));
         }
       }
-    });
+    }).catch(() => {});
   }, [open]);
 
   if (!open) return null;

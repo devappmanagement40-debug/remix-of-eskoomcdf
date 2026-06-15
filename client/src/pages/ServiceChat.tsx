@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Send, Image, Paperclip, Smile, Check, CheckCheck, MoreVertical, Phone, Bot } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAppImages } from "@/contexts/AppImagesContext";
 
 /** Renders text with auto-linked URLs */
@@ -67,99 +67,78 @@ const ServiceChat = () => {
   }, []);
 
   const init = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/connexion"); return; }
-    setUserId(user.id);
+    try {
+      const [settingsData, msgsData] = await Promise.all([
+        api.get("/site-settings"),
+        api.get("/chat/messages"),
+      ]);
 
-    // Check Emma status
-    const { data: setting } = await supabase
-      .from("site_settings")
-      .select("value")
-      .eq("key", "sarah_enabled")
-      .single();
-    const enabled = setting?.value === "true";
-    setEmmaEnabled(enabled);
+      const userStr = localStorage.getItem("ge_energy_user");
+      if (!userStr) { navigate("/connexion"); return; }
+      const user = JSON.parse(userStr);
+      setUserId(user.id);
 
-    // Load existing messages
-    const { data: existingMsgs } = await supabase
-      .from("chat_messages")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: true });
+      const sarahSetting = (settingsData || []).find((s: any) => s.key === "sarah_enabled");
+      const enabled = sarahSetting?.value === "true";
+      setEmmaEnabled(enabled);
 
-    if (existingMsgs && existingMsgs.length > 0) {
-      const loaded: Message[] = existingMsgs.map((m: any) => ({
-        id: m.id,
-        text: m.message,
-        sender: m.sender === "user" ? "user" : "support",
-        time: new Date(m.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
-        status: "read",
-        isAI: m.is_ai,
-      }));
-      setMessages(loaded);
-    } else {
-      // First visit greeting
-      const greetingText = enabled
-        ? "Bonjour ! 👋 Je suis Sarah, votre assistante virtuelle GE Energy. Comment puis-je vous aider aujourd'hui ?\n\nSarah – Assistante virtuelle GE Energy"
-        : "Bonjour ! Bienvenue sur le support GE Energy. Comment pouvons-nous vous aider ?";
-
-      await supabase.from("chat_messages").insert({
-        user_id: user.id,
-        sender: "support",
-        message: greetingText,
-        is_ai: enabled,
-      });
-
-      const { data: inserted } = await supabase
-        .from("chat_messages")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: true });
-
-      if (inserted) {
-        setMessages(inserted.map((m: any) => ({
+      if (msgsData && msgsData.length > 0) {
+        const loaded: Message[] = msgsData.map((m: any) => ({
           id: m.id,
           text: m.message,
           sender: m.sender === "user" ? "user" : "support",
-          time: new Date(m.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+          time: new Date(m.createdAt ?? m.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
           status: "read",
-          isAI: m.is_ai,
-        })));
+          isAI: m.isAi ?? m.is_ai,
+        }));
+        setMessages(loaded);
+      } else {
+        const greetingText = enabled
+          ? "Bonjour ! 👋 Je suis Sarah, votre assistante virtuelle GE Energy. Comment puis-je vous aider aujourd'hui ?\n\nSarah – Assistante virtuelle GE Energy"
+          : "Bonjour ! Bienvenue sur le support GE Energy. Comment pouvons-nous vous aider ?";
+
+        const inserted = await api.post("/chat/init-greeting", { message: greetingText, isAi: enabled });
+        if (inserted) {
+          setMessages(inserted.map((m: any) => ({
+            id: m.id,
+            text: m.message,
+            sender: m.sender === "user" ? "user" : "support",
+            time: new Date(m.createdAt ?? m.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+            status: "read",
+            isAI: m.isAi ?? m.is_ai,
+          })));
+        }
       }
+    } catch (err) {
+      console.error("ServiceChat init error:", err);
+    } finally {
+      setLoadingSettings(false);
     }
 
-    setLoadingSettings(false);
-
-    // Subscribe to realtime for new support replies
-    const channel = supabase
-      .channel(`chat-${user.id}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "chat_messages", filter: `user_id=eq.${user.id}` },
-        (payload) => {
-          const m = payload.new as any;
-          if (m.sender === "support") {
-            if (manuallyAddedIds.current.has(m.id)) {
-              manuallyAddedIds.current.delete(m.id);
-              return;
-            }
-            setMessages((prev) => {
-              if (prev.find((p) => p.id === m.id)) return prev;
-              return [...prev, {
+    // Poll for new support messages
+    const pollInterval = setInterval(async () => {
+      try {
+        const msgsData = await api.get("/chat/messages");
+        if (msgsData) {
+          setMessages((prev) => {
+            const existingIds = new Set(prev.map((m) => m.id));
+            const newMsgs: Message[] = msgsData
+              .filter((m: any) => !existingIds.has(m.id) && (m.sender === "support"))
+              .map((m: any) => ({
                 id: m.id,
                 text: m.message,
-                sender: "support",
-                time: new Date(m.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
-                status: "delivered",
-                isAI: m.is_ai,
-              }];
-            });
-          }
+                sender: "support" as const,
+                time: new Date(m.createdAt ?? m.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+                status: "delivered" as const,
+                isAI: m.isAi ?? m.is_ai,
+              }));
+            if (newMsgs.length === 0) return prev;
+            return [...prev, ...newMsgs];
+          });
         }
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+      } catch {}
+    }, 5000);
+    return () => clearInterval(pollInterval);
   };
 
   const scrollToBottom = () => {
@@ -176,19 +155,14 @@ const ServiceChat = () => {
     setInput("");
     setIsTyping(true);
 
-    // Save user message to DB
-    const { data: inserted } = await supabase
-      .from("chat_messages")
-      .insert({ user_id: userId, sender: "user", message: userText, is_ai: false })
-      .select()
-      .single();
+    const inserted = await api.post("/chat/messages", { message: userText }).catch(() => null);
 
     if (inserted) {
       const newMsg: Message = {
         id: inserted.id,
         text: userText,
         sender: "user",
-        time: new Date(inserted.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+        time: new Date(inserted.createdAt ?? inserted.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
         status: "sent",
       };
       setMessages((prev) => [...prev, newMsg]);
@@ -197,15 +171,11 @@ const ServiceChat = () => {
     if (emmaEnabled) {
       try {
         const history = messages.slice(-10).map((m) => ({ sender: m.sender, text: m.text }));
-        const { data } = await supabase.functions.invoke("sarah-chat", {
-          body: { message: userText, history, userId },
-        });
+        const data = await api.post("/ai/chat", { message: userText, history, userId });
 
         setIsTyping(false);
         const replyText = data?.reply || "I'm sorry, an error occurred. Please try again.";
-
         const replyId = data?.savedReplyId || crypto.randomUUID();
-        if (data?.savedReplyId) manuallyAddedIds.current.add(data.savedReplyId);
         setMessages((prev) => [
           ...prev.map((m): Message => m.id === inserted?.id ? { ...m, status: "read" } : m),
           {
@@ -219,8 +189,6 @@ const ServiceChat = () => {
         ]);
       } catch {
         setIsTyping(false);
-        const errText = "Une erreur s'est produite. Un agent humain prendra le relais bientôt. 🙏\n\nSarah – Assistante virtuelle GE Energy";
-        await supabase.from("chat_messages").insert({ user_id: userId, sender: "support", message: errText, is_ai: true });
       }
     } else {
       setIsTyping(false);
@@ -255,11 +223,7 @@ const ServiceChat = () => {
     }
 
     const imgMsg = `📷 [Image sent]`;
-    const { data: inserted } = await supabase
-      .from("chat_messages")
-      .insert({ user_id: userId, sender: "user", message: imgMsg, is_ai: false })
-      .select()
-      .single();
+    const inserted = await api.post("/chat/messages", { message: imgMsg }).catch(() => null);
 
     if (inserted) {
       setMessages((prev) => [...prev, {
@@ -267,7 +231,7 @@ const ServiceChat = () => {
         text: "",
         image: imageUrl,
         sender: "user",
-        time: new Date(inserted.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
+        time: new Date(inserted.createdAt ?? inserted.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }),
         status: "sent",
       }]);
     }
@@ -275,14 +239,10 @@ const ServiceChat = () => {
     if (emmaEnabled) {
       try {
         const history = messages.slice(-10).map((m) => ({ sender: m.sender, text: m.text }));
-        const { data } = await supabase.functions.invoke("sarah-chat", {
-          body: { message: "The user sent an image.", history, userId, imageUrl },
-        });
-
+        const data = await api.post("/ai/chat", { message: "The user sent an image.", history, userId, imageUrl });
         setIsTyping(false);
         const replyText = data?.reply || "I'm sorry, an error occurred. Please try again.";
         const replyId = data?.savedReplyId || crypto.randomUUID();
-        if (data?.savedReplyId) manuallyAddedIds.current.add(data.savedReplyId);
         setMessages((prev) => [
           ...prev.map((m): Message => m.id === inserted?.id ? { ...m, status: "read" } : m),
           {

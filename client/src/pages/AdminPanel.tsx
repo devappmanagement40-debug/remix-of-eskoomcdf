@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminWheelTab from "@/components/AdminWheelTab";
 import AdminTeamTab from "@/components/AdminTeamTab";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import {
@@ -134,82 +134,41 @@ const AdminPanel = () => {
 
   const checkAdmin = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/connexion"); return; }
-      const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
-      const { data: isMod } = await supabase.rpc("has_role", { _user_id: user.id, _role: "moderator" });
-      if (!isAdmin && !isMod) { showError("Access denied", "Admin rights required"); navigate("/"); return; }
-      setAdminId(user.id);
-      setIsFullAdmin(!!isAdmin);
-      if (isMod && !isAdmin) {
-        const { data: perms } = await supabase.from("admin_permissions").select("permission").eq("user_id", user.id);
-        setModeratorPerms((perms || []).map((p: any) => p.permission));
-      } else {
-        setModeratorPerms(["all"]);
+      const adminCheck = await api.get("/admin/check");
+      if (!adminCheck.isAdmin && !adminCheck.isModerator) {
+        showError("Access denied", "Admin rights required"); navigate("/"); return;
       }
+      setAdminId(adminCheck.userId);
+      setIsFullAdmin(!!adminCheck.isAdmin);
+      setModeratorPerms(adminCheck.isAdmin ? ["all"] : (adminCheck.permissions || []));
       await loadAll();
     } catch (err) {
       console.error("Admin check error:", err);
       showError("Error", "Unable to verify access rights");
+      navigate("/connexion");
       setLoading(false);
     }
   };
 
   const loadAll = async () => {
     try {
-      // Fetch ALL profiles with pagination (bypass 1000 row limit)
-      const fetchAllProfiles = async () => {
-        const allProfiles: Profile[] = [];
-        const pageSize = 1000;
-        let from = 0;
-        let hasMore = true;
-        while (hasMore) {
-          const { data } = await supabase.from("profiles").select("*").order("created_at", { ascending: false }).range(from, from + pageSize - 1);
-          if (data && data.length > 0) {
-            allProfiles.push(...(data as Profile[]));
-            from += pageSize;
-            hasMore = data.length === pageSize;
-          } else {
-            hasMore = false;
-          }
-        }
-        return allProfiles;
-      };
-
-      const [allProfiles, r, w, s, pr, pm, sl, ss, pop, logs, ctrs, vipc, bn, wm, apic, plogs] = await Promise.all([
-        fetchAllProfiles(),
-        supabase.from("recharges").select("*").order("created_at", { ascending: false }),
-        supabase.from("withdrawals").select("*").order("created_at", { ascending: false }),
-        supabase.from("product_series").select("*").order("sort_order"),
-        supabase.from("products").select("*").order("sort_order"),
-        supabase.from("payment_methods").select("*").order("sort_order"),
-        supabase.from("social_links").select("*"),
-        supabase.from("site_settings").select("*"),
-        supabase.from("popup_messages").select("*").order("sort_order"),
-        supabase.from("admin_logs").select("*").order("created_at", { ascending: false }).limit(50),
-        supabase.from("countries").select("*").order("sort_order"),
-        supabase.from("vip_conditions").select("*").order("level"),
-        supabase.from("banners").select("*").order("sort_order"),
-        supabase.from("withdrawal_methods").select("*").order("sort_order"),
-        supabase.from("payment_api_configs").select("*").order("created_at", { ascending: false }),
-        supabase.from("payment_logs").select("*").order("created_at", { ascending: false }).limit(100),
-      ]);
-      setProfiles(allProfiles);
-      if (r.data) setRecharges(r.data);
-      if (w.data) setWithdrawals(w.data);
-      if (s.data) setSeries(s.data);
-      if (pr.data) setProducts(pr.data as Product[]);
-      if (pm.data) setPaymentMethods(pm.data as PaymentMethod[]);
-      if (sl.data) setSocialLinks(sl.data.map(l => ({ ...l, is_active: l.is_active ?? false })));
-      if (ss.data) setSiteSettings(ss.data);
-      if (pop.data) setPopups(pop.data as unknown as PopupMsg[]);
-      if (logs.data) setAdminLogs(logs.data);
-      if (ctrs.data) setCountries(ctrs.data as Country[]);
-      if (vipc.data) setVipConditions(vipc.data as VipCondition[]);
-      if (bn.data) setBanners(bn.data as Banner[]);
-      if (wm.data) setWithdrawalMethods(wm.data as WithdrawalMethod[]);
-      if (apic.data) setApiConfigs(apic.data as ApiConfig[]);
-      if (plogs.data) setPaymentLogs(plogs.data as PaymentLog[]);
+      const data = await api.get("/admin/all-data");
+      if (data.profiles) setProfiles(data.profiles);
+      if (data.recharges) setRecharges(data.recharges);
+      if (data.withdrawals) setWithdrawals(data.withdrawals);
+      if (data.series) setSeries(data.series);
+      if (data.products) setProducts(data.products as Product[]);
+      if (data.paymentMethods) setPaymentMethods(data.paymentMethods as PaymentMethod[]);
+      if (data.socialLinks) setSocialLinks(data.socialLinks.map((l: any) => ({ ...l, is_active: l.isActive ?? l.is_active ?? false })));
+      if (data.siteSettings) setSiteSettings(data.siteSettings);
+      if (data.popups) setPopups(data.popups as unknown as PopupMsg[]);
+      if (data.adminLogs) setAdminLogs(data.adminLogs);
+      if (data.countries) setCountries(data.countries as Country[]);
+      if (data.vipConditions) setVipConditions(data.vipConditions as VipCondition[]);
+      if (data.banners) setBanners(data.banners as Banner[]);
+      if (data.withdrawalMethods) setWithdrawalMethods(data.withdrawalMethods as WithdrawalMethod[]);
+      if (data.apiConfigs) setApiConfigs(data.apiConfigs as ApiConfig[]);
+      if (data.paymentLogs) setPaymentLogs(data.paymentLogs as PaymentLog[]);
     } catch (err) {
       console.error("Load error:", err);
       showError("Error", "Unable to load data");
@@ -219,7 +178,7 @@ const AdminPanel = () => {
   };
 
   const logAction = async (action: string, target_type?: string, target_id?: string, details?: string) => {
-    await supabase.from("admin_logs").insert({ admin_id: adminId, action, target_type, target_id, details });
+    await api.post("/admin/logs", { action, targetType: target_type, targetId: target_id, details }).catch(() => {});
   };
 
   const formatDate = (d: string | null) => {
@@ -371,15 +330,15 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
 
   const saveUser = async () => {
     if (!editingUser) return;
-    await supabase.from("profiles").update({
-      full_name: editName,
+    await api.patch(`/admin/users/${editingUser.id}`, {
+      fullName: editName,
       balance: Number(editBalance) || 0,
-      deposit_balance: Number(editDepositBalance) || 0,
-      earnings_balance: Number(editEarningsBalance) || 0,
-      referral_balance: Number(editReferralBalance) || 0,
-      vip_level: Number(editVipLevel) || 0,
-      gift_points: Number(editGiftPoints) || 0,
-    }).eq("id", editingUser.id);
+      depositBalance: Number(editDepositBalance) || 0,
+      earningsBalance: Number(editEarningsBalance) || 0,
+      referralBalance: Number(editReferralBalance) || 0,
+      vipLevel: Number(editVipLevel) || 0,
+      giftPoints: Number(editGiftPoints) || 0,
+    }).catch(() => {});
     logAction("edit_user", "profile", editingUser.id, `Balance: ${editBalance}, Deposit: ${editDepositBalance}, Earnings: ${editEarningsBalance}, Referral: ${editReferralBalance}, VIP: ${editVipLevel}, ESK: ${editGiftPoints}, Name: ${editName}`);
     showSuccess("User updated", "Changes saved ✅");
     setEditingUser(null);
@@ -388,8 +347,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
 
   const toggleSuspend = async (p: Profile) => {
     const newVal = !p.is_suspended;
-    const { error } = await supabase.from("profiles").update({ is_suspended: newVal }).eq("id", p.id);
-    if (error) { showError("Error", error.message); return; }
+    await api.patch(`/admin/users/${p.id}`, { isSuspended: newVal }).catch((err: any) => { showError("Error", err?.message); return; });
     logAction(newVal ? "suspend_user" : "unsuspend_user", "profile", p.id);
     showSuccess(newVal ? "Account suspended" : "Account reactivated", "");
     reload();
@@ -397,54 +355,36 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
 
   const deleteUser = async (p: Profile) => {
     if (!confirm(`Permanently delete ${p.full_name || p.phone}?`)) return;
-    // Delete related data first, then profile
-    await supabase.from("user_products").delete().eq("user_id", p.user_id);
-    await supabase.from("chat_messages").delete().eq("user_id", p.user_id);
-    await supabase.from("withdrawals").delete().eq("user_id", p.user_id);
-    await supabase.from("recharges").delete().eq("user_id", p.user_id);
-    await supabase.from("wheel_spins").delete().eq("user_id", p.user_id);
-    await supabase.from("point_exchanges").delete().eq("user_id", p.user_id);
-    const { error } = await supabase.from("profiles").delete().eq("id", p.id);
-    if (error) { showError("Delete error", error.message); return; }
-    logAction("delete_user", "profile", p.id, p.full_name || p.phone || "");
-    showSuccess("Account deleted", "User has been permanently deleted");
-    reload();
+    try {
+      await api.delete(`/admin/users/${p.id}`);
+      logAction("delete_user", "profile", p.id, p.full_name || p.phone || "");
+      showSuccess("Account deleted", "User has been permanently deleted");
+      reload();
+    } catch (err: any) {
+      showError("Delete error", err?.message || "Delete failed");
+    }
   };
 
   const loadUserDetail = async (p: Profile) => {
     setDetailUser(p);
     setLoadingDetail(true);
-    // Load user's purchased products
-    const { data: up } = await supabase.from("user_products").select("*, products(name, price, daily_revenue, cycles)").eq("user_id", p.user_id);
-    setUserProducts(up || []);
-
-    // Load team members (3 levels)
-    const { data: levelB } = await supabase.from("profiles").select("*").eq("referred_by", p.id);
-    const bIds = (levelB || []).map((m: Profile) => m.id);
-    let levelC: Profile[] = [];
-    let levelD: Profile[] = [];
-    if (bIds.length > 0) {
-      const { data: lc } = await supabase.from("profiles").select("*").in("referred_by", bIds);
-      levelC = (lc || []) as Profile[];
-      const cIds = levelC.map(m => m.id);
-      if (cIds.length > 0) {
-        const { data: ld } = await supabase.from("profiles").select("*").in("referred_by", cIds);
-        levelD = (ld || []) as Profile[];
-      }
-    }
-    setTeamMembers({ b: (levelB || []) as Profile[], c: levelC, d: levelD });
+    try {
+      const detail = await api.get(`/admin/users/${p.id}/detail`);
+      setUserProducts(detail.products || []);
+      setTeamMembers({ b: detail.teamB || [], c: detail.teamC || [], d: detail.teamD || [] });
+    } catch {}
     setLoadingDetail(false);
   };
 
   const removeUserProduct = async (upId: string) => {
-    await supabase.from("user_products").delete().eq("id", upId);
+    await api.delete(`/admin/user-products/${upId}`).catch(() => {});
     if (detailUser) loadUserDetail(detailUser);
     showSuccess("Product removed", "");
   };
 
   const addProductToUser = async (productId: string) => {
     if (!detailUser) return;
-    await supabase.from("user_products").insert({ user_id: detailUser.user_id, product_id: productId, is_active: true });
+    await api.post("/admin/user-products", { userId: detailUser.user_id, productId }).catch(() => {});
     loadUserDetail(detailUser);
     showSuccess("Product added", "");
   };
@@ -663,34 +603,14 @@ const DepositsTab = ({ recharges, profiles, reload, showSuccess, showError, logA
     });
 
   const handleAction = async (r: Recharge, status: "approved" | "rejected") => {
-    await supabase.from("recharges").update({ status }).eq("id", r.id);
-    if (status === "approved") {
-      const p = profileMap[r.user_id];
-      if (p) {
-        // Load point settings for deposit
-        const { data: pointSettings } = await supabase.from("site_settings")
-          .select("key, value").in("key", ["points_per_deposit_type", "points_per_deposit_value"]);
-        const getPS = (k: string) => pointSettings?.find((s: any) => s.key === k)?.value || "0";
-        const depositPointType = getPS("points_per_deposit_type")?.trim().toLowerCase();
-        const depositPointValue = Number(getPS("points_per_deposit_value")) || 0;
-        let earnedPoints = 0;
-        if (depositPointValue > 0) {
-          earnedPoints = depositPointType === "percent" ? Math.floor(r.amount * depositPointValue / 100) : depositPointValue;
-        }
-
-        const { data: freshProfile } = await supabase.from("profiles")
-          .select("gift_points").eq("user_id", r.user_id).single();
-
-        await supabase.from("profiles").update({
-          balance: (p.balance || 0) + r.amount,
-          deposit_balance: (p.deposit_balance || 0) + r.amount,
-          ...(earnedPoints > 0 ? { gift_points: ((freshProfile as any)?.gift_points || 0) + earnedPoints } : {}),
-        }).eq("user_id", r.user_id);
-      }
+    try {
+      await api.patch(`/admin/recharges/${r.id}`, { status, userId: r.user_id, amount: r.amount });
+      logAction(`deposit_${status}`, "recharge", r.id, `${r.amount} USDT`);
+      showSuccess(status === "approved" ? "Deposit approved ✅" : "Deposit rejected ❌", "");
+      reload();
+    } catch (err: any) {
+      showError("Error", err?.message || "Update failed");
     }
-    logAction(`deposit_${status}`, "recharge", r.id, `${r.amount} USDT`);
-    showSuccess(status === "approved" ? "Deposit approved ✅" : "Deposit rejected ❌", "");
-    reload();
   };
 
   return (
@@ -781,17 +701,9 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
   profiles.forEach((p: Profile) => { profileMap[p.user_id] = p; });
 
   useEffect(() => {
-    const loadWallets = async () => {
-      const walletIds = withdrawals.map((w: any) => w.wallet_id).filter(Boolean);
-      if (walletIds.length === 0) return;
-      const { data } = await supabase.from("user_wallets").select("*").in("id", walletIds);
-      if (data) {
-        const map: Record<string, any> = {};
-        data.forEach((w: any) => { map[w.id] = w; });
-        setWallets(map);
-      }
-    };
-    loadWallets();
+    const walletMap: Record<string, any> = {};
+    withdrawals.forEach((w: any) => { if (w.wallet) walletMap[w.wallet_id] = w.wallet; });
+    if (Object.keys(walletMap).length > 0) setWallets(walletMap);
   }, [withdrawals]);
 
   const counts = {
@@ -812,34 +724,17 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
   const [autoPayingId, setAutoPayingId] = useState<string | null>(null);
 
   const handleAction = async (w: Withdrawal, status: "approved" | "rejected") => {
-    if (status === "approved") {
-      setAutoPayingId(w.id);
-      try {
-        const { data, error } = await supabase.functions.invoke("process-withdrawal", {
-          body: { withdrawal_id: w.id },
-        });
-        if (error) {
-          showError("Error", "Server connection error");
-          return;
-        }
-        if (data?.success) {
-          showSuccess("Withdrawal approved", "The withdrawal has been successfully approved ✅");
-        } else {
-          showError("Error", data?.error || "Withdrawal failed");
-        }
-      } catch {
-        showError("Error", "Connection error");
-      } finally {
-        setAutoPayingId(null);
-        reload();
-      }
-      return;
+    setAutoPayingId(w.id);
+    try {
+      await api.patch(`/admin/withdrawals/${w.id}`, { status });
+      logAction(`withdrawal_${status}`, "withdrawal", w.id, `${w.amount} USDT`);
+      showSuccess(status === "approved" ? "Withdrawal approved ✅" : "Withdrawal rejected — amount refunded", "");
+      reload();
+    } catch (err: any) {
+      showError("Error", err?.message || "Update failed");
+    } finally {
+      setAutoPayingId(null);
     }
-    // Rejected = direct update (trigger refunds)
-    await supabase.from("withdrawals").update({ status }).eq("id", w.id);
-    logAction(`withdrawal_${status}`, "withdrawal", w.id, `${w.amount} USDT`);
-    showSuccess("Withdrawal rejected — amount refunded", "");
-    reload();
   };
 
   return (
@@ -1049,8 +944,8 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
       max_purchases: form.max_purchases ? Number(form.max_purchases) : null,
       description: form.description || null,
     };
-    if (editingProduct) await supabase.from("products").update(payload).eq("id", editingProduct.id);
-    else await supabase.from("products").insert({ ...payload, sort_order: products.filter((p: Product) => p.series_id === formSeriesId).length });
+    if (editingProduct) await api.patch(`/admin/products/${editingProduct.id}`, payload).catch(() => {});
+    else await api.post("/admin/products", { ...payload, sortOrder: products.filter((p: Product) => p.series_id === formSeriesId).length }).catch(() => {});
     showSuccess(editingProduct ? "Product updated ✅" : "Product created ✅", "");
     setShowForm(false); reload();
   };
@@ -1059,35 +954,23 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
     if (!seriesName.trim()) return;
     const payload: any = {
       name: seriesName, color: seriesColor,
-      min_vip_level: Number(seriesConditions.min_vip_level) || 0,
-      min_personal_investment: Number(seriesConditions.min_personal_investment) || 0,
-      min_team_investment: Number(seriesConditions.min_team_investment) || 0,
-      min_active_members: Number(seriesConditions.min_active_members) || 0,
+      minVipLevel: Number(seriesConditions.min_vip_level) || 0,
+      minPersonalInvestment: Number(seriesConditions.min_personal_investment) || 0,
+      minTeamInvestment: Number(seriesConditions.min_team_investment) || 0,
+      minActiveMembers: Number(seriesConditions.min_active_members) || 0,
     };
-    if (editingSeries) await supabase.from("product_series").update(payload).eq("id", editingSeries.id);
-    else await supabase.from("product_series").insert({ ...payload, sort_order: series.length });
+    if (editingSeries) await api.patch(`/admin/product-series/${editingSeries.id}`, payload).catch(() => {});
+    else await api.post("/admin/product-series", { ...payload, sortOrder: series.length }).catch(() => {});
     showSuccess(editingSeries ? "Series updated ✅" : "Series created ✅", "");
     setShowSeriesForm(false); reload();
   };
 
   const setStockStatus = async (p: Product, status: "available" | "sold_out" | "terminated") => {
     try {
-      const { error } = await supabase
-        .from("products")
-        .update({ stock_status: status, is_active: true })
-        .eq("id", p.id);
-      if (error) throw error;
-      showSuccess(
-        "Updated",
-        status === "available"
-          ? "Product available ✅"
-          : status === "sold_out"
-          ? "Product marked as sold out"
-          : "Product marked as ended"
-      );
+      await api.patch(`/admin/products/${p.id}`, { stockStatus: status, isActive: true });
+      showSuccess("Updated", status === "available" ? "Product available ✅" : status === "sold_out" ? "Product marked as sold out" : "Product marked as ended");
       reload();
     } catch (err) {
-      console.error("setStockStatus error:", err);
       showError("Error", "Unable to change product status");
     }
   };
@@ -1181,7 +1064,7 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
               </button>
               <div className="flex gap-1.5">
                 <button onClick={() => { setEditingSeries(s); setSeriesName(s.name); setSeriesColor(s.color || "primary"); setSeriesConditions({ min_vip_level: String(s.min_vip_level || 0), min_personal_investment: String(s.min_personal_investment || 0), min_team_investment: String(s.min_team_investment || 0), min_active_members: String(s.min_active_members || 0) }); setShowSeriesForm(true); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
-                <button onClick={async () => { await supabase.from("product_series").delete().eq("id", s.id); showSuccess("Deleted", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+                <button onClick={async () => { await api.delete(`/admin/product-series/${s.id}`).catch(() => {}); showSuccess("Deleted", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
               </div>
             </div>
             {isExpanded && (
@@ -1200,20 +1083,11 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
                           <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} USDT • {p.return_percent}%</span>
                         </div>
                         <div className="flex gap-1.5">
-                          <button onClick={async () => { await supabase.from("products").update({ is_active: !p.is_active }).eq("id", p.id); reload(); }} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{p.is_active ? "ON" : "OFF"}</button>
+                          <button onClick={async () => { await api.patch(`/admin/products/${p.id}`, { isActive: !p.is_active }).catch(() => {}); reload(); }} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{p.is_active ? "ON" : "OFF"}</button>
                           <button onClick={() => openProductForm(s.id, p)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
                           <button onClick={async () => {
-                            // Check if product has been purchased by users
-                            const { count } = await supabase.from("user_products").select("id", { count: "exact", head: true }).eq("product_id", p.id);
-                            if (count && count > 0) {
-                              // Soft delete: deactivate for new purchases but keep existing investors safe
-                              await supabase.from("products").update({ is_active: false, stock_status: "terminated" }).eq("id", p.id);
-                              showSuccess("Product deactivated", `${count} user(s) retain their active earnings`);
-                            } else {
-                              // No purchases: safe to hard delete
-                              await supabase.from("products").delete().eq("id", p.id);
-                              showSuccess("Product deleted", "");
-                            }
+                            await api.delete(`/admin/products/${p.id}`).catch(() => {});
+                            showSuccess("Product deleted", "");
                             reload();
                           }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
                         </div>
@@ -1288,7 +1162,7 @@ const BannersTab = ({ banners, reload, showSuccess, showError }: any) => {
     setUploading(true);
     try {
       const url = await uploadFile(file, "site-assets");
-      await supabase.from("banners").insert({ image_url: url, link_path: "/", sort_order: banners.length });
+      await api.post("/admin/banners", { imageUrl: url, linkPath: "/", sortOrder: banners.length });
       showSuccess("Banner ajouté ✅", "");
       reload();
     } catch (err: any) {
@@ -1299,18 +1173,18 @@ const BannersTab = ({ banners, reload, showSuccess, showError }: any) => {
   };
 
   const deleteBanner = async (id: string) => {
-    await supabase.from("banners").delete().eq("id", id);
+    await api.delete(`/admin/banners/${id}`).catch(() => {});
     showSuccess("Banner deleted", "");
     reload();
   };
 
   const toggleBanner = async (b: Banner) => {
-    await supabase.from("banners").update({ is_active: !b.is_active }).eq("id", b.id);
+    await api.patch(`/admin/banners/${b.id}`, { isActive: !b.is_active }).catch(() => {});
     reload();
   };
 
   const updateLink = async (id: string) => {
-    await supabase.from("banners").update({ link_path: linkPath }).eq("id", id);
+    await api.patch(`/admin/banners/${id}`, { linkPath }).catch(() => {});
     showSuccess("Link updated ✅", "");
     setEditingBanner(null);
     reload();
@@ -1388,8 +1262,8 @@ const PaymentsTab = ({ methods, countries, apiConfigs, reload, showSuccess, show
   const save = async () => {
     if (!form.name.trim()) { showError("Error", "Nom requis"); return; }
     const payload = { ...form, country_id: form.country_id || null, external_url: form.external_url || null, logo_url: form.logo_url || null, api_config_id: form.api_config_id || null };
-    if (editing) await supabase.from("payment_methods").update(payload).eq("id", editing.id);
-    else await supabase.from("payment_methods").insert({ ...payload, sort_order: methods.length });
+    if (editing) await api.patch(`/admin/payment-methods/${editing.id}`, payload).catch(() => {});
+    else await api.post("/admin/payment-methods", { ...payload, sortOrder: methods.length }).catch(() => {});
     showSuccess(editing ? "Modifie" : "Cree", "");
     setShowForm(false); reload();
   };
@@ -1488,10 +1362,10 @@ const PaymentsTab = ({ methods, countries, apiConfigs, reload, showSuccess, show
               </div>
             </div>
             <div className="flex gap-1.5">
-              <button onClick={async () => { await supabase.from("payment_methods").update({ is_active: !m.is_active }).eq("id", m.id); reload(); }}
+              <button onClick={async () => { await api.patch(`/admin/payment-methods/${m.id}`, { isActive: !m.is_active }).catch(() => {}); reload(); }}
                 className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${m.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{m.is_active ? "ON" : "OFF"}</button>
               <button onClick={() => openForm(m)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
-              <button onClick={async () => { await supabase.from("payment_methods").delete().eq("id", m.id); showSuccess("Supprime", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+              <button onClick={async () => { await api.delete(`/admin/payment-methods/${m.id}`).catch(() => {}); showSuccess("Supprime", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
             </div>
           </div>
         </div>
@@ -1506,7 +1380,7 @@ const LinksTab = ({ links, reload, showSuccess }: any) => {
   const [editUrl, setEditUrl] = useState("");
 
   const save = async (id: string) => {
-    await supabase.from("social_links").update({ url: editUrl }).eq("id", id);
+    await api.patch(`/admin/social-links/${id}`, { url: editUrl }).catch(() => {});
     showSuccess("Link updated ✅", "");
     setEditId(null); reload();
   };
@@ -1550,11 +1424,12 @@ const AnnoncesTab = ({ reload, showSuccess, showError }: any) => {
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const { data } = await supabase.from("popup_messages").select("*").eq("trigger_key", "welcome_promo").maybeSingle();
-    if (data) {
-      setPopup(data as unknown as PopupMsg);
-      setForm({ title: data.title, message: data.message, button_confirm: data.button_confirm ?? '', button_cancel: data.button_cancel ?? undefined, is_active: data.is_active ?? true });
-      setTabs(Array.isArray(data.tabs) ? (data.tabs as unknown as TabItem[]) : []);
+    const data = await api.get("/admin/popup-messages?key=welcome_promo").catch(() => null);
+    const popup = Array.isArray(data) ? data[0] : data;
+    if (popup) {
+      setPopup(popup as unknown as PopupMsg);
+      setForm({ title: popup.title, message: popup.message, button_confirm: popup.button_confirm ?? '', button_cancel: popup.button_cancel ?? undefined, is_active: popup.is_active ?? true });
+      setTabs(Array.isArray(popup.tabs) ? (popup.tabs as unknown as TabItem[]) : []);
     }
     setLoading(false);
   };
@@ -1563,13 +1438,14 @@ const AnnoncesTab = ({ reload, showSuccess, showError }: any) => {
 
   const save = async () => {
     if (!popup) return;
-    const { error } = await supabase.from("popup_messages").update({
-      title: form.title, message: form.message,
-      button_confirm: form.button_confirm, button_cancel: form.button_cancel || null,
-      tabs: tabs.length > 0 ? tabs as any : null, is_active: form.is_active,
-    }).eq("id", popup.id);
-    if (error) showError("Error", "Unable to save");
-    else { showSuccess("Saved ✅", "Announcement updated"); load(); reload(); }
+    try {
+      await api.patch(`/admin/popup-messages/${popup.id}`, {
+        title: form.title, message: form.message,
+        buttonConfirm: form.button_confirm, buttonCancel: form.button_cancel || null,
+        tabs: tabs.length > 0 ? tabs : null, isActive: form.is_active,
+      });
+      showSuccess("Saved ✅", "Announcement updated"); load(); reload();
+    } catch { showError("Error", "Unable to save"); }
   };
 
   if (loading) return <div className="flex justify-center py-10"><Loader2 className="animate-spin text-primary" size={24} /></div>;
@@ -1581,7 +1457,7 @@ const AnnoncesTab = ({ reload, showSuccess, showError }: any) => {
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-bold text-foreground">Welcome popup</h3>
           <button onClick={async () => {
-            await supabase.from("popup_messages").update({ is_active: !popup.is_active }).eq("id", popup.id);
+            await api.patch(`/admin/popup-messages/${popup.id}`, { isActive: !popup.is_active }).catch(() => {});
             load(); reload();
           }} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${popup.is_active ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"}`}>
             {popup.is_active ? "✅ Active" : "❌ Inactive"}
@@ -1655,7 +1531,7 @@ const PopupsTab = ({ popups, reload, showSuccess, showError }: any) => {
 
   const save = async () => {
     if (!editing) return;
-    await supabase.from("popup_messages").update({ title: form.title, message: form.message, button_confirm: form.button_confirm, button_cancel: form.button_cancel || null, is_active: form.is_active }).eq("id", editing);
+    await api.patch(`/admin/popup-messages/${editing}`, { title: form.title, message: form.message, buttonConfirm: form.button_confirm, buttonCancel: form.button_cancel || null, isActive: form.is_active }).catch(() => {});
     showSuccess("Saved ✅", "");
     setEditing(null); reload();
   };
@@ -1686,7 +1562,7 @@ const PopupsTab = ({ popups, reload, showSuccess, showError }: any) => {
                 <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{m.message}</p>
               </div>
               <div className="flex gap-1.5">
-                <button onClick={async () => { await supabase.from("popup_messages").update({ is_active: !m.is_active }).eq("id", m.id); reload(); }}
+                <button onClick={async () => { await api.patch(`/admin/popup-messages/${m.id}`, { isActive: !m.is_active }).catch(() => {}); reload(); }}
                   className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${m.is_active ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"}`}>{m.is_active ? "ON" : "OFF"}</button>
                 <button onClick={() => { setEditing(m.id); setForm({ ...m }); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Pencil size={12} className="text-muted-foreground" /></button>
               </div>
@@ -1738,103 +1614,34 @@ const SupportTab = ({ adminId }: { adminId: string }) => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chatMessages]);
 
-  // Realtime subscription
   useEffect(() => {
-    const channel = supabase
-      .channel("admin-chat")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "chat_messages" },
-        (payload) => {
-          const msg = payload.new as ChatMsg;
-          // Refresh conversations list
-          loadConversations();
-          // If viewing this user's chat, add message
-          if (msg.user_id === selectedUserId && msg.sender === "user") {
-            setChatMessages((prev) => {
-              if (prev.find((m) => m.id === msg.id)) return prev;
-              return [...prev, msg];
-            });
-          }
-        }
-      )
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const interval = setInterval(() => { loadConversations(); }, 10000);
+    return () => clearInterval(interval);
   }, [selectedUserId]);
 
   const loadConversations = async () => {
-    // Get all chat messages grouped by user
-    const { data: msgs } = await supabase
-      .from("chat_messages")
-      .select("*")
-      .order("created_at", { ascending: false });
-
-    if (!msgs) { setLoading(false); return; }
-
-    // Group by user_id
-    const userMap: Record<string, ChatMsg[]> = {};
-    msgs.forEach((m: any) => {
-      if (!userMap[m.user_id]) userMap[m.user_id] = [];
-      userMap[m.user_id].push(m);
-    });
-
-    // Get profiles for these users
-    const userIds = Object.keys(userMap);
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("user_id, full_name, phone")
-      .in("user_id", userIds);
-
-    const profileMap: Record<string, any> = {};
-    (profiles || []).forEach((p: any) => { profileMap[p.user_id] = p; });
-
-    const convos: ChatConversation[] = userIds.map((uid) => {
-      const userMsgs = userMap[uid];
-      const lastMsg = userMsgs[0]; // already sorted desc
-      const profile = profileMap[uid];
-      const unread = userMsgs.filter((m) => m.sender === "user").length; // simplified
-      return {
-        user_id: uid,
-        full_name: profile?.full_name || "User",
-        phone: profile?.phone || "",
-        last_message: lastMsg.message,
-        last_time: lastMsg.created_at,
-        unread_count: unread,
-      };
-    }).sort((a, b) => new Date(b.last_time).getTime() - new Date(a.last_time).getTime());
-
+    const convos = await api.get("/admin/chat-conversations").catch(() => null);
+    if (!convos) { setLoading(false); return; }
     setConversations(convos);
     setLoading(false);
   };
 
   const loadMessages = async (uid: string) => {
-    const { data } = await supabase
-      .from("chat_messages")
-      .select("*")
-      .eq("user_id", uid)
-      .order("created_at", { ascending: true });
-    setChatMessages((data || []).map(m => ({ ...m, is_ai: m.is_ai ?? false })) as any);
+    const msgs = await api.get(`/admin/chat-messages/${uid}`).catch(() => []);
+    setChatMessages((msgs || []).map((m: any) => ({ ...m, is_ai: m.is_ai ?? false })));
   };
 
   const sendReply = async () => {
     if (!replyText.trim() || !selectedUserId) return;
     setSending(true);
-    const { data: inserted } = await supabase
-      .from("chat_messages")
-      .insert({
-        user_id: selectedUserId,
-        sender: "support",
-        message: replyText.trim(),
-        is_ai: false,
-      })
-      .select()
-      .single();
-
-    if (inserted) {
-      setChatMessages((prev) => [...prev, inserted as ChatMsg]);
-      setReplyText("");
-      loadConversations();
-    }
+    try {
+      const inserted = await api.post("/admin/chat-reply", { userId: selectedUserId, message: replyText.trim() });
+      if (inserted) {
+        setChatMessages((prev) => [...prev, inserted as ChatMsg]);
+        setReplyText("");
+        loadConversations();
+      }
+    } catch {}
     setSending(false);
   };
 
@@ -1948,9 +1755,7 @@ const SarahTab = ({ settings, reload, showSuccess, showError }: any) => {
   const getSetting = (key: string) => settings.find((s: SiteSetting) => s.key === key)?.value || "";
 
   const saveSetting = async (key: string, value: string, category = "sarah") => {
-    const existing = settings.find((s: SiteSetting) => s.key === key);
-    if (existing) await supabase.from("site_settings").update({ value }).eq("key", key);
-    else await supabase.from("site_settings").insert({ key, value, category });
+    await api.patch("/admin/site-settings", { key, value, category }).catch(() => {});
     reload();
   };
 
@@ -2176,15 +1981,13 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
 
   useEffect(() => { loadRewards(); }, []);
   const loadRewards = async () => {
-    const { data } = await supabase.from("gift_rewards").select("*").order("sort_order");
-    if (data) setRewards(data);
+    const data = await api.get("/gift-rewards").catch(() => []);
+    setRewards(data || []);
   };
 
   const saveSettings = async () => {
     for (const [key, value] of Object.entries(edits)) {
-      const existing = settings.find((s: SiteSetting) => s.key === key);
-      if (existing) await supabase.from("site_settings").update({ value }).eq("key", key);
-      else await supabase.from("site_settings").insert({ key, value, category: "points" });
+      await api.patch("/admin/site-settings", { key, value, category: "points" }).catch(() => {});
     }
     showSuccess("GE Energy Currency Configuration sauvegardée", "");
     setEdits({});
@@ -2199,21 +2002,21 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
 
   const saveReward = async () => {
     if (!form.name || !form.points_required || !form.money_value) { showError("Error", "Please fill in all required fields"); return; }
-    const payload = { name: form.name, points_required: Number(form.points_required), money_value: Number(form.money_value), image_url: form.image_url || null };
-    if (editing) await supabase.from("gift_rewards").update(payload).eq("id", editing.id);
-    else await supabase.from("gift_rewards").insert({ ...payload, sort_order: rewards.length });
+    const payload = { name: form.name, pointsRequired: Number(form.points_required), moneyValue: Number(form.money_value), imageUrl: form.image_url || null, sortOrder: rewards.length };
+    if (editing) await api.patch(`/admin/gift-rewards/${editing.id}`, payload).catch(() => {});
+    else await api.post("/admin/gift-rewards", payload).catch(() => {});
     showSuccess(editing ? "Reward updated" : "Reward added", "");
     setShowForm(false);
     loadRewards();
   };
 
   const toggleReward = async (r: any) => {
-    await supabase.from("gift_rewards").update({ is_active: !r.is_active }).eq("id", r.id);
+    await api.patch(`/admin/gift-rewards/${r.id}`, { isActive: !r.is_active }).catch(() => {});
     loadRewards();
   };
 
   const deleteReward = async (r: any) => {
-    await supabase.from("gift_rewards").delete().eq("id", r.id);
+    await api.delete(`/admin/gift-rewards/${r.id}`).catch(() => {});
     showSuccess("Reward deleted", "");
     loadRewards();
   };
@@ -2295,8 +2098,8 @@ const GiftCodesTab = ({ showSuccess, showError }: any) => {
 
   useEffect(() => { loadCodes(); }, []);
   const loadCodes = async () => {
-    const { data } = await supabase.from("gift_codes").select("*").order("created_at", { ascending: false });
-    if (data) setCodes(data);
+    const data = await api.get("/admin/gift-codes").catch(() => []);
+    setCodes(data || []);
   };
 
   const openForm = (c?: any) => {
@@ -2315,14 +2118,14 @@ const GiftCodesTab = ({ showSuccess, showError }: any) => {
     if (!form.code || !form.points_value) { showError("Error", "Code and points value are required"); return; }
     const payload: any = {
       code: form.code.toUpperCase().trim(),
-      points_value: Number(form.points_value),
-      max_uses: Number(form.max_uses) || 1,
-      expires_at: form.expires_at ? new Date(form.expires_at).toISOString() : null,
+      pointsValue: Number(form.points_value),
+      maxUses: Number(form.max_uses) || 1,
+      expiresAt: form.expires_at ? new Date(form.expires_at).toISOString() : null,
     };
     if (editing) {
-      await supabase.from("gift_codes").update(payload).eq("id", editing.id);
+      await api.patch(`/admin/gift-codes/${editing.id}`, payload).catch(() => {});
     } else {
-      await supabase.from("gift_codes").insert(payload);
+      await api.post("/admin/gift-codes", payload).catch(() => {});
     }
     showSuccess(editing ? "Code updated" : "Code created", "");
     setShowForm(false);
@@ -2330,12 +2133,12 @@ const GiftCodesTab = ({ showSuccess, showError }: any) => {
   };
 
   const toggleCode = async (c: any) => {
-    await supabase.from("gift_codes").update({ is_active: !c.is_active }).eq("id", c.id);
+    await api.patch(`/admin/gift-codes/${c.id}`, { isActive: !c.is_active }).catch(() => {});
     loadCodes();
   };
 
   const deleteCode = async (c: any) => {
-    await supabase.from("gift_codes").delete().eq("id", c.id);
+    await api.delete(`/admin/gift-codes/${c.id}`).catch(() => {});
     showSuccess("Code deleted", "");
     loadCodes();
   };
@@ -2406,8 +2209,8 @@ const FaqTab = ({ showSuccess, showError }: any) => {
 
   useEffect(() => { load(); }, []);
   const load = async () => {
-    const { data } = await supabase.from("faq_items").select("*").order("sort_order");
-    if (data) setItems(data);
+    const data = await api.get("/admin/faq-items").catch(() => []);
+    setItems(data || []);
   };
 
   const openForm = (item?: any) => {
@@ -2418,19 +2221,19 @@ const FaqTab = ({ showSuccess, showError }: any) => {
 
   const save = async () => {
     if (!form.question || !form.answer) { showError("Error", "Please fill in all fields"); return; }
-    if (editing) await supabase.from("faq_items").update(form).eq("id", editing.id);
-    else await supabase.from("faq_items").insert({ ...form, sort_order: items.length });
+    if (editing) await api.patch(`/admin/faq-items/${editing.id}`, form).catch(() => {});
+    else await api.post("/admin/faq-items", { ...form, sortOrder: items.length }).catch(() => {});
     showSuccess(editing ? "Question updated" : "Question added", "");
     setShowForm(false); load();
   };
 
   const toggle = async (item: any) => {
-    await supabase.from("faq_items").update({ is_active: !item.is_active }).eq("id", item.id);
+    await api.patch(`/admin/faq-items/${item.id}`, { isActive: !item.is_active }).catch(() => {});
     load();
   };
 
   const remove = async (id: string) => {
-    await supabase.from("faq_items").delete().eq("id", id);
+    await api.delete(`/admin/faq-items/${id}`).catch(() => {});
     showSuccess("Question deleted", ""); load();
   };
 
@@ -2478,8 +2281,8 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
 
   useEffect(() => { load(); }, []);
   const load = async () => {
-    const { data } = await supabase.from("info_items").select("*").order("sort_order");
-    if (data) setItems(data);
+    const data = await api.get("/admin/info-items").catch(() => []);
+    setItems(data || []);
   };
 
   const openForm = (item?: any) => {
@@ -2490,19 +2293,19 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
 
   const save = async () => {
     if (!form.title || !form.description) { showError("Error", "Please fill in all fields"); return; }
-    if (editing) await supabase.from("info_items").update(form).eq("id", editing.id);
-    else await supabase.from("info_items").insert({ ...form, sort_order: items.length });
+    if (editing) await api.patch(`/admin/info-items/${editing.id}`, form).catch(() => {});
+    else await api.post("/admin/info-items", { ...form, sortOrder: items.length }).catch(() => {});
     showSuccess(editing ? "Announcement updated" : "Announcement added", "");
     setShowForm(false); load();
   };
 
   const toggle = async (item: any) => {
-    await supabase.from("info_items").update({ is_active: !item.is_active }).eq("id", item.id);
+    await api.patch(`/admin/info-items/${item.id}`, { isActive: !item.is_active }).catch(() => {});
     load();
   };
 
   const remove = async (id: string) => {
-    await supabase.from("info_items").delete().eq("id", id);
+    await api.delete(`/admin/info-items/${id}`).catch(() => {});
     showSuccess("Announcement deleted", ""); load();
   };
 
@@ -2510,7 +2313,7 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
     setUploading(true);
     try {
       const url = await uploadFile(file, "site-assets");
-      await supabase.from("info_items").update({ image_url: url }).eq("id", itemId);
+      await api.patch(`/admin/info-items/${itemId}`, { imageUrl: url }).catch(() => {});
       showSuccess("Image ajoutée ✅", "");
       load();
     } catch (err: any) {
@@ -2521,7 +2324,7 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
   };
 
   const removeImage = async (itemId: string) => {
-    await supabase.from("info_items").update({ image_url: null }).eq("id", itemId);
+    await api.patch(`/admin/info-items/${itemId}`, { imageUrl: null }).catch(() => {});
     showSuccess("Image deleted", "");
     load();
   };
@@ -2585,9 +2388,7 @@ const AppSettingsTab = ({ settings, reload, showSuccess }: any) => {
 
   const saveAll = async () => {
     for (const [key, value] of Object.entries(edits)) {
-      const existing = settings.find((s: SiteSetting) => s.key === key);
-      if (existing) await supabase.from("site_settings").update({ value }).eq("key", key);
-      else await supabase.from("site_settings").insert({ key, value, category: "app" });
+      await api.patch("/admin/site-settings", { key, value, category: "app" }).catch(() => {});
     }
     showSuccess("App settings saved", "");
     setEdits({}); reload();
@@ -2743,12 +2544,7 @@ const DatesTab = ({ settings, reload, showSuccess }: any) => {
   const saveAll = async () => {
     setSaving(true);
     for (const [key, value] of Object.entries(edits)) {
-      const existing = settings.find((s: SiteSetting) => s.key === key);
-      if (existing) {
-        await supabase.from("site_settings").update({ value }).eq("key", key);
-      } else {
-        await supabase.from("site_settings").insert({ key, value, category: "dates" });
-      }
+      await api.patch("/admin/site-settings", { key, value, category: "dates" }).catch(() => {});
     }
     setEdits({});
     await reload();
@@ -2816,12 +2612,7 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
 
   const saveAll = async () => {
     for (const [key, value] of Object.entries(edits)) {
-      const existing = settings.find((s: SiteSetting) => s.key === key);
-      if (existing) {
-        await supabase.from("site_settings").update({ value }).eq("key", key);
-      } else {
-        await supabase.from("site_settings").insert({ key, value, category: "finance" });
-      }
+      await api.patch("/admin/site-settings", { key, value, category: "finance" }).catch(() => {});
     }
     showSuccess("Settings saved", "");
     setEdits({});
@@ -2941,12 +2732,7 @@ const OfficialInfoTab = ({ settings, reload, showSuccess }: { settings: SiteSett
 
   const saveAll = async () => {
     for (const [key, value] of Object.entries(edits)) {
-      const existing = settings.find(s => s.key === key);
-      if (existing) {
-        await supabase.from("site_settings").update({ value }).eq("id", existing.id);
-      } else {
-        await supabase.from("site_settings").insert({ key, value, category: "official_info" });
-      }
+      await api.patch("/admin/site-settings", { key, value, category: "official_info" }).catch(() => {});
     }
     showSuccess("Official information saved", "Changes take effect immediately ✅");
     setEdits({});
@@ -3006,8 +2792,8 @@ const OfficialDocsTab = ({ showSuccess, showError }: { showSuccess: (t: string, 
   const fileRef = useRef<HTMLInputElement>(null);
 
   const loadDocs = async () => {
-    const { data } = await supabase.from("official_documents").select("*").order("sort_order");
-    if (data) setDocs(data);
+    const data = await api.get("/admin/official-documents").catch(() => []);
+    setDocs(data || []);
     setLoading(false);
   };
 
@@ -3022,13 +2808,7 @@ const OfficialDocsTab = ({ showSuccess, showError }: { showSuccess: (t: string, 
     setUploading(true);
     try {
       const url = await uploadFile(file, "site-assets");
-      await supabase.from("official_documents").insert({
-        title: title.trim(),
-        description: description.trim() || null,
-        doc_type: docType,
-        file_url: url,
-        sort_order: docs.length,
-      });
+      await api.post("/admin/official-documents", { title: title.trim(), description: description.trim() || null, docType, fileUrl: url, sortOrder: docs.length });
       setTitle(""); setDescription(""); setDocType("image");
       showSuccess("Document ajouté ✅", "Le document est maintenant disponible pour Sarah AI");
       loadDocs();
@@ -3040,12 +2820,12 @@ const OfficialDocsTab = ({ showSuccess, showError }: { showSuccess: (t: string, 
   };
 
   const toggleActive = async (id: string, current: boolean) => {
-    await supabase.from("official_documents").update({ is_active: !current }).eq("id", id);
+    await api.patch(`/admin/official-documents/${id}`, { isActive: !current }).catch(() => {});
     loadDocs();
   };
 
   const deleteDoc = async (id: string) => {
-    await supabase.from("official_documents").delete().eq("id", id);
+    await api.delete(`/admin/official-documents/${id}`).catch(() => {});
     showSuccess("Deleted", "Document deleted ✅");
     loadDocs();
   };
@@ -3129,11 +2909,7 @@ const SecurityTab = ({ logs, settings, reload, showSuccess, showError }: { logs:
 
   const savePhones = async (updated: string[]) => {
     const val = JSON.stringify(updated);
-    if (existing) {
-      await supabase.from("site_settings").update({ value: val }).eq("id", existing.id);
-    } else {
-      await supabase.from("site_settings").insert({ key: "admin_phones", value: val, category: "security" });
-    }
+    await api.patch("/admin/site-settings", { key: "admin_phones", value: val, category: "security" }).catch(() => {});
     setPhones(updated);
     reload();
   };
@@ -3243,8 +3019,8 @@ const WithdrawalMethodsTab = ({ methods, countries, reload, showSuccess, showErr
     if (!form.name.trim()) { showError("Error", "Nom requis"); return; }
     if (!form.country_id) { showError("Error", "Country required"); return; }
     const payload = { name: form.name, country_id: form.country_id || null, payment_type: form.payment_type, api_provider: form.api_provider || null, logo_url: form.logo_url || null };
-    if (editing) await supabase.from("withdrawal_methods").update(payload).eq("id", editing.id);
-    else await supabase.from("withdrawal_methods").insert({ ...payload, sort_order: methods.length });
+    if (editing) await api.patch(`/admin/withdrawal-methods/${editing.id}`, payload).catch(() => {});
+    else await api.post("/admin/withdrawal-methods", { ...payload, sortOrder: methods.length }).catch(() => {});
     showSuccess(editing ? "Updated" : "Created", "");
     setShowForm(false); reload();
   };
@@ -3337,10 +3113,10 @@ const WithdrawalMethodsTab = ({ methods, countries, reload, showSuccess, showErr
                     </div>
                   </div>
                   <div className="flex gap-1.5">
-                    <button onClick={async () => { await supabase.from("withdrawal_methods").update({ is_active: !m.is_active }).eq("id", m.id); reload(); }}
+                    <button onClick={async () => { await api.patch(`/admin/withdrawal-methods/${m.id}`, { isActive: !m.is_active }).catch(() => {}); reload(); }}
                       className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${m.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{m.is_active ? "ON" : "OFF"}</button>
                     <button onClick={() => openForm(m)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
-                    <button onClick={async () => { await supabase.from("withdrawal_methods").delete().eq("id", m.id); showSuccess("Supprimé", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+                    <button onClick={async () => { await api.delete(`/admin/withdrawal-methods/${m.id}`).catch(() => {}); showSuccess("Supprimé", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
                   </div>
                 </div>
               ))}
@@ -3367,26 +3143,26 @@ const CountriesTab = ({ countries, methods, withdrawalMethods = [], reload, show
   const save = async () => {
     if (!form.name.trim()) { showError("Error", "Nom requis"); return; }
     const payload = { name: form.name, country_code: form.country_code, phone_digits: Number(form.phone_digits) || 8, validation_enabled: form.validation_enabled };
-    if (editing) await supabase.from("countries").update(payload).eq("id", editing.id);
-    else await supabase.from("countries").insert({ ...payload, sort_order: countries.length, api_enabled: true });
+    if (editing) await api.patch(`/admin/countries/${editing.id}`, payload).catch(() => {});
+    else await api.post("/admin/countries", { ...payload, sortOrder: countries.length, apiEnabled: true }).catch(() => {});
     showSuccess(editing ? "Country updated" : "Country added", "");
     setShowForm(false); reload();
   };
 
   const toggleActive = async (c: Country) => {
-    await supabase.from("countries").update({ is_active: !c.is_active }).eq("id", c.id);
+    await api.patch(`/admin/countries/${c.id}`, { isActive: !c.is_active }).catch(() => {});
     showSuccess(c.is_active ? "Country deactivated" : "Country activated ✅", "");
     reload();
   };
 
   const toggleApi = async (c: Country) => {
-    await supabase.from("countries").update({ api_enabled: !(c as any).api_enabled }).eq("id", c.id);
+    await api.patch(`/admin/countries/${c.id}`, { apiEnabled: !(c as any).api_enabled }).catch(() => {});
     showSuccess((c as any).api_enabled ? "API disabled for " + c.name : "API enabled for " + c.name + " ✅", "");
     reload();
   };
 
   const deleteCountry = async (c: Country) => {
-    await supabase.from("countries").delete().eq("id", c.id);
+    await api.delete(`/admin/countries/${c.id}`).catch(() => {});
     showSuccess("Country deleted", "");
     reload();
   };
@@ -3508,14 +3284,14 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
 
   const save = async () => {
     if (!editingId) return;
-    await supabase.from("vip_conditions").update({
-      min_investment: Number(form.min_investment) || 0,
-      min_active_members: Number(form.min_active_members) || 0,
-      min_purchases: Number(form.min_purchases) || 0,
-      min_products_bought: Number(form.min_products_bought) || 0,
-      min_team_investment: Number(form.min_team_investment) || 0,
-      condition_logic: form.condition_logic,
-    }).eq("id", editingId);
+    await api.patch(`/admin/vip-conditions/${editingId}`, {
+      minInvestment: Number(form.min_investment) || 0,
+      minActiveMembers: Number(form.min_active_members) || 0,
+      minPurchases: Number(form.min_purchases) || 0,
+      minProductsBought: Number(form.min_products_bought) || 0,
+      minTeamInvestment: Number(form.min_team_investment) || 0,
+      conditionLogic: form.condition_logic,
+    }).catch(() => {});
     showSuccess("VIP conditions updated", "");
     setEditingId(null);
     reload();
@@ -3525,7 +3301,7 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
     setUploading(true);
     try {
       const url = await uploadFile(file, "site-assets");
-      await supabase.from("vip_conditions").update({ image_url: url }).eq("id", condId);
+      await api.patch(`/admin/vip-conditions/${condId}`, { imageUrl: url }).catch(() => {});
       showSuccess("Image VIP ajoutée ✅", "");
       reload();
     } catch (err: any) {
@@ -3536,7 +3312,7 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
   };
 
   const removeImage = async (condId: string) => {
-    await supabase.from("vip_conditions").update({ image_url: null }).eq("id", condId);
+    await api.patch(`/admin/vip-conditions/${condId}`, { imageUrl: null }).catch(() => {});
     showSuccess("Image deleted", "");
     reload();
   };
@@ -3677,21 +3453,21 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
   const save = async () => {
     if (!form.name.trim()) { showError("Error", "Nom requis"); return; }
     const payload = { ...form, country_id: form.country_id || null, api_key: form.api_key || null, secret_key: form.secret_key || null, endpoint_url: form.endpoint_url || null, callback_url: form.callback_url || null, notes: form.notes || null };
-    if (editing) await supabase.from("payment_api_configs").update(payload).eq("id", editing.id);
-    else await supabase.from("payment_api_configs").insert(payload);
+    if (editing) await api.patch(`/admin/payment-api-configs/${editing.id}`, payload).catch(() => {});
+    else await api.post("/admin/payment-api-configs", payload).catch(() => {});
     showSuccess(editing ? "API updated" : "API added", "");
     setShowForm(false); reload();
   };
 
   const toggleActive = async (c: ApiConfig) => {
-    await supabase.from("payment_api_configs").update({ is_active: !c.is_active }).eq("id", c.id);
+    await api.patch(`/admin/payment-api-configs/${c.id}`, { isActive: !c.is_active }).catch(() => {});
     showSuccess(c.is_active ? "API deactivated" : "API activated ⚡", "");
     reload();
   };
 
   const deleteConfig = async (id: string) => {
     if (!confirm("Delete this API configuration?")) return;
-    await supabase.from("payment_api_configs").delete().eq("id", id);
+    await api.delete(`/admin/payment-api-configs/${id}`).catch(() => {});
     showSuccess("Configuration deleted", "");
     reload();
   };
@@ -3716,7 +3492,7 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
     const updates: any = { provider };
     if (provider === "sendavapay") {
       updates.endpoint_url = form.endpoint_url || "https://sendavapay.com";
-      updates.callback_url = form.callback_url || `https://vigdgbydpumkauibuxmn.supabase.co/functions/v1/sendavapay-webhook`;
+      updates.callback_url = form.callback_url || `${window.location.origin}/api/webhooks/sendavapay`;
     }
     setForm({ ...form, ...updates });
   };

@@ -1,38 +1,16 @@
 import { Router, Request, Response } from "express";
+import { db } from "../db";
+import {
+  siteSettings, products as productsTable, paymentMethods as paymentMethodsTable,
+  officialDocuments, infoItems as infoItemsTable, countries as countriesTable,
+  withdrawalMethods as withdrawalMethodsTable, profiles as profilesTable,
+  recharges as rechargesTable, withdrawals as withdrawalsTable,
+  userProducts as userProductsTable, chatMessages,
+} from "../db";
+import { eq, desc } from "drizzle-orm";
+import crypto from "crypto";
 
 const router = Router();
-
-// ─── Supabase REST helpers ────────────────────────────────────────────────────
-const SB_URL = () => process.env["VITE_SUPABASE_PROJECT_URL"] ?? "";
-const SB_KEY = () => process.env["SUPABASE_SERVICE_ROLE_KEY"] ?? "";
-
-async function sbGet(table: string, query = ""): Promise<any[]> {
-  const url = `${SB_URL()}/rest/v1/${table}${query ? `?${query}` : ""}`;
-  const res = await fetch(url, {
-    headers: {
-      apikey: SB_KEY(),
-      Authorization: `Bearer ${SB_KEY()}`,
-      "Content-Type": "application/json",
-    },
-  });
-  if (!res.ok) return [];
-  return res.json();
-}
-
-async function sbInsert(table: string, body: object): Promise<any> {
-  const res = await fetch(`${SB_URL()}/rest/v1/${table}`, {
-    method: "POST",
-    headers: {
-      apikey: SB_KEY(),
-      Authorization: `Bearer ${SB_KEY()}`,
-      "Content-Type": "application/json",
-      Prefer: "return=representation",
-    },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  return Array.isArray(data) ? data[0] : data;
-}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function getVipLevel(balance: number, settings: Record<string, string>): string {
@@ -479,13 +457,13 @@ router.post("/chat", async (req: Request, res: Response) => {
       settingsRows, products, paymentMethods, officialDocs,
       infoItems, countries, withdrawalMethods,
     ] = await Promise.all([
-      sbGet("site_settings", "select=key,value"),
-      sbGet("products", "select=name,price,daily_revenue,cycles,total_revenue,return_percent,is_active&is_active=eq.true&order=sort_order"),
-      sbGet("payment_methods", "select=name,phone,country,holder_name,instructions,is_active,payment_type,country_id,external_url&is_active=eq.true&order=sort_order"),
-      sbGet("official_documents", "select=title,description,doc_type,file_url&is_active=eq.true&order=sort_order"),
-      sbGet("info_items", "select=title,description&is_active=eq.true&order=sort_order&limit=10"),
-      sbGet("countries", "select=id,name,country_code,api_enabled,is_active,flag_emoji&is_active=eq.true&order=sort_order"),
-      sbGet("withdrawal_methods", "select=name,payment_type,api_provider,country_id,is_active&is_active=eq.true&order=sort_order"),
+      db.select().from(siteSettings),
+      db.select().from(productsTable).where(eq(productsTable.isActive, true)),
+      db.select().from(paymentMethodsTable).where(eq(paymentMethodsTable.isActive, true)),
+      db.select().from(officialDocuments).where(eq(officialDocuments.isActive, true)),
+      db.select().from(infoItemsTable).where(eq(infoItemsTable.isActive, true)),
+      db.select().from(countriesTable).where(eq(countriesTable.isActive, true)),
+      db.select().from(withdrawalMethodsTable).where(eq(withdrawalMethodsTable.isActive, true)),
     ]);
 
     const settingsMap: Record<string, string> = {};
@@ -504,16 +482,25 @@ router.post("/chat", async (req: Request, res: Response) => {
     let teamMembers: any[] = [];
 
     if (userId) {
+      const { pool } = await import("../db");
       const [profileRows, rechargesRows, withdrawalsRows, userProductsRows] = await Promise.all([
-        sbGet("profiles", `select=*&user_id=eq.${userId}&limit=1`),
-        sbGet("recharges", `select=amount,status,created_at,payment_method&user_id=eq.${userId}&order=created_at.desc&limit=5`),
-        sbGet("withdrawals", `select=amount,status,created_at,network,phone,net_amount,fee_amount&user_id=eq.${userId}&order=created_at.desc&limit=5`),
-        sbGet("user_products", `select=id,product_id,purchased_at,expires_at,is_active,total_collected,products(name,price,daily_revenue,cycles,total_revenue)&user_id=eq.${userId}&is_active=eq.true`),
+        db.select().from(profilesTable).where(eq(profilesTable.userId, userId)).limit(1),
+        db.select().from(rechargesTable).where(eq(rechargesTable.userId, userId)).orderBy(desc(rechargesTable.createdAt)).limit(5),
+        db.select().from(withdrawalsTable).where(eq(withdrawalsTable.userId, userId)).orderBy(desc(withdrawalsTable.createdAt)).limit(5),
+        pool.query(`
+          SELECT up.id, up.user_id, up.product_id, up.is_active,
+            up.purchased_at, up.expires_at, up.last_collected_at, up.total_collected,
+            json_build_object('name', p.name, 'price', p.price, 'daily_revenue', p.daily_revenue,
+              'total_revenue', p.total_revenue, 'cycles', p.cycles) as products
+          FROM user_products up
+          JOIN products p ON p.id = up.product_id
+          WHERE up.user_id = $1 AND up.is_active = true
+        `, [userId]),
       ]);
-      userProfile   = profileRows[0] ?? null;
-      userRecharges = rechargesRows;
+      userProfile     = profileRows[0] ?? null;
+      userRecharges   = rechargesRows;
       userWithdrawals = withdrawalsRows;
-      userProducts  = userProductsRows;
+      userProducts    = userProductsRows.rows;
     }
 
     // 3. Build system prompt
@@ -655,12 +642,13 @@ router.post("/chat", async (req: Request, res: Response) => {
     let savedReplyId: string | null = null;
     if (userId) {
       try {
-        const saved = await sbInsert("chat_messages", {
-          user_id: userId,
-          sender:  "support",
+        const [saved] = await db.insert(chatMessages).values({
+          id: crypto.randomUUID(),
+          userId,
+          sender: "support",
           message: reply,
-          is_ai:   true,
-        });
+          isAi: true,
+        }).returning();
         savedReplyId = saved?.id ?? null;
       } catch (e) {
         console.error("[AI] Failed to save reply:", e);

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import { Pencil, Save, X, Plus, Trash2 } from "lucide-react";
@@ -25,8 +25,8 @@ const AdminPopups = () => {
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const { data } = await supabase.from("popup_messages").select("*").order("sort_order");
-    if (data) setMessages(data as unknown as PopupMsg[]);
+    const data = await api.get("/admin/popup-messages").catch(() => []);
+    setMessages(data as unknown as PopupMsg[]);
     setLoading(false);
   };
 
@@ -41,21 +41,23 @@ const AdminPopups = () => {
 
   const saveEdit = async () => {
     if (!editing) return;
-    const { error } = await supabase.from("popup_messages").update({
-      title: form.title,
-      message: form.message,
-      button_confirm: form.button_confirm,
-      button_cancel: form.button_cancel || null,
-      tabs: form.tabs as any,
-      is_active: form.is_active,
-    }).eq("id", editing);
-
-    if (error) showError("Error", "Error saving changes");
-    else { showSuccess("Saved", "Message updated successfully ✅"); cancelEdit(); load(); }
+    try {
+      await api.patch(`/admin/popup-messages/${editing}`, {
+        title: form.title,
+        message: form.message,
+        buttonConfirm: form.button_confirm,
+        buttonCancel: form.button_cancel || null,
+        tabs: form.tabs,
+        isActive: form.is_active,
+      });
+      showSuccess("Saved", "Message updated successfully ✅"); cancelEdit(); load();
+    } catch {
+      showError("Error", "Error saving changes");
+    }
   };
 
   const toggleActive = async (msg: PopupMsg) => {
-    await supabase.from("popup_messages").update({ is_active: !msg.is_active }).eq("id", msg.id);
+    await api.patch(`/admin/popup-messages/${msg.id}`, { isActive: !msg.is_active }).catch(() => {});
     load();
   };
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 
 type VipCondition = {
   id: string;
@@ -53,50 +53,22 @@ export const useVipProgress = (userId: string | null, vipLevel: number, balance:
 
     const compute = async () => {
       try {
-        const [conditionsRes, userProductsRes, settingRes, myProfileRes, teamRes] = await Promise.all([
-          supabase.from("vip_conditions").select("*").order("level", { ascending: true }),
-          supabase.from("user_products").select("*").eq("user_id", userId).eq("is_active", true),
-          supabase.from("site_settings").select("value").eq("key", "vip_conditions_enabled").limit(1).maybeSingle(),
-          supabase.from("profiles").select("deposit_balance").eq("user_id", userId).single(),
-          supabase.from("profiles").select("user_id, deposit_balance").eq("referred_by", userId),
-        ]);
-
+        const vipData = await api.get("/user/vip-progress");
         if (cancelled) return;
 
-        const conditions = conditionsRes.data ?? [];
-        if (conditions.length === 0) { setLoading(false); return; }
+        const { conditions, vipConditionsEnabled, totalPurchases, uniqueProducts,
+          personalInvestment, teamInvestment, activeMembers } = vipData;
 
-        const vipConditionsEnabled = settingRes.data?.value !== "false";
-        const upList = userProductsRes.data ?? [];
-        const totalPurchases = upList.length;
-        const uniqueProducts = new Set(upList.map((up: any) => up.product_id)).size;
-        const personalInvestment = Number(myProfileRes.data?.deposit_balance ?? 0);
-
-        const team = teamRes.data ?? [];
-        const teamUserIds = team.map((m: any) => m.user_id);
-        const teamInvestment = team.reduce((s: number, m: any) => s + Number(m.deposit_balance ?? 0), 0);
-
-        let activeMembers = 0;
-        if (teamUserIds.length > 0) {
-          const { data: teamProds } = await supabase
-            .from("user_products")
-            .select("user_id")
-            .in("user_id", teamUserIds);
-          if (!cancelled) {
-            activeMembers = new Set((teamProds ?? []).map((tp: any) => tp.user_id)).size;
-          }
-        }
-
-        if (cancelled) return;
+        if (!conditions || conditions.length === 0) { setLoading(false); return; }
 
         const checkConditions = (cond: any) => {
-          const logic = cond.condition_logic || "AND";
+          const logic = cond.conditionLogic || cond.condition_logic || "AND";
           const checks: boolean[] = [];
-          if ((cond.min_investment || 0) > 0) checks.push(personalInvestment >= cond.min_investment);
-          if ((cond.min_active_members || 0) > 0) checks.push(activeMembers >= cond.min_active_members);
-          if ((cond.min_purchases || 0) > 0) checks.push(totalPurchases >= cond.min_purchases);
-          if ((cond.min_products_bought || 0) > 0) checks.push(uniqueProducts >= cond.min_products_bought);
-          if ((cond.min_team_investment || 0) > 0) checks.push(teamInvestment >= cond.min_team_investment);
+          if ((cond.minInvestment || cond.min_investment || 0) > 0) checks.push(personalInvestment >= (cond.minInvestment || cond.min_investment));
+          if ((cond.minActiveMembers || cond.min_active_members || 0) > 0) checks.push(activeMembers >= (cond.minActiveMembers || cond.min_active_members));
+          if ((cond.minPurchases || cond.min_purchases || 0) > 0) checks.push(totalPurchases >= (cond.minPurchases || cond.min_purchases));
+          if ((cond.minProductsBought || cond.min_products_bought || 0) > 0) checks.push(uniqueProducts >= (cond.minProductsBought || cond.min_products_bought));
+          if ((cond.minTeamInvestment || cond.min_team_investment || 0) > 0) checks.push(teamInvestment >= (cond.minTeamInvestment || cond.min_team_investment));
           if (checks.length === 0) return false;
           return logic === "AND" ? checks.every(Boolean) : checks.some(Boolean);
         };

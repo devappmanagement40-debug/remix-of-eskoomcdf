@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import {
   Save, Edit2, Search, Loader2, X, ArrowLeft,
   TrendingUp, Users, CheckCircle2
@@ -76,16 +76,11 @@ const AdminReferralTab = ({
       showError("Erreur", "Les taux doivent être entre 0 et 100"); return;
     }
     setSaving(true);
-    const entries = [
-      { key: "referral_rate_l1", value: rateL1 },
-      { key: "referral_rate_l2", value: rateL2 },
-      { key: "referral_rate_l3", value: rateL3 },
-    ];
-    for (const e of entries) {
-      const ex = siteSettings.find(s => s.key === e.key);
-      if (ex) await supabase.from("site_settings").update({ value: e.value }).eq("key", e.key);
-      else await supabase.from("site_settings").insert({ key: e.key, value: e.value, category: "referral" });
-    }
+    await Promise.all([
+      api.patch("/admin/site-settings", { key: "referral_rate_l1", value: rateL1, category: "referral" }).catch(() => {}),
+      api.patch("/admin/site-settings", { key: "referral_rate_l2", value: rateL2, category: "referral" }).catch(() => {}),
+      api.patch("/admin/site-settings", { key: "referral_rate_l3", value: rateL3, category: "referral" }).catch(() => {}),
+    ]);
     showSuccess("Taux sauvegardés ✅", `E: ${rateL1}% • F: ${rateL2}% • G: ${rateL3}%`);
     setSaving(false);
     reload();
@@ -94,19 +89,21 @@ const AdminReferralTab = ({
   const updateCode = async (profileId: string, code: string) => {
     const clean = code.toUpperCase().trim().replace(/[^A-Z0-9]/g, "");
     if (clean.length < 4) { showError("Erreur", "Code trop court (min 4 caractères)"); return; }
-    const { error } = await supabase.from("profiles").update({ referral_code: clean }).eq("id", profileId);
-    if (error) { showError("Erreur", error.message); return; }
-    showSuccess("Code mis à jour ✅", `Nouveau code : ${clean}`);
-    setEditingCodeId(null); setNewCode("");
-    reload();
+    try {
+      await api.patch(`/admin/users/${profileId}`, { referralCode: clean });
+      showSuccess("Code mis à jour ✅", `Nouveau code : ${clean}`);
+      setEditingCodeId(null); setNewCode("");
+      reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Failed"); }
   };
 
   const removeReferral = async (profileId: string) => {
-    const { error } = await supabase.from("profiles").update({ referred_by: null }).eq("id", profileId);
-    if (error) { showError("Erreur", error.message); return; }
-    showSuccess("Lien supprimé ✅", "Relation de parrainage retirée");
-    if (selectedUser?.id === profileId) setSelectedUser(prev => prev ? { ...prev, referred_by: null } : null);
-    reload();
+    try {
+      await api.patch(`/admin/users/${profileId}`, { referredBy: null });
+      showSuccess("Lien supprimé ✅", "Relation de parrainage retirée");
+      if (selectedUser?.id === profileId) setSelectedUser(prev => prev ? { ...prev, referred_by: null } : null);
+      reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Failed"); }
   };
 
   const changeReferrer = async (profileId: string, codeOrId: string) => {
@@ -115,29 +112,22 @@ const AdminReferralTab = ({
     );
     if (!ref) { showError("Erreur", "Code ou ID parrain introuvable"); return; }
     if (ref.id === profileId) { showError("Erreur", "Un utilisateur ne peut pas se parrainer lui-même"); return; }
-    const { error } = await supabase.from("profiles").update({ referred_by: ref.id }).eq("id", profileId);
-    if (error) { showError("Erreur", error.message); return; }
-    showSuccess("Parrain mis à jour ✅", `Parrain : ${label(ref)}`);
-    setEditingReferrerId(null); setNewReferrerCode("");
-    reload();
+    try {
+      await api.patch(`/admin/users/${profileId}`, { referredBy: ref.id });
+      showSuccess("Parrain mis à jour ✅", `Parrain : ${label(ref)}`);
+      setEditingReferrerId(null); setNewReferrerCode("");
+      reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Failed"); }
   };
 
   const loadTeam = async (p: Profile) => {
     setSelectedUser(p); setLoadingTeam(true);
-    const { data: l1d } = await supabase.from("profiles").select("*").eq("referred_by", p.id);
-    const l1 = (l1d || []) as Profile[];
-    const l1Ids = l1.map(m => m.id);
-    let l2: Profile[] = [], l3: Profile[] = [];
-    if (l1Ids.length > 0) {
-      const { data: l2d } = await supabase.from("profiles").select("*").in("referred_by", l1Ids);
-      l2 = (l2d || []) as Profile[];
-      const l2Ids = l2.map(m => m.id);
-      if (l2Ids.length > 0) {
-        const { data: l3d } = await supabase.from("profiles").select("*").in("referred_by", l2Ids);
-        l3 = (l3d || []) as Profile[];
-      }
+    try {
+      const data = await api.get(`/admin/user-team/${p.id}`);
+      setTeamData({ l1: data?.l1 || [], l2: data?.l2 || [], l3: data?.l3 || [] });
+    } catch {
+      setTeamData({ l1: [], l2: [], l3: [] });
     }
-    setTeamData({ l1, l2, l3 });
     setLoadingTeam(false);
   };
 

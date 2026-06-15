@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ChevronRight, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useRealtimeProfile } from "@/hooks/useRealtimeProfile";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
@@ -23,27 +23,25 @@ const Portefeuille = () => {
 
   useEffect(() => {
     const loadExtra = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
-      if (!user) return;
-      const [settingsRes, depositsRes, withdrawalsRes] = await Promise.all([
-        supabase.from("site_settings").select("value").eq("key", "deposit_not_withdrawable").single(),
-        supabase.from("recharges").select("amount").eq("user_id", user.id).eq("status", "approved"),
-        supabase.from("withdrawals").select("amount").eq("user_id", user.id).eq("status", "approved"),
-      ]);
-      if (settingsRes.data) setDepositNotWithdrawable(settingsRes.data.value === "true");
-      if (depositsRes.data) setTotalDeposits(depositsRes.data.reduce((s, r) => s + r.amount, 0));
-      if (withdrawalsRes.data) setTotalWithdrawals(withdrawalsRes.data.reduce((s, w) => s + w.amount, 0));
+      try {
+        const [settings, deposits, withdrawals] = await Promise.all([
+          api.get("/site-settings"),
+          api.get("/recharges/my"),
+          api.get("/withdrawals/my"),
+        ]);
+        const dnwSetting = (settings || []).find((s: any) => s.key === "deposit_not_withdrawable");
+        if (dnwSetting) setDepositNotWithdrawable(dnwSetting.value === "true");
+        const approvedDeposits = (deposits || []).filter((d: any) => d.status === "approved");
+        const approvedWithdrawals = (withdrawals || []).filter((w: any) => w.status === "approved");
+        setTotalDeposits(approvedDeposits.reduce((s: number, r: any) => s + Number(r.amount), 0));
+        setTotalWithdrawals(approvedWithdrawals.reduce((s: number, w: any) => s + Number(w.amount), 0));
+      } catch (err) {
+        console.error("Portefeuille extra load error:", err);
+      }
     };
     loadExtra();
-
-    const channel = supabase
-      .channel("wallet-totals")
-      .on("postgres_changes", { event: "*", schema: "public", table: "recharges" }, () => loadExtra())
-      .on("postgres_changes", { event: "*", schema: "public", table: "withdrawals" }, () => loadExtra())
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+    const interval = setInterval(loadExtra, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const withdrawable = depositNotWithdrawable

@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import PageHeader from "@/components/PageHeader";
 import CountryPicker from "@/components/CountryPicker";
-import { supabase } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import { usePhoneValidation } from "@/hooks/usePhoneValidation";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -60,11 +59,8 @@ const Signup = () => {
         return;
       }
 
-      if (data.session) {
-        await supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-        });
+      if (data.token) {
+        localStorage.setItem("auth_token", data.token);
       }
 
       showSuccess(t.signup.successTitle, t.signup.successMsg);

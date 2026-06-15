@@ -226,4 +226,27 @@ router.patch("/withdrawals/:id/reject", async (req, res) => {
   return res.json(updated);
 });
 
+// ─── User withdrawals (aliased) ──────────────────────────────────────────────
+router.get("/payments/withdrawals", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const myWithdrawals = await db.select().from(withdrawals).where(eq(withdrawals.userId, me.userId));
+  return res.json(myWithdrawals.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
+});
+
+router.patch("/payments/withdrawals/:id/proof", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { proofUrl } = req.body;
+  const [updated] = await db.update(withdrawals)
+    .set({ processingFeeProofUrl: proofUrl })
+    .where(and(eq(withdrawals.id, req.params.id), eq(withdrawals.userId, me.userId)))
+    .returning();
+  return res.json(updated);
+});
+
 export default router;

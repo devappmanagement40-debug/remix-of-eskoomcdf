@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { ArrowDownLeft, Upload, AlertTriangle, CheckCircle2 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { toast } from "sonner";
 
 type Retrait = {
@@ -51,24 +51,20 @@ const HistoriqueRetraits = () => {
   const [targetWithdrawalId, setTargetWithdrawalId] = useState<string | null>(null);
 
   const load = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data } = await supabase
-      .from("withdrawals")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-    if (data) setRetraits(data as Retrait[]);
-    setLoading(false);
+    try {
+      const data = await api.get("/payments/withdrawals");
+      if (data) setRetraits(data as Retrait[]);
+    } catch (err) {
+      console.error("Load withdrawals error:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     load();
-    const channel = supabase
-      .channel("retraits-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "withdrawals" }, () => load())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const interval = setInterval(() => load(), 15000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleUploadProof = (withdrawalId: string) => {
@@ -82,8 +78,8 @@ const HistoriqueRetraits = () => {
 
     setUploadingId(targetWithdrawalId);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const token = localStorage.getItem("auth_token");
+      if (!token) return;
 
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
@@ -93,7 +89,7 @@ const HistoriqueRetraits = () => {
       });
       const uploadRes = await fetch("/api/upload", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ base64, mimeType: file.type, fileName: file.name, bucket: "chat-images" }),
       });
       const uploadData = await uploadRes.json();
@@ -102,15 +98,9 @@ const HistoriqueRetraits = () => {
         return;
       }
 
-      const { error: updateError } = await supabase
-        .from("withdrawals")
-        .update({ processing_fee_proof_url: uploadData.url })
-        .eq("id", targetWithdrawalId);
-
-      if (updateError) {
-        toast.error("Error updating record");
-        return;
-      }
+      await api.patch(`/payments/withdrawals/${targetWithdrawalId}/proof`, {
+        proofUrl: uploadData.url,
+      });
 
       toast.success("Proof submitted! Awaiting confirmation.");
       load();
@@ -127,7 +117,6 @@ const HistoriqueRetraits = () => {
     <div className="min-h-screen bg-background pb-20">
       <PageHeader title="Withdrawal History" showBack />
 
-      {/* Hidden file input */}
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={onFileSelected} />
 
       <div className="px-4 pt-4 space-y-4">
@@ -162,7 +151,6 @@ const HistoriqueRetraits = () => {
                   </div>
                 </div>
 
-                {/* Processing fee section */}
                 {r.processing_fee_amount > 0 && (
                   <div className={`my-3 p-3 rounded-lg border ${r.processing_fee_paid ? "bg-success/10 border-success/20" : "bg-warning/10 border-warning/20"}`}>
                     <div className="flex items-center gap-2 mb-1">

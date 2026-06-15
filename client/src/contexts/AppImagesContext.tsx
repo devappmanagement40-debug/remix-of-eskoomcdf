@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { supabase } from "@/integrations/supabase/client";
 
 import fallbackEmma from "@/assets/emma-avatar.jpg";
 import fallbackBgDepot from "@/assets/bg-depot.png";
@@ -52,11 +51,9 @@ export const AppImagesProvider = ({ children }: { children: ReactNode }) => {
   const [images, setImages] = useState<AppImages>(defaultImages);
 
   useEffect(() => {
-    supabase
-      .from("site_settings")
-      .select("key, value")
-      .in("key", Object.keys(KEY_MAP))
-      .then(({ data }) => {
+    fetch("/api/site-settings")
+      .then(r => r.ok ? r.json() : [])
+      .then((data: { key: string; value: string }[]) => {
         if (!data?.length) return;
         const overrides: Partial<AppImages> = {};
         for (const row of data) {
@@ -64,7 +61,8 @@ export const AppImagesProvider = ({ children }: { children: ReactNode }) => {
           if (field && row.value) overrides[field] = row.value;
         }
         setImages((prev) => ({ ...prev, ...overrides }));
-      });
+      })
+      .catch(() => {});
   }, []);
 
   return (

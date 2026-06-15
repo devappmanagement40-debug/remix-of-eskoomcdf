@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ClipboardList, ShoppingCart, Package, Lock, Ban } from "lucide-react";
@@ -68,40 +68,21 @@ const Products = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const [s, p] = await Promise.all([
-          supabase.from("product_series").select("*").order("sort_order"),
-          supabase.from("products").select("*").eq("is_active", true).order("sort_order"),
+        const [seriesData, productsData, profileData] = await Promise.allSettled([
+          api.get("/product-series"),
+          api.get("/products"),
+          api.get("/profiles/me"),
         ]);
-        if (s.data) setSeries(s.data as Series[]);
-        if (p.data) setProducts(p.data as Product[]);
-
-        // Load user access data
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: profile } = await supabase.from("profiles").select("vip_level, deposit_balance, user_id").eq("user_id", user.id).single();
-          if (profile) {
-            const { data: teamIds } = await supabase.rpc("get_team_profile_ids", { _user_id: user.id });
-            let activeMembers = 0;
-            let teamInvestment = 0;
-            const ids = (teamIds || []) as string[];
-            if (ids.length > 0) {
-              const { data: memberProfiles } = await supabase.from("profiles").select("user_id, deposit_balance").in("id", ids);
-              if (memberProfiles) {
-                const memberUserIds = memberProfiles.map((m: any) => m.user_id);
-                if (memberUserIds.length > 0) {
-                  const { data: teamProducts } = await supabase.from("user_products").select("user_id").in("user_id", memberUserIds);
-                  activeMembers = new Set((teamProducts || []).map((tp: any) => tp.user_id)).size;
-                }
-                teamInvestment = memberProfiles.reduce((s: number, m: any) => s + (m.deposit_balance || 0), 0);
-              }
-            }
-            setUserAccess({
-              vipLevel: profile.vip_level || 0,
-              personalInvestment: profile.deposit_balance || 0,
-              activeMembers,
-              teamInvestment,
-            });
-          }
+        if (seriesData.status === "fulfilled") setSeries(seriesData.value as Series[]);
+        if (productsData.status === "fulfilled") setProducts(productsData.value as Product[]);
+        if (profileData.status === "fulfilled" && profileData.value) {
+          const p = profileData.value;
+          setUserAccess({
+            vipLevel: p.vipLevel ?? p.vip_level ?? 0,
+            personalInvestment: p.depositBalance ?? p.deposit_balance ?? 0,
+            activeMembers: p.activeMembers ?? 0,
+            teamInvestment: p.teamInvestment ?? 0,
+          });
         }
       } catch (err) {
         console.error("Products load error:", err);
@@ -131,108 +112,17 @@ const Products = () => {
   };
 
   const handlePurchase = async (product: Product) => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/connexion"); return; }
 
     setPurchasing(product.id);
 
     try {
-      const { data: profile } = await supabase.from("profiles")
-        .select("balance, deposit_balance, earnings_balance")
-        .eq("user_id", user.id).single();
-      if (!profile) { showError("Error", "Profile not found"); return; }
-
-      const price = Number(product.price) || 0;
-      const totalBalance = (profile.balance || 0);
-
-      if (totalBalance < price) {
-        showError("Insufficient balance", `Your balance (${totalBalance.toLocaleString("en-US")} USDT) is too low to buy this product (${price.toLocaleString("en-US")} USDT). Please top up your account.`);
+      const result = await api.post("/products/purchase", { productId: product.id });
+      if (result?.error) {
+        showError("Error", result.error);
         return;
       }
 
-      // Check if user already has an active (non-expired) instance of this product
-      const { count: activeCount } = await supabase.from("user_products")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("product_id", product.id)
-        .eq("is_active", true)
-        .gt("expires_at", new Date().toISOString());
-
-      // Rule: Cannot buy same product while a previous purchase is still active
-      if ((activeCount || 0) > 0) {
-        showError("Product still active", `You already own this product and it is still active. You can buy it again once it expires.`);
-        return;
-      }
-
-      // Also check max_purchases lifetime limit (total purchases including expired)
-      if (product.max_purchases) {
-        const { count: totalCount } = await supabase.from("user_products")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .eq("product_id", product.id);
-        if ((totalCount || 0) >= product.max_purchases) {
-          showError("Limit reached", `You have reached the maximum of ${product.max_purchases} purchase(s) for this product.`);
-          return;
-        }
-      }
-
-      const depositBal = profile.deposit_balance || 0;
-      let newDeposit = depositBal;
-      let newBalance = totalBalance;
-
-      if (depositBal >= price) {
-        newDeposit = depositBal - price;
-      } else {
-        newDeposit = 0;
-      }
-      newBalance = totalBalance - price;
-
-      const cycles = product.cycles || 365;
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + cycles);
-
-      const { error: insertError } = await supabase.from("user_products").insert({
-        user_id: user.id,
-        product_id: product.id,
-        is_active: true,
-        expires_at: expiresAt.toISOString(),
-      });
-
-      if (insertError) {
-        showError("Error", "Purchase failed");
-        return;
-      }
-
-      await supabase.from("profiles").update({
-        balance: newBalance,
-        deposit_balance: newDeposit,
-      }).eq("user_id", user.id);
-
-      // Grant 1 spin to buyer
-      const { data: buyerProfile } = await supabase.from("profiles")
-        .select("id, spins_balance, referred_by")
-        .eq("user_id", user.id).single();
-      if (buyerProfile) {
-        await supabase.from("profiles").update({
-          spins_balance: (buyerProfile.spins_balance || 0) + 1,
-        }).eq("user_id", user.id);
-
-        // Grant 1 spin to referrer if exists
-        if (buyerProfile.referred_by) {
-          const { data: referrerProfile } = await supabase.from("profiles")
-            .select("user_id, spins_balance")
-            .eq("id", buyerProfile.referred_by).single();
-          if (referrerProfile) {
-            await supabase.from("profiles").update({
-              spins_balance: (referrerProfile.spins_balance || 0) + 1,
-            }).eq("id", buyerProfile.referred_by);
-          }
-        }
-
-        // Referral commissions are now handled automatically by database trigger
-        // on user_products INSERT — no client-side RPC needed
-      }
-
+      // Spins and commissions handled server-side via /products/purchase
       setPurchasedName(product.name);
       setShowSuccess(true);
     } finally {

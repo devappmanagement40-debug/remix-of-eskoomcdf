@@ -30,7 +30,7 @@ router.post("/gift-codes/redeem", async (req, res) => {
   const [giftCode] = await db.select().from(giftCodes).where(eq(giftCodes.code, code.trim().toUpperCase())).limit(1);
   if (!giftCode || !giftCode.isActive) return res.status(400).json({ error: "Invalid code" });
   if (giftCode.expiresAt && giftCode.expiresAt < new Date()) return res.status(400).json({ error: "Code expired" });
-  if (giftCode.usedCount >= giftCode.maxUses) return res.status(400).json({ error: "Code already used" });
+  if ((giftCode.usedCount ?? 0) >= (giftCode.maxUses ?? 9999)) return res.status(400).json({ error: "Code already used" });
 
   const alreadyUsed = await db.select().from(giftCodeUses).where(
     and(eq(giftCodeUses.codeId, giftCode.id), eq(giftCodeUses.userId, me.userId))
@@ -39,7 +39,7 @@ router.post("/gift-codes/redeem", async (req, res) => {
 
   const points = giftCode.pointsValue ?? 0;
   await db.insert(giftCodeUses).values({ id: crypto.randomUUID(), codeId: giftCode.id, userId: me.userId, pointsAwarded: points });
-  await db.update(giftCodes).set({ usedCount: giftCode.usedCount + 1 }).where(eq(giftCodes.id, giftCode.id));
+  await db.update(giftCodes).set({ usedCount: (giftCode.usedCount ?? 0) + 1 }).where(eq(giftCodes.id, giftCode.id));
   await db.update(profiles).set({ giftPoints: (me.giftPoints ?? 0) + points, updatedAt: new Date() }).where(eq(profiles.userId, me.userId));
 
   return res.json({ ok: true, pointsAwarded: points });

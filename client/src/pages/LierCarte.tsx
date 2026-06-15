@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import { Wallet, Trash2, Plus, Copy, ShieldCheck } from "lucide-react";
@@ -58,14 +58,8 @@ const LierCarte = () => {
 
   const loadWallets = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/connexion"); return; }
-      const { data } = await supabase
-        .from("user_wallets")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-      if (data) setWallets(data);
+      const data = await api.get("/wallets/my");
+      setWallets(data || []);
     } catch (err) {
       console.error("Wallets load error:", err);
     } finally {
@@ -84,33 +78,33 @@ const LierCarte = () => {
     }
 
     setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/connexion"); return; }
-
-    const { error } = await supabase.from("user_wallets").insert({
-      user_id: user.id,
-      phone: walletAddress.trim(),
-      country_code: USDT_BEP20.code,
-      network: USDT_BEP20.label,
-      label: USDT_BEP20.label,
-      holder_name: holderName.trim() || null,
-    });
-
-    if (error) {
-      showError("Erreur", "Impossible d'enregistrer le wallet");
-    } else {
+    try {
+      await api.post("/wallets", {
+        phone: walletAddress.trim(),
+        countryCode: USDT_BEP20.code,
+        network: USDT_BEP20.label,
+        label: USDT_BEP20.label,
+        holderName: holderName.trim() || null,
+      });
       showSuccess("Wallet ajouté", "Votre adresse USDT BEP20 a été sauvegardée ✅");
       setWalletAddress("");
       setHolderName("");
       setShowForm(false);
       loadWallets();
+    } catch {
+      showError("Erreur", "Impossible d'enregistrer le wallet");
     }
     setSaving(false);
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("user_wallets").delete().eq("id", id);
-    if (!error) { showSuccess("Supprimé", "Wallet supprimé"); loadWallets(); }
+    try {
+      await api.delete(`/wallets/${id}`);
+      showSuccess("Supprimé", "Wallet supprimé");
+      loadWallets();
+    } catch {
+      showError("Erreur", "Impossible de supprimer le wallet");
+    }
   };
 
   return (
