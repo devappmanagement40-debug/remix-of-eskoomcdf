@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { recharges, withdrawals, userWallets, withdrawalMethods, paymentMethods, countries, paymentApiConfigs, withdrawalFeePayments, userSessions, profiles, userRoles } from "@workspace/db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, inArray, sql } from "drizzle-orm";
 import crypto from "crypto";
 
 const router = Router();
@@ -18,6 +18,80 @@ async function isAdmin(userId: string) {
   return role?.role === "admin";
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// ATOMIC HELPERS — prevent double-credit / double-refund
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Atomically approve a recharge (status: pending → approved) and credit balance.
+ * Uses WHERE status='pending' so concurrent calls only succeed once (no double-credit).
+ * Returns the updated recharge or null if already processed.
+ */
+async function atomicApproveRecharge(rechargeId: string, adminNote?: string | null) {
+  const [updated] = await db
+    .update(recharges)
+    .set({ status: "approved", adminNote: adminNote ?? null, updatedAt: new Date() })
+    .where(and(eq(recharges.id, rechargeId), eq(recharges.status, "pending")))
+    .returning({ id: recharges.id, userId: recharges.userId, amount: recharges.amount });
+
+  if (!updated) return null; // Already approved or rejected — no balance change
+
+  // SQL-level atomic increment — safe against concurrent reads
+  await db
+    .update(profiles)
+    .set({
+      balance: sql`${profiles.balance} + ${Number(updated.amount)}`,
+      depositBalance: sql`${profiles.depositBalance} + ${Number(updated.amount)}`,
+      updatedAt: new Date(),
+    })
+    .where(eq(profiles.userId, updated.userId));
+
+  return updated;
+}
+
+/**
+ * Atomically reject a withdrawal (pending or processing → rejected) and refund balance.
+ * Handles both pending and processing so NowPayments payout failures are also refunded.
+ */
+async function atomicRejectWithdrawal(withdrawalId: string, adminNote?: string | null) {
+  const [withdrawal] = await db
+    .select({ id: withdrawals.id, status: withdrawals.status, userId: withdrawals.userId, amount: withdrawals.amount })
+    .from(withdrawals)
+    .where(eq(withdrawals.id, withdrawalId))
+    .limit(1);
+
+  if (!withdrawal) return null;
+  if (withdrawal.status !== "pending" && withdrawal.status !== "processing") return null;
+
+  const [updated] = await db
+    .update(withdrawals)
+    .set({ status: "rejected", adminNote: adminNote ?? null, updatedAt: new Date() })
+    .where(and(
+      eq(withdrawals.id, withdrawalId),
+      sql`${withdrawals.status} IN ('pending', 'processing')`,
+    ))
+    .returning({ id: withdrawals.id });
+
+  if (!updated) return null; // Already handled by another concurrent call
+
+  // SQL-level atomic refund — safe against concurrent reads
+  const amount = Number(withdrawal.amount);
+  await db
+    .update(profiles)
+    .set({
+      balance: sql`${profiles.balance} + ${amount}`,
+      earningsBalance: sql`${profiles.earningsBalance} + ${amount}`,
+      updatedAt: new Date(),
+    })
+    .where(eq(profiles.userId, withdrawal.userId));
+
+  return updated;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// LOOKUP ROUTES
+// ────────────────────────────────────────────────────────────────────────────
+
 router.get("/countries", async (req, res) => {
   const all = await db.select().from(countries).where(eq(countries.isActive, true));
   return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
@@ -32,6 +106,10 @@ router.get("/withdrawal-methods", async (req, res) => {
   const all = await db.select().from(withdrawalMethods).where(eq(withdrawalMethods.isActive, true));
   return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
 });
+
+// ────────────────────────────────────────────────────────────────────────────
+// RECHARGES (DEPOSITS)
+// ────────────────────────────────────────────────────────────────────────────
 
 router.post("/recharges", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -78,27 +156,20 @@ router.get("/recharges", async (req, res) => {
   return res.json(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
 });
 
+// FIXED: atomic approve — no double-credit even if IPN fires concurrently
 router.patch("/recharges/:id/approve", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken(token);
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
 
-  const [recharge] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
-  if (!recharge) return res.status(404).json({ error: "Not found" });
-  if (recharge.status !== "pending") return res.status(400).json({ error: "Already processed" });
-
-  const [profile] = await db.select().from(profiles).where(eq(profiles.userId, recharge.userId)).limit(1);
-  if (profile) {
-    const amount = Number(recharge.amount);
-    await db.update(profiles).set({
-      balance: String(Number(profile.balance ?? 0) + amount),
-      depositBalance: String(Number(profile.depositBalance ?? 0) + amount),
-      updatedAt: new Date(),
-    }).where(eq(profiles.userId, recharge.userId));
+  const updated = await atomicApproveRecharge(req.params.id, req.body.adminNote);
+  if (!updated) {
+    const [current] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
+    return current
+      ? res.status(409).json({ error: "Already processed", status: current.status })
+      : res.status(404).json({ error: "Not found" });
   }
-
-  const [updated] = await db.update(recharges).set({ status: "approved", adminNote: req.body.adminNote, updatedAt: new Date() }).where(eq(recharges.id, req.params.id)).returning();
   return res.json(updated);
 });
 
@@ -108,9 +179,49 @@ router.patch("/recharges/:id/reject", async (req, res) => {
   const me = await getProfileFromToken(token);
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
 
-  const [updated] = await db.update(recharges).set({ status: "rejected", adminNote: req.body.adminNote, updatedAt: new Date() }).where(eq(recharges.id, req.params.id)).returning();
+  const [updated] = await db
+    .update(recharges)
+    .set({ status: "rejected", adminNote: req.body.adminNote, updatedAt: new Date() })
+    .where(eq(recharges.id, req.params.id))
+    .returning();
   return res.json(updated);
 });
+
+// FIXED: atomic approve/reject on generic status route
+router.patch("/recharges/:id/status", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
+
+  const { status, adminNote } = req.body as { status: string; adminNote?: string };
+
+  if (status === "approved") {
+    const updated = await atomicApproveRecharge(req.params.id, adminNote);
+    if (!updated) {
+      const [current] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
+      return current
+        ? res.status(409).json({ error: "Already processed", status: current.status })
+        : res.status(404).json({ error: "Not found" });
+    }
+    return res.json(updated);
+  }
+
+  // Rejection — no balance change needed
+  const [recharge] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
+  if (!recharge) return res.status(404).json({ error: "Not found" });
+
+  const [updated] = await db
+    .update(recharges)
+    .set({ status, adminNote: adminNote ?? null, updatedAt: new Date() })
+    .where(eq(recharges.id, req.params.id))
+    .returning();
+  return res.json(updated);
+});
+
+// ────────────────────────────────────────────────────────────────────────────
+// WALLETS
+// ────────────────────────────────────────────────────────────────────────────
 
 router.get("/wallets/my", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -139,7 +250,12 @@ router.post("/wallets", async (req, res) => {
   return res.json(wallet);
 });
 
-router.post("/withdrawals", async (req, res) => {
+// ────────────────────────────────────────────────────────────────────────────
+// WITHDRAWALS (RETRAITS)
+// ────────────────────────────────────────────────────────────────────────────
+
+// Core withdrawal submission logic (shared by both URL patterns)
+async function handleWithdrawalSubmit(req: any, res: any) {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken(token);
@@ -165,24 +281,47 @@ router.post("/withdrawals", async (req, res) => {
     status: "pending",
   }).returning();
 
+  // Deduct from balance atomically
   await db.update(profiles).set({
-    balance: String(Number(me.balance ?? 0) - totalAmount),
-    earningsBalance: String(Math.max(0, Number(me.earningsBalance ?? 0) - totalAmount)),
+    balance: sql`${profiles.balance} - ${totalAmount}`,
+    earningsBalance: sql`GREATEST(${profiles.earningsBalance} - ${totalAmount}, 0)`,
     updatedAt: new Date(),
   }).where(eq(profiles.userId, me.userId));
 
   return res.json(withdrawal);
-});
+}
 
-router.get("/withdrawals/my", async (req, res) => {
+// Core my-withdrawals logic
+async function handleWithdrawalsMyGet(req: any, res: any) {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
 
   const myWithdrawals = await db.select().from(withdrawals).where(eq(withdrawals.userId, me.userId));
-  return res.json(myWithdrawals.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
-});
+  const sorted = myWithdrawals.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+
+  // Support ?since=today filter (for daily limit check on Retrait page)
+  if (req.query.since === "today") {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    return res.json(sorted.filter(w => new Date(w.createdAt!).getTime() >= start.getTime()));
+  }
+
+  return res.json(sorted);
+}
+
+// POST /withdrawals — original URL (keep for backward compatibility)
+router.post("/withdrawals", handleWithdrawalSubmit);
+
+// POST /payments/withdrawals — URL used by Retrait.tsx frontend (was missing!)
+router.post("/payments/withdrawals", handleWithdrawalSubmit);
+
+// GET /withdrawals/my — original URL
+router.get("/withdrawals/my", handleWithdrawalsMyGet);
+
+// GET /payments/withdrawals/my — URL used by Retrait.tsx for daily count (was missing!)
+router.get("/payments/withdrawals/my", handleWithdrawalsMyGet);
 
 router.get("/withdrawals", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -200,59 +339,29 @@ router.patch("/withdrawals/:id/approve", async (req, res) => {
   const me = await getProfileFromToken(token);
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
 
-  const [updated] = await db.update(withdrawals).set({ status: "approved", adminNote: req.body.adminNote, updatedAt: new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
+  // Balance already deducted at submission — just mark approved
+  const [updated] = await db
+    .update(withdrawals)
+    .set({ status: "approved", adminNote: req.body.adminNote, updatedAt: new Date() })
+    .where(eq(withdrawals.id, req.params.id))
+    .returning();
   return res.json(updated);
 });
 
+// FIXED: restores balance from both "pending" and "processing" status
 router.patch("/withdrawals/:id/reject", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken(token);
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
 
-  const [withdrawal] = await db.select().from(withdrawals).where(eq(withdrawals.id, req.params.id)).limit(1);
-  if (withdrawal && withdrawal.status === "pending") {
-    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, withdrawal.userId)).limit(1);
-    if (profile) {
-      await db.update(profiles).set({
-        balance: String(Number(profile.balance ?? 0) + Number(withdrawal.amount)),
-        earningsBalance: String(Number(profile.earningsBalance ?? 0) + Number(withdrawal.amount)),
-        updatedAt: new Date(),
-      }).where(eq(profiles.userId, withdrawal.userId));
-    }
+  const updated = await atomicRejectWithdrawal(req.params.id, req.body.adminNote);
+  if (!updated) {
+    const [current] = await db.select().from(withdrawals).where(eq(withdrawals.id, req.params.id)).limit(1);
+    return current
+      ? res.status(409).json({ error: "Already processed", status: current.status })
+      : res.status(404).json({ error: "Not found" });
   }
-
-  const [updated] = await db.update(withdrawals).set({ status: "rejected", adminNote: req.body.adminNote, updatedAt: new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
-  return res.json(updated);
-});
-
-// ─── Generic status route (approve or reject based on status value) ───────────
-router.patch("/recharges/:id/status", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken(token);
-  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
-
-  const { status, adminNote } = req.body as { status: string; adminNote?: string };
-  const [recharge] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
-  if (!recharge) return res.status(404).json({ error: "Not found" });
-
-  if (status === "approved" && recharge.status === "pending") {
-    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, recharge.userId)).limit(1);
-    if (profile) {
-      const amount = Number(recharge.amount);
-      await db.update(profiles).set({
-        balance: String(Number(profile.balance ?? 0) + amount),
-        depositBalance: String(Number(profile.depositBalance ?? 0) + amount),
-        updatedAt: new Date(),
-      }).where(eq(profiles.userId, recharge.userId));
-    }
-  }
-
-  const [updated] = await db.update(recharges)
-    .set({ status, adminNote: adminNote ?? null, updatedAt: new Date() })
-    .where(eq(recharges.id, req.params.id))
-    .returning();
   return res.json(updated);
 });
 
@@ -270,6 +379,7 @@ router.post("/withdrawals/:id/process", async (req, res) => {
   return res.json(updated);
 });
 
+// FIXED: restores balance from both "pending" and "processing"
 router.patch("/withdrawals/:id/status", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
@@ -280,17 +390,15 @@ router.patch("/withdrawals/:id/status", async (req, res) => {
   const [withdrawal] = await db.select().from(withdrawals).where(eq(withdrawals.id, req.params.id)).limit(1);
   if (!withdrawal) return res.status(404).json({ error: "Not found" });
 
-  if (status === "rejected" && withdrawal.status === "pending") {
-    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, withdrawal.userId)).limit(1);
-    if (profile) {
-      await db.update(profiles).set({
-        balance: String(Number(profile.balance ?? 0) + Number(withdrawal.amount)),
-        earningsBalance: String(Number(profile.earningsBalance ?? 0) + Number(withdrawal.amount)),
-        updatedAt: new Date(),
-      }).where(eq(profiles.userId, withdrawal.userId));
+  if (status === "rejected") {
+    const updated = await atomicRejectWithdrawal(req.params.id, adminNote);
+    if (!updated) {
+      return res.status(409).json({ error: "Already processed", status: withdrawal.status });
     }
+    return res.json(updated);
   }
 
+  // Approved — balance already deducted, just update status
   const [updated] = await db.update(withdrawals)
     .set({ status, adminNote: adminNote ?? null, updatedAt: new Date() })
     .where(eq(withdrawals.id, req.params.id))
@@ -321,6 +429,7 @@ router.get("/payments/recharges", async (req, res) => {
   return res.json(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
 });
 
+// FIXED: atomic approve — no double-credit even if IPN fires concurrently
 router.patch("/payments/recharges/:id/status", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
@@ -328,22 +437,23 @@ router.patch("/payments/recharges/:id/status", async (req, res) => {
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
 
   const { status, adminNote } = req.body as { status: string; adminNote?: string };
+
+  if (status === "approved") {
+    const updated = await atomicApproveRecharge(req.params.id, adminNote);
+    if (!updated) {
+      const [current] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
+      return current
+        ? res.status(409).json({ error: "Already processed", status: current.status })
+        : res.status(404).json({ error: "Not found" });
+    }
+    return res.json(updated);
+  }
+
   const [recharge] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
   if (!recharge) return res.status(404).json({ error: "Not found" });
 
-  if (status === "approved" && recharge.status === "pending") {
-    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, recharge.userId)).limit(1);
-    if (profile) {
-      const amount = Number(recharge.amount);
-      await db.update(profiles).set({
-        balance: String(Number(profile.balance ?? 0) + amount),
-        depositBalance: String(Number(profile.depositBalance ?? 0) + amount),
-        updatedAt: new Date(),
-      }).where(eq(profiles.userId, recharge.userId));
-    }
-  }
-
-  const [updated] = await db.update(recharges)
+  const [updated] = await db
+    .update(recharges)
     .set({ status, adminNote: adminNote ?? null, updatedAt: new Date() })
     .where(eq(recharges.id, req.params.id))
     .returning();
@@ -359,6 +469,7 @@ router.get("/payments/withdrawals", async (req, res) => {
   return res.json(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
 });
 
+// FIXED: restores balance from both "pending" and "processing"
 router.patch("/payments/withdrawals/:id/status", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
@@ -369,17 +480,15 @@ router.patch("/payments/withdrawals/:id/status", async (req, res) => {
   const [withdrawal] = await db.select().from(withdrawals).where(eq(withdrawals.id, req.params.id)).limit(1);
   if (!withdrawal) return res.status(404).json({ error: "Not found" });
 
-  if (status === "rejected" && withdrawal.status === "pending") {
-    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, withdrawal.userId)).limit(1);
-    if (profile) {
-      await db.update(profiles).set({
-        balance: String(Number(profile.balance ?? 0) + Number(withdrawal.amount)),
-        earningsBalance: String(Number(profile.earningsBalance ?? 0) + Number(withdrawal.amount)),
-        updatedAt: new Date(),
-      }).where(eq(profiles.userId, withdrawal.userId));
+  if (status === "rejected") {
+    const updated = await atomicRejectWithdrawal(req.params.id, adminNote);
+    if (!updated) {
+      return res.status(409).json({ error: "Already processed", status: withdrawal.status });
     }
+    return res.json(updated);
   }
 
+  // Approved — balance already deducted, just update status
   const [updated] = await db.update(withdrawals)
     .set({ status, adminNote: adminNote ?? null, updatedAt: new Date() })
     .where(eq(withdrawals.id, req.params.id))
@@ -412,7 +521,6 @@ router.patch("/payments/fee-payments/:id/status", async (req, res) => {
 });
 
 // ─── GET /user-wallets/batch?ids=id1,id2 ────────────────────────────────────
-import { inArray } from "drizzle-orm";
 
 router.get("/user-wallets/batch", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -426,4 +534,5 @@ router.get("/user-wallets/batch", async (req, res) => {
   return res.json(result);
 });
 
+export { atomicRejectWithdrawal };
 export default router;

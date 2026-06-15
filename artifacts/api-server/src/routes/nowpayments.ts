@@ -158,6 +158,57 @@ async function approveWithdrawalByExternalId(externalId: string): Promise<boolea
   return true;
 }
 
+/**
+ * Reject a withdrawal that NowPayments failed to process and refund the user's balance.
+ * IDEMPOTENT: only acts if status is 'processing'.
+ */
+async function rejectWithdrawalByExternalId(externalId: string, reason: string): Promise<boolean> {
+  const [withdrawal] = await db
+    .select({ id: withdrawals.id, status: withdrawals.status, userId: withdrawals.userId, amount: withdrawals.amount })
+    .from(withdrawals)
+    .where(eq(withdrawals.id, externalId))
+    .limit(1);
+
+  if (!withdrawal) {
+    console.warn(`[NP] rejectWithdrawal: not found externalId=${externalId}`);
+    return false;
+  }
+
+  if (withdrawal.status !== "processing") {
+    console.log(`[NP] rejectWithdrawal: status is '${withdrawal.status}' (not processing) — skipping`);
+    return false;
+  }
+
+  const [updated] = await db
+    .update(withdrawals)
+    .set({
+      status: "rejected",
+      adminNote: `❌ NowPayments payout ${reason} — balance refunded automatically`,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(withdrawals.id, externalId), eq(withdrawals.status, "processing")))
+    .returning({ id: withdrawals.id });
+
+  if (!updated) {
+    console.warn(`[NP] rejectWithdrawal: concurrent update blocked for externalId=${externalId}`);
+    return false;
+  }
+
+  // Refund user balance atomically
+  const amount = Number(withdrawal.amount);
+  await db
+    .update(profiles)
+    .set({
+      balance: sql`${profiles.balance} + ${amount}`,
+      earningsBalance: sql`${profiles.earningsBalance} + ${amount}`,
+      updatedAt: new Date(),
+    })
+    .where(eq(profiles.userId, withdrawal.userId));
+
+  console.log(`[NP] ❌ Withdrawal rejected + ${amount} refunded to user ${withdrawal.userId} — externalId=${externalId}`);
+  return true;
+}
+
 // ---- Payout JWT ----
 async function getPayoutToken(): Promise<string> {
   const email = getPayoutEmail();
@@ -605,17 +656,30 @@ router.post("/nowpayments/payout-webhook", async (req, res) => {
   const batchStatus = (payload.status ?? "").toUpperCase();
   console.log(`[NP IPN payout] batchId=${payload.id ?? payload.batch_withdrawal_id} status=${batchStatus}`);
 
+  const SUCCESS_STATUSES = new Set(["FINISHED", "COMPLETE", "COMPLETED", "DONE", "CONFIRMED"]);
+  const FAILURE_STATUSES = new Set(["REJECTED", "FAILED", "ERROR", "CANCELLED", "CANCELED"]);
+
   const items: PayoutItem[] = payload.withdrawals ?? [];
   for (const item of items) {
     const extId = item.unique_external_id;
     const st = (item.status ?? "").toUpperCase();
     console.log(`  [NP IPN payout item] extId=${extId} status=${st}`);
-    if (extId && (st === "FINISHED" || st === "COMPLETE" || st === "COMPLETED" || st === "DONE")) {
+    if (!extId) continue;
+
+    if (SUCCESS_STATUSES.has(st)) {
       try {
         const approved = await approveWithdrawalByExternalId(extId);
         console.log(`  [NP IPN payout item] approved=${approved} for extId=${extId}`);
       } catch (err) {
         console.error("[NP] payout-webhook approveWithdrawal error:", err);
+      }
+    } else if (FAILURE_STATUSES.has(st)) {
+      // IMPORTANT: refund the user's balance when NowPayments rejects/fails the payout
+      try {
+        const rejected = await rejectWithdrawalByExternalId(extId, st);
+        console.log(`  [NP IPN payout item] rejected+refunded=${rejected} for extId=${extId}`);
+      } catch (err) {
+        console.error("[NP] payout-webhook rejectWithdrawal error:", err);
       }
     }
   }
