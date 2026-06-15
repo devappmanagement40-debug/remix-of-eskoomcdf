@@ -1,44 +1,14 @@
 # Guide de déploiement Plesk — GE Energy
 
-## Résumé des étapes
+## Architecture
 
-1. Créer la base de données PostgreSQL sur Plesk
-2. Exécuter `database-setup.sql` pour créer les 35 tables
-3. Configurer les variables d'environnement
-4. Démarrer le serveur avec `node dist/index.cjs`
-5. Créer le premier compte admin
+- **Base de données** : Supabase PostgreSQL (unique, partagée entre Replit et Plesk)
+- **Frontend** : React compilé dans `dist/public/`
+- **Backend** : Express API compilé dans `dist/index.cjs`
 
 ---
 
-## Étape 1 — Base de données PostgreSQL
-
-Dans Plesk → Bases de données → Ajouter une base de données :
-- Choisir PostgreSQL
-- Nom : `ge_energy` (ou ce que vous voulez)
-- Utilisateur + mot de passe à noter
-
-La `DATABASE_URL` aura ce format :
-```
-postgresql://USER:PASSWORD@localhost:5432/ge_energy
-```
-
----
-
-## Étape 2 — Créer les tables
-
-Ouvrir **phpPgAdmin** depuis Plesk, sélectionner votre base, puis aller dans **SQL** et coller tout le contenu du fichier `database-setup.sql`.
-
-Ou via terminal SSH :
-```bash
-psql -U USER -d ge_energy -f database-setup.sql
-```
-
-Vérification : `SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';`
-→ Doit afficher **35**
-
----
-
-## Étape 3 — Variables d'environnement
+## Étape 1 — Variables d'environnement
 
 Dans Plesk → Node.js → Variables d'environnement (ou fichier `.env`) :
 
@@ -46,12 +16,9 @@ Dans Plesk → Node.js → Variables d'environnement (ou fichier `.env`) :
 # OBLIGATOIRES
 NODE_ENV=production
 PORT=3000
-DATABASE_URL=postgresql://USER:PASSWORD@localhost:5432/ge_energy
 
-# SSL base de données
-# DB_SSL=true   si PostgreSQL est sur un autre serveur
-# DB_SSL=false  si PostgreSQL est sur le même serveur (localhost)
-DB_SSL=false
+# Base de données Supabase (UNIQUE base de données)
+SUPABASE_DATABASE_URL=postgresql://postgres:[PASSWORD]@db.[PROJECT].supabase.co:5432/postgres
 
 # Sécurité admin
 ADMIN_SETUP_TOKEN=ChoisisUnTokenSecretIci
@@ -61,51 +28,38 @@ NOWPAYMENTS_API_KEY=votre_cle_api
 NOWPAYMENTS_IPN_SECRET=votre_secret_ipn
 NOWPAYMENTS_PASSWORD=votre_mot_de_passe_nowpayments
 NOWPAYMENTS_WEBHOOK_URL=https://votredomaine.com/api/nowpayments/webhook
-
-# Supabase (pour le panneau admin uniquement)
-VITE_SUPABASE_PROJECT_URL=https://xxx.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=votre_service_role_key
 ```
 
 ---
 
-## Étape 4 — Démarrer le serveur
+## Étape 2 — Déployer depuis GitHub
 
-Commande de démarrage dans Plesk :
 ```bash
+# Sur votre serveur Plesk via SSH
+git pull origin main
+
+# Démarrer le serveur
 node dist/index.cjs
 ```
 
-Ou via `npm start` (équivalent) :
-```bash
-npm start
-```
-
-Le serveur démarre sur le `PORT` configuré. Si `PORT` n'est pas défini, il démarre sur **3000**.
+Le serveur démarre sur le PORT configuré (défaut : **3000**).
 
 ---
 
-## Étape 5 — Créer le premier admin
+## Étape 3 — Accès admin
 
-Une seule fois après le déploiement, exécuter cette requête POST :
-
-```bash
-curl -X POST https://votredomaine.com/api/auth/admin-setup \
-  -H "Content-Type: application/json" \
-  -d '{
-    "token": "ChoisisUnTokenSecretIci",
-    "phone": "votre_numero",
-    "password": "VotreMotDePasse"
-  }'
+URL secrète (à garder confidentielle) :
+```
+https://votredomaine.com/#/admin/827728389992871772661616161626€
 ```
 
-Ou depuis votre navigateur avec Postman / Insomnia.
-
-> Le `token` doit correspondre à `ADMIN_SETUP_TOKEN` dans vos variables d'environnement.
+Identifiants admin :
+- Email : `mouhamadoutraore225@gmail.com`
+- Mot de passe : `44605058`
 
 ---
 
-## Étape 6 — Vérification
+## Étape 4 — Vérification
 
 ```bash
 # Santé du serveur
@@ -133,11 +87,9 @@ Sur Plesk → Node.js → choisir la version.
 dist/
   index.cjs        ← point d'entrée (node dist/index.cjs)
   index.mjs        ← bundle serveur
-  pino-*.mjs       ← worker logs
   public/          ← frontend React compilé
     index.html
     assets/
-database-setup.sql ← script SQL à exécuter sur votre DB
 DEPLOIEMENT.md     ← ce fichier
 ```
 
@@ -147,10 +99,9 @@ DEPLOIEMENT.md     ← ce fichier
 
 | Symptôme | Cause probable | Solution |
 |---|---|---|
-| `Error: DATABASE_URL must be set` | Variable manquante | Ajouter `DATABASE_URL` |
-| `Error: relation "profiles" does not exist` | Tables non créées | Exécuter `database-setup.sql` |
+| `SUPABASE_DATABASE_URL est requis` | Variable manquante | Ajouter `SUPABASE_DATABASE_URL` |
 | Écran blanc | `NODE_ENV` pas en production | Vérifier `NODE_ENV=production` |
 | `EADDRINUSE` | Port déjà utilisé | Changer `PORT` |
-| Login échoue toujours | Aucun compte créé | Appeler `/api/auth/admin-setup` |
+| Login échoue toujours | Mauvais identifiants | Vérifier email + mot de passe |
 | NOWPayments ne fonctionne pas | Clé API manquante | Vérifier `NOWPAYMENTS_API_KEY` |
-| DB SSL error | Postgres sur serveur distant | Mettre `DB_SSL=true` |
+| DB SSL error | Supabase nécessite SSL | SSL activé automatiquement |

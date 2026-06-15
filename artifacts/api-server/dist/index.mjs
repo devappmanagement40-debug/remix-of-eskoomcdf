@@ -42491,7 +42491,7 @@ __export(src_exports, {
   withdrawalMethods: () => withdrawalMethods,
   withdrawals: () => withdrawals
 });
-var Pool3, connectionString, isSupabase, pool, db;
+var Pool3, connectionString, pool, db;
 var init_src = __esm({
   "../../lib/db/src/index.ts"() {
     "use strict";
@@ -42500,16 +42500,15 @@ var init_src = __esm({
     init_schema2();
     init_schema2();
     ({ Pool: Pool3 } = esm_default);
-    connectionString = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
+    connectionString = process.env.SUPABASE_DATABASE_URL;
     if (!connectionString) {
       throw new Error(
-        "No database URL found. Set DATABASE_URL (Replit dev) or SUPABASE_DATABASE_URL (Plesk/production)."
+        "SUPABASE_DATABASE_URL est requis. Configurez cette variable d'environnement avec votre URL Supabase."
       );
     }
-    isSupabase = !!process.env.SUPABASE_DATABASE_URL;
     pool = new Pool3({
       connectionString,
-      ssl: isSupabase ? { rejectUnauthorized: false } : false
+      ssl: { rejectUnauthorized: false }
     });
     db = drizzle(pool, { schema: schema_exports });
   }

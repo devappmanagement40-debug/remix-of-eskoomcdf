@@ -1,19 +1,18 @@
 # GE Energy
 
-A fintech/investment mobile-style React app with user authentication, product purchasing, earnings collection, lottery wheel, and admin panel — running on Replit PostgreSQL + Express API.
+A fintech/investment mobile-style React app with user authentication, product purchasing, earnings collection, lottery wheel, and admin panel — running on **Supabase PostgreSQL** + Express API.
 
 ## Run & Operate
 
 - `npm run dev` — starts both the frontend (Vite, port 5000) and API server (port 8080) in parallel
-- `pnpm --filter @workspace/db run push-force` — push DB schema changes
-- Required env: `DATABASE_URL` — Replit Postgres connection string (auto-provisioned)
+- Required env: `SUPABASE_DATABASE_URL` — Supabase PostgreSQL connection string (unique database)
 
 ## Stack
 
 - pnpm workspaces, Node.js 20, TypeScript 5.9
 - Frontend: React + Vite (`artifacts/eskom`, port 5000)
 - API: Express 5 (`artifacts/api-server`, port 8080)
-- DB: Replit PostgreSQL via `pg` + Drizzle ORM
+- DB: **Supabase PostgreSQL** via `pg` + Drizzle ORM (SSL activé)
 - Auth: Custom phone/password auth with session tokens (bcryptjs + `user_sessions` table)
 
 ## Where things live
@@ -26,10 +25,12 @@ A fintech/investment mobile-style React app with user authentication, product pu
 
 ## Architecture decisions
 
+- **Database**: Supabase PostgreSQL ONLY — `SUPABASE_DATABASE_URL` env var required everywhere (Replit dev + Plesk prod)
 - **Auth pattern**: phone numbers stored directly; bcryptjs hashing; sessions stored in `user_sessions` table with bearer tokens.
 - **Admin roles**: stored in `user_roles` table with `app_role` enum (admin/moderator/user).
+- **Admin access**: secret URL `/admin/827728389992871772661616161626€` — never expose this URL
 - **File uploads**: local filesystem under `public/uploads/` served via `/uploads` static route.
-- **No Supabase dependency**: the `supabase` export in `client.ts` is a local stub that routes all calls to the Express API.
+- **No Supabase SDK**: the `supabase` export in `client.ts` is a local stub that routes all calls to the Express API.
 
 ## Product
 
@@ -38,10 +39,11 @@ Users register with a phone number, deposit funds, purchase investment products,
 ## Gotchas
 
 - API server runs on port **8080**; frontend dev server on port **5000**
-- To grant admin access: POST to `/api/auth/admin-setup` with `ADMIN_SETUP_TOKEN`
+- `SUPABASE_DATABASE_URL` must be set — no fallback to any other database
 - Password verification uses bcryptjs — `password_hash` column stores hashed passwords
-- DB schema is in `lib/db/src/schema/`; push with `pnpm --filter @workspace/db run push-force`
+- DB schema is in `lib/db/src/schema/`
 
 ## User Preferences
 
 - Keep the French-language UI as-is
+- Database is Supabase ONLY — never use Replit Postgres
