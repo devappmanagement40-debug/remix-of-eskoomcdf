@@ -42134,7 +42134,7 @@ var init_payments = __esm({
       id: text("id").primaryKey().default("gen_random_uuid()"),
       userId: text("user_id").notNull(),
       amount: numeric("amount", { precision: 18, scale: 8 }).notNull(),
-      phone: text("phone").notNull(),
+      phone: text("phone"),
       countryCode: text("country_code").default(""),
       paymentMethod: text("payment_method"),
       transactionRef: text("transaction_ref"),
@@ -48718,7 +48718,7 @@ router5.post("/recharges", async (req, res) => {
   const me = await getProfileFromToken3(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
   const { amount, phone, countryCode, paymentMethod, transactionRef, proofImageUrl } = req.body;
-  if (!amount || !phone) return res.status(400).json({ error: "Amount and phone required" });
+  if (!amount) return res.status(400).json({ error: "Amount is required" });
   const [recharge] = await db.insert(recharges).values({
     id: crypto4.randomUUID(),
     userId: me.userId,

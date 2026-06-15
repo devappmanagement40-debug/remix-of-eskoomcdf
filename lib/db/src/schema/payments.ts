@@ -50,7 +50,7 @@ export const recharges = pgTable("recharges", {
   id: text("id").primaryKey().default("gen_random_uuid()"),
   userId: text("user_id").notNull(),
   amount: numeric("amount", { precision: 18, scale: 8 }).notNull(),
-  phone: text("phone").notNull(),
+  phone: text("phone"),
   countryCode: text("country_code").default(""),
   paymentMethod: text("payment_method"),
   transactionRef: text("transaction_ref"),

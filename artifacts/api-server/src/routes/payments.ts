@@ -118,7 +118,7 @@ router.post("/recharges", async (req, res) => {
   if (!me) return res.status(401).json({ error: "Unauthorized" });
 
   const { amount, phone, countryCode, paymentMethod, transactionRef, proofImageUrl } = req.body;
-  if (!amount || !phone) return res.status(400).json({ error: "Amount and phone required" });
+  if (!amount) return res.status(400).json({ error: "Amount is required" });
 
   const [recharge] = await db.insert(recharges).values({
     id: crypto.randomUUID(),
