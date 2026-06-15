@@ -35,8 +35,6 @@ const Signup = () => {
     if (!phoneCheck.valid) { showError(t.login.errorInvalidNumber, phoneCheck.message); return; }
     if (password.length < 6) { showError(t.common.error, t.signup.errorPassword); return; }
     if (password !== confirmPassword) { showError(t.common.error, t.signup.errorPasswordMatch); return; }
-    if (!inviteCode.trim()) { showError(t.common.error, t.signup.errorInviteCode); return; }
-
     setLoading(true);
     const cleanPhone = phone.replace(/\s/g, "");
 

@@ -87,19 +87,24 @@ router.post("/auth/admin-setup", async (req, res) => {
 
 router.post("/auth/signup", async (req, res) => {
   const { phone, password, inviteCode, countryCode } = req.body;
-  if (!phone || !password || !inviteCode) {
-    return res.status(400).json({ error: "phone, password and inviteCode are required" });
+  if (!phone || !password) {
+    return res.status(400).json({ error: "phone and password are required" });
   }
 
   try {
-    const [referrerRow] = await db
-      .select({ userId: profiles.userId })
-      .from(profiles)
-      .where(ilike(profiles.referralCode, inviteCode.trim()))
-      .limit(1);
+    // Resolve referrer only if an invite code was provided
+    let referredByUserId: string | null = null;
+    if (inviteCode?.trim()) {
+      const [referrerRow] = await db
+        .select({ userId: profiles.userId })
+        .from(profiles)
+        .where(ilike(profiles.referralCode, inviteCode.trim()))
+        .limit(1);
 
-    if (!referrerRow) {
-      return res.status(400).json({ error: "Invalid invitation code" });
+      if (!referrerRow) {
+        return res.status(400).json({ error: "Invalid invitation code" });
+      }
+      referredByUserId = referrerRow.userId;
     }
 
     const [existingUser] = await db
@@ -122,7 +127,7 @@ router.post("/auth/signup", async (req, res) => {
       phone,
       countryCode: countryCode || "+509",
       referralCode,
-      referredBy: referrerRow.userId,
+      ...(referredByUserId ? { referredBy: referredByUserId } : {}),
       passwordHash,
     });
 
