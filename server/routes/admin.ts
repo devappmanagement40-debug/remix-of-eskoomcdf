@@ -16,6 +16,20 @@ import crypto from "crypto";
 
 const router = Router();
 
+// ─── camelCase → snake_case helper ───────────────────────────────────────────
+function toSnake(obj: any): any {
+  if (Array.isArray(obj)) return obj.map(toSnake);
+  if (obj !== null && typeof obj === "object" && !(obj instanceof Date)) {
+    const out: any = {};
+    for (const [k, v] of Object.entries(obj)) {
+      const snake = k.replace(/[A-Z]/g, c => `_${c.toLowerCase()}`);
+      out[snake] = toSnake(v);
+    }
+    return out;
+  }
+  return obj;
+}
+
 async function getProfileFromToken(token: string) {
   const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
   if (!session || session.expiresAt < new Date()) return null;
@@ -50,14 +64,160 @@ router.get("/admin/me", async (req, res) => {
   return res.json({ ...me, role, permissions: perms.map(p => p.permission) });
 });
 
+// ─── /admin/check  (used by all admin pages) ────────────────────────────────
+router.get("/admin/check", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const role = await getRole(me.userId);
+  if (!role || (role !== "admin" && role !== "moderator")) return res.status(403).json({ error: "Forbidden" });
+  const perms = await db.select().from(adminPermissions).where(eq(adminPermissions.userId, me.userId));
+  return res.json({
+    isAdmin: role === "admin",
+    isModerator: role === "moderator",
+    userId: me.userId,
+    profileId: me.id,
+    permissions: perms.map(p => p.permission),
+  });
+});
+
+// ─── /admin/all-data  (single bulk load for AdminPanel) ─────────────────────
+router.get("/admin/all-data", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [
+    profilesAll, rechargesAll, withdrawalsAll, seriesAll, productsAll,
+    paymentMethodsAll, socialLinksAll, siteSettingsAll, popupsAll, logsAll,
+    countriesAll, vipAll, bannersAll, withdrawalMethodsAll, apiConfigsAll,
+    paymentLogsAll,
+  ] = await Promise.all([
+    db.select().from(profiles),
+    db.select().from(recharges),
+    db.select().from(withdrawals),
+    db.select().from(productSeries),
+    db.select().from(productsTable),
+    db.select().from(paymentMethodsTable),
+    db.select().from(socialLinks),
+    db.select().from(siteSettings),
+    db.select().from(popupMessages),
+    db.select().from(adminLogs),
+    db.select().from(countriesTable),
+    db.select().from(vipConditions),
+    db.select().from(banners),
+    db.select().from(withdrawalMethodsTable),
+    db.select().from(paymentApiConfigs),
+    db.select().from(paymentLogs),
+  ]);
+
+  const byDate = (a: any, b: any) => new Date(b.createdAt ?? b.created_at ?? 0).getTime() - new Date(a.createdAt ?? a.created_at ?? 0).getTime();
+
+  return res.json({
+    profiles:          toSnake(profilesAll.sort(byDate)),
+    recharges:         toSnake(rechargesAll.sort(byDate)),
+    withdrawals:       toSnake(withdrawalsAll.sort(byDate)),
+    series:            toSnake(seriesAll.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+    products:          toSnake(productsAll.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+    paymentMethods:    toSnake(paymentMethodsAll.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+    socialLinks:       toSnake(socialLinksAll),
+    siteSettings:      toSnake(siteSettingsAll),
+    popups:            toSnake(popupsAll),
+    adminLogs:         toSnake(logsAll.sort(byDate).slice(0, 100)),
+    countries:         toSnake(countriesAll.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+    vipConditions:     toSnake(vipAll.sort((a: any, b: any) => (a.level ?? 0) - (b.level ?? 0))),
+    banners:           toSnake(bannersAll.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+    withdrawalMethods: toSnake(withdrawalMethodsAll.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+    apiConfigs:        toSnake(apiConfigsAll),
+    paymentLogs:       toSnake(paymentLogsAll.sort(byDate).slice(0, 200)),
+  });
+});
+
+// ─── /admin/recharges  (GET list) ───────────────────────────────────────────
+router.get("/admin/recharges", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(recharges);
+  const sorted = all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  const profileIds = [...new Set(sorted.map(r => r.userId))];
+  const profs = profileIds.length > 0 ? await db.select().from(profiles).where(inArray(profiles.userId, profileIds)) : [];
+  const profMap = Object.fromEntries(profs.map(p => [p.userId, toSnake(p)]));
+  return res.json(sorted.map(r => ({ ...toSnake(r), profile: profMap[r.userId] ?? null })));
+});
+
+// ─── /admin/users  (alias routes using profile.id) ──────────────────────────
+router.patch("/admin/users/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { id } = req.params;
+  const { fullName, balance, depositBalance, earningsBalance, referralBalance, vipLevel, giftPoints, isSuspended } = req.body;
+  const updates: any = { updatedAt: new Date() };
+  if (fullName !== undefined) updates.fullName = fullName;
+  if (balance !== undefined) updates.balance = String(balance);
+  if (depositBalance !== undefined) updates.depositBalance = String(depositBalance);
+  if (earningsBalance !== undefined) updates.earningsBalance = String(earningsBalance);
+  if (referralBalance !== undefined) updates.referralBalance = String(referralBalance);
+  if (vipLevel !== undefined) updates.vipLevel = Number(vipLevel);
+  if (giftPoints !== undefined) updates.giftPoints = Number(giftPoints);
+  if (isSuspended !== undefined) updates.isSuspended = isSuspended;
+  const [updated] = await db.update(profiles).set(updates).where(eq(profiles.id, id)).returning();
+  if (!updated) return res.status(404).json({ error: "User not found" });
+  return res.json(toSnake(updated));
+});
+
+router.delete("/admin/users/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  if (auth.role !== "admin") return res.status(403).json({ error: "Forbidden" });
+  const { id } = req.params;
+  const [target] = await db.select().from(profiles).where(eq(profiles.id, id)).limit(1);
+  if (!target) return res.status(404).json({ error: "User not found" });
+  const uid = target.userId;
+  await db.delete(userProductsTable).where(eq(userProductsTable.userId, uid));
+  await db.delete(chatMessages).where(eq(chatMessages.userId, uid));
+  await db.delete(withdrawals).where(eq(withdrawals.userId, uid));
+  await db.delete(recharges).where(eq(recharges.userId, uid));
+  await db.delete(wheelSpins).where(eq(wheelSpins.userId, uid));
+  await db.delete(pointExchanges).where(eq(pointExchanges.userId, uid));
+  await db.delete(profiles).where(eq(profiles.id, id));
+  return res.json({ ok: true });
+});
+
+router.get("/admin/users/:id/detail", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { id } = req.params;
+  const [target] = await db.select().from(profiles).where(eq(profiles.id, id)).limit(1);
+  if (!target) return res.status(404).json({ error: "User not found" });
+  const { pool } = await import("../db");
+  const upRes = await pool.query(`
+    SELECT up.*, json_build_object('name', p.name, 'price', p.price, 'daily_revenue', p.daily_revenue, 'cycles', p.cycles) as products
+    FROM user_products up JOIN products p ON p.id = up.product_id
+    WHERE up.user_id = $1
+  `, [target.userId]);
+  const teamB = await db.select().from(profiles).where(eq(profiles.referredBy, target.id));
+  const result: { products: any[]; teamB: any[]; teamC: any[]; teamD: any[] } = {
+    products: upRes.rows,
+    teamB: toSnake(teamB),
+    teamC: [],
+    teamD: [],
+  };
+  if (teamB.length > 0) {
+    result.teamC = toSnake(await db.select().from(profiles).where(inArray(profiles.referredBy, teamB.map(m => m.id))));
+    if (result.teamC.length > 0) {
+      result.teamD = toSnake(await db.select().from(profiles).where(inArray(profiles.referredBy, result.teamC.map((m: any) => m.id))));
+    }
+  }
+  return res.json(result);
+});
+
 // ─── Admin logs ─────────────────────────────────────────────────────────────
 router.post("/admin/logs", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
-  const { action, target_type, target_id, details } = req.body;
-  await db.insert(adminLogs).values({ id: crypto.randomUUID(), adminId: me.userId, action, targetType: target_type, targetId: target_id, details: details ?? {} });
+  const { action, target_type, target_id, targetType, targetId, details } = req.body;
+  await db.insert(adminLogs).values({ id: crypto.randomUUID(), adminId: me.userId, action, targetType: targetType ?? target_type, targetId: targetId ?? target_id, details: details ?? {} });
   return res.json({ ok: true });
 });
 
