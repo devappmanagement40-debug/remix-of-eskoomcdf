@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { build as esbuild } from "esbuild";
 import esbuildPluginPino from "esbuild-plugin-pino";
-import { rm } from "node:fs/promises";
+import { rm, writeFile } from "node:fs/promises";
 
 // Plugins (e.g. 'esbuild-plugin-pino') may use `require` to resolve dependencies
 globalThis.require = createRequire(import.meta.url);
@@ -118,6 +118,19 @@ globalThis.__dirname = __bannerPath.dirname(globalThis.__filename);
     `,
     },
   });
+
+  // Generate index.cjs shim for Plesk/cPanel hosting that requires CommonJS entry point
+  const cjsShim = `'use strict';
+// Plesk/cPanel CJS entry point — dynamically imports the ESM bundle
+(async () => {
+  await import('./index.mjs');
+})().catch((err) => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
+});
+`;
+  await writeFile(path.resolve(distDir, "index.cjs"), cjsShim, "utf8");
+  console.log("Generated dist/index.cjs shim for Plesk hosting");
 }
 
 buildAll().catch((err) => {
