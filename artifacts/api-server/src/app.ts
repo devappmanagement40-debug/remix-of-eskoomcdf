@@ -31,7 +31,10 @@ app.use("/api", router);
 
 // Serve pre-built React frontend in production
 if (process.env.NODE_ENV === "production") {
-  const frontendDist = path.resolve(__dirname, "../../eskom/dist/public");
+  // Resolve from CWD so it works wherever the process is launched from (Plesk, Docker, etc.)
+  const frontendDist =
+    process.env.FRONTEND_DIST ||
+    path.resolve(process.cwd(), "artifacts/eskom/dist/public");
   app.use(express.static(frontendDist));
   // SPA fallback — toutes les routes non-API servent index.html (Express 5 syntax)
   app.get("/{*path}", (_req, res) => {

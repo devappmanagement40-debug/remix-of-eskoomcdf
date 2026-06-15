@@ -48622,7 +48622,7 @@ app.use(import_express12.default.json());
 app.use(import_express12.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 if (process.env.NODE_ENV === "production") {
-  const frontendDist = path.resolve(__dirname2, "../../eskom/dist/public");
+  const frontendDist = process.env.FRONTEND_DIST || path.resolve(process.cwd(), "artifacts/eskom/dist/public");
   app.use(import_express12.default.static(frontendDist));
   app.get("/{*path}", (_req, res) => {
     res.sendFile(path.join(frontendDist, "index.html"));
