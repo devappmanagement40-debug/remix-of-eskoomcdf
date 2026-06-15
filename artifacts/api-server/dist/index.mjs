@@ -42499,15 +42499,24 @@ var init_src = __esm({
     init_schema2();
     init_schema2();
     ({ Pool: Pool3 } = esm_default);
-    connectionString = process.env.SUPABASE_DATABASE_URL ?? process.env.DATABASE_URL;
+    connectionString = process.env.SUPABASE_POOLER_URL ?? process.env.SUPABASE_DATABASE_URL ?? process.env.DATABASE_URL;
     if (!connectionString) {
       throw new Error(
-        "SUPABASE_DATABASE_URL or DATABASE_URL must be set."
+        "SUPABASE_POOLER_URL, SUPABASE_DATABASE_URL or DATABASE_URL must be set."
       );
     }
     sslConfig = process.env.DB_SSL === "false" ? false : { rejectUnauthorized: false };
-    pool = new Pool3({ connectionString, ssl: sslConfig });
-    db = drizzle(pool, { schema: schema_exports });
+    pool = new Pool3({
+      connectionString,
+      ssl: sslConfig,
+      // Supabase pooler (transaction mode) requires max 1 connection per dyno
+      // and does not support prepared statements
+      max: process.env.SUPABASE_POOLER_URL ? 10 : void 0
+    });
+    db = drizzle(pool, {
+      schema: schema_exports,
+      ...process.env.SUPABASE_POOLER_URL ? { logger: false } : {}
+    });
   }
 });
 
