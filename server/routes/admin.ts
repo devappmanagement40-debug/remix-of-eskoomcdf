@@ -575,21 +575,21 @@ router.get("/admin/payment-api-configs", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(paymentApiConfigs);
-  return res.json(all);
+  return res.json(toSnake(all));
 });
 
 router.post("/admin/payment-api-configs", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const [c] = await db.insert(paymentApiConfigs).values({ id: crypto.randomUUID(), ...req.body }).returning();
-  return res.json(c);
+  return res.json(toSnake(c));
 });
 
 router.patch("/admin/payment-api-configs/:id", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const [updated] = await db.update(paymentApiConfigs).set(req.body).where(eq(paymentApiConfigs.id, req.params.id)).returning();
-  return res.json(updated);
+  return res.json(toSnake(updated));
 });
 
 router.delete("/admin/payment-api-configs/:id", async (req, res) => {

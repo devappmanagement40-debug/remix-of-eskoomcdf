@@ -3,6 +3,7 @@ import { db } from "../db";
 import { siteSettings, popupMessages, faqItems, socialLinks, officialDocuments, banners, infoItems, userSessions, profiles, userRoles } from "../db";
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
+import { toSnake } from "../utils/toSnake";
 
 const router = Router();
 
@@ -46,10 +47,11 @@ router.put("/site-settings/:key", async (req, res) => {
 });
 
 router.get("/popup-messages", async (req, res) => {
-  const { triggerKey } = req.query;
+  const { triggerKey, trigger_key } = req.query as Record<string, string>;
+  const key = triggerKey || trigger_key;
   const all = await db.select().from(popupMessages).where(eq(popupMessages.isActive, true));
-  if (triggerKey) return res.json(all.filter(p => p.triggerKey === triggerKey));
-  return res.json(all);
+  const filtered = key ? all.filter(p => p.triggerKey === key) : all;
+  return res.json(toSnake(filtered));
 });
 
 router.post("/popup-messages", async (req, res) => {
@@ -84,32 +86,92 @@ router.delete("/popup-messages/:id", async (req, res) => {
 
 router.get("/faq", async (req, res) => {
   const all = await db.select().from(faqItems).where(eq(faqItems.isActive, true));
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 
 router.get("/faq-items", async (req, res) => {
   const all = await db.select().from(faqItems).where(eq(faqItems.isActive, true));
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 
 router.get("/social-links", async (req, res) => {
   const all = await db.select().from(socialLinks).where(eq(socialLinks.isActive, true));
-  return res.json(all);
+  return res.json(toSnake(all));
 });
 
 router.get("/documents", async (req, res) => {
   const all = await db.select().from(officialDocuments).where(eq(officialDocuments.isActive, true));
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 
 router.get("/banners", async (req, res) => {
   const all = await db.select().from(banners).where(eq(banners.isActive, true));
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
+});
+
+router.post("/banners", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
+
+  const [banner] = await db.insert(banners).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  return res.json(banner);
+});
+
+router.patch("/banners/:id", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
+
+  const [updated] = await db.update(banners).set({ ...req.body, updatedAt: new Date() }).where(eq(banners.id, req.params.id)).returning();
+  return res.json(updated);
+});
+
+router.delete("/banners/:id", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
+
+  await db.delete(banners).where(eq(banners.id, req.params.id));
+  return res.json({ ok: true });
 });
 
 router.get("/info-items", async (req, res) => {
   const all = await db.select().from(infoItems).where(eq(infoItems.isActive, true));
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
+});
+
+router.post("/info-items", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
+
+  const [item] = await db.insert(infoItems).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  return res.json(item);
+});
+
+router.patch("/info-items/:id", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
+
+  const [updated] = await db.update(infoItems).set({ ...req.body, updatedAt: new Date() }).where(eq(infoItems.id, req.params.id)).returning();
+  return res.json(updated);
+});
+
+router.delete("/info-items/:id", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
+
+  await db.delete(infoItems).where(eq(infoItems.id, req.params.id));
+  return res.json({ ok: true });
 });
 
 export default router;

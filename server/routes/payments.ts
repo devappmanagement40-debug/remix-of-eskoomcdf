@@ -3,6 +3,7 @@ import { db } from "../db";
 import { recharges, withdrawals, userWallets, withdrawalMethods, paymentMethods, countries, paymentApiConfigs, withdrawalFeePayments, userSessions, profiles, userRoles } from "../db";
 import { eq, and, desc } from "drizzle-orm";
 import crypto from "crypto";
+import { toSnake } from "../utils/toSnake";
 
 const router = Router();
 
@@ -20,17 +21,17 @@ async function isAdmin(userId: string) {
 
 router.get("/countries", async (req, res) => {
   const all = await db.select().from(countries).where(eq(countries.isActive, true));
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 
 router.get("/payment-methods", async (req, res) => {
   const all = await db.select().from(paymentMethods).where(eq(paymentMethods.isActive, true));
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 
 router.get("/withdrawal-methods", async (req, res) => {
   const all = await db.select().from(withdrawalMethods).where(eq(withdrawalMethods.isActive, true));
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 
 router.post("/recharges", async (req, res) => {
@@ -54,7 +55,7 @@ router.post("/recharges", async (req, res) => {
     status: "pending",
   }).returning();
 
-  return res.json(recharge);
+  return res.json(toSnake(recharge));
 });
 
 router.get("/recharges/my", async (req, res) => {
@@ -64,7 +65,7 @@ router.get("/recharges/my", async (req, res) => {
   if (!me) return res.status(401).json({ error: "Unauthorized" });
 
   const myRecharges = await db.select().from(recharges).where(eq(recharges.userId, me.userId));
-  return res.json(myRecharges.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
+  return res.json(toSnake(myRecharges.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())));
 });
 
 router.get("/recharges", async (req, res) => {
@@ -75,7 +76,7 @@ router.get("/recharges", async (req, res) => {
   if (!await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
 
   const all = await db.select().from(recharges);
-  return res.json(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
+  return res.json(toSnake(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())));
 });
 
 router.patch("/recharges/:id/approve", async (req, res) => {
@@ -99,7 +100,7 @@ router.patch("/recharges/:id/approve", async (req, res) => {
   }
 
   const [updated] = await db.update(recharges).set({ status: "approved", adminNote: req.body.adminNote, updatedAt: new Date() }).where(eq(recharges.id, req.params.id)).returning();
-  return res.json(updated);
+  return res.json(toSnake(updated));
 });
 
 router.patch("/recharges/:id/reject", async (req, res) => {
@@ -109,7 +110,7 @@ router.patch("/recharges/:id/reject", async (req, res) => {
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
 
   const [updated] = await db.update(recharges).set({ status: "rejected", adminNote: req.body.adminNote, updatedAt: new Date() }).where(eq(recharges.id, req.params.id)).returning();
-  return res.json(updated);
+  return res.json(toSnake(updated));
 });
 
 router.get("/wallets/my", async (req, res) => {
@@ -119,7 +120,7 @@ router.get("/wallets/my", async (req, res) => {
   if (!me) return res.status(401).json({ error: "Unauthorized" });
 
   const wallets = await db.select().from(userWallets).where(eq(userWallets.userId, me.userId));
-  return res.json(wallets);
+  return res.json(toSnake(wallets));
 });
 
 router.post("/wallets", async (req, res) => {
@@ -136,7 +137,7 @@ router.post("/wallets", async (req, res) => {
     userId: me.userId,
     phone, network, countryCode, holderName, label,
   }).returning();
-  return res.json(wallet);
+  return res.json(toSnake(wallet));
 });
 
 router.post("/withdrawals", async (req, res) => {
@@ -171,7 +172,7 @@ router.post("/withdrawals", async (req, res) => {
     updatedAt: new Date(),
   }).where(eq(profiles.userId, me.userId));
 
-  return res.json(withdrawal);
+  return res.json(toSnake(withdrawal));
 });
 
 router.get("/withdrawals/my", async (req, res) => {
@@ -181,7 +182,7 @@ router.get("/withdrawals/my", async (req, res) => {
   if (!me) return res.status(401).json({ error: "Unauthorized" });
 
   const myWithdrawals = await db.select().from(withdrawals).where(eq(withdrawals.userId, me.userId));
-  return res.json(myWithdrawals.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
+  return res.json(toSnake(myWithdrawals.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())));
 });
 
 router.get("/withdrawals", async (req, res) => {
@@ -191,7 +192,7 @@ router.get("/withdrawals", async (req, res) => {
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
 
   const all = await db.select().from(withdrawals);
-  return res.json(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
+  return res.json(toSnake(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())));
 });
 
 router.patch("/withdrawals/:id/approve", async (req, res) => {
@@ -201,7 +202,7 @@ router.patch("/withdrawals/:id/approve", async (req, res) => {
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
 
   const [updated] = await db.update(withdrawals).set({ status: "approved", adminNote: req.body.adminNote, updatedAt: new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
-  return res.json(updated);
+  return res.json(toSnake(updated));
 });
 
 router.patch("/withdrawals/:id/reject", async (req, res) => {
@@ -223,17 +224,16 @@ router.patch("/withdrawals/:id/reject", async (req, res) => {
   }
 
   const [updated] = await db.update(withdrawals).set({ status: "rejected", adminNote: req.body.adminNote, updatedAt: new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
-  return res.json(updated);
+  return res.json(toSnake(updated));
 });
 
-// ─── User withdrawals (aliased) ──────────────────────────────────────────────
 router.get("/payments/withdrawals", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
   const myWithdrawals = await db.select().from(withdrawals).where(eq(withdrawals.userId, me.userId));
-  return res.json(myWithdrawals.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
+  return res.json(toSnake(myWithdrawals.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())));
 });
 
 router.patch("/payments/withdrawals/:id/proof", async (req, res) => {
@@ -246,7 +246,7 @@ router.patch("/payments/withdrawals/:id/proof", async (req, res) => {
     .set({ processingFeeProofUrl: proofUrl })
     .where(and(eq(withdrawals.id, req.params.id), eq(withdrawals.userId, me.userId)))
     .returning();
-  return res.json(updated);
+  return res.json(toSnake(updated));
 });
 
 export default router;

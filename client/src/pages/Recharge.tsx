@@ -15,16 +15,43 @@ export type CryptoCurrency = {
   logoUrl?: string;
 };
 
+// Correspondance nom/réseau → code NowPayments
+function resolveNowPaymentsCode(name: string, network?: string): string | null {
+  const n = (name + " " + (network ?? "")).toUpperCase();
+  if ((n.includes("USDT") || n.includes("TETHER")) && (n.includes("BEP20") || n.includes("BSC") || n.includes("BNB SMART"))) return "usdtbsc";
+  if ((n.includes("USDT") || n.includes("TETHER")) && (n.includes("TRC20") || n.includes("TRON"))) return "usdttrc20";
+  if ((n.includes("USDT") || n.includes("TETHER")) && n.includes("ERC20")) return "usdterc20";
+  if ((n.includes("USDT") || n.includes("TETHER")) && (n.includes("POLYGON") || n.includes("MATIC"))) return "usdtmatic";
+  if (n.includes("TRX") || (n.includes("TRON") && !n.includes("USDT"))) return "trx";
+  if (n.includes("BNB") && !n.includes("USDT")) return "bnbbsc";
+  if (n.includes("ETH") || n.includes("ETHEREUM")) return "eth";
+  if (n.includes("BTC") || n.includes("BITCOIN")) return "btc";
+  if (n.includes("SOL") || n.includes("SOLANA")) return "sol";
+  if (n.includes("LTC") || n.includes("LITECOIN")) return "ltc";
+  return null;
+}
 
-// Uniquement ces 4 devises autorisées
-const ALLOWED_CURRENCIES: CryptoCurrency[] = [
-  { code: "usdtbsc",   label: "BEP20-USDT", network: "BNB Smart Chain (BEP20)", color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.18)", logoUrl: "/crypto-logos/usdt.png" },
-  { code: "usdttrc20", label: "TRC20-USDT", network: "TRON (TRC20)",            color: "#EF0027", symbol: "₮", bg: "rgba(239,0,39,0.18)",    logoUrl: "/crypto-logos/usdt.png" },
-  { code: "trx",       label: "TRX",        network: "TRON",                    color: "#EF0027", symbol: "◈", bg: "rgba(239,0,39,0.18)",    logoUrl: "/crypto-logos/trx.png"  },
-  { code: "bnbbsc",    label: "BNB",        network: "BNB Smart Chain (BEP20)", color: "#F0B90B", symbol: "⬡", bg: "rgba(240,185,11,0.18)", logoUrl: "/crypto-logos/bnb.png"  },
+const CRYPTO_META: Record<string, Partial<CryptoCurrency>> = {
+  usdtbsc:   { network: "BNB Smart Chain (BEP20)", color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.18)", logoUrl: "/crypto-logos/usdt.png" },
+  usdttrc20: { network: "TRON (TRC20)",            color: "#EF0027", symbol: "₮", bg: "rgba(239,0,39,0.18)",  logoUrl: "/crypto-logos/usdt.png" },
+  usdterc20: { network: "Ethereum (ERC20)",         color: "#627EEA", symbol: "₮", bg: "rgba(98,126,234,0.18)", logoUrl: "/crypto-logos/usdt.png" },
+  usdtmatic: { network: "Polygon (MATIC)",          color: "#8247E5", symbol: "₮", bg: "rgba(130,71,229,0.18)", logoUrl: "/crypto-logos/usdt.png" },
+  trx:       { network: "TRON",                     color: "#EF0027", symbol: "◈", bg: "rgba(239,0,39,0.18)",  logoUrl: "/crypto-logos/trx.png" },
+  bnbbsc:    { network: "BNB Smart Chain (BEP20)",  color: "#F0B90B", symbol: "⬡", bg: "rgba(240,185,11,0.18)", logoUrl: "/crypto-logos/bnb.png" },
+  eth:       { network: "Ethereum",                 color: "#627EEA", symbol: "Ξ", bg: "rgba(98,126,234,0.18)", logoUrl: "/crypto-logos/eth.png" },
+  btc:       { network: "Bitcoin",                  color: "#F7931A", symbol: "₿", bg: "rgba(247,147,26,0.18)", logoUrl: "/crypto-logos/btc.png" },
+  sol:       { network: "Solana",                   color: "#9945FF", symbol: "◎", bg: "rgba(153,69,255,0.18)", logoUrl: "/crypto-logos/sol.png" },
+  ltc:       { network: "Litecoin",                 color: "#BFBBBB", symbol: "Ł", bg: "rgba(191,187,187,0.18)", logoUrl: "/crypto-logos/ltc.png" },
+};
+
+const FALLBACK_CURRENCIES: CryptoCurrency[] = [
+  { code: "usdtbsc",   label: "BEP20-USDT", ...CRYPTO_META.usdtbsc   } as CryptoCurrency,
+  { code: "usdttrc20", label: "TRC20-USDT", ...CRYPTO_META.usdttrc20 } as CryptoCurrency,
+  { code: "trx",       label: "TRX",        ...CRYPTO_META.trx       } as CryptoCurrency,
+  { code: "bnbbsc",    label: "BNB",        ...CRYPTO_META.bnbbsc    } as CryptoCurrency,
 ];
 
-export const CRYPTO_CURRENCIES = ALLOWED_CURRENCIES;
+export const CRYPTO_CURRENCIES = FALLBACK_CURRENCIES;
 
 const Recharge = () => {
   const navigate = useNavigate();
@@ -33,12 +60,13 @@ const Recharge = () => {
   const [presetAmounts, setPresetAmounts] = useState<number[]>([10, 20, 50, 100, 200, 500]);
   const [minAmount, setMinAmount] = useState(5);
   const [maxAmount, setMaxAmount] = useState(100000);
+  const [currencies, setCurrencies] = useState<CryptoCurrency[]>(FALLBACK_CURRENCIES);
   const [estimates, setEstimates] = useState<Record<string, number | null>>({});
   const [loadingEstimates, setLoadingEstimates] = useState(false);
   const estimateDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const currencies = ALLOWED_CURRENCIES;
 
   useEffect(() => {
+    // Charger les paramètres du site (montants, limites)
     fetch("/api/site-settings")
       .then(r => r.ok ? r.json() : [])
       .then((data: { key: string; value: string }[]) => {
@@ -51,14 +79,49 @@ const Recharge = () => {
         });
       })
       .catch(() => {});
+
+    // Charger les méthodes de dépôt depuis l'admin
+    fetch("/api/payment-methods")
+      .then(r => r.ok ? r.json() : [])
+      .then((methods: { id: string; name: string; payment_type: string; logo_url?: string; instructions?: string }[]) => {
+        if (!methods || methods.length === 0) return;
+
+        const cryptoMethods = methods.filter(m => m.payment_type === "crypto" || m.payment_type === "nowpayments");
+        if (cryptoMethods.length === 0) return;
+
+        const mapped: CryptoCurrency[] = [];
+        for (const m of cryptoMethods) {
+          const code = resolveNowPaymentsCode(m.name);
+          if (code) {
+            const meta = CRYPTO_META[code] ?? {};
+            mapped.push({
+              code,
+              label: m.name,
+              network: meta.network ?? m.name,
+              color: meta.color ?? "#26A17B",
+              symbol: meta.symbol ?? "₮",
+              bg: meta.bg ?? "rgba(38,161,123,0.18)",
+              logoUrl: m.logo_url ?? meta.logoUrl,
+            });
+          }
+        }
+
+        if (mapped.length > 0) {
+          // Dédupliquer par code
+          const seen = new Set<string>();
+          const unique = mapped.filter(c => { if (seen.has(c.code)) return false; seen.add(c.code); return true; });
+          setCurrencies(unique);
+        }
+      })
+      .catch(() => {});
   }, []);
 
-  // Fetch real-time estimates from NowPayments for all currencies
+  // Estimations NowPayments en temps réel
   const fetchEstimates = async (usdAmount: number) => {
     setLoadingEstimates(true);
     const results: Record<string, number | null> = {};
     await Promise.all(
-      ALLOWED_CURRENCIES.map(async (c) => {
+      currencies.map(async (c) => {
         try {
           const res = await fetch(
             `/api/nowpayments/estimate?amount=${usdAmount}&currency_from=usd&currency_to=${c.code}`
@@ -98,14 +161,10 @@ const Recharge = () => {
   const parsedAmount = parseFloat(amount);
   const amountValid = parsedAmount >= minAmount && parsedAmount <= maxAmount;
 
-  // USDT variants are pegged 1:1 to USD — show exact entered amount, not NowPayments estimate
-  // (which may include their fee margin). Actual pay_amount from NowPayments with
-  // is_fee_paid_by_user=false will also be the exact amount.
   const USDT_CODES = new Set(["usdtbsc", "usdttrc20", "usdterc20", "usdtmatic"]);
 
   const formatEstimate = (code: string): string => {
     const parsed = parseFloat(amount);
-    // For USDT-pegged currencies, show exact entered amount (1 USD = 1 USDT)
     if (USDT_CODES.has(code.toLowerCase()) && parsed >= 1) {
       return `= ${parsed.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     }
@@ -206,7 +265,6 @@ const Recharge = () => {
                   idx < currencies.length - 1 ? "border-b border-border/20" : ""
                 } hover:bg-secondary/30 active:bg-secondary/50`}
               >
-                {/* Logo or symbol fallback */}
                 {c.logoUrl ? (
                   <div
                     className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
@@ -216,9 +274,7 @@ const Recharge = () => {
                       src={c.logoUrl}
                       alt={c.code}
                       className="w-7 h-7 object-contain"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                     />
                   </div>
                 ) : (

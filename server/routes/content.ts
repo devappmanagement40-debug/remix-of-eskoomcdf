@@ -3,6 +3,7 @@ import { db } from "../db";
 import { giftCodes, giftCodeUses, giftRewards, pointExchanges, wheelPrizes, wheelSpins, chatMessages, userSessions, profiles, userRoles } from "../db";
 import { eq, and } from "drizzle-orm";
 import crypto from "crypto";
+import { toSnake } from "../utils/toSnake";
 
 const router = Router();
 
@@ -47,7 +48,7 @@ router.post("/gift-codes/redeem", async (req, res) => {
 
 router.get("/gift-rewards", async (req, res) => {
   const all = await db.select().from(giftRewards).where(eq(giftRewards.isActive, true));
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 
 router.post("/gift-rewards/:id/redeem", async (req, res) => {
@@ -77,7 +78,7 @@ router.post("/gift-rewards/:id/redeem", async (req, res) => {
     updatedAt: new Date(),
   }).where(eq(profiles.userId, me.userId));
 
-  return res.json(exchange);
+  return res.json(toSnake(exchange));
 });
 
 router.get("/point-exchanges/my", async (req, res) => {
@@ -87,12 +88,12 @@ router.get("/point-exchanges/my", async (req, res) => {
   if (!me) return res.status(401).json({ error: "Unauthorized" });
 
   const exchanges = await db.select().from(pointExchanges).where(eq(pointExchanges.userId, me.userId));
-  return res.json(exchanges.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
+  return res.json(toSnake(exchanges.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())));
 });
 
 router.get("/wheel-prizes", async (req, res) => {
   const all = await db.select().from(wheelPrizes).where(eq(wheelPrizes.isActive, true));
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 
 router.post("/wheel/spin", async (req, res) => {
@@ -131,7 +132,17 @@ router.post("/wheel/spin", async (req, res) => {
     updatedAt: new Date(),
   }).where(eq(profiles.userId, me.userId));
 
-  return res.json(spin);
+  return res.json(toSnake(spin));
+});
+
+router.get("/wheel/my-spins", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+
+  const spins = await db.select().from(wheelSpins).where(eq(wheelSpins.userId, me.userId));
+  return res.json(toSnake(spins.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())));
 });
 
 router.get("/wheel/recent-winners", async (req, res) => {
@@ -141,7 +152,7 @@ router.get("/wheel/recent-winners", async (req, res) => {
     .filter(s => s.status === "completed" && Number(s.prizeValue) > 0)
     .sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())
     .slice(0, limit);
-  return res.json(winners);
+  return res.json(toSnake(winners));
 });
 
 router.get("/chat/my", async (req, res) => {
@@ -151,7 +162,7 @@ router.get("/chat/my", async (req, res) => {
   if (!me) return res.status(401).json({ error: "Unauthorized" });
 
   const messages = await db.select().from(chatMessages).where(eq(chatMessages.userId, me.userId));
-  return res.json(messages.sort((a, b) => new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime()));
+  return res.json(toSnake(messages.sort((a, b) => new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime())));
 });
 
 router.post("/chat/send", async (req, res) => {
@@ -171,7 +182,7 @@ router.post("/chat/send", async (req, res) => {
     isAi: false,
   }).returning();
 
-  const aiReply = await db.insert(chatMessages).values({
+  const [aiReply] = await db.insert(chatMessages).values({
     id: crypto.randomUUID(),
     userId: me.userId,
     message: "Thank you for your message! Our support team will respond shortly.",
@@ -179,7 +190,7 @@ router.post("/chat/send", async (req, res) => {
     isAi: true,
   }).returning();
 
-  return res.json({ message: msg, reply: aiReply[0] });
+  return res.json({ message: toSnake(msg), reply: toSnake(aiReply) });
 });
 
 export default router;

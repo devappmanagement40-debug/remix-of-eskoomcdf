@@ -3,6 +3,7 @@ import { db } from "../db";
 import { profiles, userRoles, userSessions, adminPermissions } from "../db";
 import { eq, inArray } from "drizzle-orm";
 import crypto from "crypto";
+import { toSnake } from "../utils/toSnake";
 
 const router = Router();
 
@@ -19,7 +20,7 @@ router.get("/profiles/me", async (req, res) => {
   const profile = await getProfileFromToken(token);
   if (!profile) return res.status(401).json({ error: "Unauthorized" });
   const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, profile.userId)).limit(1);
-  return res.json({ ...profile, role: role?.role ?? "user" });
+  return res.json(toSnake({ ...profile, role: role?.role ?? "user" }));
 });
 
 router.patch("/profiles/me", async (req, res) => {
@@ -32,11 +33,13 @@ router.patch("/profiles/me", async (req, res) => {
   const updates: Record<string, unknown> = {};
   for (const key of allowed) {
     if (req.body[key] !== undefined) updates[key] = req.body[key];
+    if (req.body[key.replace(/[A-Z]/g, (l) => `_${l.toLowerCase()}`)] !== undefined)
+      updates[key] = req.body[key.replace(/[A-Z]/g, (l) => `_${l.toLowerCase()}`)];
   }
   updates.updatedAt = new Date();
 
   const [updated] = await db.update(profiles).set(updates as any).where(eq(profiles.userId, me.userId)).returning();
-  return res.json(updated);
+  return res.json(toSnake(updated));
 });
 
 router.get("/profiles/:userId", async (req, res) => {
@@ -50,7 +53,7 @@ router.get("/profiles/:userId", async (req, res) => {
 
   const [profile] = await db.select().from(profiles).where(eq(profiles.userId, req.params.userId)).limit(1);
   if (!profile) return res.status(404).json({ error: "Not found" });
-  return res.json(profile);
+  return res.json(toSnake(profile));
 });
 
 router.get("/profiles", async (req, res) => {
@@ -63,7 +66,7 @@ router.get("/profiles", async (req, res) => {
   if (role?.role !== "admin" && role?.role !== "moderator") return res.status(403).json({ error: "Forbidden" });
 
   const all = await db.select().from(profiles);
-  return res.json(all);
+  return res.json(toSnake(all));
 });
 
 router.patch("/profiles/:userId/suspend", async (req, res) => {
@@ -77,7 +80,7 @@ router.patch("/profiles/:userId/suspend", async (req, res) => {
 
   const { isSuspended } = req.body;
   const [updated] = await db.update(profiles).set({ isSuspended }).where(eq(profiles.userId, req.params.userId)).returning();
-  return res.json(updated);
+  return res.json(toSnake(updated));
 });
 
 router.get("/team/my", async (req, res) => {
@@ -87,7 +90,7 @@ router.get("/team/my", async (req, res) => {
   if (!me) return res.status(401).json({ error: "Unauthorized" });
 
   const teamMembers = await db.select().from(profiles).where(eq(profiles.referredBy, me.id));
-  return res.json(teamMembers);
+  return res.json(toSnake(teamMembers));
 });
 
 export default router;
