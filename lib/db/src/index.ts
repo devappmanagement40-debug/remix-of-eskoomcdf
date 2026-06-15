@@ -12,7 +12,14 @@ if (!connectionString) {
   );
 }
 
-export const pool = new Pool({ connectionString });
+// DB_SSL=false  → no SSL (local dev, Replit internal Postgres)
+// DB_SSL=true or unset → SSL with self-signed cert allowed (Plesk / external Postgres)
+const sslConfig =
+  process.env.DB_SSL === "false"
+    ? false
+    : { rejectUnauthorized: false };
+
+export const pool = new Pool({ connectionString, ssl: sslConfig });
 export const db = drizzle(pool, { schema });
 
 export * from "./schema";

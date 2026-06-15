@@ -30151,8 +30151,8 @@ var require_pg_connection_string = __commonJS({
       }
       return config;
     }
-    function toConnectionOptions(sslConfig) {
-      const connectionOptions = Object.entries(sslConfig).reduce((c, [key, value]) => {
+    function toConnectionOptions(sslConfig2) {
+      const connectionOptions = Object.entries(sslConfig2).reduce((c, [key, value]) => {
         if (value !== void 0 && value !== null) {
           c[key] = value;
         }
@@ -30163,12 +30163,12 @@ var require_pg_connection_string = __commonJS({
     function toClientConfig(config) {
       const poolConfig = Object.entries(config).reduce((c, [key, value]) => {
         if (key === "ssl") {
-          const sslConfig = value;
-          if (typeof sslConfig === "boolean") {
-            c[key] = sslConfig;
+          const sslConfig2 = value;
+          if (typeof sslConfig2 === "boolean") {
+            c[key] = sslConfig2;
           }
-          if (typeof sslConfig === "object") {
-            c[key] = toConnectionOptions(sslConfig);
+          if (typeof sslConfig2 === "object") {
+            c[key] = toConnectionOptions(sslConfig2);
           }
         } else if (value !== void 0 && value !== null) {
           if (key === "port") {
@@ -42488,7 +42488,7 @@ __export(src_exports, {
   withdrawalMethods: () => withdrawalMethods,
   withdrawals: () => withdrawals
 });
-var Pool3, connectionString, pool, db;
+var Pool3, connectionString, sslConfig, pool, db;
 var init_src = __esm({
   "lib/db/src/index.ts"() {
     init_node_postgres();
@@ -42502,7 +42502,8 @@ var init_src = __esm({
         "DATABASE_URL must be set. Did you forget to provision a database?"
       );
     }
-    pool = new Pool3({ connectionString });
+    sslConfig = process.env.DB_SSL === "false" ? false : { rejectUnauthorized: false };
+    pool = new Pool3({ connectionString, ssl: sslConfig });
     db = drizzle(pool, { schema: schema_exports });
   }
 });
@@ -49684,6 +49685,7 @@ var db_default = router8;
 
 // artifacts/api-server/src/routes/nowpayments.ts
 var import_express9 = __toESM(require_express2(), 1);
+init_src();
 import crypto7 from "crypto";
 var router9 = (0, import_express9.Router)();
 var NP_API = "https://api.nowpayments.io/v1";
@@ -49698,28 +49700,6 @@ function getPayoutEmail() {
 }
 function getPayoutPassword() {
   return process.env["NOWPAYMENTS_PASSWORD"] ?? "";
-}
-var SUPABASE_URL = process.env["VITE_SUPABASE_PROJECT_URL"] ?? "";
-var SUPABASE_KEY = process.env["SUPABASE_SERVICE_ROLE_KEY"] ?? "";
-function sbHeaders() {
-  return {
-    "Content-Type": "application/json",
-    "apikey": SUPABASE_KEY,
-    "Authorization": `Bearer ${SUPABASE_KEY}`
-  };
-}
-async function sbGet(table, query) {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, { headers: sbHeaders() });
-  if (!r.ok) throw new Error(`Supabase GET ${table} failed: ${await r.text()}`);
-  return r.json();
-}
-async function sbUpdate(table, query, body) {
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
-    method: "PATCH",
-    headers: { ...sbHeaders(), "Prefer": "return=minimal" },
-    body: JSON.stringify(body)
-  });
-  if (!r.ok) throw new Error(`Supabase PATCH ${table} failed: ${await r.text()}`);
 }
 function getWebhookUrl(path2) {
   const base = process.env["NOWPAYMENTS_WEBHOOK_URL"];
@@ -49757,34 +49737,28 @@ var FALLBACK_CURRENCIES = [
 ];
 var currenciesCache = null;
 async function approveRechargeByPaymentId(paymentId) {
-  const rows = await sbGet("recharges", `transaction_ref=eq.${paymentId}&status=eq.pending&select=id,user_id,amount&limit=1`);
-  if (!rows.length) return;
-  const recharge = rows[0];
+  const [recharge] = await db.select({ id: recharges.id, userId: recharges.userId, amount: recharges.amount }).from(recharges).where(eq(recharges.transactionRef, paymentId)).limit(1);
+  if (!recharge) {
+    console.warn(`[NP] approveRecharge: no pending recharge found for paymentId=${paymentId}`);
+    return;
+  }
   const amount = Number(recharge.amount);
-  const profiles2 = await sbGet("profiles", `user_id=eq.${recharge.user_id}&select=user_id,balance,deposit_balance&limit=1`);
-  if (!profiles2.length) return;
-  const profile = profiles2[0];
-  const newBalance = Number(profile.balance ?? 0) + amount;
-  const newDeposit = Number(profile.deposit_balance ?? 0) + amount;
-  await sbUpdate("profiles", `user_id=eq.${recharge.user_id}`, {
-    balance: newBalance,
-    deposit_balance: newDeposit,
-    updated_at: (/* @__PURE__ */ new Date()).toISOString()
-  });
-  await sbUpdate("recharges", `id=eq.${recharge.id}`, {
-    status: "approved",
-    updated_at: (/* @__PURE__ */ new Date()).toISOString()
-  });
-  console.log(`[NP] Recharge approved: ${recharge.id} \u2014 ${amount} USDT \u2192 user ${recharge.user_id}`);
+  await db.update(recharges).set({ status: "approved", updatedAt: /* @__PURE__ */ new Date() }).where(eq(recharges.id, recharge.id));
+  await db.update(profiles).set({
+    balance: sql`${profiles.balance} + ${amount}`,
+    depositBalance: sql`${profiles.depositBalance} + ${amount}`,
+    updatedAt: /* @__PURE__ */ new Date()
+  }).where(eq(profiles.userId, recharge.userId));
+  console.log(`[NP] Recharge approved: ${recharge.id} \u2014 ${amount} USD \u2192 user ${recharge.userId}`);
 }
 async function approveWithdrawalByExternalId(externalId) {
-  const rows = await sbGet("withdrawals", `id=eq.${externalId}&select=id,status&limit=1`);
-  if (!rows.length || rows[0].status === "approved") return;
-  await sbUpdate("withdrawals", `id=eq.${externalId}`, {
+  const [withdrawal] = await db.select({ id: withdrawals.id, status: withdrawals.status }).from(withdrawals).where(eq(withdrawals.id, externalId)).limit(1);
+  if (!withdrawal || withdrawal.status === "approved") return;
+  await db.update(withdrawals).set({
     status: "approved",
-    admin_note: "\u2705 Auto-approved via NowPayments payout IPN",
-    updated_at: (/* @__PURE__ */ new Date()).toISOString()
-  });
+    adminNote: "\u2705 Auto-approved via NowPayments payout IPN",
+    updatedAt: /* @__PURE__ */ new Date()
+  }).where(eq(withdrawals.id, externalId));
   console.log(`[NP] Withdrawal auto-approved: ${externalId}`);
 }
 async function getPayoutToken() {
@@ -49883,7 +49857,7 @@ router9.get("/nowpayments/estimate", async (req, res) => {
     const r = await fetch(url, { headers: { "x-api-key": apiKey } });
     if (!r.ok) return res.status(502).json({ error: "NowPayments estimate failed" });
     return res.json(await r.json());
-  } catch (err) {
+  } catch {
     return res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -49897,7 +49871,7 @@ router9.get("/nowpayments/min-amount", async (req, res) => {
     const r = await fetch(url, { headers: { "x-api-key": apiKey } });
     if (!r.ok) return res.status(502).json({ error: "NowPayments min-amount failed" });
     return res.json(await r.json());
-  } catch (err) {
+  } catch {
     return res.status(500).json({ error: "Internal server error" });
   }
 });
@@ -49932,10 +49906,7 @@ router9.post("/nowpayments/create", async (req, res) => {
       return res.status(502).json({ error: "Payment gateway error. Please try again." });
     }
     const data = await r.json();
-    await sbUpdate("recharges", `id=eq.${rechargeId}`, {
-      transaction_ref: String(data.payment_id),
-      updated_at: (/* @__PURE__ */ new Date()).toISOString()
-    });
+    await db.update(recharges).set({ transactionRef: String(data.payment_id), updatedAt: /* @__PURE__ */ new Date() }).where(eq(recharges.id, rechargeId));
     console.log(`[NP] Payment created: id=${data.payment_id} addr=${data.pay_address?.slice(0, 10)}...`);
     return res.json({
       paymentId: String(data.payment_id),
@@ -49958,8 +49929,7 @@ router9.get("/nowpayments/status/:paymentId", async (req, res) => {
   try {
     const r = await fetch(`${NP_API}/payment/${paymentId}`, { headers: { "x-api-key": apiKey } });
     if (!r.ok) {
-      const txt = await r.text();
-      console.error(`[NP] status error (${r.status}):`, txt);
+      console.error(`[NP] status error (${r.status}):`, await r.text());
       return res.status(502).json({ error: "NowPayments API error" });
     }
     const data = await r.json();
@@ -50014,15 +49984,20 @@ router9.post("/nowpayments/payout", async (req, res) => {
   const { withdrawalId } = req.body;
   if (!withdrawalId) return res.status(400).json({ error: "withdrawalId is required" });
   try {
-    const rows = await sbGet("withdrawals", `id=eq.${withdrawalId}&select=id,status,phone,country_code,net_amount&limit=1`);
-    if (!rows.length) return res.status(404).json({ error: "Withdrawal not found" });
-    const withdrawal = rows[0];
+    const [withdrawal] = await db.select({
+      id: withdrawals.id,
+      status: withdrawals.status,
+      phone: withdrawals.phone,
+      countryCode: withdrawals.countryCode,
+      netAmount: withdrawals.netAmount
+    }).from(withdrawals).where(eq(withdrawals.id, withdrawalId)).limit(1);
+    if (!withdrawal) return res.status(404).json({ error: "Withdrawal not found" });
     if (withdrawal.status !== "pending") {
       return res.status(400).json({ error: `Withdrawal already ${withdrawal.status}` });
     }
     const address = withdrawal.phone;
-    const currency = (withdrawal.country_code ?? "").toLowerCase();
-    const amount = Number(withdrawal.net_amount);
+    const currency = (withdrawal.countryCode ?? "").toLowerCase();
+    const amount = Number(withdrawal.netAmount);
     if (!address) return res.status(400).json({ error: "Missing wallet address" });
     if (!currency) return res.status(400).json({ error: "Missing currency code" });
     if (amount <= 0) return res.status(400).json({ error: "Invalid amount" });
@@ -50057,11 +50032,11 @@ router9.post("/nowpayments/payout", async (req, res) => {
     }
     const data = await r.json();
     const payoutId = data.id ?? data.batch_withdrawal_id ?? "unknown";
-    await sbUpdate("withdrawals", `id=eq.${withdrawalId}`, {
+    await db.update(withdrawals).set({
       status: "processing",
-      admin_note: `\u{1F680} NowPayments payout submitted \u2014 batch ID: ${payoutId}`,
-      updated_at: (/* @__PURE__ */ new Date()).toISOString()
-    });
+      adminNote: `\u{1F680} NowPayments payout submitted \u2014 batch ID: ${payoutId}`,
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq(withdrawals.id, withdrawalId));
     console.log(`[NP] Payout submitted: batchId=${payoutId}`);
     return res.json({ success: true, payoutId });
   } catch (err) {
@@ -50122,7 +50097,7 @@ var nowpayments_default = router9;
 // artifacts/api-server/src/routes/upload.ts
 var import_express10 = __toESM(require_express2(), 1);
 var router10 = (0, import_express10.Router)();
-var SUPABASE_URL2 = process.env.VITE_SUPABASE_PROJECT_URL;
+var SUPABASE_URL = process.env.VITE_SUPABASE_PROJECT_URL;
 async function getServiceKey() {
   return process.env.SUPABASE_SERVICE_ROLE_KEY || null;
 }
@@ -50151,7 +50126,7 @@ router10.post("/upload", async (req, res) => {
   if (!base64 || !mimeType || !fileName) {
     return res.status(400).json({ error: "base64, mimeType and fileName are required" });
   }
-  if (!SUPABASE_URL2) {
+  if (!SUPABASE_URL) {
     return res.status(500).json({ error: "VITE_SUPABASE_PROJECT_URL not configured" });
   }
   const serviceKey = await getServiceKey();
@@ -50164,9 +50139,9 @@ router10.post("/upload", async (req, res) => {
     const buffer = Buffer.from(base64, "base64");
     const ext = fileName.split(".").pop()?.toLowerCase() || "bin";
     const uniquePath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    await ensureBucket(SUPABASE_URL2, serviceKey, bucket);
+    await ensureBucket(SUPABASE_URL, serviceKey, bucket);
     const uploadRes = await fetch(
-      `${SUPABASE_URL2}/storage/v1/object/${bucket}/${uniquePath}`,
+      `${SUPABASE_URL}/storage/v1/object/${bucket}/${uniquePath}`,
       {
         method: "POST",
         headers: {
@@ -50182,7 +50157,7 @@ router10.post("/upload", async (req, res) => {
       const errData = await uploadRes.json().catch(() => ({}));
       return res.status(500).json({ error: errData.message || "Upload failed" });
     }
-    const publicUrl = `${SUPABASE_URL2}/storage/v1/object/public/${bucket}/${uniquePath}`;
+    const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${uniquePath}`;
     return res.json({ ok: true, url: publicUrl });
   } catch (err) {
     req.log.error(err);
@@ -50226,6 +50201,7 @@ var logger = (0, import_pino.default)({
 // artifacts/api-server/src/app.ts
 var __dirname2 = path.dirname(fileURLToPath(import.meta.url));
 var app = (0, import_express12.default)();
+app.set("trust proxy", 1);
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -50253,12 +50229,7 @@ if (process.env.NODE_ENV === "production") {
 var app_default = app;
 
 // artifacts/api-server/src/index.ts
-var rawPort = process.env["PORT"];
-if (!rawPort) {
-  throw new Error(
-    "PORT environment variable is required but was not provided."
-  );
-}
+var rawPort = process.env["PORT"] ?? "3000";
 var port = Number(rawPort);
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
