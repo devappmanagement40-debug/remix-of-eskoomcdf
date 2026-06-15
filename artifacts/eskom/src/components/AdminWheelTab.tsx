@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuthToken } from "@/integrations/supabase/client";
 import {
   Plus, X, Save, Edit2, Trash2, CheckCircle2, XCircle, Clock,
   ImageIcon, UploadIcon, Pencil
@@ -35,12 +35,14 @@ const AdminWheelTab = ({ settings, reload, showSuccess, showError, logAction, ad
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
-    const [pz, sp] = await Promise.all([
-      supabase.from("wheel_prizes").select("*").order("sort_order"),
-      supabase.from("wheel_spins").select("*").order("created_at", { ascending: false }).limit(100),
+    const token = getAuthToken();
+    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+    const [pzRes, spRes] = await Promise.all([
+      fetch("/api/admin/wheel-prizes", { headers }),
+      fetch("/api/admin/wheel-spins", { headers }),
     ]);
-    if (pz.data) setPrizes(pz.data as WheelPrize[]);
-    if (sp.data) setSpins(sp.data as WheelSpin[]);
+    if (pzRes.ok) setPrizes(await pzRes.json());
+    if (spRes.ok) setSpins(await spRes.json());
     setLoading(false);
   };
 
@@ -59,7 +61,6 @@ const AdminWheelTab = ({ settings, reload, showSuccess, showError, logAction, ad
 
   return (
     <div className="space-y-4">
-      {/* Sub-tabs */}
       <div className="flex gap-2">
         {subTabs.map(t => (
           <button key={t.key} onClick={() => setSubTab(t.key as any)}
@@ -97,6 +98,8 @@ const PrizesSection = ({ prizes, reload, showSuccess, showError }: any) => {
 
   const save = async () => {
     if (!form.label.trim()) { showError("Error", "Label required"); return; }
+    const token = getAuthToken();
+    const headers: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     const payload = {
       label: form.label,
       value: Number(form.value) || 0,
@@ -104,8 +107,11 @@ const PrizesSection = ({ prizes, reload, showSuccess, showError }: any) => {
       vip_level: form.prize_type === "vip" ? (Number(form.vip_level) || 1) : null,
       probability: Number(form.probability) || 10,
     };
-    if (editing) await supabase.from("wheel_prizes").update(payload).eq("id", editing.id);
-    else await supabase.from("wheel_prizes").insert({ ...payload, sort_order: prizes.length });
+    if (editing) {
+      await fetch(`/api/admin/wheel-prizes/${editing.id}`, { method: "PATCH", headers, body: JSON.stringify(payload) });
+    } else {
+      await fetch("/api/admin/wheel-prizes", { method: "POST", headers, body: JSON.stringify({ ...payload, sort_order: prizes.length }) });
+    }
     showSuccess(editing ? "Gain modifié ✅" : "Gain ajouté ✅", "");
     setShowForm(false); reload();
   };
@@ -171,13 +177,22 @@ const PrizesSection = ({ prizes, reload, showSuccess, showError }: any) => {
               <p className="text-xs text-muted-foreground mt-0.5">Probabilité : {p.probability}%</p>
             </div>
             <div className="flex gap-1.5">
-              <button onClick={async () => { await supabase.from("wheel_prizes").update({ is_active: !p.is_active }).eq("id", p.id); reload(); }}
-                className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{p.is_active ? "ON" : "OFF"}</button>
-              <button onClick={async () => { await supabase.from("wheel_prizes").update({ is_winnable: !(p as any).is_winnable }).eq("id", p.id); reload(); }}
-                className={`h-7 px-1.5 rounded-lg flex items-center justify-center text-[9px] font-bold ${(p as any).is_winnable !== false ? "bg-warning/20 text-warning" : "bg-destructive/20 text-destructive"}`}>{(p as any).is_winnable !== false ? "WIN" : "NO WIN"}</button>
+              <button onClick={async () => {
+                const token = getAuthToken();
+                await fetch(`/api/admin/wheel-prizes/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ is_active: !p.is_active }) });
+                reload();
+              }} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{p.is_active ? "ON" : "OFF"}</button>
+              <button onClick={async () => {
+                const token = getAuthToken();
+                await fetch(`/api/admin/wheel-prizes/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ is_winnable: !(p as any).is_winnable }) });
+                reload();
+              }} className={`h-7 px-1.5 rounded-lg flex items-center justify-center text-[9px] font-bold ${(p as any).is_winnable !== false ? "bg-warning/20 text-warning" : "bg-destructive/20 text-destructive"}`}>{(p as any).is_winnable !== false ? "WIN" : "NO WIN"}</button>
               <button onClick={() => openForm(p)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
-              <button onClick={async () => { await supabase.from("wheel_prizes").delete().eq("id", p.id); showSuccess("Supprimé", ""); reload(); }}
-                className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+              <button onClick={async () => {
+                const token = getAuthToken();
+                await fetch(`/api/admin/wheel-prizes/${p.id}`, { method: "DELETE", headers: token ? { Authorization: `Bearer ${token}` } : {} });
+                showSuccess("Supprimé", ""); reload();
+              }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
             </div>
           </div>
         </div>
@@ -188,52 +203,37 @@ const PrizesSection = ({ prizes, reload, showSuccess, showError }: any) => {
 
 // ========== WINNERS LIST ==========
 const WinnersSection = ({ spins, reload }: { spins: WheelSpin[]; reload: () => void }) => {
-  const [profiles, setProfiles] = useState<Record<string, any>>({});
+  const [profileMap, setProfileMap] = useState<Record<string, any>>({});
   const [refreshing, setRefreshing] = useState(false);
-  const [resetting, setResetting] = useState(false);
+
   useEffect(() => {
     const userIds: string[] = [...new Set(spins.map(s => s.user_id))] as string[];
     if (userIds.length === 0) return;
-    supabase.from("profiles").select("user_id, full_name, phone").in("user_id", userIds)
-      .then(({ data }) => {
-        const map: Record<string, any> = {};
-        (data || []).forEach((p: any) => { map[p.user_id] = p; });
-        setProfiles(map);
-      });
+    const token = getAuthToken();
+    fetch("/api/profiles/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ ids: userIds }),
+    }).then(r => r.json()).then((data: any[]) => {
+      const map: Record<string, any> = {};
+      (data || []).forEach((p: any) => { map[p.user_id] = p; });
+      setProfileMap(map);
+    });
   }, [spins]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await new Promise<void>((resolve) => {
-        reload();
-        // Give time for parent state to propagate
-        setTimeout(resolve, 500);
-      });
-    } finally {
-      setRefreshing(false);
-    }
-  };
-
-  const handleReset = async () => {
-    if (!confirm("⚠️ Êtes-vous sûr de vouloir supprimer TOUS les gagnants ? Cette action est irréversible.")) return;
-    setResetting(true);
-    try {
-      await supabase.from("wheel_spins").delete().neq("id", "00000000-0000-0000-0000-000000000000");
-      reload();
-    } finally {
-      setResetting(false);
-    }
+      await new Promise<void>((resolve) => { reload(); setTimeout(resolve, 500); });
+    } finally { setRefreshing(false); }
   };
 
   const completedSpins = spins.filter(s => s.status === "completed" || s.status === "vip_approved");
-
   const totalCash = completedSpins.filter(s => s.prize_type === "cash").reduce((sum, s) => sum + s.prize_value, 0);
   const totalVip = completedSpins.filter(s => s.prize_type === "vip").length;
 
   return (
     <div className="space-y-3">
-      {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-card rounded-xl border border-secondary p-3 text-center">
           <p className="text-xl font-bold text-primary">{completedSpins.length}</p>
@@ -249,32 +249,18 @@ const WinnersSection = ({ spins, reload }: { spins: WheelSpin[]; reload: () => v
         </div>
       </div>
 
-      {/* Refresh button */}
       <button onClick={handleRefresh} disabled={refreshing}
         className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-50">
         {refreshing ? (
           <><span className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" /> Actualisation...</>
-        ) : (
-          <>🔄 Actualiser les gagnants</>
-        )}
+        ) : <>🔄 Actualiser les gagnants</>}
       </button>
 
-      {/* Reset button */}
-      <button onClick={handleReset} disabled={resetting}
-        className="w-full bg-destructive/10 border border-destructive/30 text-destructive font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-50">
-        {resetting ? (
-          <><span className="w-4 h-4 border-2 border-destructive border-t-transparent rounded-full animate-spin" /> Suppression...</>
-        ) : (
-          <>🗑 Réinitialiser tous les gagnants</>
-        )}
-      </button>
-
-      {/* Winners list */}
       {completedSpins.length === 0 ? (
         <p className="text-center text-sm text-muted-foreground py-10">No winners yet</p>
       ) : (
         completedSpins.map(s => {
-          const p = profiles[s.user_id];
+          const p = profileMap[s.user_id];
           return (
             <div key={s.id} className="bg-card rounded-xl border border-secondary px-4 py-3">
               <div className="flex items-center justify-between">
@@ -311,9 +297,13 @@ const SettingsSection = ({ settings, financeSettings, reload, showSuccess }: any
   const setVal = (key: string, val: string) => setEdits({ ...edits, [key]: val });
 
   const saveAll = async () => {
-    for (const [key, value] of Object.entries(edits)) {
-      await supabase.from("site_settings").update({ value }).eq("key", key);
-    }
+    const token = getAuthToken();
+    const headers: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+    await fetch("/api/admin/site-settings/batch", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ settings: Object.entries(edits).map(([key, value]) => ({ key, value })) }),
+    });
     showSuccess("Paramètres roue sauvegardés ✅", "");
     setEdits({});
     reload();
@@ -360,42 +350,40 @@ const VipSpinsSection = ({ spins, reload, showSuccess, showError, logAction, adm
   const approvedVip = spins.filter((s: WheelSpin) => s.status === "vip_approved");
   const rejectedVip = spins.filter((s: WheelSpin) => s.status === "vip_rejected");
   const [filter, setFilter] = useState("pending_vip");
-  const [profiles, setProfiles] = useState<Record<string, any>>({});
+  const [profileMap, setProfileMap] = useState<Record<string, any>>({});
 
-  useEffect(() => {
-    loadProfiles();
-  }, [spins]);
+  useEffect(() => { loadProfiles(); }, [spins]);
 
   const loadProfiles = async () => {
     const userIds: string[] = [...new Set(spins.map((s: WheelSpin) => s.user_id))] as string[];
     if (userIds.length === 0) return;
-    const { data } = await supabase.from("profiles").select("user_id, full_name, phone, vip_level").in("user_id", userIds);
-    const map: Record<string, any> = {};
-    (data || []).forEach((p: any) => { map[p.user_id] = p; });
-    setProfiles(map);
+    const token = getAuthToken();
+    const res = await fetch("/api/profiles/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ ids: userIds }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      const map: Record<string, any> = {};
+      (data || []).forEach((p: any) => { map[p.user_id] = p; });
+      setProfileMap(map);
+    }
   };
 
   const handleAction = async (spin: WheelSpin, action: "vip_approved" | "vip_rejected") => {
-    await supabase.from("wheel_spins").update({ status: action }).eq("id", spin.id);
-    
+    const token = getAuthToken();
+    const headers: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+    await fetch(`/api/admin/wheel-spins/${spin.id}/status`, { method: "PATCH", headers, body: JSON.stringify({ status: action }) });
+
     if (action === "vip_approved" && spin.vip_level) {
-      // Update user's VIP level
-      const profile = profiles[spin.user_id];
-      const oldLevel = profile?.vip_level || 0;
-      await supabase.from("profiles").update({ vip_level: spin.vip_level }).eq("user_id", spin.user_id);
-      // Log VIP history
-      await supabase.from("vip_history").insert({
-        user_id: spin.user_id,
-        old_level: oldLevel,
-        new_level: spin.vip_level,
-        reason: `Gain roue de la fortune - ${spin.prize_label}`,
-        changed_by: adminId,
-      });
+      const profile = profileMap[spin.user_id];
+      await fetch(`/api/admin/users/${spin.user_id}/vip`, { method: "PATCH", headers, body: JSON.stringify({ vipLevel: spin.vip_level }) });
       logAction("vip_wheel_approved", "wheel_spin", spin.id, `VIP${spin.vip_level} pour ${profile?.full_name || spin.user_id}`);
     } else {
       logAction("vip_wheel_rejected", "wheel_spin", spin.id, spin.prize_label);
     }
-    
+
     showSuccess(action === "vip_approved" ? "VIP activé ✅" : "VIP refusé", "");
     reload();
   };
@@ -420,7 +408,7 @@ const VipSpinsSection = ({ spins, reload, showSuccess, showError, logAction, adm
 
       {filtered.length === 0 ? <p className="text-center text-sm text-muted-foreground py-10">No VIP prizes</p> :
         filtered.map((s: WheelSpin) => {
-          const p = profiles[s.user_id];
+          const p = profileMap[s.user_id];
           return (
             <div key={s.id} className="bg-card rounded-xl border border-secondary px-4 py-3">
               <div className="flex items-start justify-between mb-2">
@@ -429,7 +417,7 @@ const VipSpinsSection = ({ spins, reload, showSuccess, showError, logAction, adm
                   <p className="text-xs text-muted-foreground">{p?.full_name || "Utilisateur"} • {p?.phone || ""}</p>
                   <p className="text-xs text-muted-foreground">VIP actuel : {p?.vip_level || 0} → VIP{s.vip_level}</p>
                 </div>
-                <span className="text-[10px] text-muted-foreground"><span className="text-[10px] text-muted-foreground">{new Date(s.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" })}</span></span>
+                <span className="text-[10px] text-muted-foreground">{new Date(s.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" })}</span>
               </div>
               {s.status === "pending_vip" && (
                 <div className="grid grid-cols-2 gap-3 mt-3">
@@ -479,7 +467,12 @@ const ImagesSection = ({ settings, reload, showSuccess, showError }: any) => {
       const data = await res.json();
       if (!res.ok) { showError("Erreur upload", data.error || "Échec"); setUploading(null); return; }
       const publicUrl = `${data.url}?t=${Date.now()}`;
-      await supabase.from("site_settings").update({ value: publicUrl }).eq("key", key);
+      const token = getAuthToken();
+      await fetch("/api/admin/site-settings/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ settings: [{ key, value: publicUrl }] }),
+      });
       showSuccess("Image uploadée ✅", "");
       reload();
     } catch (err: any) {
@@ -490,7 +483,12 @@ const ImagesSection = ({ settings, reload, showSuccess, showError }: any) => {
   };
 
   const handleRemove = async (key: string) => {
-    await supabase.from("site_settings").update({ value: "" }).eq("key", key);
+    const token = getAuthToken();
+    await fetch("/api/admin/site-settings/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      body: JSON.stringify({ settings: [{ key, value: "" }] }),
+    });
     showSuccess("Image supprimée", "");
     reload();
   };

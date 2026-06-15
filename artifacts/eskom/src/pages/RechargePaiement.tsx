@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuthToken } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import PremiumModal from "@/components/PremiumModal";
@@ -67,32 +67,26 @@ const RechargePaiement = () => {
     setCreating(true);
     setCreateError(null);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/connexion"); return; }
+      const token = getAuthToken();
+      if (!token) { navigate("/connexion"); return; }
+      const h: HeadersInit = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
 
       const { amount, currency } = state!;
 
-      const { data: recharge, error: rechargeErr } = await supabase
-        .from("recharges")
-        .insert({
-          user_id: user.id,
-          amount,
-          payment_method: currency.label,
-          status: "pending",
-          phone: "",
-          country_code: "",
-        })
-        .select()
-        .single();
-
-      if (rechargeErr || !recharge) {
+      const rechargeRes = await fetch("/api/recharges", {
+        method: "POST",
+        headers: h,
+        body: JSON.stringify({ amount, payment_method: currency.label, status: "pending", phone: "", country_code: "" }),
+      });
+      if (!rechargeRes.ok) {
         setCreateError("Failed to create deposit record. Please try again.");
         return;
       }
+      const recharge = await rechargeRes.json();
 
       const res = await fetch("/api/nowpayments/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: h,
         body: JSON.stringify({
           amount,
           currency: currency.code,

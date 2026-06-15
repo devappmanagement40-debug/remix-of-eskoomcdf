@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuthToken } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import { Plus, Edit2, Trash2, Package, Layers, ChevronDown, ChevronUp, X, Upload, ImageIcon, Ban, AlertTriangle } from "lucide-react";
@@ -58,10 +58,10 @@ const AdminProduits = () => {
 
   const checkAdminAndLoad = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/connexion"); return; }
-      const { data } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
-      if (!data) { showError("Access denied", "You do not have administrator rights"); navigate("/"); return; }
+      const token = getAuthToken();
+      if (!token) { navigate("/connexion"); return; }
+      const res = await fetch("/api/admin/check", { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) { showError("Access denied", "You do not have administrator rights"); navigate("/"); return; }
       await loadAll();
     } catch (err) {
       console.error("Admin check error:", err);
@@ -72,12 +72,14 @@ const AdminProduits = () => {
 
   const loadAll = async () => {
     try {
-      const [s, p] = await Promise.all([
-        supabase.from("product_series").select("*").order("sort_order"),
-        supabase.from("products").select("*").order("sort_order"),
+      const token = getAuthToken();
+      const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+      const [sr, pr] = await Promise.all([
+        fetch("/api/admin/product-series", { headers: h }),
+        fetch("/api/admin/products", { headers: h }),
       ]);
-      if (s.data) setSeries(s.data);
-      if (p.data) setProducts(p.data);
+      if (sr.ok) setSeries(await sr.json());
+      if (pr.ok) setProducts(await pr.json());
     } catch (err) {
       console.error("Load error:", err);
       showError("Error", "Unable to load data");
@@ -95,11 +97,13 @@ const AdminProduits = () => {
 
   const saveSeries = async () => {
     if (!seriesName.trim()) { showError("Error", "Name required"); return; }
+    const token = getAuthToken();
+    const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     if (editingSeries) {
-      await supabase.from("product_series").update({ name: seriesName, color: seriesColor }).eq("id", editingSeries.id);
+      await fetch(`/api/admin/product-series/${editingSeries.id}`, { method: "PATCH", headers: h, body: JSON.stringify({ name: seriesName, color: seriesColor }) });
       showSuccess("Series updated", "Series updated successfully ✅");
     } else {
-      await supabase.from("product_series").insert({ name: seriesName, color: seriesColor, sort_order: series.length });
+      await fetch("/api/admin/product-series", { method: "POST", headers: h, body: JSON.stringify({ name: seriesName, color: seriesColor, sort_order: series.length }) });
       showSuccess("Series created", "New series created successfully ✅");
     }
     setShowSeriesForm(false);
@@ -107,37 +111,10 @@ const AdminProduits = () => {
   };
 
   const deleteSeries = async (id: string) => {
-    // Check if any products in this series have active user purchases
-    const seriesProductIds = products.filter(p => p.series_id === id).map(p => p.id);
-    if (seriesProductIds.length > 0) {
-      const { count } = await supabase.from("user_products")
-        .select("*", { count: "exact", head: true })
-        .in("product_id", seriesProductIds)
-        .eq("is_active", true);
-      if ((count || 0) > 0) {
-        showError("Cannot delete", "Users still have active products in this series. Deactivate products instead of deleting them.");
-        return;
-      }
-    }
-    // Check if any products exist in this series at all (with past purchases)
-    if (seriesProductIds.length > 0) {
-      const { count: totalPurchases } = await supabase.from("user_products")
-        .select("*", { count: "exact", head: true })
-        .in("product_id", seriesProductIds);
-      if ((totalPurchases || 0) > 0) {
-        // Soft delete: deactivate all products instead of deleting
-        for (const pid of seriesProductIds) {
-          await supabase.from("products").update({ is_active: false }).eq("id", pid);
-        }
-        showSuccess("Series deactivated", "Products deactivated because users already purchased them. Their earnings continue normally.");
-        loadAll();
-        return;
-      }
-    }
-    // No purchases ever — safe to hard delete
-    await supabase.from("products").delete().in("id", seriesProductIds);
-    await supabase.from("product_series").delete().eq("id", id);
-    showSuccess("Deleted", "Series deleted");
+    const token = getAuthToken();
+    const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+    await fetch(`/api/admin/product-series/${id}`, { method: "DELETE", headers: h });
+    showSuccess("Deleted", "Series deleted/deactivated");
     loadAll();
   };
 
@@ -217,14 +194,16 @@ const AdminProduits = () => {
         is_featured: productIsFeatured,
         gain_type: productGainType,
       };
+      const token = getAuthToken();
+      const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
       if (editingProduct) {
-        const { error } = await supabase.from("products").update(payload).eq("id", editingProduct.id);
-        if (error) throw error;
+        const res = await fetch(`/api/admin/products/${editingProduct.id}`, { method: "PATCH", headers: h, body: JSON.stringify(payload) });
+        if (!res.ok) throw new Error("Update failed");
         showSuccess("Product updated", "Product updated successfully ✅");
       } else {
         const seriesProducts = products.filter(p => p.series_id === productSeriesId);
-        const { error } = await supabase.from("products").insert({ ...payload, sort_order: seriesProducts.length });
-        if (error) throw error;
+        const res = await fetch("/api/admin/products", { method: "POST", headers: h, body: JSON.stringify({ ...payload, sort_order: seriesProducts.length }) });
+        if (!res.ok) throw new Error("Create failed");
         showSuccess("Product created", "New product created successfully ✅");
       }
       setShowProductForm(false);
@@ -236,45 +215,28 @@ const AdminProduits = () => {
   };
 
   const deleteProduct = async (id: string) => {
-    // Check if any user has ever purchased this product
-    const { count } = await supabase.from("user_products")
-      .select("*", { count: "exact", head: true })
-      .eq("product_id", id);
-
-    if ((count || 0) > 0) {
-      // Users have purchased this product — soft delete (deactivate) instead
-      await supabase.from("products").update({ is_active: false }).eq("id", id);
-      showSuccess("Product deactivated", "This product was deactivated because users already purchased it. Their earnings continue normally.");
-      loadAll();
-      return;
-    }
-
-    // No purchases — safe to hard delete
-    await supabase.from("products").delete().eq("id", id);
-    showSuccess("Deleted", "Product permanently deleted");
+    const token = getAuthToken();
+    const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+    await fetch(`/api/admin/products/${id}`, { method: "DELETE", headers: h });
+    showSuccess("Deleted", "Product deleted/deactivated");
     loadAll();
   };
 
   const toggleActive = async (p: Product) => {
-    await supabase.from("products").update({ is_active: !p.is_active }).eq("id", p.id);
+    const token = getAuthToken();
+    const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+    await fetch(`/api/admin/products/${p.id}`, { method: "PATCH", headers: h, body: JSON.stringify({ is_active: !p.is_active }) });
     showSuccess("Updated", p.is_active ? "Product deactivated" : "Product activated ✅");
     loadAll();
   };
 
   const setStockStatus = async (p: Product, status: "available" | "sold_out" | "terminated") => {
     try {
-      const updatePayload = {
-        stock_status: status,
-        // A sold_out/terminated product must stay visible but non-purchasable
-        is_active: true,
-      };
-
-      const { error } = await supabase
-        .from("products")
-        .update(updatePayload)
-        .eq("id", p.id);
-
-      if (error) throw error;
+      const updatePayload = { stock_status: status, is_active: true };
+      const token = getAuthToken();
+      const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+      const res = await fetch(`/api/admin/products/${p.id}`, { method: "PATCH", headers: h, body: JSON.stringify(updatePayload) });
+      if (!res.ok) throw new Error("Update failed");
 
       setProducts((prev) =>
         prev.map((item) => (item.id === p.id ? { ...item, ...updatePayload } : item))

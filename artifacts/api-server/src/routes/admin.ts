@@ -625,12 +625,87 @@ router.delete("/admin/social-links/:id", async (req, res) => {
   return res.json({ ok: true });
 });
 
+// ─── API configs aliases (frontend uses /admin/api-configs) ───────────────────
+router.get("/admin/api-configs", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const all = await db.select().from(paymentApiConfigs);
+  return res.json(all);
+});
+
+router.post("/admin/api-configs", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [config] = await db.insert(paymentApiConfigs).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  return res.json(config);
+});
+
+router.patch("/admin/api-configs/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(paymentApiConfigs).set({ ...req.body, updatedAt: new Date() }).where(eq(paymentApiConfigs.id, req.params.id)).returning();
+  return res.json(updated);
+});
+
+router.delete("/admin/api-configs/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(paymentApiConfigs).where(eq(paymentApiConfigs.id, req.params.id));
+  return res.json({ ok: true });
+});
+
 // ─── Support / chat (admin) ───────────────────────────────────────────────────
 router.get("/admin/chat", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(chatMessages);
   return res.json(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
+});
+
+router.get("/admin/chat/conversations", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const msgs = await db.select().from(chatMessages).orderBy(desc(chatMessages.createdAt));
+  // Group by user_id
+  const userMap: Record<string, any[]> = {};
+  for (const m of msgs) {
+    if (!userMap[m.userId]) userMap[m.userId] = [];
+    userMap[m.userId].push(m);
+  }
+  const userIds = Object.keys(userMap);
+  const profileRows = userIds.length > 0 ? await db.select().from(profiles).where(inArray(profiles.userId, userIds)) : [];
+  const profileMap: Record<string, any> = {};
+  for (const p of profileRows) profileMap[p.userId] = p;
+  const convos = userIds.map((uid) => {
+    const userMsgs = userMap[uid];
+    const lastMsg = userMsgs[0];
+    const profile = profileMap[uid];
+    const unread = userMsgs.filter((m) => m.sender === "user").length;
+    return { user_id: uid, full_name: profile?.fullName || "User", phone: profile?.phone || "", last_message: lastMsg.message, last_time: lastMsg.createdAt, unread_count: unread };
+  }).sort((a, b) => new Date(b.last_time!).getTime() - new Date(a.last_time!).getTime());
+  return res.json(convos);
+});
+
+router.get("/admin/chat/messages/:userId", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const msgs = await db.select().from(chatMessages).where(eq(chatMessages.userId, req.params.userId));
+  return res.json(msgs.sort((a, b) => new Date(a.createdAt!).getTime() - new Date(b.createdAt!).getTime()));
+});
+
+router.post("/admin/chat/reply", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { user_id, message } = req.body;
+  if (!user_id || !message) return res.status(400).json({ error: "user_id and message required" });
+  const [msg] = await db.insert(chatMessages).values({
+    id: crypto.randomUUID(),
+    userId: user_id,
+    message,
+    sender: "support",
+    isAi: false,
+  }).returning();
+  return res.json(msg);
 });
 
 router.get("/admin/chat/:userId", async (req, res) => {
@@ -649,7 +724,7 @@ router.post("/admin/chat/:userId/reply", async (req, res) => {
     id: crypto.randomUUID(),
     userId: req.params.userId,
     message,
-    sender: "sarah",
+    sender: "support",
     isAi: false,
   }).returning();
   return res.json(msg);

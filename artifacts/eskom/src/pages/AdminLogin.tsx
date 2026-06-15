@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { Shield, Eye, EyeOff, Loader2 } from "lucide-react";
 import { useAppImages } from "@/contexts/AppImagesContext";
 
@@ -23,24 +22,27 @@ const AdminLogin = () => {
 
     setLoading(true);
     try {
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
-        password,
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
       });
 
-      if (signInError || !data.user) {
+      if (!res.ok) {
         setError("Email ou mot de passe incorrect");
         setLoading(false);
         return;
       }
 
-      const { data: isAdmin } = await supabase.rpc("has_role", {
-        _user_id: data.user.id,
-        _role: "admin",
+      const data = await res.json();
+      localStorage.setItem("auth_token", data.token);
+
+      const checkRes = await fetch("/api/admin/check", {
+        headers: { Authorization: `Bearer ${data.token}` },
       });
 
-      if (!isAdmin) {
-        await supabase.auth.signOut();
+      if (!checkRes.ok) {
+        localStorage.removeItem("auth_token");
         setError("Accès refusé. Ce compte n'a pas les droits administrateur.");
         setLoading(false);
         return;
@@ -56,7 +58,6 @@ const AdminLogin = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        {/* Logo + titre */}
         <div className="flex flex-col items-center mb-8">
           {appLogo ? (
             <img src={appLogo} alt="Logo" className="w-16 h-16 rounded-2xl object-cover mb-4" />
@@ -69,10 +70,8 @@ const AdminLogin = () => {
           <p className="text-sm text-muted-foreground mt-1">Accès réservé aux administrateurs</p>
         </div>
 
-        {/* Formulaire */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="bg-card border border-secondary rounded-2xl p-5 space-y-4">
-            {/* Email */}
             <div>
               <label className="text-xs text-muted-foreground mb-1.5 block">Adresse e-mail</label>
               <div className="input-glow rounded-xl bg-secondary px-4 py-3">
@@ -87,7 +86,6 @@ const AdminLogin = () => {
               </div>
             </div>
 
-            {/* Mot de passe */}
             <div>
               <label className="text-xs text-muted-foreground mb-1.5 block">Mot de passe</label>
               <div className="input-glow rounded-xl bg-secondary px-4 py-3 flex items-center gap-2">
@@ -109,14 +107,12 @@ const AdminLogin = () => {
               </div>
             </div>
 
-            {/* Erreur */}
             {error && (
               <div className="bg-destructive/10 border border-destructive/30 rounded-xl px-4 py-3">
                 <p className="text-xs text-destructive font-medium">{error}</p>
               </div>
             )}
 
-            {/* Bouton */}
             <button
               type="submit"
               disabled={loading}

@@ -226,4 +226,16 @@ router.patch("/withdrawals/:id/reject", async (req, res) => {
   return res.json(updated);
 });
 
+// User proof upload for processing fee
+router.patch("/withdrawals/:id/proof", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+
+  const { processing_fee_proof_url } = req.body;
+  const [updated] = await db.update(withdrawals).set({ processingFeeProofUrl: processing_fee_proof_url, updatedAt: new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
+  return res.json(updated);
+});
+
 export default router;

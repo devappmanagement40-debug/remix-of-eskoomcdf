@@ -18771,14 +18771,14 @@ var require_etag = __commonJS({
   "../../node_modules/.pnpm/etag@1.8.1/node_modules/etag/index.js"(exports, module) {
     "use strict";
     module.exports = etag;
-    var crypto8 = __require("crypto");
+    var crypto9 = __require("crypto");
     var Stats = __require("fs").Stats;
     var toString = Object.prototype.toString;
     function entitytag(entity) {
       if (entity.length === 0) {
         return '"0-2jmj7l5rSw0yVb/vlWAYkK/YBwk"';
       }
-      var hash2 = crypto8.createHash("sha1").update(entity, "utf8").digest("base64").substring(0, 27);
+      var hash2 = crypto9.createHash("sha1").update(entity, "utf8").digest("base64").substring(0, 27);
       var len = typeof entity === "string" ? Buffer.byteLength(entity, "utf8") : entity.length;
       return '"' + len.toString(16) + "-" + hash2 + '"';
     }
@@ -20501,27 +20501,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router12;
+    module.exports = Router13;
     module.exports.Route = Route;
-    function Router12(options) {
-      if (!(this instanceof Router12)) {
-        return new Router12(options);
+    function Router13(options) {
+      if (!(this instanceof Router13)) {
+        return new Router13(options);
       }
       const opts = options || {};
-      function router12(req, res, next) {
-        router12.handle(req, res, next);
+      function router13(req, res, next) {
+        router13.handle(req, res, next);
       }
-      Object.setPrototypeOf(router12, this);
-      router12.caseSensitive = opts.caseSensitive;
-      router12.mergeParams = opts.mergeParams;
-      router12.params = {};
-      router12.strict = opts.strict;
-      router12.stack = [];
-      return router12;
+      Object.setPrototypeOf(router13, this);
+      router13.caseSensitive = opts.caseSensitive;
+      router13.mergeParams = opts.mergeParams;
+      router13.params = {};
+      router13.strict = opts.strict;
+      router13.stack = [];
+      return router13;
     }
-    Router12.prototype = function() {
+    Router13.prototype = function() {
     };
-    Router12.prototype.param = function param(name, fn) {
+    Router13.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20541,7 +20541,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router12.prototype.handle = function handle(req, res, callback) {
+    Router13.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20668,7 +20668,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router12.prototype.use = function use(handler) {
+    Router13.prototype.use = function use(handler) {
       let offset = 0;
       let path2 = "/";
       if (typeof handler !== "function") {
@@ -20701,7 +20701,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router12.prototype.route = function route(path2) {
+    Router13.prototype.route = function route(path2) {
       const route2 = new Route(path2);
       const layer = new Layer(path2, {
         sensitive: this.caseSensitive,
@@ -20716,7 +20716,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router12.prototype[method] = function(path2) {
+      Router13.prototype[method] = function(path2) {
         const route = this.route(path2);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20899,13 +20899,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once = require_once();
-    var Router12 = require_router();
+    var Router13 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router12 = null;
+      var router13 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20914,13 +20914,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router12 === null) {
-            router12 = new Router12({
+          if (router13 === null) {
+            router13 = new Router13({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router12;
+          return router13;
         }
       });
     };
@@ -20991,15 +20991,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router12 = this.router;
+      var router13 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router12.use(path2, fn2);
+          return router13.use(path2, fn2);
         }
         debug(".use app under %s", path2);
         fn2.mountpath = path2;
         fn2.parent = this;
-        router12.use(path2, function mounted_app(req, res, next) {
+        router13.use(path2, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -22253,17 +22253,17 @@ var require_content_disposition = __commonJS({
 // ../../node_modules/.pnpm/cookie-signature@1.2.2/node_modules/cookie-signature/index.js
 var require_cookie_signature = __commonJS({
   "../../node_modules/.pnpm/cookie-signature@1.2.2/node_modules/cookie-signature/index.js"(exports) {
-    var crypto8 = __require("crypto");
+    var crypto9 = __require("crypto");
     exports.sign = function(val, secret) {
       if ("string" != typeof val) throw new TypeError("Cookie value must be provided as a string.");
       if (null == secret) throw new TypeError("Secret key must be provided.");
-      return val + "." + crypto8.createHmac("sha256", secret).update(val).digest("base64").replace(/\=+$/, "");
+      return val + "." + crypto9.createHmac("sha256", secret).update(val).digest("base64").replace(/\=+$/, "");
     };
     exports.unsign = function(input, secret) {
       if ("string" != typeof input) throw new TypeError("Signed cookie string must be provided.");
       if (null == secret) throw new TypeError("Secret key must be provided.");
       var tentativeValue = input.slice(0, input.lastIndexOf(".")), expectedInput = exports.sign(tentativeValue, secret), expectedBuffer = Buffer.from(expectedInput), inputBuffer = Buffer.from(input);
-      return expectedBuffer.length === inputBuffer.length && crypto8.timingSafeEqual(expectedBuffer, inputBuffer) ? tentativeValue : false;
+      return expectedBuffer.length === inputBuffer.length && crypto9.timingSafeEqual(expectedBuffer, inputBuffer) ? tentativeValue : false;
     };
   }
 });
@@ -23572,7 +23572,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router12 = require_router();
+    var Router13 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23594,8 +23594,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router12.Route;
-    exports.Router = Router12;
+    exports.Route = Router13.Route;
+    exports.Router = Router13;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -29829,7 +29829,7 @@ var require_cert_signatures = __commonJS({
 var require_sasl = __commonJS({
   "../../node_modules/.pnpm/pg@8.20.0/node_modules/pg/lib/crypto/sasl.js"(exports, module) {
     "use strict";
-    var crypto8 = require_utils5();
+    var crypto9 = require_utils5();
     var { signatureAlgorithmHashFromCertificate } = require_cert_signatures();
     function startSession(mechanisms, stream) {
       const candidates = ["SCRAM-SHA-256"];
@@ -29841,7 +29841,7 @@ var require_sasl = __commonJS({
       if (mechanism === "SCRAM-SHA-256-PLUS" && typeof stream.getPeerCertificate !== "function") {
         throw new Error("SASL: Mechanism SCRAM-SHA-256-PLUS requires a certificate");
       }
-      const clientNonce = crypto8.randomBytes(18).toString("base64");
+      const clientNonce = crypto9.randomBytes(18).toString("base64");
       const gs2Header = mechanism === "SCRAM-SHA-256-PLUS" ? "p=tls-server-end-point" : stream ? "y" : "n";
       return {
         mechanism,
@@ -29876,20 +29876,20 @@ var require_sasl = __commonJS({
         const peerCert = stream.getPeerCertificate().raw;
         let hashName = signatureAlgorithmHashFromCertificate(peerCert);
         if (hashName === "MD5" || hashName === "SHA-1") hashName = "SHA-256";
-        const certHash = await crypto8.hashByName(hashName, peerCert);
+        const certHash = await crypto9.hashByName(hashName, peerCert);
         const bindingData = Buffer.concat([Buffer.from("p=tls-server-end-point,,"), Buffer.from(certHash)]);
         channelBinding = bindingData.toString("base64");
       }
       const clientFinalMessageWithoutProof = "c=" + channelBinding + ",r=" + sv.nonce;
       const authMessage = clientFirstMessageBare + "," + serverFirstMessage + "," + clientFinalMessageWithoutProof;
       const saltBytes = Buffer.from(sv.salt, "base64");
-      const saltedPassword = await crypto8.deriveKey(password, saltBytes, sv.iteration);
-      const clientKey = await crypto8.hmacSha256(saltedPassword, "Client Key");
-      const storedKey = await crypto8.sha256(clientKey);
-      const clientSignature = await crypto8.hmacSha256(storedKey, authMessage);
+      const saltedPassword = await crypto9.deriveKey(password, saltBytes, sv.iteration);
+      const clientKey = await crypto9.hmacSha256(saltedPassword, "Client Key");
+      const storedKey = await crypto9.sha256(clientKey);
+      const clientSignature = await crypto9.hmacSha256(storedKey, authMessage);
       const clientProof = xorBuffers(Buffer.from(clientKey), Buffer.from(clientSignature)).toString("base64");
-      const serverKey = await crypto8.hmacSha256(saltedPassword, "Server Key");
-      const serverSignatureBytes = await crypto8.hmacSha256(serverKey, authMessage);
+      const serverKey = await crypto9.hmacSha256(saltedPassword, "Server Key");
+      const serverSignatureBytes = await crypto9.hmacSha256(serverKey, authMessage);
       session.message = "SASLResponse";
       session.serverSignature = Buffer.from(serverSignatureBytes).toString("base64");
       session.response = clientFinalMessageWithoutProof + ",p=" + clientProof;
@@ -32057,7 +32057,7 @@ var require_client = __commonJS({
     var Query2 = require_query();
     var defaults2 = require_defaults();
     var Connection2 = require_connection();
-    var crypto8 = require_utils5();
+    var crypto9 = require_utils5();
     var activeQueryDeprecationNotice = nodeUtils.deprecate(
       () => {
       },
@@ -32292,7 +32292,7 @@ var require_client = __commonJS({
       _handleAuthMD5Password(msg) {
         this._getPassword(async () => {
           try {
-            const hashedPassword = await crypto8.postgresMd5PasswordHash(this.user, this.password, msg.salt);
+            const hashedPassword = await crypto9.postgresMd5PasswordHash(this.user, this.password, msg.salt);
             this.connection.password(hashedPassword);
           } catch (e) {
             this.emit("error", e);
@@ -42512,14 +42512,14 @@ var init_src = __esm({
 });
 
 // src/app.ts
-var import_express12 = __toESM(require_express2(), 1);
+var import_express13 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path from "path";
 import { fileURLToPath } from "url";
 
 // src/routes/index.ts
-var import_express11 = __toESM(require_express2(), 1);
+var import_express12 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -48404,6 +48404,55 @@ router3.get("/team/my", async (req, res) => {
   const teamMembers = await db.select().from(profiles).where(eq(profiles.referredBy, me.id));
   return res.json(teamMembers);
 });
+router3.get("/team", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const bRaw = await db.select().from(profiles).where(eq(profiles.referredBy, me.id));
+  const bIds = bRaw.map((m) => m.id);
+  let cRaw = [];
+  if (bIds.length > 0) {
+    cRaw = await db.select().from(profiles).where(inArray(profiles.referredBy, bIds));
+  }
+  const cIds = cRaw.map((m) => m.id);
+  let dRaw = [];
+  if (cIds.length > 0) {
+    dRaw = await db.select().from(profiles).where(inArray(profiles.referredBy, cIds));
+  }
+  const allUserIds = [...bRaw, ...cRaw, ...dRaw].map((m) => m.userId).filter(Boolean);
+  let bonusMap = /* @__PURE__ */ new Map();
+  if (allUserIds.length > 0) {
+    const userProds = await db.select({ userId: userProducts.userId, price: products.price }).from(userProducts).leftJoin(products, eq(userProducts.productId, products.id)).where(inArray(userProducts.userId, allUserIds));
+    const bUserIds = new Set(bRaw.map((m) => m.userId));
+    const cUserIds = new Set(cRaw.map((m) => m.userId));
+    const dUserIds = new Set(dRaw.map((m) => m.userId));
+    for (const up of userProds) {
+      const price = Number(up.price) || 0;
+      const rate = bUserIds.has(up.userId) ? 0.1 : cUserIds.has(up.userId) ? 0.05 : dUserIds.has(up.userId) ? 0.01 : 0;
+      bonusMap.set(up.userId, (bonusMap.get(up.userId) || 0) + price * rate);
+    }
+  }
+  const investedSet = new Set(allUserIds.filter((id) => bonusMap.has(id)));
+  const enrich = (members) => members.map((m) => ({
+    id: m.id,
+    user_id: m.userId,
+    full_name: m.fullName,
+    phone: m.phone,
+    country_code: m.countryCode,
+    balance: m.balance,
+    created_at: m.createdAt,
+    is_suspended: m.isSuspended,
+    hasInvested: investedSet.has(m.userId),
+    bonusEarned: bonusMap.get(m.userId) || 0
+  }));
+  return res.json({
+    referralCode: me.referralCode,
+    levelB: enrich(bRaw),
+    levelC: enrich(cRaw),
+    levelD: enrich(dRaw)
+  });
+});
 var profiles_default = router3;
 
 // src/routes/products.ts
@@ -48790,6 +48839,15 @@ router5.patch("/withdrawals/:id/reject", async (req, res) => {
     }
   }
   const [updated] = await db.update(withdrawals).set({ status: "rejected", adminNote: req.body.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router5.patch("/withdrawals/:id/proof", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken3(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { processing_fee_proof_url } = req.body;
+  const [updated] = await db.update(withdrawals).set({ processingFeeProofUrl: processing_fee_proof_url, updatedAt: /* @__PURE__ */ new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
   return res.json(updated);
 });
 var payments_default = router5;
@@ -50169,19 +50227,650 @@ router10.post("/upload", async (req, res) => {
 });
 var upload_default = router10;
 
-// src/routes/index.ts
+// src/routes/admin.ts
+var import_express11 = __toESM(require_express2(), 1);
+init_src();
+init_src();
+import crypto8 from "crypto";
 var router11 = (0, import_express11.Router)();
-router11.use(health_default);
-router11.use(auth_default);
-router11.use(profiles_default);
-router11.use(products_default);
-router11.use(payments_default);
-router11.use(settings_default);
-router11.use(content_default);
-router11.use(db_default);
-router11.use(nowpayments_default);
-router11.use(upload_default);
-var routes_default = router11;
+async function getProfileFromToken6(token) {
+  const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
+  if (!session || session.expiresAt < /* @__PURE__ */ new Date()) return null;
+  const [profile] = await db.select().from(profiles).where(eq(profiles.userId, session.userId)).limit(1);
+  return profile ?? null;
+}
+async function getRole(userId) {
+  const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, userId)).limit(1);
+  return role?.role ?? "user";
+}
+async function requireAdmin(req, res) {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) {
+    res.status(401).json({ error: "Unauthorized" });
+    return null;
+  }
+  const me = await getProfileFromToken6(token);
+  if (!me) {
+    res.status(401).json({ error: "Unauthorized" });
+    return null;
+  }
+  const role = await getRole(me.userId);
+  if (role !== "admin" && role !== "moderator") {
+    res.status(403).json({ error: "Forbidden" });
+    return null;
+  }
+  return { me, role };
+}
+async function requireAdminOnly(req, res) {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) {
+    res.status(401).json({ error: "Unauthorized" });
+    return null;
+  }
+  const me = await getProfileFromToken6(token);
+  if (!me) {
+    res.status(401).json({ error: "Unauthorized" });
+    return null;
+  }
+  const role = await getRole(me.userId);
+  if (role !== "admin") {
+    res.status(403).json({ error: "Forbidden" });
+    return null;
+  }
+  return { me };
+}
+router11.get("/admin/check", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken6(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const role = await getRole(me.userId);
+  if (role !== "admin" && role !== "moderator") return res.status(403).json({ error: "Forbidden" });
+  const perms = await db.select().from(adminPermissions).where(eq(adminPermissions.userId, me.userId));
+  return res.json({ isAdmin: true, role, permissions: perms.map((p) => p.permission) });
+});
+router11.post("/admin/logs", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { action, targetType, targetId, details } = req.body;
+  const [log] = await db.insert(adminLogs).values({
+    id: crypto8.randomUUID(),
+    adminId: auth.me.userId,
+    action,
+    targetType,
+    targetId,
+    details
+  }).returning();
+  return res.json(log);
+});
+router11.get("/admin/logs", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(adminLogs);
+  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+});
+router11.post("/profiles/batch", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { ids } = req.body;
+  if (!Array.isArray(ids) || ids.length === 0) return res.json([]);
+  const result = await db.select().from(profiles).where(inArray(profiles.userId, ids));
+  return res.json(result);
+});
+router11.post("/user-wallets/batch", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { userIds } = req.body;
+  if (!Array.isArray(userIds) || userIds.length === 0) return res.json([]);
+  const result = await db.select().from(userWallets).where(inArray(userWallets.userId, userIds));
+  return res.json(result);
+});
+router11.patch("/admin/users/:userId", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const allowed = ["fullName", "phone", "countryCode", "balance", "depositBalance", "earningsBalance", "referralBalance", "giftPoints", "spinsBalance", "vipLevel", "isSuspended"];
+  const updates = { updatedAt: /* @__PURE__ */ new Date() };
+  for (const k of allowed) {
+    if (req.body[k] !== void 0) updates[k] = req.body[k];
+  }
+  const [updated] = await db.update(profiles).set(updates).where(eq(profiles.userId, req.params.userId)).returning();
+  return res.json(updated);
+});
+router11.delete("/admin/users/:userId", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(profiles).where(eq(profiles.userId, req.params.userId));
+  return res.json({ ok: true });
+});
+router11.get("/admin/team", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const mods = await db.select().from(userRoles).where(eq(userRoles.role, "moderator"));
+  const admins = await db.select().from(userRoles).where(eq(userRoles.role, "admin"));
+  const all = [...admins, ...mods];
+  const userIds = all.map((r) => r.userId);
+  const teamProfiles = userIds.length > 0 ? await db.select().from(profiles).where(inArray(profiles.userId, userIds)) : [];
+  const perms = await db.select().from(adminPermissions);
+  return res.json(all.map((r) => ({
+    ...r,
+    profile: teamProfiles.find((p) => p.userId === r.userId) ?? null,
+    permissions: perms.filter((p) => p.userId === r.userId).map((p) => p.permission)
+  })));
+});
+router11.post("/admin/team", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const { userId, role, permissions } = req.body;
+  const existing = await db.select().from(userRoles).where(eq(userRoles.userId, userId)).limit(1);
+  if (existing.length > 0) {
+    await db.update(userRoles).set({ role }).where(eq(userRoles.userId, userId));
+  } else {
+    await db.insert(userRoles).values({ id: crypto8.randomUUID(), userId, role });
+  }
+  if (Array.isArray(permissions)) {
+    await db.delete(adminPermissions).where(eq(adminPermissions.userId, userId));
+    for (const p of permissions) {
+      await db.insert(adminPermissions).values({ id: crypto8.randomUUID(), userId, permission: p, grantedBy: auth.me.userId });
+    }
+  }
+  return res.json({ ok: true });
+});
+router11.patch("/admin/team/:userId/permissions", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const { permissions } = req.body;
+  await db.delete(adminPermissions).where(eq(adminPermissions.userId, req.params.userId));
+  for (const p of permissions ?? []) {
+    await db.insert(adminPermissions).values({ id: crypto8.randomUUID(), userId: req.params.userId, permission: p, grantedBy: auth.me.userId });
+  }
+  return res.json({ ok: true });
+});
+router11.delete("/admin/team/:userId", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.update(userRoles).set({ role: "user" }).where(eq(userRoles.userId, req.params.userId));
+  await db.delete(adminPermissions).where(eq(adminPermissions.userId, req.params.userId));
+  return res.json({ ok: true });
+});
+router11.get("/admin/gift-codes", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(giftCodes);
+  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+});
+router11.post("/admin/gift-codes", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [code] = await db.insert(giftCodes).values({ id: crypto8.randomUUID(), ...req.body, code: (req.body.code ?? "").toUpperCase() }).returning();
+  return res.json(code);
+});
+router11.patch("/admin/gift-codes/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(giftCodes).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(giftCodes.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router11.delete("/admin/gift-codes/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(giftCodes).where(eq(giftCodes.id, req.params.id));
+  return res.json({ ok: true });
+});
+router11.get("/admin/gift-rewards", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(giftRewards);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router11.post("/admin/gift-rewards", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [reward] = await db.insert(giftRewards).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  return res.json(reward);
+});
+router11.patch("/admin/gift-rewards/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(giftRewards).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(giftRewards.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router11.delete("/admin/gift-rewards/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(giftRewards).where(eq(giftRewards.id, req.params.id));
+  return res.json({ ok: true });
+});
+router11.get("/admin/faq", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(faqItems);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router11.post("/admin/faq", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [item] = await db.insert(faqItems).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  return res.json(item);
+});
+router11.patch("/admin/faq/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(faqItems).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(faqItems.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router11.delete("/admin/faq/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(faqItems).where(eq(faqItems.id, req.params.id));
+  return res.json({ ok: true });
+});
+router11.get("/admin/info-items", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(infoItems);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router11.post("/admin/info-items", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [item] = await db.insert(infoItems).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  return res.json(item);
+});
+router11.patch("/admin/info-items/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(infoItems).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(infoItems.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router11.delete("/admin/info-items/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(infoItems).where(eq(infoItems.id, req.params.id));
+  return res.json({ ok: true });
+});
+router11.get("/admin/official-documents", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(officialDocuments);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router11.post("/admin/official-documents", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [doc] = await db.insert(officialDocuments).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  return res.json(doc);
+});
+router11.patch("/admin/official-documents/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(officialDocuments).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(officialDocuments.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router11.delete("/admin/official-documents/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(officialDocuments).where(eq(officialDocuments.id, req.params.id));
+  return res.json({ ok: true });
+});
+router11.get("/admin/banners", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(banners);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router11.post("/admin/banners", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [banner] = await db.insert(banners).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  return res.json(banner);
+});
+router11.patch("/admin/banners/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(banners).set(req.body).where(eq(banners.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router11.delete("/admin/banners/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(banners).where(eq(banners.id, req.params.id));
+  return res.json({ ok: true });
+});
+router11.get("/admin/countries", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(countries);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router11.post("/admin/countries", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [country] = await db.insert(countries).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  return res.json(country);
+});
+router11.patch("/admin/countries/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(countries).set(req.body).where(eq(countries.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router11.delete("/admin/countries/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(countries).where(eq(countries.id, req.params.id));
+  return res.json({ ok: true });
+});
+router11.get("/admin/withdrawal-methods", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(withdrawalMethods);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router11.post("/admin/withdrawal-methods", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [method] = await db.insert(withdrawalMethods).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  return res.json(method);
+});
+router11.patch("/admin/withdrawal-methods/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(withdrawalMethods).set(req.body).where(eq(withdrawalMethods.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router11.delete("/admin/withdrawal-methods/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(withdrawalMethods).where(eq(withdrawalMethods.id, req.params.id));
+  return res.json({ ok: true });
+});
+router11.get("/admin/payment-api-configs", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const all = await db.select().from(paymentApiConfigs);
+  return res.json(all);
+});
+router11.post("/admin/payment-api-configs", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [config] = await db.insert(paymentApiConfigs).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  return res.json(config);
+});
+router11.patch("/admin/payment-api-configs/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(paymentApiConfigs).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(paymentApiConfigs.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router11.delete("/admin/payment-api-configs/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(paymentApiConfigs).where(eq(paymentApiConfigs.id, req.params.id));
+  return res.json({ ok: true });
+});
+router11.get("/admin/vip-conditions", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(vipConditions);
+  return res.json(all.sort((a, b) => (a.level ?? 0) - (b.level ?? 0)));
+});
+router11.post("/admin/vip-conditions", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [vc] = await db.insert(vipConditions).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  return res.json(vc);
+});
+router11.patch("/admin/vip-conditions/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(vipConditions).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(vipConditions.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router11.delete("/admin/vip-conditions/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(vipConditions).where(eq(vipConditions.id, req.params.id));
+  return res.json({ ok: true });
+});
+router11.patch("/admin/users/:userId/vip", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const { vipLevel } = req.body;
+  const [profile] = await db.select().from(profiles).where(eq(profiles.userId, req.params.userId)).limit(1);
+  if (!profile) return res.status(404).json({ error: "Not found" });
+  await db.insert(vipHistory).values({
+    id: crypto8.randomUUID(),
+    userId: req.params.userId,
+    oldLevel: profile.vipLevel ?? 0,
+    newLevel: vipLevel,
+    changedBy: auth.me.userId
+  });
+  const [updated] = await db.update(profiles).set({ vipLevel, updatedAt: /* @__PURE__ */ new Date() }).where(eq(profiles.userId, req.params.userId)).returning();
+  return res.json(updated);
+});
+router11.get("/admin/wheel-prizes", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(wheelPrizes);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router11.post("/admin/wheel-prizes", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [prize] = await db.insert(wheelPrizes).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  return res.json(prize);
+});
+router11.patch("/admin/wheel-prizes/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(wheelPrizes).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(wheelPrizes.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router11.delete("/admin/wheel-prizes/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(wheelPrizes).where(eq(wheelPrizes.id, req.params.id));
+  return res.json({ ok: true });
+});
+router11.get("/admin/wheel-spins", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(wheelSpins);
+  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+});
+router11.patch("/admin/wheel-spins/:id/status", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const { status } = req.body;
+  const [updated] = await db.update(wheelSpins).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where(eq(wheelSpins.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router11.get("/admin/product-series", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(productSeries);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router11.post("/admin/product-series", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [series] = await db.insert(productSeries).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  return res.json(series);
+});
+router11.patch("/admin/product-series/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(productSeries).set(req.body).where(eq(productSeries.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router11.delete("/admin/product-series/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(productSeries).where(eq(productSeries.id, req.params.id));
+  return res.json({ ok: true });
+});
+router11.get("/admin/user-products", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(userProducts);
+  return res.json(all.sort((a, b) => new Date(b.purchasedAt).getTime() - new Date(a.purchasedAt).getTime()));
+});
+router11.get("/admin/referral-commissions", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(referralCommissions);
+  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+});
+router11.post("/admin/site-settings/batch", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const { settings } = req.body;
+  if (!Array.isArray(settings)) return res.status(400).json({ error: "settings array required" });
+  const results = [];
+  for (const s of settings) {
+    const existing = await db.select().from(siteSettings).where(eq(siteSettings.key, s.key)).limit(1);
+    if (existing.length > 0) {
+      const [updated] = await db.update(siteSettings).set({ value: s.value, updatedAt: /* @__PURE__ */ new Date() }).where(eq(siteSettings.key, s.key)).returning();
+      results.push(updated);
+    } else {
+      const [created] = await db.insert(siteSettings).values({ id: crypto8.randomUUID(), key: s.key, value: s.value, category: s.category ?? "general" }).returning();
+      results.push(created);
+    }
+  }
+  return res.json(results);
+});
+router11.get("/admin/social-links", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(socialLinks);
+  return res.json(all);
+});
+router11.post("/admin/social-links", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [link] = await db.insert(socialLinks).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  return res.json(link);
+});
+router11.patch("/admin/social-links/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(socialLinks).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(socialLinks.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router11.delete("/admin/social-links/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(socialLinks).where(eq(socialLinks.id, req.params.id));
+  return res.json({ ok: true });
+});
+router11.get("/admin/api-configs", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const all = await db.select().from(paymentApiConfigs);
+  return res.json(all);
+});
+router11.post("/admin/api-configs", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [config] = await db.insert(paymentApiConfigs).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  return res.json(config);
+});
+router11.patch("/admin/api-configs/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(paymentApiConfigs).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(paymentApiConfigs.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router11.delete("/admin/api-configs/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(paymentApiConfigs).where(eq(paymentApiConfigs.id, req.params.id));
+  return res.json({ ok: true });
+});
+router11.get("/admin/chat", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(chatMessages);
+  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+});
+router11.get("/admin/chat/conversations", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const msgs = await db.select().from(chatMessages).orderBy(desc(chatMessages.createdAt));
+  const userMap = {};
+  for (const m of msgs) {
+    if (!userMap[m.userId]) userMap[m.userId] = [];
+    userMap[m.userId].push(m);
+  }
+  const userIds = Object.keys(userMap);
+  const profileRows = userIds.length > 0 ? await db.select().from(profiles).where(inArray(profiles.userId, userIds)) : [];
+  const profileMap = {};
+  for (const p of profileRows) profileMap[p.userId] = p;
+  const convos = userIds.map((uid) => {
+    const userMsgs = userMap[uid];
+    const lastMsg = userMsgs[0];
+    const profile = profileMap[uid];
+    const unread = userMsgs.filter((m) => m.sender === "user").length;
+    return { user_id: uid, full_name: profile?.fullName || "User", phone: profile?.phone || "", last_message: lastMsg.message, last_time: lastMsg.createdAt, unread_count: unread };
+  }).sort((a, b) => new Date(b.last_time).getTime() - new Date(a.last_time).getTime());
+  return res.json(convos);
+});
+router11.get("/admin/chat/messages/:userId", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const msgs = await db.select().from(chatMessages).where(eq(chatMessages.userId, req.params.userId));
+  return res.json(msgs.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+});
+router11.post("/admin/chat/reply", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { user_id, message } = req.body;
+  if (!user_id || !message) return res.status(400).json({ error: "user_id and message required" });
+  const [msg] = await db.insert(chatMessages).values({
+    id: crypto8.randomUUID(),
+    userId: user_id,
+    message,
+    sender: "support",
+    isAi: false
+  }).returning();
+  return res.json(msg);
+});
+router11.get("/admin/chat/:userId", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const msgs = await db.select().from(chatMessages).where(eq(chatMessages.userId, req.params.userId));
+  return res.json(msgs.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+});
+router11.post("/admin/chat/:userId/reply", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { message } = req.body;
+  if (!message) return res.status(400).json({ error: "Message required" });
+  const [msg] = await db.insert(chatMessages).values({
+    id: crypto8.randomUUID(),
+    userId: req.params.userId,
+    message,
+    sender: "support",
+    isAi: false
+  }).returning();
+  return res.json(msg);
+});
+var admin_default = router11;
+
+// src/routes/index.ts
+var router12 = (0, import_express12.Router)();
+router12.use(health_default);
+router12.use(auth_default);
+router12.use(admin_default);
+router12.use(profiles_default);
+router12.use(products_default);
+router12.use(payments_default);
+router12.use(settings_default);
+router12.use(content_default);
+router12.use(db_default);
+router12.use(nowpayments_default);
+router12.use(upload_default);
+var routes_default = router12;
 
 // src/lib/logger.ts
 var import_pino = __toESM(require_pino(), 1);
@@ -50203,7 +50892,7 @@ var logger = (0, import_pino.default)({
 
 // src/app.ts
 var __dirname2 = path.dirname(fileURLToPath(import.meta.url));
-var app = (0, import_express12.default)();
+var app = (0, import_express13.default)();
 app.set("trust proxy", 1);
 app.use(
   (0, import_pino_http.default)({
@@ -50219,12 +50908,12 @@ app.use(
   })
 );
 app.use((0, import_cors.default)());
-app.use(import_express12.default.json());
-app.use(import_express12.default.urlencoded({ extended: true }));
+app.use(import_express13.default.json());
+app.use(import_express13.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 if (process.env.NODE_ENV === "production") {
   const frontendDist = process.env.FRONTEND_DIST || path.resolve(process.cwd(), "dist/public");
-  app.use(import_express12.default.static(frontendDist));
+  app.use(import_express13.default.static(frontendDist));
   app.get("/{*path}", (_req, res) => {
     res.sendFile(path.join(frontendDist, "index.html"));
   });

@@ -9,11 +9,13 @@ import contentRouter from "./content";
 import dbRouter from "./db";
 import nowpaymentsRouter from "./nowpayments";
 import uploadRouter from "./upload";
+import adminRouter from "./admin";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(authRouter);
+router.use(adminRouter);
 router.use(profilesRouter);
 router.use(productsRouter);
 router.use(paymentsRouter);

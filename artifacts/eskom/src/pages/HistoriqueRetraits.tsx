@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { ArrowDownLeft, Upload, AlertTriangle, CheckCircle2 } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuthToken } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 type Retrait = {
@@ -51,24 +51,19 @@ const HistoriqueRetraits = () => {
   const [targetWithdrawalId, setTargetWithdrawalId] = useState<string | null>(null);
 
   const load = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data } = await supabase
-      .from("withdrawals")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false });
-    if (data) setRetraits(data as Retrait[]);
+    const token = getAuthToken();
+    const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+    const res = await fetch("/api/withdrawals/my", { headers: h });
+    if (!res.ok) { setLoading(false); return; }
+    const data = await res.json();
+    setRetraits(data as Retrait[]);
     setLoading(false);
   };
 
   useEffect(() => {
     load();
-    const channel = supabase
-      .channel("retraits-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "withdrawals" }, () => load())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const interval = setInterval(load, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleUploadProof = (withdrawalId: string) => {
@@ -82,9 +77,6 @@ const HistoriqueRetraits = () => {
 
     setUploadingId(targetWithdrawalId);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
       const base64 = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onerror = () => reject(new Error("Impossible de lire le fichier"));
@@ -102,12 +94,13 @@ const HistoriqueRetraits = () => {
         return;
       }
 
-      const { error: updateError } = await supabase
-        .from("withdrawals")
-        .update({ processing_fee_proof_url: uploadData.url })
-        .eq("id", targetWithdrawalId);
-
-      if (updateError) {
+      const token = getAuthToken();
+      const patchRes = await fetch(`/api/withdrawals/${targetWithdrawalId}/proof`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        body: JSON.stringify({ processing_fee_proof_url: uploadData.url }),
+      });
+      if (!patchRes.ok) {
         toast.error("Error updating record");
         return;
       }

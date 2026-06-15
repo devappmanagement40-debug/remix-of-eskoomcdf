@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuthToken } from "@/integrations/supabase/client";
 import {
   Save, Edit2, Search, Loader2, X, ArrowLeft,
   TrendingUp, Users, CheckCircle2
@@ -70,53 +70,74 @@ const AdminReferralTab = ({
   const fmtDate = (d: string | null) =>
     d ? new Date(d).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
 
+  const authHeaders = (): HeadersInit => {
+    const token = getAuthToken();
+    return { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+  };
+
   const saveRates = async () => {
     const v1 = parseFloat(rateL1), v2 = parseFloat(rateL2), v3 = parseFloat(rateL3);
     if ([v1, v2, v3].some(v => isNaN(v) || v < 0 || v > 100)) {
       showError("Erreur", "Les taux doivent être entre 0 et 100"); return;
     }
     setSaving(true);
-    const entries = [
-      { key: "referral_rate_l1", value: rateL1 },
-      { key: "referral_rate_l2", value: rateL2 },
-      { key: "referral_rate_l3", value: rateL3 },
-    ];
-    for (const e of entries) {
-      const ex = siteSettings.find(s => s.key === e.key);
-      if (ex) await supabase.from("site_settings").update({ value: e.value }).eq("key", e.key);
-      else await supabase.from("site_settings").insert({ key: e.key, value: e.value, category: "referral" });
+    try {
+      await fetch("/api/admin/site-settings/batch", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          settings: [
+            { key: "referral_rate_l1", value: rateL1, category: "referral" },
+            { key: "referral_rate_l2", value: rateL2, category: "referral" },
+            { key: "referral_rate_l3", value: rateL3, category: "referral" },
+          ],
+        }),
+      });
+      showSuccess("Taux sauvegardés ✅", `E: ${rateL1}% • F: ${rateL2}% • G: ${rateL3}%`);
+      reload();
+    } finally {
+      setSaving(false);
     }
-    showSuccess("Taux sauvegardés ✅", `E: ${rateL1}% • F: ${rateL2}% • G: ${rateL3}%`);
-    setSaving(false);
-    reload();
   };
 
   const updateCode = async (profileId: string, code: string) => {
     const clean = code.toUpperCase().trim().replace(/[^A-Z0-9]/g, "");
     if (clean.length < 4) { showError("Erreur", "Code trop court (min 4 caractères)"); return; }
-    const { error } = await supabase.from("profiles").update({ referral_code: clean }).eq("id", profileId);
-    if (error) { showError("Erreur", error.message); return; }
+    const res = await fetch(`/api/admin/users/${profileId}`, {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify({ referralCode: clean }),
+    });
+    if (!res.ok) { const e = await res.json(); showError("Erreur", e.error || "Failed"); return; }
     showSuccess("Code mis à jour ✅", `Nouveau code : ${clean}`);
     setEditingCodeId(null); setNewCode("");
     reload();
   };
 
-  const removeReferral = async (profileId: string) => {
-    const { error } = await supabase.from("profiles").update({ referred_by: null }).eq("id", profileId);
-    if (error) { showError("Erreur", error.message); return; }
+  const removeReferral = async (userId: string) => {
+    const res = await fetch(`/api/admin/users/${userId}`, {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify({ referredBy: null }),
+    });
+    if (!res.ok) { const e = await res.json(); showError("Erreur", e.error || "Failed"); return; }
     showSuccess("Lien supprimé ✅", "Relation de parrainage retirée");
-    if (selectedUser?.id === profileId) setSelectedUser(prev => prev ? { ...prev, referred_by: null } : null);
+    if (selectedUser?.user_id === userId) setSelectedUser(prev => prev ? { ...prev, referred_by: null } : null);
     reload();
   };
 
-  const changeReferrer = async (profileId: string, codeOrId: string) => {
+  const changeReferrer = async (userId: string, codeOrId: string) => {
     const ref = profiles.find(p =>
       p.referral_code?.toUpperCase() === codeOrId.toUpperCase() || p.id === codeOrId
     );
     if (!ref) { showError("Erreur", "Code ou ID parrain introuvable"); return; }
-    if (ref.id === profileId) { showError("Erreur", "Un utilisateur ne peut pas se parrainer lui-même"); return; }
-    const { error } = await supabase.from("profiles").update({ referred_by: ref.id }).eq("id", profileId);
-    if (error) { showError("Erreur", error.message); return; }
+    if (ref.user_id === userId) { showError("Erreur", "Un utilisateur ne peut pas se parrainer lui-même"); return; }
+    const res = await fetch(`/api/admin/users/${userId}`, {
+      method: "PATCH",
+      headers: authHeaders(),
+      body: JSON.stringify({ referredBy: ref.id }),
+    });
+    if (!res.ok) { const e = await res.json(); showError("Erreur", e.error || "Failed"); return; }
     showSuccess("Parrain mis à jour ✅", `Parrain : ${label(ref)}`);
     setEditingReferrerId(null); setNewReferrerCode("");
     reload();
@@ -124,21 +145,30 @@ const AdminReferralTab = ({
 
   const loadTeam = async (p: Profile) => {
     setSelectedUser(p); setLoadingTeam(true);
-    const { data: l1d } = await supabase.from("profiles").select("*").eq("referred_by", p.id);
-    const l1 = (l1d || []) as Profile[];
-    const l1Ids = l1.map(m => m.id);
-    let l2: Profile[] = [], l3: Profile[] = [];
-    if (l1Ids.length > 0) {
-      const { data: l2d } = await supabase.from("profiles").select("*").in("referred_by", l1Ids);
-      l2 = (l2d || []) as Profile[];
-      const l2Ids = l2.map(m => m.id);
-      if (l2Ids.length > 0) {
-        const { data: l3d } = await supabase.from("profiles").select("*").in("referred_by", l2Ids);
-        l3 = (l3d || []) as Profile[];
+    try {
+      const token = getAuthToken();
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch("/api/team/my", { headers });
+      const l1: Profile[] = res.ok ? (await res.json()).map((m: any) => ({
+        id: m.id, user_id: m.userId, full_name: m.fullName, phone: m.phone,
+        referral_code: m.referralCode, referred_by: m.referredBy,
+        referral_balance: m.referralBalance, balance: m.balance,
+        created_at: m.createdAt, vip_level: m.vipLevel,
+      })) : profiles.filter(x => x.referred_by === p.id);
+
+      const l1Ids = l1.map(m => m.id);
+      let l2: Profile[] = [], l3: Profile[] = [];
+      if (l1Ids.length > 0) {
+        l2 = profiles.filter(x => x.referred_by && l1Ids.includes(x.referred_by));
+        const l2Ids = l2.map(m => m.id);
+        if (l2Ids.length > 0) {
+          l3 = profiles.filter(x => x.referred_by && l2Ids.includes(x.referred_by));
+        }
       }
+      setTeamData({ l1, l2, l3 });
+    } finally {
+      setLoadingTeam(false);
     }
-    setTeamData({ l1, l2, l3 });
-    setLoadingTeam(false);
   };
 
   const filteredCodes = profiles.filter(p => {
@@ -267,7 +297,7 @@ const AdminReferralTab = ({
                         <input value={newCode} onChange={e => setNewCode(e.target.value.toUpperCase())}
                           placeholder="Nouveau code (ex: CODE123)"
                           className="flex-1 bg-secondary text-foreground rounded-xl px-3 py-2 text-xs border border-primary outline-none font-mono" />
-                        <button onClick={() => updateCode(p.id, newCode)}
+                        <button onClick={() => updateCode(p.user_id, newCode)}
                           className="px-3 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold">✓</button>
                         <button onClick={() => { setEditingCodeId(null); setNewCode(""); }}
                           className="px-3 py-2 rounded-xl bg-secondary text-muted-foreground text-xs">✕</button>
@@ -449,7 +479,6 @@ const AdminReferralTab = ({
                 </div>
               </div>
 
-              {/* Parrain de cet utilisateur */}
               <div className="bg-card border border-secondary rounded-xl p-4 space-y-2">
                 <p className="text-xs font-bold text-muted-foreground">PARRAIN DE CET UTILISATEUR</p>
                 {selectedUser.referred_by ? (
@@ -461,11 +490,11 @@ const AdminReferralTab = ({
                         <p className="text-[10px] text-primary font-mono mt-0.5">Code : {byId[selectedUser.referred_by]?.referral_code || "—"}</p>
                       </div>
                       <div className="flex flex-col gap-1.5">
-                        <button onClick={() => { setEditingReferrerId(selectedUser.id); setNewReferrerCode(""); }}
+                        <button onClick={() => { setEditingReferrerId(selectedUser.user_id); setNewReferrerCode(""); }}
                           className="text-[10px] border border-primary/40 text-primary px-3 py-1.5 rounded-lg font-semibold">
                           Changer
                         </button>
-                        <button onClick={() => removeReferral(selectedUser.id)}
+                        <button onClick={() => removeReferral(selectedUser.user_id)}
                           className="text-[10px] border border-destructive/40 text-destructive px-3 py-1.5 rounded-lg font-semibold">
                           Retirer
                         </button>
@@ -476,20 +505,20 @@ const AdminReferralTab = ({
                   <p className="text-xs text-muted-foreground">Pas de parrain</p>
                 )}
 
-                {editingReferrerId === selectedUser.id && (
+                {editingReferrerId === selectedUser.user_id && (
                   <div className="flex gap-2 pt-1">
                     <input value={newReferrerCode} onChange={e => setNewReferrerCode(e.target.value.toUpperCase())}
                       placeholder="Code ou ID du nouveau parrain"
                       className="flex-1 bg-secondary text-foreground rounded-xl px-3 py-2 text-xs border border-primary outline-none" />
-                    <button onClick={() => changeReferrer(selectedUser.id, newReferrerCode)}
+                    <button onClick={() => changeReferrer(selectedUser.user_id, newReferrerCode)}
                       className="px-3 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-bold">✓</button>
                     <button onClick={() => setEditingReferrerId(null)}
                       className="px-3 py-2 rounded-xl bg-secondary text-muted-foreground text-xs">✕</button>
                   </div>
                 )}
 
-                {!selectedUser.referred_by && editingReferrerId !== selectedUser.id && (
-                  <button onClick={() => { setEditingReferrerId(selectedUser.id); setNewReferrerCode(""); }}
+                {!selectedUser.referred_by && editingReferrerId !== selectedUser.user_id && (
+                  <button onClick={() => { setEditingReferrerId(selectedUser.user_id); setNewReferrerCode(""); }}
                     className="text-xs text-primary border border-primary/30 px-4 py-2 rounded-xl">
                     + Assigner un parrain
                   </button>

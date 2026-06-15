@@ -2,7 +2,7 @@ import { Users, DollarSign, Copy, Check, MessageCircle, Phone, Calendar, CircleD
 import { useState, useEffect } from "react";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuthToken } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import { safeClipboardWrite } from "@/lib/clipboard";
 import { Badge } from "@/components/ui/badge";
@@ -49,97 +49,16 @@ const Team = () => {
 
   const fetchTeam = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
-      if (!user) return;
-
-      const { data: myProfile } = await supabase
-        .from("profiles")
-        .select("id, referral_code")
-        .eq("user_id", user.id)
-        .single();
-
-      if (!myProfile) return;
-      setReferralCode(myProfile.referral_code || "");
-
-      const { data: levelB } = await supabase
-        .from("profiles")
-        .select("id, full_name, phone, country_code, balance, created_at, is_suspended, user_id")
-        .eq("referred_by", myProfile.id);
-      const bRaw = levelB || [];
-
-      const bIds = bRaw.map((m) => m.id);
-      let cRaw: any[] = [];
-      if (bIds.length > 0) {
-        const { data: levelC } = await supabase
-          .from("profiles")
-          .select("id, full_name, phone, country_code, balance, created_at, is_suspended, user_id")
-          .in("referred_by", bIds);
-        cRaw = levelC || [];
-      }
-
-      const cIds = cRaw.map((m) => m.id);
-      let dRaw: any[] = [];
-      if (cIds.length > 0) {
-        const { data: levelD } = await supabase
-          .from("profiles")
-          .select("id, full_name, phone, country_code, balance, created_at, is_suspended, user_id")
-          .in("referred_by", cIds);
-        dRaw = levelD || [];
-      }
-
-      const allMembers = [...bRaw, ...cRaw, ...dRaw];
-      const allUserIds = allMembers.map((m) => m.user_id).filter(Boolean);
-
-      let investedUserIds = new Set<string>();
-      if (allUserIds.length > 0) {
-        const { data: products } = await supabase
-          .from("user_products")
-          .select("user_id")
-          .in("user_id", allUserIds);
-        investedUserIds = new Set((products || []).map((p: any) => p.user_id));
-      }
-
-      const enrichMembers = (members: any[], rate: number): TeamMember[] =>
-        members.map((m) => ({
-          ...m,
-          hasInvested: investedUserIds.has(m.user_id),
-          bonusEarned: 0,
-        }));
-
-      let bonusMap = new Map<string, number>();
-      if (allUserIds.length > 0) {
-        const { data: userProds } = await supabase
-          .from("user_products")
-          .select("user_id, product_id, products(price)")
-          .in("user_id", allUserIds);
-        if (userProds) {
-          const bUserIds = new Set(bRaw.map(m => m.user_id));
-          const cUserIds = new Set(cRaw.map(m => m.user_id));
-          const dUserIds = new Set(dRaw.map(m => m.user_id));
-          for (const up of userProds) {
-            const price = Number((up as any).products?.price) || 0;
-            const rate = bUserIds.has(up.user_id) ? 0.10 : cUserIds.has(up.user_id) ? 0.05 : dUserIds.has(up.user_id) ? 0.01 : 0;
-            bonusMap.set(up.user_id, (bonusMap.get(up.user_id) || 0) + price * rate);
-          }
-        }
-      }
-
-      const buildMembers = (members: any[]): TeamMember[] =>
-        members.map((m) => ({
-          ...m,
-          hasInvested: investedUserIds.has(m.user_id),
-          bonusEarned: bonusMap.get(m.user_id) || 0,
-        }));
-
-      const bMembers = buildMembers(bRaw);
-      const cMembers = buildMembers(cRaw);
-      const dMembers = buildMembers(dRaw);
-
+      const token = getAuthToken();
+      const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+      const res = await fetch("/api/team", { headers: h });
+      if (!res.ok) return;
+      const data = await res.json();
+      setReferralCode(data.referralCode || "");
       setLevels([
-        { label: "E", color: "from-cyan-400 to-teal-400", members: bMembers, revenue: bMembers.reduce((s, m) => s + m.bonusEarned, 0) },
-        { label: "F", color: "from-pink-400 to-rose-400", members: cMembers, revenue: cMembers.reduce((s, m) => s + m.bonusEarned, 0) },
-        { label: "G", color: "from-purple-400 to-violet-400", members: dMembers, revenue: dMembers.reduce((s, m) => s + m.bonusEarned, 0) },
+        { label: "E", color: "from-cyan-400 to-teal-400", members: data.levelB || [], revenue: (data.levelB || []).reduce((s: number, m: TeamMember) => s + m.bonusEarned, 0) },
+        { label: "F", color: "from-pink-400 to-rose-400", members: data.levelC || [], revenue: (data.levelC || []).reduce((s: number, m: TeamMember) => s + m.bonusEarned, 0) },
+        { label: "G", color: "from-purple-400 to-violet-400", members: data.levelD || [], revenue: (data.levelD || []).reduce((s: number, m: TeamMember) => s + m.bonusEarned, 0) },
       ]);
     } catch (err) {
       console.error("Team load error:", err);

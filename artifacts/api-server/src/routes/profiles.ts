@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { profiles, userRoles, userSessions, adminPermissions } from "@workspace/db";
+import { profiles, userRoles, userSessions, adminPermissions, userProducts, products } from "@workspace/db";
 import { eq, inArray } from "drizzle-orm";
 import crypto from "crypto";
 
@@ -88,6 +88,72 @@ router.get("/team/my", async (req, res) => {
 
   const teamMembers = await db.select().from(profiles).where(eq(profiles.referredBy, me.id));
   return res.json(teamMembers);
+});
+
+// Full team tree endpoint used by Team.tsx
+router.get("/team", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+
+  // Level B: directly referred by me
+  const bRaw = await db.select().from(profiles).where(eq(profiles.referredBy, me.id));
+  const bIds = bRaw.map(m => m.id);
+
+  // Level C
+  let cRaw: typeof bRaw = [];
+  if (bIds.length > 0) {
+    cRaw = await db.select().from(profiles).where(inArray(profiles.referredBy, bIds));
+  }
+  const cIds = cRaw.map(m => m.id);
+
+  // Level D
+  let dRaw: typeof bRaw = [];
+  if (cIds.length > 0) {
+    dRaw = await db.select().from(profiles).where(inArray(profiles.referredBy, cIds));
+  }
+
+  const allUserIds = [...bRaw, ...cRaw, ...dRaw].map(m => m.userId).filter(Boolean) as string[];
+  let bonusMap = new Map<string, number>();
+
+  if (allUserIds.length > 0) {
+    const userProds = await db.select({ userId: userProducts.userId, price: products.price })
+      .from(userProducts)
+      .leftJoin(products, eq(userProducts.productId, products.id))
+      .where(inArray(userProducts.userId, allUserIds));
+
+    const bUserIds = new Set(bRaw.map(m => m.userId));
+    const cUserIds = new Set(cRaw.map(m => m.userId));
+    const dUserIds = new Set(dRaw.map(m => m.userId));
+    for (const up of userProds) {
+      const price = Number(up.price) || 0;
+      const rate = bUserIds.has(up.userId) ? 0.10 : cUserIds.has(up.userId) ? 0.05 : dUserIds.has(up.userId) ? 0.01 : 0;
+      bonusMap.set(up.userId, (bonusMap.get(up.userId) || 0) + price * rate);
+    }
+  }
+
+  const investedSet = new Set(allUserIds.filter(id => bonusMap.has(id)));
+
+  const enrich = (members: typeof bRaw) => members.map(m => ({
+    id: m.id,
+    user_id: m.userId,
+    full_name: m.fullName,
+    phone: m.phone,
+    country_code: m.countryCode,
+    balance: m.balance,
+    created_at: m.createdAt,
+    is_suspended: m.isSuspended,
+    hasInvested: investedSet.has(m.userId),
+    bonusEarned: bonusMap.get(m.userId) || 0,
+  }));
+
+  return res.json({
+    referralCode: me.referralCode,
+    levelB: enrich(bRaw),
+    levelC: enrich(cRaw),
+    levelD: enrich(dRaw),
+  });
 });
 
 export default router;

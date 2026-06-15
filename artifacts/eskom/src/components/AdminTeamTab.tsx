@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuthToken } from "@/integrations/supabase/client";
 import { Search, Plus, Trash2, Shield, UserCheck, X, Loader2, CheckCircle2 } from "lucide-react";
 
 const PERMISSIONS = [
@@ -43,43 +43,19 @@ export const AdminTeamTab = ({
   const loadSubAdmins = async () => {
     setLoading(true);
     try {
-      // Get all moderator roles
-      const { data: roles } = await supabase
-        .from("user_roles")
-        .select("user_id")
-        .eq("role", "moderator");
-
-      if (!roles || roles.length === 0) {
-        setSubAdmins([]);
-        setLoading(false);
-        return;
-      }
-
-      const userIds = roles.map((r) => r.user_id);
-
-      // Get profiles
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, phone, full_name")
-        .in("user_id", userIds);
-
-      // Get permissions
-      const { data: perms } = await supabase
-        .from("admin_permissions")
-        .select("user_id, permission")
-        .in("user_id", userIds);
-
-      const result: SubAdmin[] = userIds.map((uid) => {
-        const profile = profiles?.find((p) => p.user_id === uid);
-        const userPerms = (perms || []).filter((p) => p.user_id === uid).map((p) => p.permission);
-        return {
-          user_id: uid,
-          phone: profile?.phone || null,
-          full_name: profile?.full_name || null,
-          permissions: userPerms,
-        };
-      });
-
+      const token = getAuthToken();
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch("/api/admin/team", { headers });
+      if (!res.ok) { setSubAdmins([]); return; }
+      const data = await res.json();
+      const result: SubAdmin[] = (data || [])
+        .filter((r: any) => r.role === "moderator")
+        .map((r: any) => ({
+          user_id: r.userId,
+          phone: r.profile?.phone ?? null,
+          full_name: r.profile?.fullName ?? null,
+          permissions: r.permissions ?? [],
+        }));
       setSubAdmins(result);
     } catch (err) {
       console.error("Load sub-admins error:", err);
@@ -93,38 +69,18 @@ export const AdminTeamTab = ({
     setSearching(true);
     setSearchResult(null);
     try {
-      const { data } = await supabase
-        .from("profiles")
-        .select("user_id, phone, full_name")
-        .eq("phone", searchPhone.trim())
-        .maybeSingle();
+      const token = getAuthToken();
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch("/api/profiles", { headers });
+      if (!res.ok) { showError("Error", "Search error"); setSearching(false); return; }
+      const all: any[] = await res.json();
+      const found = all.find((p: any) => p.phone === searchPhone.trim());
+      if (!found) { showError("Not found", "No user found with this number"); setSearching(false); return; }
 
-      if (!data) {
-        showError("Not found", "No user found with this number");
-        setSearching(false);
-        return;
-      }
+      const existing = subAdmins.find(sa => sa.user_id === found.userId);
+      if (existing) { showError("Existe déjà", "Cet utilisateur est déjà administrateur adjoint"); setSearching(false); return; }
 
-      // Check if already admin or moderator
-      const { data: existingRole } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", data.user_id)
-        .maybeSingle();
-
-      if (existingRole?.role === "admin") {
-        showError("Impossible", "Cet utilisateur est déjà Super Admin");
-        setSearching(false);
-        return;
-      }
-
-      if (existingRole?.role === "moderator") {
-        showError("Existe déjà", "Cet utilisateur est déjà administrateur adjoint");
-        setSearching(false);
-        return;
-      }
-
-      setSearchResult({ user_id: data.user_id, phone: data.phone || "", full_name: data.full_name || "" });
+      setSearchResult({ user_id: found.userId, phone: found.phone || "", full_name: found.fullName || "" });
     } catch (err) {
       showError("Error", "Search error");
     } finally {
@@ -139,22 +95,14 @@ export const AdminTeamTab = ({
     }
     setSaving(true);
     try {
-      // Insert moderator role
-      const { error: roleErr } = await supabase
-        .from("user_roles")
-        .insert({ user_id: searchResult.user_id, role: "moderator" as any });
-
-      if (roleErr) throw roleErr;
-
-      // Insert permissions
-      const permRows = selectedPerms.map((p) => ({
-        user_id: searchResult.user_id,
-        permission: p,
-        granted_by: adminId,
-      }));
-
-      const { error: permErr } = await supabase.from("admin_permissions").insert(permRows);
-      if (permErr) throw permErr;
+      const token = getAuthToken();
+      const headers: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+      const res = await fetch("/api/admin/team", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ userId: searchResult.user_id, role: "moderator", permissions: selectedPerms }),
+      });
+      if (!res.ok) throw new Error("Failed to add");
 
       await logAction("add_sub_admin", "user", searchResult.user_id, `Permissions: ${selectedPerms.join(", ")}`);
       showSuccess("Succès", `${searchResult.full_name || searchResult.phone} est maintenant administrateur adjoint`);
@@ -172,11 +120,9 @@ export const AdminTeamTab = ({
 
   const removeSubAdmin = async (userId: string) => {
     try {
-      // Remove permissions
-      await supabase.from("admin_permissions").delete().eq("user_id", userId);
-      // Remove moderator role
-      await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", "moderator" as any);
-
+      const token = getAuthToken();
+      const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+      await fetch(`/api/admin/team/${userId}`, { method: "DELETE", headers });
       await logAction("remove_sub_admin", "user", userId);
       showSuccess("Supprimé", "Administrateur adjoint retiré");
       await loadSubAdmins();
@@ -187,11 +133,18 @@ export const AdminTeamTab = ({
 
   const togglePermission = async (userId: string, permission: string, hasIt: boolean) => {
     try {
-      if (hasIt) {
-        await supabase.from("admin_permissions").delete().eq("user_id", userId).eq("permission", permission);
-      } else {
-        await supabase.from("admin_permissions").insert({ user_id: userId, permission, granted_by: adminId });
-      }
+      const sa = subAdmins.find(s => s.user_id === userId);
+      if (!sa) return;
+      const newPerms = hasIt
+        ? sa.permissions.filter(p => p !== permission)
+        : [...sa.permissions, permission];
+      const token = getAuthToken();
+      const headers: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+      await fetch(`/api/admin/team/${userId}/permissions`, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify({ permissions: newPerms }),
+      });
       await logAction("toggle_permission", "user", userId, `${permission}: ${hasIt ? "retiré" : "ajouté"}`);
       await loadSubAdmins();
     } catch (err) {
@@ -222,12 +175,10 @@ export const AdminTeamTab = ({
         </button>
       </div>
 
-      {/* Add form */}
       {showAddForm && (
         <div className="bg-card rounded-xl border border-primary/30 p-4 space-y-4">
           <h3 className="text-sm font-bold text-foreground">Add a deputy administrator</h3>
 
-          {/* Search by phone */}
           <div className="flex gap-2">
             <input
               value={searchPhone}
@@ -245,7 +196,6 @@ export const AdminTeamTab = ({
             </button>
           </div>
 
-          {/* Search result */}
           {searchResult && (
             <div className="bg-success/10 border border-success/30 rounded-xl p-3">
               <div className="flex items-center gap-2">
@@ -258,7 +208,6 @@ export const AdminTeamTab = ({
             </div>
           )}
 
-          {/* Permissions selection */}
           {searchResult && (
             <>
               <div className="space-y-2">
@@ -305,7 +254,6 @@ export const AdminTeamTab = ({
         </div>
       )}
 
-      {/* Sub-admins list */}
       {subAdmins.length === 0 && !showAddForm ? (
         <div className="text-center py-16">
           <Shield size={40} className="text-muted-foreground/30 mx-auto mb-3" />
