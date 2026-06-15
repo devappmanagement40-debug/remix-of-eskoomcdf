@@ -39,6 +39,21 @@ router.patch("/profiles/me", async (req, res) => {
   return res.json(updated);
 });
 
+// ─── GET /profiles/batch?userIds=id1,id2 (admin) — must be BEFORE /:userId ────
+router.get("/profiles/batch", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, me.userId)).limit(1);
+  if (role?.role !== "admin" && role?.role !== "moderator") return res.status(403).json({ error: "Forbidden" });
+
+  const userIds = ((req.query.userIds as string) || "").split(",").filter(Boolean);
+  if (userIds.length === 0) return res.json([]);
+  const result = await db.select().from(profiles).where(inArray(profiles.userId, userIds));
+  return res.json(result);
+});
+
 router.get("/profiles/:userId", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });

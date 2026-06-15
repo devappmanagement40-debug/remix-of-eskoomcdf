@@ -48366,6 +48366,18 @@ router3.patch("/profiles/me", async (req, res) => {
   const [updated] = await db.update(profiles).set(updates).where(eq(profiles.userId, me.userId)).returning();
   return res.json(updated);
 });
+router3.get("/profiles/batch", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, me.userId)).limit(1);
+  if (role?.role !== "admin" && role?.role !== "moderator") return res.status(403).json({ error: "Forbidden" });
+  const userIds = (req.query.userIds || "").split(",").filter(Boolean);
+  if (userIds.length === 0) return res.json([]);
+  const result = await db.select().from(profiles).where(inArray(profiles.userId, userIds));
+  return res.json(result);
+});
 router3.get("/profiles/:userId", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
@@ -48879,6 +48891,93 @@ router5.patch("/withdrawals/:id/proof", async (req, res) => {
   const { processing_fee_proof_url } = req.body;
   const [updated] = await db.update(withdrawals).set({ processingFeeProofUrl: processing_fee_proof_url, updatedAt: /* @__PURE__ */ new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
   return res.json(updated);
+});
+router5.get("/payments/recharges", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken3(token);
+  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
+  const all = await db.select().from(recharges);
+  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+});
+router5.patch("/payments/recharges/:id/status", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken3(token);
+  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
+  const { status, adminNote } = req.body;
+  const [recharge] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
+  if (!recharge) return res.status(404).json({ error: "Not found" });
+  if (status === "approved" && recharge.status === "pending") {
+    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, recharge.userId)).limit(1);
+    if (profile) {
+      const amount = Number(recharge.amount);
+      await db.update(profiles).set({
+        balance: String(Number(profile.balance ?? 0) + amount),
+        depositBalance: String(Number(profile.depositBalance ?? 0) + amount),
+        updatedAt: /* @__PURE__ */ new Date()
+      }).where(eq(profiles.userId, recharge.userId));
+    }
+  }
+  const [updated] = await db.update(recharges).set({ status, adminNote: adminNote ?? null, updatedAt: /* @__PURE__ */ new Date() }).where(eq(recharges.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router5.get("/payments/withdrawals", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken3(token);
+  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
+  const all = await db.select().from(withdrawals);
+  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+});
+router5.patch("/payments/withdrawals/:id/status", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken3(token);
+  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
+  const { status, adminNote } = req.body;
+  const [withdrawal] = await db.select().from(withdrawals).where(eq(withdrawals.id, req.params.id)).limit(1);
+  if (!withdrawal) return res.status(404).json({ error: "Not found" });
+  if (status === "rejected" && withdrawal.status === "pending") {
+    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, withdrawal.userId)).limit(1);
+    if (profile) {
+      await db.update(profiles).set({
+        balance: String(Number(profile.balance ?? 0) + Number(withdrawal.amount)),
+        earningsBalance: String(Number(profile.earningsBalance ?? 0) + Number(withdrawal.amount)),
+        updatedAt: /* @__PURE__ */ new Date()
+      }).where(eq(profiles.userId, withdrawal.userId));
+    }
+  }
+  const [updated] = await db.update(withdrawals).set({ status, adminNote: adminNote ?? null, updatedAt: /* @__PURE__ */ new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router5.get("/payments/fee-payments", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken3(token);
+  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
+  const all = await db.select().from(withdrawalFeePayments);
+  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+});
+router5.patch("/payments/fee-payments/:id/status", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken3(token);
+  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
+  const { status, adminNote } = req.body;
+  const [updated] = await db.update(withdrawalFeePayments).set({ status, adminNote: adminNote ?? null, updatedAt: /* @__PURE__ */ new Date() }).where(eq(withdrawalFeePayments.id, req.params.id)).returning();
+  if (!updated) return res.status(404).json({ error: "Not found" });
+  return res.json(updated);
+});
+router5.get("/user-wallets/batch", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken3(token);
+  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
+  const ids = (req.query.ids || "").split(",").filter(Boolean);
+  if (ids.length === 0) return res.json([]);
+  const result = await db.select().from(userWallets).where(inArray(userWallets.id, ids));
+  return res.json(result);
 });
 var payments_default = router5;
 
