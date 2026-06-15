@@ -50846,7 +50846,17 @@ app.use(
     }
   })
 );
-app.use((0, import_cors.default)());
+app.use((0, import_cors.default)({
+  origin: [
+    "https://geenergy.top",
+    "https://www.geenergy.top",
+    /\.replit\.app$/,
+    /\.replit\.dev$/,
+    "http://localhost:5000",
+    "http://localhost:5173"
+  ],
+  credentials: true
+}));
 app.use(import_express13.default.json());
 app.use(import_express13.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
@@ -50862,7 +50872,7 @@ if (process.env.NODE_ENV === "production") {
 var app_default = app;
 
 // artifacts/api-server/src/index.ts
-var rawPort = process.env["PORT"] ?? "3000";
+var rawPort = process.env["API_PORT"] ?? process.env["PORT"] ?? "8080";
 var port = Number(rawPort);
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
