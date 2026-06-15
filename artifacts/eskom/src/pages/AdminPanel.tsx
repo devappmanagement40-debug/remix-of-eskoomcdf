@@ -11,7 +11,7 @@ import {
   Clock, ArrowDown, Edit2, Trash2, Plus, X, Save, ChevronDown, ChevronUp,
   Layers, Eye, EyeOff, Ban, UserCheck, Pencil, TrendingUp, Activity,
   Globe, ImageIcon, UploadIcon, Bot, Power, ArrowLeft, Send, Star, Gift,
-  HelpCircle, Info, Smartphone, Wallet, FileText, Loader2
+  HelpCircle, Info, Smartphone, Wallet, FileText, Loader2, Coins
 } from "lucide-react";
 
 // ==================== TYPES ====================
@@ -87,6 +87,7 @@ const tabs = [
   { key: "infos", icon: Info, label: "Infos" },
   { key: "app", icon: Smartphone, label: "App" },
   { key: "dates", icon: Clock, label: "Dates" },
+  { key: "devises", icon: Coins, label: "Devises" },
   { key: "settings", icon: Settings, label: "Site" },
   { key: "security", icon: Shield, label: "Security" },
   { key: "team", icon: Users, label: "Team" },
@@ -319,6 +320,7 @@ const AdminPanel = () => {
         {activeTab === "infos" && <InfoItemsTab showSuccess={showSuccess} showError={showError} />}
         {activeTab === "app" && <AppSettingsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "dates" && <DatesTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
+        {activeTab === "devises" && <DeviseTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "settings" && <SettingsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "security" && <SecurityTab logs={adminLogs} settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "team" && <AdminTeamTab showSuccess={showSuccess} showError={showError} logAction={logAction} adminId={adminId} />}
@@ -2798,6 +2800,172 @@ const DatesTab = ({ settings, reload, showSuccess }: any) => {
         className="w-full gradient-button text-primary-foreground font-semibold py-3 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-50">
         <Save size={16} /> {saving ? "Saving..." : "Save dates"}
       </button>
+    </div>
+  );
+};
+
+// ==================== DEVISE TAB ====================
+const DEFAULT_CURRENCIES = [
+  { code: "usdtbsc",   label: "BEP20-USDT", network: "BNB Smart Chain (BEP20)", color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.18)", logoUrl: "/crypto-logos/usdt.png",  enabled: true },
+  { code: "usdttrc20", label: "TRC20-USDT", network: "TRON (TRC20)",            color: "#EF0027", symbol: "₮", bg: "rgba(239,0,39,0.18)",    logoUrl: "/crypto-logos/usdt.png",  enabled: true },
+  { code: "trx",       label: "TRX",        network: "TRON",                    color: "#EF0027", symbol: "◈", bg: "rgba(239,0,39,0.18)",    logoUrl: "/crypto-logos/trx.png",   enabled: true },
+  { code: "bnbbsc",    label: "BNB",        network: "BNB Smart Chain (BEP20)", color: "#F0B90B", symbol: "⬡", bg: "rgba(240,185,11,0.18)", logoUrl: "/crypto-logos/bnb.png",   enabled: true },
+];
+type CurrencyDef = { code: string; label: string; network: string; color: string; symbol: string; bg: string; logoUrl: string; enabled: boolean };
+
+const DeviseTab = ({ settings, reload, showSuccess, showError }: any) => {
+  const [currencies, setCurrencies] = useState<CurrencyDef[]>(DEFAULT_CURRENCIES);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [newCode, setNewCode] = useState("");
+  const [showAdd, setShowAdd] = useState(false);
+
+  useEffect(() => {
+    const s = settings.find((s: SiteSetting) => s.key === "crypto_currencies");
+    if (s?.value) {
+      try { setCurrencies(JSON.parse(s.value)); } catch {}
+    }
+  }, [settings]);
+
+  const update = (idx: number, field: string, val: any) => {
+    setCurrencies(prev => prev.map((c, i) => i === idx ? { ...c, [field]: val } : c));
+    setDirty(true);
+  };
+
+  const remove = (idx: number) => {
+    setCurrencies(prev => prev.filter((_, i) => i !== idx));
+    setDirty(true);
+  };
+
+  const addCurrency = () => {
+    const code = newCode.trim().toLowerCase();
+    if (!code) return;
+    if (currencies.find(c => c.code === code)) { showError("Doublon", `La devise ${code} existe déjà`); return; }
+    setCurrencies(prev => [...prev, { code, label: code.toUpperCase(), network: "", color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.18)", logoUrl: "/crypto-logos/usdt.png", enabled: true }]);
+    setNewCode("");
+    setShowAdd(false);
+    setDirty(true);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const token = getAuthToken();
+      const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+      await fetch("/api/admin/site-settings/batch", {
+        method: "POST", headers: h,
+        body: JSON.stringify({ settings: [{ key: "crypto_currencies", value: JSON.stringify(currencies), category: "finance" }] }),
+      });
+      showSuccess("Devises sauvegardées", "Les modifications prennent effet immédiatement ✅");
+      setDirty(false);
+      reload();
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <div className="space-y-4 pb-6">
+      <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+        <h3 className="text-sm font-bold text-foreground mb-1">💱 Devises crypto acceptées</h3>
+        <p className="text-xs text-muted-foreground">
+          Activez / désactivez les devises affichées sur la page de dépôt. Aucune valeur n'est codée en dur — tout vient d'ici.
+        </p>
+      </div>
+
+      {currencies.map((c, i) => (
+        <div key={c.code} className={`bg-card rounded-xl border p-4 space-y-3 ${c.enabled ? "border-secondary" : "border-muted opacity-60"}`}>
+          {/* Header row */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: c.bg, border: `2px solid ${c.color}` }}>
+                <img src={c.logoUrl} alt={c.code} className="w-5 h-5 object-contain" onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-foreground truncate">{c.label}</p>
+                <p className="text-[10px] text-muted-foreground font-mono">{c.code}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${c.enabled ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>
+                {c.enabled ? "Actif" : "Inactif"}
+              </span>
+              <button onClick={() => update(i, "enabled", !c.enabled)}
+                className={`relative w-10 h-5 rounded-full transition-colors ${c.enabled ? "bg-primary" : "bg-muted"}`}>
+                <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-background shadow transition-transform ${c.enabled ? "translate-x-5" : "translate-x-0"}`} />
+              </button>
+            </div>
+          </div>
+
+          {/* Editable fields */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-0.5">Nom affiché</label>
+              <input value={c.label} onChange={e => update(i, "label", e.target.value)}
+                className="w-full bg-secondary text-foreground rounded-lg px-3 py-1.5 text-xs border border-secondary focus:border-primary outline-none" />
+            </div>
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-0.5">Symbole</label>
+              <input value={c.symbol} onChange={e => update(i, "symbol", e.target.value)}
+                className="w-full bg-secondary text-foreground rounded-lg px-3 py-1.5 text-xs border border-secondary focus:border-primary outline-none" />
+            </div>
+          </div>
+          <div>
+            <label className="text-[10px] text-muted-foreground block mb-0.5">Réseau blockchain</label>
+            <input value={c.network} onChange={e => update(i, "network", e.target.value)}
+              className="w-full bg-secondary text-foreground rounded-lg px-3 py-1.5 text-xs border border-secondary focus:border-primary outline-none" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-0.5">Couleur principale</label>
+              <div className="flex items-center gap-1.5">
+                <input type="color" value={c.color} onChange={e => update(i, "color", e.target.value)}
+                  className="w-7 h-7 rounded cursor-pointer shrink-0" style={{ border: "none", background: "none" }} />
+                <input value={c.color} onChange={e => update(i, "color", e.target.value)}
+                  className="flex-1 bg-secondary text-foreground rounded-lg px-2 py-1.5 text-xs border border-secondary focus:border-primary outline-none font-mono" />
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] text-muted-foreground block mb-0.5">Background (rgba)</label>
+              <input value={c.bg} onChange={e => update(i, "bg", e.target.value)}
+                className="w-full bg-secondary text-foreground rounded-lg px-2 py-1.5 text-xs border border-secondary focus:border-primary outline-none font-mono" />
+            </div>
+          </div>
+          <div>
+            <label className="text-[10px] text-muted-foreground block mb-0.5">URL du logo</label>
+            <input value={c.logoUrl} onChange={e => update(i, "logoUrl", e.target.value)}
+              className="w-full bg-secondary text-foreground rounded-lg px-3 py-1.5 text-xs border border-secondary focus:border-primary outline-none font-mono" />
+          </div>
+          <button onClick={() => remove(i)} className="flex items-center gap-1 text-destructive text-[10px] hover:opacity-80 transition-opacity">
+            <Trash2 size={12} /> Supprimer cette devise
+          </button>
+        </div>
+      ))}
+
+      {/* Add new currency */}
+      {showAdd ? (
+        <div className="bg-card rounded-xl border border-primary/30 p-4 space-y-2">
+          <p className="text-xs font-semibold text-foreground">Ajouter une nouvelle devise</p>
+          <p className="text-[10px] text-muted-foreground">Code NowPayments (ex: usdterc20, ltc, eth...)</p>
+          <div className="flex gap-2">
+            <input value={newCode} onChange={e => setNewCode(e.target.value)} placeholder="ex: usdterc20"
+              className="flex-1 bg-secondary text-foreground rounded-lg px-3 py-2 text-xs border border-secondary focus:border-primary outline-none font-mono"
+              onKeyDown={e => e.key === "Enter" && addCurrency()} />
+            <button onClick={addCurrency} className="bg-primary text-primary-foreground rounded-lg px-3 py-2 text-xs font-bold">Ajouter</button>
+            <button onClick={() => setShowAdd(false)} className="bg-muted text-muted-foreground rounded-lg px-3 py-2 text-xs">Annuler</button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setShowAdd(true)} className="w-full border-2 border-dashed border-primary/30 text-primary rounded-xl py-3 text-xs font-medium flex items-center justify-center gap-1 hover:border-primary/60 transition-colors">
+          <Plus size={14} /> Ajouter une devise
+        </button>
+      )}
+
+      {dirty && (
+        <button onClick={save} disabled={saving}
+          className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-60">
+          {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+          {saving ? "Sauvegarde..." : "Sauvegarder les devises"}
+        </button>
+      )}
     </div>
   );
 };

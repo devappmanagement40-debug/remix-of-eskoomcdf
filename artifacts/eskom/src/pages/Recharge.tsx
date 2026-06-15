@@ -13,18 +13,19 @@ export type CryptoCurrency = {
   symbol: string;
   bg: string;
   logoUrl?: string;
+  enabled?: boolean;
 };
 
-
-// Uniquement ces 4 devises autorisées
-const ALLOWED_CURRENCIES: CryptoCurrency[] = [
-  { code: "usdtbsc",   label: "BEP20-USDT", network: "BNB Smart Chain (BEP20)", color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.18)", logoUrl: "/crypto-logos/usdt.png" },
-  { code: "usdttrc20", label: "TRC20-USDT", network: "TRON (TRC20)",            color: "#EF0027", symbol: "₮", bg: "rgba(239,0,39,0.18)",    logoUrl: "/crypto-logos/usdt.png" },
-  { code: "trx",       label: "TRX",        network: "TRON",                    color: "#EF0027", symbol: "◈", bg: "rgba(239,0,39,0.18)",    logoUrl: "/crypto-logos/trx.png"  },
-  { code: "bnbbsc",    label: "BNB",        network: "BNB Smart Chain (BEP20)", color: "#F0B90B", symbol: "⬡", bg: "rgba(240,185,11,0.18)", logoUrl: "/crypto-logos/bnb.png"  },
+// Valeurs par défaut (fallback si l'API ne répond pas)
+export const DEFAULT_CRYPTO_CURRENCIES: CryptoCurrency[] = [
+  { code: "usdtbsc",   label: "BEP20-USDT", network: "BNB Smart Chain (BEP20)", color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.18)", logoUrl: "/crypto-logos/usdt.png",  enabled: true },
+  { code: "usdttrc20", label: "TRC20-USDT", network: "TRON (TRC20)",            color: "#EF0027", symbol: "₮", bg: "rgba(239,0,39,0.18)",    logoUrl: "/crypto-logos/usdt.png",  enabled: true },
+  { code: "trx",       label: "TRX",        network: "TRON",                    color: "#EF0027", symbol: "◈", bg: "rgba(239,0,39,0.18)",    logoUrl: "/crypto-logos/trx.png",   enabled: true },
+  { code: "bnbbsc",    label: "BNB",        network: "BNB Smart Chain (BEP20)", color: "#F0B90B", symbol: "⬡", bg: "rgba(240,185,11,0.18)", logoUrl: "/crypto-logos/bnb.png",   enabled: true },
 ];
 
-export const CRYPTO_CURRENCIES = ALLOWED_CURRENCIES;
+// Export de compatibilité (utilisé par d'autres pages si besoin)
+export const CRYPTO_CURRENCIES = DEFAULT_CRYPTO_CURRENCIES;
 
 const Recharge = () => {
   const navigate = useNavigate();
@@ -35,11 +36,11 @@ const Recharge = () => {
   const [maxAmount, setMaxAmount] = useState(100000);
   const [estimates, setEstimates] = useState<Record<string, number | null>>({});
   const [loadingEstimates, setLoadingEstimates] = useState(false);
+  const [currencies, setCurrencies] = useState<CryptoCurrency[]>(DEFAULT_CRYPTO_CURRENCIES);
   const estimateDebounce = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const currencies = ALLOWED_CURRENCIES;
 
   useEffect(() => {
-    const keys = ["deposit_amounts", "deposit_min", "deposit_max"];
+    const keys = ["deposit_amounts", "deposit_min", "deposit_max", "crypto_currencies"];
     Promise.all(keys.map((k) => fetch(`/api/site-settings/${k}`).then((r) => r.ok ? r.json() : null)))
       .then((results) => {
         results.forEach((s) => {
@@ -48,6 +49,13 @@ const Recharge = () => {
             setPresetAmounts(s.value.split(",").map(Number).filter(Boolean));
           if (s.key === "deposit_min" && s.value) setMinAmount(Number(s.value));
           if (s.key === "deposit_max" && s.value) setMaxAmount(Number(s.value));
+          if (s.key === "crypto_currencies" && s.value) {
+            try {
+              const parsed: CryptoCurrency[] = JSON.parse(s.value);
+              const active = parsed.filter(c => c.enabled !== false);
+              if (active.length > 0) setCurrencies(active);
+            } catch {}
+          }
         });
       })
       .catch(() => {});
@@ -58,7 +66,7 @@ const Recharge = () => {
     setLoadingEstimates(true);
     const results: Record<string, number | null> = {};
     await Promise.all(
-      ALLOWED_CURRENCIES.map(async (c) => {
+      currencies.map(async (c) => {
         try {
           const res = await fetch(
             `/api/nowpayments/estimate?amount=${usdAmount}&currency_from=usd&currency_to=${c.code}`
