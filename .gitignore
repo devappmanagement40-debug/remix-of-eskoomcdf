@@ -11,6 +11,12 @@ out-tsc
 # dependencies — never commit node_modules
 node_modules
 
+# PM2 logs (keep logs/ dir via .gitkeep, ignore actual log files)
+logs/*.log
+
+# Local environment — never commit secrets
+.env
+
 # IDEs and editors
 /.idea
 .project
