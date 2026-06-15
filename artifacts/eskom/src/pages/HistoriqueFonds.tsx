@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Banknote, ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuthToken } from "@/integrations/supabase/client";
 
 type FundEntry = {
   id: string;
@@ -32,17 +32,24 @@ const HistoriqueFonds = () => {
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const token = getAuthToken();
+    if (!token) { setLoading(false); return; }
+    const headers = { Authorization: `Bearer ${token}` };
 
     const [depRes, retRes] = await Promise.all([
-      supabase.from("recharges").select("id, amount, status, created_at, payment_method").eq("user_id", user.id).order("created_at", { ascending: false }),
-      supabase.from("withdrawals").select("id, amount, status, created_at, network").eq("user_id", user.id).order("created_at", { ascending: false }),
+      fetch("/api/payments/recharges/my", { headers }).then(r => r.ok ? r.json() : []),
+      fetch("/api/payments/withdrawals/my", { headers }).then(r => r.ok ? r.json() : []),
     ]);
 
     const items: FundEntry[] = [];
-    (depRes.data || []).forEach((d: any) => items.push({ id: d.id, type: "deposit", amount: d.amount, status: d.status, date: d.created_at, method: d.payment_method || "Mobile Money" }));
-    (retRes.data || []).forEach((w: any) => items.push({ id: w.id, type: "withdrawal", amount: w.amount, status: w.status, date: w.created_at, method: w.network }));
+    (Array.isArray(depRes) ? depRes : []).forEach((d: any) => items.push({
+      id: d.id, type: "deposit", amount: Number(d.amount), status: d.status,
+      date: d.createdAt ?? d.created_at, method: d.paymentMethod ?? d.payment_method ?? "Mobile Money",
+    }));
+    (Array.isArray(retRes) ? retRes : []).forEach((w: any) => items.push({
+      id: w.id, type: "withdrawal", amount: Number(w.amount), status: w.status,
+      date: w.createdAt ?? w.created_at, method: w.network,
+    }));
     items.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     setEntries(items);
     setLoading(false);
@@ -50,12 +57,8 @@ const HistoriqueFonds = () => {
 
   useEffect(() => {
     load();
-    const channel = supabase
-      .channel("fonds-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "recharges" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "withdrawals" }, () => load())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    const interval = setInterval(load, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 });

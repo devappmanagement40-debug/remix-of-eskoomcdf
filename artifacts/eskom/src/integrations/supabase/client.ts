@@ -1,17 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-import type { Database } from './types';
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_PROJECT_URL;
-const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    storage: localStorage,
-    persistSession: true,
-    autoRefreshToken: true,
-  }
-});
-
 const LOCAL_TOKEN_KEY = "ge_auth_token";
 const LOCAL_USER_KEY = "ge_auth_user";
 
@@ -87,62 +73,68 @@ export const localAuth = {
   },
 };
 
-const _origAuth = supabase.auth;
-
-const patchedGetSession = async () => {
-  const local = getLocalSession();
-  if (local) {
-    return { data: { session: local as unknown as Awaited<ReturnType<typeof _origAuth.getSession>>["data"]["session"] }, error: null };
-  }
-  return _origAuth.getSession();
-};
-
-const patchedGetUser = async () => {
-  const local = getLocalSession();
-  if (local) {
-    return { data: { user: local.user as unknown as Awaited<ReturnType<typeof _origAuth.getUser>>["data"]["user"] }, error: null };
-  }
-  return _origAuth.getUser();
-};
-
-const patchedSetSession = async (creds: { access_token: string; refresh_token: string }) => {
-  if (creds.access_token && creds.access_token.length < 500 && !creds.access_token.includes(".")) {
-    const localSession = getLocalSession();
-    const user = localSession?.user ?? { id: "unknown" };
-    setLocalSession(creds.access_token, user);
-    return { data: { session: getLocalSession() as unknown as Awaited<ReturnType<typeof _origAuth.setSession>>["data"]["session"], user: getLocalSession()?.user as unknown as Awaited<ReturnType<typeof _origAuth.setSession>>["data"]["user"] }, error: null };
-  }
-  return _origAuth.setSession(creds);
-};
-
-const patchedSignOut = async () => {
-  const token = getAuthToken();
-  if (token) {
-    try {
-      await fetch("/api/auth/logout", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-    } catch {}
-  }
-  clearLocalSession();
-  return { error: null };
-};
-
-const patchedOnAuthStateChange = (callback: Parameters<typeof _origAuth.onAuthStateChange>[0]) => {
-  const wrappedCallback: AuthListener = (event, session) => {
-    callback(event as Parameters<typeof callback>[0], session as Parameters<typeof callback>[1]);
-  };
-  return localAuth.onAuthStateChange(wrappedCallback);
-};
-
-(supabase as unknown as { auth: Record<string, unknown> }).auth = {
-  ...(_origAuth as unknown as Record<string, unknown>),
-  getSession: patchedGetSession,
-  getUser: patchedGetUser,
-  setSession: patchedSetSession,
-  signOut: patchedSignOut,
-  onAuthStateChange: patchedOnAuthStateChange,
-  signInWithPassword: _origAuth.signInWithPassword.bind(_origAuth),
-  updateUser: _origAuth.updateUser.bind(_origAuth),
-};
+export const supabase = {
+  auth: {
+    getSession: async () => {
+      const local = getLocalSession();
+      return { data: { session: local }, error: null };
+    },
+    getUser: async () => {
+      const local = getLocalSession();
+      return { data: { user: local?.user ?? null }, error: null };
+    },
+    setSession: async (creds: { access_token: string; refresh_token: string }) => {
+      const localSession = getLocalSession();
+      const user = localSession?.user ?? { id: "unknown" };
+      setLocalSession(creds.access_token, user);
+      return { data: { session: getLocalSession(), user }, error: null };
+    },
+    signOut: async () => {
+      const token = getAuthToken();
+      if (token) {
+        try {
+          await fetch("/api/auth/logout", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        } catch {}
+      }
+      clearLocalSession();
+      return { error: null };
+    },
+    onAuthStateChange: (callback: (event: string, session: LocalSession | null) => void) => {
+      return localAuth.onAuthStateChange(callback);
+    },
+  },
+  from: (_table: string) => {
+    console.warn(`supabase.from("${_table}") called — migrate this to /api calls`);
+    const stub = {
+      select: (..._args: unknown[]) => stub,
+      insert: (..._args: unknown[]) => stub,
+      update: (..._args: unknown[]) => stub,
+      delete: (..._args: unknown[]) => stub,
+      upsert: (..._args: unknown[]) => stub,
+      eq: (..._args: unknown[]) => stub,
+      neq: (..._args: unknown[]) => stub,
+      gt: (..._args: unknown[]) => stub,
+      gte: (..._args: unknown[]) => stub,
+      lt: (..._args: unknown[]) => stub,
+      lte: (..._args: unknown[]) => stub,
+      like: (..._args: unknown[]) => stub,
+      ilike: (..._args: unknown[]) => stub,
+      in: (..._args: unknown[]) => stub,
+      is: (..._args: unknown[]) => stub,
+      order: (..._args: unknown[]) => stub,
+      limit: (..._args: unknown[]) => stub,
+      single: () => Promise.resolve({ data: null, error: null }),
+      maybeSingle: () => Promise.resolve({ data: null, error: null }),
+      then: (resolve: (v: { data: null; error: null }) => void) => Promise.resolve({ data: null, error: null }).then(resolve),
+    };
+    return stub;
+  },
+  channel: (_name: string) => ({
+    on: (..._args: unknown[]) => ({ subscribe: () => {} }),
+    subscribe: () => {},
+  }),
+  removeChannel: (_channel: unknown) => {},
+} as unknown as import("@supabase/supabase-js").SupabaseClient;

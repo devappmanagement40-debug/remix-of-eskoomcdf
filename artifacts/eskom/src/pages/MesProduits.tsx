@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuthToken } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import { Info } from "lucide-react";
 
@@ -66,23 +66,39 @@ const MesProduits = () => {
   const [detailProduct, setDetailProduct] = useState<UserProduct | null>(null);
 
   const load = async () => {
+    const token = getAuthToken();
+    if (!token) { navigate("/connexion"); return; }
+    const headers = { Authorization: `Bearer ${token}` };
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/connexion"); return; }
-
       const [productsRes, seriesRes] = await Promise.all([
-        supabase
-          .from("user_products")
-          .select("*, products(name, price, daily_revenue, total_revenue, cycles, description, image_url, series_id, gain_type)")
-          .eq("user_id", user.id)
-          .order("purchased_at", { ascending: false }),
-        supabase.from("product_series").select("id, name, color"),
+        fetch("/api/products/user-products/my", { headers }).then(r => r.ok ? r.json() : []),
+        fetch("/api/products/series").then(r => r.ok ? r.json() : []),
       ]);
 
-      if (productsRes.data) setUserProducts(productsRes.data as UserProduct[]);
-      if (seriesRes.data) {
+      if (Array.isArray(productsRes)) {
+        setUserProducts(productsRes.map((p: any) => ({
+          ...p,
+          purchased_at: p.purchasedAt ?? p.purchased_at,
+          expires_at: p.expiresAt ?? p.expires_at,
+          last_collected_at: p.lastCollectedAt ?? p.last_collected_at,
+          total_collected: p.totalCollected ?? p.total_collected,
+          products: p.product ? {
+            name: p.product.name,
+            price: p.product.price,
+            daily_revenue: p.product.dailyRevenue ?? p.product.daily_revenue,
+            total_revenue: p.product.totalRevenue ?? p.product.total_revenue,
+            cycles: p.product.cycles,
+            description: p.product.description,
+            image_url: p.product.imageUrl ?? p.product.image_url,
+            series_id: p.product.seriesId ?? p.product.series_id,
+            gain_type: p.product.gainType ?? p.product.gain_type ?? "daily",
+          } : null,
+        })));
+      }
+
+      if (Array.isArray(seriesRes)) {
         const map: Record<string, Series> = {};
-        seriesRes.data.forEach((s: any) => { map[s.id] = s; });
+        seriesRes.forEach((s: any) => { map[s.id] = { id: s.id, name: s.name, color: s.color }; });
         setSeriesMap(map);
       }
     } catch (err) {
@@ -94,12 +110,9 @@ const MesProduits = () => {
 
   useEffect(() => {
     load();
-    const channel = supabase
-      .channel("mes-produits-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "user_products" }, () => load())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [navigate]);
+    const interval = setInterval(load, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const now = new Date();
 
@@ -118,19 +131,14 @@ const MesProduits = () => {
   const canCollect = (up: UserProduct) => {
     if (getStatus(up) !== "actif") return false;
     const gainType = up.products?.gain_type || "daily";
-    
     if (gainType === "blocked") {
-      // Blocked products: can only collect after cycle ends
       if (!up.purchased_at) return false;
       const purchaseDate = new Date(up.purchased_at);
       const cycles = up.products?.cycles || 365;
       const endDate = new Date(purchaseDate.getTime() + cycles * 24 * 60 * 60 * 1000);
-      // Already collected?
       if ((up.total_collected || 0) > 0) return false;
       return now >= endDate;
     }
-    
-    // Daily products: 24h cooldown
     const referenceTime = up.last_collected_at || up.purchased_at;
     if (!referenceTime) return true;
     const refDate = new Date(referenceTime);
@@ -140,28 +148,25 @@ const MesProduits = () => {
 
   const handleCollect = async (up: UserProduct) => {
     if (!canCollect(up) || collecting) return;
+    const token = getAuthToken();
+    if (!token) return;
     setCollecting(up.id);
 
     try {
-      const { data, error } = await supabase.functions.invoke("collect-revenue", {
-        body: { user_product_id: up.id },
+      const res = await fetch("/api/products/user-products/collect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ userProductId: up.id }),
       });
+      const data = await res.json();
 
-      if (error) {
-        showError("Error", "Unable to collect earnings");
-        setCollecting(null);
+      if (!res.ok) {
+        showError("Unable", data.error || "Unable to collect earnings");
         return;
       }
-
-      if (data?.error) {
-        showError("Unable", data.error);
-        setCollecting(null);
-        return;
-      }
-
       showSuccess("Earnings collected", `+${Number(data.amount).toLocaleString("en-US")} USDT credited to your account`);
       load();
-    } catch (err) {
+    } catch {
       showError("Error", "Something went wrong");
     } finally {
       setCollecting(null);
@@ -182,7 +187,6 @@ const MesProduits = () => {
     return seriesMap[seriesId]?.color || "success";
   };
 
-  // Product detail modal
   if (detailProduct) {
     const product = detailProduct.products;
     const status = getStatus(detailProduct);
@@ -198,16 +202,12 @@ const MesProduits = () => {
       <div className="min-h-screen bg-background pb-20">
         <PageHeader title="Product details" showBack />
         <div className="px-4 pt-4 space-y-4">
-          <button onClick={() => setDetailProduct(null)} className="flex items-center gap-2 text-sm text-primary font-semibold">
-            ← Back
-          </button>
-
+          <button onClick={() => setDetailProduct(null)} className="flex items-center gap-2 text-sm text-primary font-semibold">← Back</button>
           {product?.image_url && (
             <div className="w-full h-48 rounded-xl overflow-hidden border border-secondary">
               <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
             </div>
           )}
-
           <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
             <h2 className="text-lg font-bold text-foreground">{product?.name}</h2>
             <div className="grid grid-cols-2 gap-3">
@@ -240,18 +240,13 @@ const MesProduits = () => {
                 </div>
               )}
             </div>
-            <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
-              status === "actif" ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"
-            }`}>
+            <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${status === "actif" ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}>
               {status === "actif" ? "Active" : "Ended"}
             </div>
           </div>
-
           {product?.description && (
             <div className="bg-card rounded-xl border border-secondary p-4">
-              <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-2">
-                <Info size={16} className="text-primary" /> Information
-              </h3>
+              <h3 className="text-sm font-bold text-foreground mb-2 flex items-center gap-2"><Info size={16} className="text-primary" /> Information</h3>
               <p className="text-sm text-muted-foreground whitespace-pre-line">{product.description}</p>
             </div>
           )}
@@ -265,16 +260,13 @@ const MesProduits = () => {
     <div className="min-h-screen bg-background pb-20">
       <PageHeader title="My products" showBack />
       <div className="px-4 pt-4">
-        {/* Tabs */}
         <div className="flex gap-2 mb-5">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={`flex-1 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-                activeTab === tab.key
-                  ? "bg-gradient-to-r from-success to-success/80 text-success-foreground"
-                  : "bg-secondary text-muted-foreground"
+                activeTab === tab.key ? "bg-gradient-to-r from-success to-success/80 text-success-foreground" : "bg-secondary text-muted-foreground"
               }`}
             >
               {tab.label}
@@ -300,15 +292,11 @@ const MesProduits = () => {
               const gainType = product.gain_type || "daily";
               const totalRevenue = gainType === "blocked" ? Number(product.total_revenue) || 0 : dailyRevenue * cycles;
               const earnedSoFar = up.total_collected || 0;
-              const purchaseDate = up.purchased_at
-                ? new Date(up.purchased_at).toLocaleDateString("en-US", { timeZone: "America/Port-au-Prince" })
-                : "—";
+              const purchaseDate = up.purchased_at ? new Date(up.purchased_at).toLocaleDateString("en-US", { timeZone: "America/Port-au-Prince" }) : "—";
               const collectible = canCollect(up);
               const color = getColor(up);
               const gradient = seriesGradients[color] || seriesGradients.success;
               const textColor = seriesTextColors[color] || seriesTextColors.success;
-
-              // For blocked products, calculate remaining days
               const isBlocked = gainType === "blocked";
               let daysRemaining = 0;
               let cycleProgress = 0;
@@ -321,20 +309,13 @@ const MesProduits = () => {
 
               return (
                 <div key={up.id} className="bg-card rounded-xl border border-secondary overflow-hidden">
-                  {/* Product image small + header */}
-                  <div
-                    className="flex items-center gap-3 px-4 py-2.5 bg-gradient-to-r from-success to-success/70 cursor-pointer"
-                    onClick={() => setDetailProduct(up)}
-                  >
+                  <div className="flex items-center gap-3 px-4 py-2.5 bg-gradient-to-r from-success to-success/70 cursor-pointer" onClick={() => setDetailProduct(up)}>
                     {product.image_url && (
                       <div className="w-10 h-10 rounded-lg overflow-hidden border border-white/20 shrink-0">
                         <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
                       </div>
                     )}
-                    <span className="text-sm font-bold text-success-foreground flex-1">
-                      {product.name}
-                      {isBlocked && <span className="ml-1.5 text-[10px] opacity-80">🔒</span>}
-                    </span>
+                    <span className="text-sm font-bold text-success-foreground flex-1">{product.name}{isBlocked && <span className="ml-1.5 text-[10px] opacity-80">🔒</span>}</span>
                     <div className="text-right">
                       <span className="text-xs text-success-foreground/80 block">{isBlocked ? "Purchase date" : "Collect time"}</span>
                       <span className="text-xs font-semibold text-success-foreground">{purchaseDate}</span>
@@ -342,12 +323,9 @@ const MesProduits = () => {
                   </div>
 
                   <div className="px-4 py-3 space-y-2.5">
-                    {/* Revenu Total */}
                     <div className="flex items-center justify-between">
                       <span className={`text-sm font-semibold ${textColor}`}>{isBlocked ? "Expected gain" : "Total revenue"}</span>
-                      <span className="text-lg font-bold text-foreground">
-                        {totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">USDT</span>
-                      </span>
+                      <span className="text-lg font-bold text-foreground">{totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2 })} <span className="text-xs font-normal text-muted-foreground">USDT</span></span>
                     </div>
 
                     <div className="space-y-1.5">
@@ -359,21 +337,10 @@ const MesProduits = () => {
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-muted-foreground">Days remaining</span>
-                            <span className={`text-sm font-semibold ${daysRemaining > 0 ? "text-warning" : "text-success"}`}>
-                              {daysRemaining > 0 ? `${daysRemaining} day${daysRemaining > 1 ? "s" : ""}` : "Ended ✅"}
-                            </span>
+                            <span className={`text-sm font-semibold ${daysRemaining > 0 ? "text-warning" : "text-success"}`}>{daysRemaining > 0 ? `${daysRemaining} day${daysRemaining > 1 ? "s" : ""}` : "Ended ✅"}</span>
                           </div>
-                          {/* Progress bar */}
                           <div className="relative h-2.5 w-full rounded-full bg-muted overflow-hidden mt-1">
-                            <div
-                              className="h-full rounded-full transition-all duration-700"
-                              style={{
-                                width: `${cycleProgress}%`,
-                                background: daysRemaining > 0 
-                                  ? 'linear-gradient(90deg, hsl(45 93% 47%), hsl(36 100% 50%))' 
-                                  : 'linear-gradient(90deg, hsl(142 71% 45%), hsl(142 76% 36%))',
-                              }}
-                            />
+                            <div className="h-full rounded-full transition-all duration-700" style={{ width: `${cycleProgress}%`, background: daysRemaining > 0 ? 'linear-gradient(90deg, hsl(45 93% 47%), hsl(36 100% 50%))' : 'linear-gradient(90deg, hsl(142 71% 45%), hsl(142 76% 36%))' }} />
                           </div>
                           {earnedSoFar > 0 && (
                             <div className="flex items-center justify-between">
@@ -386,9 +353,7 @@ const MesProduits = () => {
                         <>
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-muted-foreground">Earnings received</span>
-                            <span className="text-sm text-foreground">
-                              {Number(earnedSoFar).toLocaleString("en-US", { minimumFractionDigits: 2 })} <span className="text-xs text-muted-foreground">USDT</span>
-                            </span>
+                            <span className="text-sm text-foreground">{Number(earnedSoFar).toLocaleString("en-US", { minimumFractionDigits: 2 })} <span className="text-xs text-muted-foreground">USDT</span></span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-muted-foreground">Validity period</span>
@@ -402,7 +367,6 @@ const MesProduits = () => {
                       )}
                     </div>
 
-                    {/* Collect button - hidden for blocked products during cycle */}
                     {isBlocked && daysRemaining > 0 && earnedSoFar === 0 ? (
                       <div className="w-full py-3 rounded-xl text-sm font-semibold mt-2 bg-warning/10 text-warning text-center border border-warning/20">
                         🔒 Earnings locked — {daysRemaining}d remaining

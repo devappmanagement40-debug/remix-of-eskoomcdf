@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { localAuth, getAuthToken } from "@/integrations/supabase/client";
 
 export type ProfileData = {
   balance: number;
@@ -30,50 +30,48 @@ export const useRealtimeProfile = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = useCallback(async (uid?: string) => {
-    const targetId = uid ?? userId;
-    if (!targetId) { setLoading(false); return; }
+  const fetchProfile = useCallback(async () => {
+    const token = getAuthToken();
+    if (!token) { setLoading(false); return; }
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("balance, deposit_balance, earnings_balance, referral_balance, gift_points, vip_level, phone, referral_code, full_name")
-        .eq("user_id", targetId)
-        .single();
-
-      if (error || !data) { setLoading(false); return; }
+      const res = await fetch("/api/profiles/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) { setLoading(false); return; }
+      const data = await res.json();
 
       setProfile({
         balance: Number(data.balance ?? 0),
-        deposit_balance: Number(data.deposit_balance ?? 0),
-        earnings_balance: Number(data.earnings_balance ?? 0),
-        referral_balance: Number(data.referral_balance ?? 0),
-        gift_points: Number(data.gift_points ?? 0),
-        vip_level: Number(data.vip_level ?? 0),
+        deposit_balance: Number(data.depositBalance ?? data.deposit_balance ?? 0),
+        earnings_balance: Number(data.earningsBalance ?? data.earnings_balance ?? 0),
+        referral_balance: Number(data.referralBalance ?? data.referral_balance ?? 0),
+        gift_points: Number(data.giftPoints ?? data.gift_points ?? 0),
+        vip_level: Number(data.vipLevel ?? data.vip_level ?? 0),
         phone: data.phone ?? "",
-        referral_code: data.referral_code ?? null,
-        full_name: data.full_name ?? null,
+        referral_code: data.referralCode ?? data.referral_code ?? null,
+        full_name: data.fullName ?? data.full_name ?? null,
       });
+      if (data.userId ?? data.user_id) {
+        setUserId(data.userId ?? data.user_id);
+      }
     } catch (err) {
       console.error("Profile load error:", err);
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user?.id) {
-        setUserId(session.user.id);
-        fetchProfile(session.user.id);
-      } else {
-        setLoading(false);
-      }
-    });
+    const session = localAuth.getSession();
+    if (session?.user?.id) {
+      setUserId(session.user.id);
+    }
+    fetchProfile();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = localAuth.onAuthStateChange((_event, session) => {
       const uid = session?.user?.id ?? null;
       setUserId(uid);
-      if (uid) fetchProfile(uid);
+      if (uid) fetchProfile();
       else { setProfile(defaults); setLoading(false); }
     });
 

@@ -3,7 +3,7 @@ import { useActionPopup } from "@/components/ActionPopupProvider";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuthToken } from "@/integrations/supabase/client";
 
 const EchangerCode = () => {
   const [code, setCode] = useState("");
@@ -12,80 +12,24 @@ const EchangerCode = () => {
 
   const handleConfirm = async () => {
     const trimmed = code.trim().toUpperCase();
-    if (!trimmed) {
-      showError("Error", "Please enter a code");
-      return;
-    }
+    if (!trimmed) { showError("Error", "Please enter a code"); return; }
+
+    const token = getAuthToken();
+    if (!token) { showError("Error", "You must be logged in"); return; }
 
     setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { showError("Error", "You must be logged in"); return; }
-
-      // Find the code
-      const { data: giftCode } = await supabase
-        .from("gift_codes")
-        .select("*")
-        .eq("code", trimmed)
-        .eq("is_active", true)
-        .single();
-
-      if (!giftCode) {
-        showError("Invalid code", "This code is invalid or has already been deactivated");
+      const res = await fetch("/api/gift-codes/redeem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ code: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showError("Error", data.error || "An error occurred while redeeming the code");
         return;
       }
-
-      // Check expiration
-      if ((giftCode as any).expires_at && new Date((giftCode as any).expires_at) < new Date()) {
-        showError("Expired code", "This code has expired and can no longer be used");
-        return;
-      }
-
-      // Check max uses
-      if ((giftCode as any).used_count >= (giftCode as any).max_uses) {
-        showError("Code exhausted", "This code has reached its maximum number of uses");
-        return;
-      }
-
-      // Check if user already used this code
-      const { count } = await supabase
-        .from("gift_code_uses")
-        .select("*", { count: "exact", head: true })
-        .eq("code_id", giftCode.id)
-        .eq("user_id", user.id);
-
-      if ((count || 0) > 0) {
-        showError("Already used", "You have already used this code");
-        return;
-      }
-
-      // Credit points to user
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("gift_points")
-        .eq("user_id", user.id)
-        .single();
-
-      const currentPoints = (profile as any)?.gift_points || 0;
-      const pointsValue = (giftCode as any).points_value;
-
-      await supabase.from("profiles").update({
-        gift_points: currentPoints + pointsValue,
-      } as any).eq("user_id", user.id);
-
-      // Record usage
-      await supabase.from("gift_code_uses").insert({
-        code_id: giftCode.id,
-        user_id: user.id,
-        points_awarded: pointsValue,
-      } as any);
-
-      // Increment used_count
-      await supabase.from("gift_codes").update({
-        used_count: (giftCode as any).used_count + 1,
-      } as any).eq("id", giftCode.id);
-
-      showSuccess("Code redeemed successfully ✅", `You received ${pointsValue} GE (GE Currency)!`);
+      showSuccess("Code redeemed successfully ✅", `You received ${data.pointsAwarded} GE (GE Currency)!`);
       setCode("");
     } catch (err) {
       console.error("Exchange code error:", err);
@@ -99,7 +43,6 @@ const EchangerCode = () => {
     <div className="min-h-screen bg-background pb-20">
       <PageHeader title="Redeem Code" showBack />
 
-      {/* Mascot area */}
       <div className="relative bg-card mx-4 mt-4 rounded-2xl overflow-hidden border border-border">
         <div className="flex items-center justify-center py-12">
           <svg width="160" height="180" viewBox="0 0 160 180" fill="none" xmlns="http://www.w3.org/2000/svg">

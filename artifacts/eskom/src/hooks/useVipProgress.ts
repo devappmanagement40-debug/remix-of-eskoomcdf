@@ -1,18 +1,5 @@
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-
-type VipCondition = {
-  id: string;
-  level: number;
-  level_name: string;
-  min_investment: number;
-  min_active_members: number;
-  min_purchases: number;
-  min_products_bought: number;
-  min_team_investment: number;
-  condition_logic: string;
-  image_url?: string | null;
-};
+import { getAuthToken } from "@/integrations/supabase/client";
 
 type CriterionProgress = {
   label: string;
@@ -49,54 +36,60 @@ export const useVipProgress = (userId: string | null, vipLevel: number, balance:
 
   useEffect(() => {
     if (!userId) { setLoading(false); return; }
+    const token = getAuthToken();
+    if (!token) { setLoading(false); return; }
     let cancelled = false;
 
     const compute = async () => {
       try {
+        const headers = { Authorization: `Bearer ${token}` };
         const [conditionsRes, userProductsRes, settingRes, myProfileRes, teamRes] = await Promise.all([
-          supabase.from("vip_conditions").select("*").order("level", { ascending: true }),
-          supabase.from("user_products").select("*").eq("user_id", userId).eq("is_active", true),
-          supabase.from("site_settings").select("value").eq("key", "vip_conditions_enabled").limit(1).maybeSingle(),
-          supabase.from("profiles").select("deposit_balance").eq("user_id", userId).single(),
-          supabase.from("profiles").select("user_id, deposit_balance").eq("referred_by", userId),
+          fetch("/api/vip-conditions").then(r => r.ok ? r.json() : []),
+          fetch("/api/products/user-products/my", { headers }).then(r => r.ok ? r.json() : []),
+          fetch("/api/site-settings/vip_conditions_enabled").then(r => r.ok ? r.json() : null),
+          fetch("/api/profiles/me", { headers }).then(r => r.ok ? r.json() : null),
+          fetch("/api/profiles/team/direct", { headers }).then(r => r.ok ? r.json() : []),
         ]);
 
         if (cancelled) return;
 
-        const conditions = conditionsRes.data ?? [];
+        const conditions = Array.isArray(conditionsRes) ? conditionsRes : [];
         if (conditions.length === 0) { setLoading(false); return; }
 
-        const vipConditionsEnabled = settingRes.data?.value !== "false";
-        const upList = userProductsRes.data ?? [];
+        const vipConditionsEnabled = settingRes?.value !== "false";
+        const upList = Array.isArray(userProductsRes) ? userProductsRes : [];
         const totalPurchases = upList.length;
-        const uniqueProducts = new Set(upList.map((up: any) => up.product_id)).size;
-        const personalInvestment = Number(myProfileRes.data?.deposit_balance ?? 0);
+        const uniqueProducts = new Set(upList.map((up: any) => up.productId ?? up.product_id)).size;
+        const personalInvestment = Number(myProfileRes?.depositBalance ?? myProfileRes?.deposit_balance ?? 0);
 
-        const team = teamRes.data ?? [];
-        const teamUserIds = team.map((m: any) => m.user_id);
-        const teamInvestment = team.reduce((s: number, m: any) => s + Number(m.deposit_balance ?? 0), 0);
+        const team = Array.isArray(teamRes) ? teamRes : [];
+        const teamUserIds = team.map((m: any) => m.userId ?? m.user_id);
+        const teamInvestment = team.reduce((s: number, m: any) => s + Number(m.depositBalance ?? m.deposit_balance ?? 0), 0);
 
         let activeMembers = 0;
         if (teamUserIds.length > 0) {
-          const { data: teamProds } = await supabase
-            .from("user_products")
-            .select("user_id")
-            .in("user_id", teamUserIds);
-          if (!cancelled) {
-            activeMembers = new Set((teamProds ?? []).map((tp: any) => tp.user_id)).size;
+          const teamProdsRes = await fetch(`/api/products/user-products/active-by-users?userIds=${teamUserIds.join(",")}`, { headers });
+          if (!cancelled && teamProdsRes.ok) {
+            const teamProds = await teamProdsRes.json();
+            activeMembers = new Set((Array.isArray(teamProds) ? teamProds : []).map((tp: any) => tp.userId ?? tp.user_id)).size;
           }
         }
 
         if (cancelled) return;
 
         const checkConditions = (cond: any) => {
-          const logic = cond.condition_logic || "AND";
+          const logic = cond.conditionLogic ?? cond.condition_logic ?? "AND";
           const checks: boolean[] = [];
-          if ((cond.min_investment || 0) > 0) checks.push(personalInvestment >= cond.min_investment);
-          if ((cond.min_active_members || 0) > 0) checks.push(activeMembers >= cond.min_active_members);
-          if ((cond.min_purchases || 0) > 0) checks.push(totalPurchases >= cond.min_purchases);
-          if ((cond.min_products_bought || 0) > 0) checks.push(uniqueProducts >= cond.min_products_bought);
-          if ((cond.min_team_investment || 0) > 0) checks.push(teamInvestment >= cond.min_team_investment);
+          const minInv = cond.minInvestment ?? cond.min_investment ?? 0;
+          const minMem = cond.minActiveMembers ?? cond.min_active_members ?? 0;
+          const minPur = cond.minPurchases ?? cond.min_purchases ?? 0;
+          const minProd = cond.minProductsBought ?? cond.min_products_bought ?? 0;
+          const minTeam = cond.minTeamInvestment ?? cond.min_team_investment ?? 0;
+          if (minInv > 0) checks.push(personalInvestment >= minInv);
+          if (minMem > 0) checks.push(activeMembers >= minMem);
+          if (minPur > 0) checks.push(totalPurchases >= minPur);
+          if (minProd > 0) checks.push(uniqueProducts >= minProd);
+          if (minTeam > 0) checks.push(teamInvestment >= minTeam);
           if (checks.length === 0) return false;
           return logic === "AND" ? checks.every(Boolean) : checks.some(Boolean);
         };
@@ -114,8 +107,8 @@ export const useVipProgress = (userId: string | null, vipLevel: number, balance:
           if (!next) {
             setData({
               currentLevel: effectiveLevel,
-              currentLevelName: current?.level_name || `VIP${effectiveLevel}`,
-              currentLevelImage: current?.image_url || null,
+              currentLevelName: current?.levelName ?? current?.level_name ?? `VIP${effectiveLevel}`,
+              currentLevelImage: current?.imageUrl ?? current?.image_url ?? null,
               nextLevel: null,
               nextLevelName: null,
               overallProgress: 100,
@@ -126,14 +119,19 @@ export const useVipProgress = (userId: string | null, vipLevel: number, balance:
           }
 
           const nc = next as any;
-          const logic = nc.condition_logic || "AND";
+          const logic = nc.conditionLogic ?? nc.condition_logic ?? "AND";
           const criteria: CriterionProgress[] = [];
+          const minInv = nc.minInvestment ?? nc.min_investment ?? 0;
+          const minMem = nc.minActiveMembers ?? nc.min_active_members ?? 0;
+          const minPur = nc.minPurchases ?? nc.min_purchases ?? 0;
+          const minProd = nc.minProductsBought ?? nc.min_products_bought ?? 0;
+          const minTeam = nc.minTeamInvestment ?? nc.min_team_investment ?? 0;
 
-          if (nc.min_investment > 0) criteria.push({ label: "Investissement personnel", current: personalInvestment, required: nc.min_investment, met: personalInvestment >= nc.min_investment });
-          if (nc.min_active_members > 0) criteria.push({ label: "Membres actifs", current: activeMembers, required: nc.min_active_members, met: activeMembers >= nc.min_active_members });
-          if (nc.min_purchases > 0) criteria.push({ label: "Achats totaux", current: totalPurchases, required: nc.min_purchases, met: totalPurchases >= nc.min_purchases });
-          if (nc.min_products_bought > 0) criteria.push({ label: "Produits différents", current: uniqueProducts, required: nc.min_products_bought, met: uniqueProducts >= nc.min_products_bought });
-          if ((nc.min_team_investment || 0) > 0) criteria.push({ label: "Invest. équipe", current: teamInvestment, required: nc.min_team_investment, met: teamInvestment >= nc.min_team_investment });
+          if (minInv > 0) criteria.push({ label: "Investissement personnel", current: personalInvestment, required: minInv, met: personalInvestment >= minInv });
+          if (minMem > 0) criteria.push({ label: "Membres actifs", current: activeMembers, required: minMem, met: activeMembers >= minMem });
+          if (minPur > 0) criteria.push({ label: "Achats totaux", current: totalPurchases, required: minPur, met: totalPurchases >= minPur });
+          if (minProd > 0) criteria.push({ label: "Produits différents", current: uniqueProducts, required: minProd, met: uniqueProducts >= minProd });
+          if (minTeam > 0) criteria.push({ label: "Invest. équipe", current: teamInvestment, required: minTeam, met: teamInvestment >= minTeam });
 
           const allMet = criteria.length === 0 ? false : logic === "AND" ? criteria.every(c => c.met) : criteria.some(c => c.met);
           let overallProgress = 0;
@@ -144,10 +142,10 @@ export const useVipProgress = (userId: string | null, vipLevel: number, balance:
 
           setData({
             currentLevel: effectiveLevel,
-            currentLevelName: current?.level_name || `VIP${effectiveLevel}`,
-            currentLevelImage: current?.image_url || null,
+            currentLevelName: current?.levelName ?? current?.level_name ?? `VIP${effectiveLevel}`,
+            currentLevelImage: current?.imageUrl ?? current?.image_url ?? null,
             nextLevel: nc.level,
-            nextLevelName: nc.level_name,
+            nextLevelName: nc.levelName ?? nc.level_name,
             overallProgress: Math.min(Math.round(overallProgress), 100),
             criteria,
             allMet,

@@ -5,7 +5,6 @@ import BottomNav from "@/components/BottomNav";
 import FloatingButtons from "@/components/FloatingButtons";
 import PremiumModal from "@/components/PremiumModal";
 import InviteModal from "@/components/InviteModal";
-import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import bannerHome from "@/assets/banner-home.jpg";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -43,18 +42,31 @@ const Index = () => {
     const loadData = async () => {
       try {
         const [bannersRes, productsRes, annoncesRes] = await Promise.allSettled([
-          supabase.from("banners").select("image_url, link_path").eq("is_active", true).order("sort_order"),
-          supabase.from("products").select("*").eq("is_active", true).eq("is_featured", true).order("sort_order"),
-          supabase.from("info_items").select("*").eq("is_active", true).order("sort_order"),
+          fetch("/api/banners").then(r => r.ok ? r.json() : []),
+          fetch("/api/products?featured=true").then(r => r.ok ? r.json() : []),
+          fetch("/api/info-items").then(r => r.ok ? r.json() : []),
         ]);
-        if (bannersRes.status === "fulfilled" && bannersRes.value.data?.length) {
-          setBanners(bannersRes.value.data.map(b => ({ ...b, link_path: b.link_path ?? "/" })));
+        if (bannersRes.status === "fulfilled" && Array.isArray(bannersRes.value) && bannersRes.value.length) {
+          setBanners(bannersRes.value.map((b: any) => ({
+            image_url: b.imageUrl ?? b.image_url,
+            link_path: b.linkPath ?? b.link_path ?? "/",
+          })));
         }
-        if (productsRes.status === "fulfilled" && productsRes.value.data) {
-          setFeaturedProducts(productsRes.value.data);
+        if (productsRes.status === "fulfilled" && Array.isArray(productsRes.value)) {
+          setFeaturedProducts(productsRes.value.map((p: any) => ({
+            ...p,
+            image_url: p.imageUrl ?? p.image_url,
+            return_percent: p.returnPercent ?? p.return_percent,
+            total_revenue: p.totalRevenue ?? p.total_revenue,
+            daily_revenue: p.dailyRevenue ?? p.daily_revenue,
+            is_new: p.isNew ?? p.is_new,
+          })));
         }
-        if (annoncesRes.status === "fulfilled" && annoncesRes.value.data) {
-          setAnnonces(annoncesRes.value.data);
+        if (annoncesRes.status === "fulfilled" && Array.isArray(annoncesRes.value)) {
+          setAnnonces(annoncesRes.value.map((i: any) => ({
+            ...i,
+            image_url: i.imageUrl ?? i.image_url,
+          })));
         }
       } catch (err) {
         console.error("Index load error:", err);
@@ -65,10 +77,14 @@ const Index = () => {
 
   useEffect(() => {
     setShowPromo(false);
-    const timer = setTimeout(() => {
-      supabase.from("popup_messages").select("id").eq("trigger_key", "welcome_promo").eq("is_active", true).maybeSingle().then(({ data }) => {
-        if (data) setShowPromo(true);
-      });
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/popup-messages?triggerKey=welcome_promo");
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) setShowPromo(true);
+        }
+      } catch {}
     }, 1000);
     return () => clearTimeout(timer);
   }, [location.key]);

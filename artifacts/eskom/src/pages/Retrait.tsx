@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuthToken } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
-import { AlertTriangle, Wallet, ArrowUpRight, Clock } from "lucide-react";
+import { AlertTriangle, ArrowUpRight, Clock } from "lucide-react";
 import PremiumModal from "@/components/PremiumModal";
 
 type WalletItem = {
@@ -25,7 +25,7 @@ function formatWalletOption(w: WalletItem): string {
 
 const Retrait = () => {
   const navigate = useNavigate();
-  const { showError, showSuccess: showSuccessPopup } = useActionPopup();
+  const { showError } = useActionPopup();
   const [wallets, setWallets] = useState<WalletItem[]>([]);
   const [selectedWallet, setSelectedWallet] = useState("");
   const [amount, setAmount] = useState("");
@@ -54,54 +54,53 @@ const Retrait = () => {
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
+    const token = getAuthToken();
+    if (!token) { navigate("/connexion"); return; }
+    const headers = { Authorization: `Bearer ${token}` };
+
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { navigate("/connexion"); return; }
-
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
-
       const [walletsRes, profileRes, settingsRes, todayRes] = await Promise.all([
-        supabase.from("user_wallets").select("*").eq("user_id", user.id),
-        supabase.from("profiles").select("balance, deposit_balance, earnings_balance, referral_balance").eq("user_id", user.id).single(),
-        supabase.from("site_settings").select("key, value").in("key", [
-          "deposit_not_withdrawable", "withdrawal_amounts", "withdrawal_min",
-          "withdrawal_max", "withdrawal_fee_percent", "withdrawal_rules",
-          "max_withdrawals_per_day", "max_withdrawals_enabled",
-          "withdrawal_enabled", "withdrawal_days", "withdrawal_hour_start", "withdrawal_hour_end",
-        ]),
-        supabase.from("withdrawals").select("id").eq("user_id", user.id).gte("created_at", todayStart.toISOString()),
+        fetch("/api/user-wallets/my", { headers }).then(r => r.ok ? r.json() : []),
+        fetch("/api/profiles/me", { headers }).then(r => r.ok ? r.json() : null),
+        fetch("/api/site-settings").then(r => r.ok ? r.json() : []),
+        fetch("/api/payments/withdrawals/my?since=today", { headers }).then(r => r.ok ? r.json() : []),
       ]);
 
-      if (walletsRes.data) setWallets(walletsRes.data);
+      if (Array.isArray(walletsRes)) setWallets(walletsRes.map((w: any) => ({
+        id: w.id, phone: w.phone, country_code: w.countryCode ?? w.country_code, network: w.network, label: w.label,
+      })));
 
+      const settingsArr: any[] = Array.isArray(settingsRes) ? settingsRes : [];
       let dnw = true;
       let wEnabled = true;
       let wDays = [1,2,3,4,5,6,7];
       let wHourStart = 0;
       let wHourEnd = 24;
-      if (settingsRes.data) {
-        settingsRes.data.forEach(s => {
-          if (s.key === "deposit_not_withdrawable") dnw = s.value === "true";
-          if (s.key === "withdrawal_amounts" && s.value) setPresetAmounts(s.value.split(",").map(Number).filter(Boolean));
-          if (s.key === "withdrawal_min" && s.value) setMinAmount(Number(s.value));
-          if (s.key === "withdrawal_max" && s.value) setMaxAmount(Number(s.value));
-          if (s.key === "withdrawal_fee_percent" && s.value) setFeePercent(Number(s.value));
-          if (s.key === "max_withdrawals_per_day" && s.value) setMaxWithdrawalsPerDay(Number(s.value));
-          if (s.key === "max_withdrawals_enabled") setMaxWithdrawalsEnabled(s.value !== "false");
-          if (s.key === "withdrawal_enabled") wEnabled = s.value !== "false";
-          if (s.key === "withdrawal_days" && s.value) wDays = s.value.split(",").map(Number).filter(Boolean);
-          if (s.key === "withdrawal_hour_start" && s.value) wHourStart = Number(s.value);
-          if (s.key === "withdrawal_hour_end" && s.value) wHourEnd = Number(s.value);
-          if (s.key === "withdrawal_rules" && s.value) {
-            const parsed = s.value
-              .replace("{min}", String(Number(settingsRes.data?.find(x => x.key === "withdrawal_min")?.value || 800).toLocaleString()))
-              .replace("{max}", String(Number(settingsRes.data?.find(x => x.key === "withdrawal_max")?.value || 500000).toLocaleString()))
-              .replace("{fee}", settingsRes.data?.find(x => x.key === "withdrawal_fee_percent")?.value || "10");
-            setRules(parsed.split("|"));
-          }
-        });
-      }
+      let wMin = 800, wMax = 500000, wFee = 10;
+
+      settingsArr.forEach((s: any) => {
+        const key = s.key;
+        const value = s.value;
+        if (key === "deposit_not_withdrawable") dnw = value === "true";
+        if (key === "withdrawal_amounts" && value) setPresetAmounts(value.split(",").map(Number).filter(Boolean));
+        if (key === "withdrawal_min" && value) { wMin = Number(value); setMinAmount(Number(value)); }
+        if (key === "withdrawal_max" && value) { wMax = Number(value); setMaxAmount(Number(value)); }
+        if (key === "withdrawal_fee_percent" && value) { wFee = Number(value); setFeePercent(Number(value)); }
+        if (key === "max_withdrawals_per_day" && value) setMaxWithdrawalsPerDay(Number(value));
+        if (key === "max_withdrawals_enabled") setMaxWithdrawalsEnabled(value !== "false");
+        if (key === "withdrawal_enabled") wEnabled = value !== "false";
+        if (key === "withdrawal_days" && value) wDays = value.split(",").map(Number).filter(Boolean);
+        if (key === "withdrawal_hour_start" && value) wHourStart = Number(value);
+        if (key === "withdrawal_hour_end" && value) wHourEnd = Number(value);
+        if (key === "withdrawal_rules" && value) {
+          const parsed = value
+            .replace("{min}", String(wMin.toLocaleString()))
+            .replace("{max}", String(wMax.toLocaleString()))
+            .replace("{fee}", String(wFee));
+          setRules(parsed.split("|"));
+        }
+      });
+
       setDepositNotWithdrawable(dnw);
       setWithdrawalEnabled(wEnabled);
       setWithdrawalDays(wDays);
@@ -118,8 +117,7 @@ const Retrait = () => {
         setScheduleMessage("Withdrawals are temporarily disabled.");
       } else if (!wDays.includes(dayOfWeek)) {
         setIsWithinSchedule(false);
-        const allowedDayNames = wDays.map(d => dayNames[d]).join(", ");
-        setScheduleMessage(`Withdrawals are available only on: ${allowedDayNames}.`);
+        setScheduleMessage(`Withdrawals are available only on: ${wDays.map(d => dayNames[d]).join(", ")}.`);
       } else if (currentHour < wHourStart || currentHour >= wHourEnd) {
         setIsWithinSchedule(false);
         setScheduleMessage(`Withdrawals are available only from ${wHourStart}:00 to ${wHourEnd}:00.`);
@@ -128,14 +126,15 @@ const Retrait = () => {
         setScheduleMessage("");
       }
 
-      if (todayRes.data) setTodayWithdrawals(todayRes.data.length);
+      if (Array.isArray(todayRes)) setTodayWithdrawals(todayRes.length);
 
-      if (profileRes.data) {
-        const eb = profileRes.data.earnings_balance || 0;
-        const rb = profileRes.data.referral_balance || 0;
+      if (profileRes) {
+        const eb = profileRes.earningsBalance ?? profileRes.earnings_balance ?? 0;
+        const rb = profileRes.referralBalance ?? profileRes.referral_balance ?? 0;
+        const bal = profileRes.balance ?? 0;
         setEarningsBalance(eb);
         setReferralBalance(rb);
-        setWithdrawableBalance(dnw ? eb + rb : profileRes.data.balance || 0);
+        setWithdrawableBalance(dnw ? eb + rb : bal);
       }
     } catch (err) {
       console.error("Load error:", err);
@@ -160,55 +159,47 @@ const Retrait = () => {
     if (numAmount > maxAmount) { showError("Error", `Maximum amount: ${maxAmount.toLocaleString()} USDT`); return; }
     if (numAmount > withdrawableBalance) { showError("Error", "Insufficient withdrawable balance"); return; }
 
-    setSubmitting(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    const token = getAuthToken();
+    if (!token) return;
 
     const wallet = wallets.find(w => w.id === selectedWallet);
     if (!wallet) return;
 
-    const { error } = await supabase.from("withdrawals").insert({
-      user_id: user.id, wallet_id: wallet.id, amount: numAmount,
-      fee_amount: feeAmount, net_amount: netAmount,
-      phone: wallet.phone, country_code: wallet.country_code, network: wallet.network,
-    });
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/payments/withdrawals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          walletId: wallet.id,
+          amount: numAmount,
+          feeAmount,
+          netAmount,
+          phone: wallet.phone,
+          countryCode: wallet.country_code,
+          network: wallet.network,
+        }),
+      });
 
-    if (error) {
-      showError("Error", "Withdrawal request failed");
-    } else {
-      const { data: pointSetting } = await supabase.from("site_settings")
-        .select("value").eq("key", "points_per_withdrawal").single();
-      const withdrawalPoints = Number(pointSetting?.value) || 0;
-      if (withdrawalPoints > 0) {
-        const { data: freshProfile } = await supabase.from("profiles")
-          .select("gift_points").eq("user_id", user.id).single();
-        if (freshProfile) {
-          await supabase.from("profiles").update({
-            gift_points: ((freshProfile as any).gift_points || 0) + withdrawalPoints,
-          }).eq("user_id", user.id);
-        }
+      if (res.ok) {
+        setShowSuccess(true);
+      } else {
+        const data = await res.json();
+        showError("Error", data.error || "Withdrawal request failed");
       }
-      setShowSuccess(true);
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   };
 
   const canSubmit = !submitting && wallets.length > 0 && numAmount >= minAmount && numAmount <= withdrawableBalance && isWithinSchedule;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
-    );
-  }
+  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
 
   return (
     <div className="min-h-screen bg-background pb-10">
       <PageHeader title="Withdraw" showBack />
-
       <div className="px-4 pt-6 space-y-4">
-        {/* Balance */}
         <div className="bg-card rounded-2xl border border-border/30 p-5 text-center">
           <p className="text-xs text-muted-foreground mb-1">Withdrawable balance</p>
           <p className="text-3xl font-bold text-foreground">{withdrawableBalance.toLocaleString("en-US")} <span className="text-sm font-normal text-muted-foreground">USDT</span></p>
@@ -220,21 +211,14 @@ const Retrait = () => {
           )}
         </div>
 
-        {/* Schedule info */}
         <div className="bg-card rounded-2xl border border-border/30 p-4">
           <div className="flex items-center gap-2 mb-2">
             <Clock size={14} className="text-primary" />
             <label className="text-xs font-semibold text-foreground">Withdrawal schedule</label>
           </div>
           <div className="space-y-1">
-            <p className="text-xs text-muted-foreground">
-              Hours: <span className="font-semibold text-foreground">{withdrawalHourStart}:00 – {withdrawalHourEnd}:00</span>
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Days: <span className="font-semibold text-foreground">
-                {withdrawalDays.length === 7 ? "Monday to Sunday" : withdrawalDays.map(d => ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][d]).join(", ")}
-              </span>
-            </p>
+            <p className="text-xs text-muted-foreground">Hours: <span className="font-semibold text-foreground">{withdrawalHourStart}:00 – {withdrawalHourEnd}:00</span></p>
+            <p className="text-xs text-muted-foreground">Days: <span className="font-semibold text-foreground">{withdrawalDays.length === 7 ? "Monday to Sunday" : withdrawalDays.map(d => ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"][d]).join(", ")}</span></p>
           </div>
           {!isWithinSchedule && (
             <div className="flex items-center gap-2 bg-destructive/10 text-destructive rounded-xl px-3 py-2.5 mt-3">
@@ -244,7 +228,6 @@ const Retrait = () => {
           )}
         </div>
 
-        {/* Amount */}
         <div className="bg-card rounded-2xl border border-border/30 p-4">
           <label className="text-xs text-muted-foreground mb-2 block">Withdrawal amount (USDT)</label>
           <input
@@ -254,68 +237,37 @@ const Retrait = () => {
             placeholder={`Min. ${minAmount.toLocaleString()}`}
             className="w-full bg-secondary/50 text-foreground rounded-xl px-4 py-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-1 focus:ring-primary"
           />
-
           <div className="grid grid-cols-3 gap-2 mt-3">
             {presetAmounts.map((preset) => (
-              <button
-                key={preset}
-                onClick={() => setAmount(String(preset))}
-                className={`py-2 rounded-xl text-xs font-bold transition-all ${
-                  amount === String(preset)
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary/60 text-foreground hover:bg-secondary"
-                }`}
-              >
+              <button key={preset} onClick={() => setAmount(String(preset))} className={`py-2 rounded-xl text-xs font-bold transition-all ${amount === String(preset) ? "bg-primary text-primary-foreground" : "bg-secondary/60 text-foreground hover:bg-secondary"}`}>
                 {preset.toLocaleString()}
               </button>
             ))}
           </div>
-
           {numAmount > 0 && (
             <div className="mt-3 space-y-1.5 pt-3 border-t border-border/20">
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Requested amount</span>
-                <span className="text-foreground font-semibold">{numAmount.toLocaleString("en-US")} USDT</span>
-              </div>
-              <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Fees ({feePercent}%)</span>
-                <span className="text-destructive font-semibold">- {feeAmount.toLocaleString("en-US")} USDT</span>
-              </div>
-              <div className="flex justify-between text-sm pt-1">
-                <span className="text-foreground font-bold">You will receive</span>
-                <span className="text-success font-bold">{netAmount.toLocaleString("en-US")} USDT</span>
-              </div>
+              <div className="flex justify-between text-xs"><span className="text-muted-foreground">Requested amount</span><span className="text-foreground font-semibold">{numAmount.toLocaleString("en-US")} USDT</span></div>
+              <div className="flex justify-between text-xs"><span className="text-muted-foreground">Fees ({feePercent}%)</span><span className="text-destructive font-semibold">- {feeAmount.toLocaleString("en-US")} USDT</span></div>
+              <div className="flex justify-between text-sm pt-1"><span className="text-foreground font-bold">You will receive</span><span className="text-success font-bold">{netAmount.toLocaleString("en-US")} USDT</span></div>
             </div>
           )}
         </div>
 
-        {/* Select wallet */}
         <div className="bg-card rounded-2xl border border-border/30 p-4">
           <label className="text-xs text-muted-foreground mb-2 block">Withdrawal wallet</label>
           {wallets.length === 0 ? (
             <div className="text-center py-4">
               <p className="text-xs text-muted-foreground mb-3">No wallet registered</p>
-              <button onClick={() => navigate("/lier-carte")} className="gradient-button text-primary-foreground text-xs font-semibold px-4 py-2.5 rounded-xl">
-                Add a wallet
-              </button>
+              <button onClick={() => navigate("/lier-carte")} className="gradient-button text-primary-foreground text-xs font-semibold px-4 py-2.5 rounded-xl">Add a wallet</button>
             </div>
           ) : (
-            <select
-              value={selectedWallet}
-              onChange={(e) => setSelectedWallet(e.target.value)}
-              className="w-full bg-secondary/50 text-foreground rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-primary"
-            >
+            <select value={selectedWallet} onChange={(e) => setSelectedWallet(e.target.value)} className="w-full bg-secondary/50 text-foreground rounded-xl px-4 py-3 text-sm outline-none focus:ring-1 focus:ring-primary">
               <option value="">-- Choose --</option>
-              {wallets.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {formatWalletOption(w)}
-                </option>
-              ))}
+              {wallets.map((w) => <option key={w.id} value={w.id}>{formatWalletOption(w)}</option>)}
             </select>
           )}
         </div>
 
-        {/* Rules */}
         {rules.length > 0 && (
           <div className="bg-card rounded-2xl border border-border/30 p-4">
             <label className="text-xs text-muted-foreground mb-2 block">Withdrawal rules</label>

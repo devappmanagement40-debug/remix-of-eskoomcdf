@@ -1,29 +1,17 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuthToken } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
-import { Search, Clock, CheckCircle2, XCircle, CreditCard, Image as ImageIcon, X, ZoomIn } from "lucide-react";
+import { Search, Clock, CheckCircle2, XCircle, CreditCard, X, ZoomIn } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 type Recharge = {
-  id: string;
-  phone: string;
-  country_code: string;
-  amount: number;
-  transaction_ref: string | null;
-  proof_image_url: string | null;
-  payment_method: string | null;
-  status: string;
-  created_at: string | null;
-  user_id: string;
+  id: string; phone: string; country_code: string; amount: number;
+  transaction_ref: string | null; proof_image_url: string | null;
+  payment_method: string | null; status: string; created_at: string | null; user_id: string;
 };
-
-type ProfileInfo = {
-  full_name: string | null;
-  phone: string | null;
-  balance: number | null;
-};
+type ProfileInfo = { full_name: string | null; phone: string | null; balance: number | null };
 
 const AdminRecharges = () => {
   const navigate = useNavigate();
@@ -35,38 +23,38 @@ const AdminRecharges = () => {
   const [search, setSearch] = useState("");
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
 
-  useEffect(() => {
-    checkAdminAndLoad();
-    const channel = supabase
-      .channel("admin-recharges")
-      .on("postgres_changes", { event: "*", schema: "public", table: "recharges" }, () => loadRecharges())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, []);
+  const tok = () => getAuthToken() || "";
+  const hdrs = () => ({ Authorization: `Bearer ${tok()}` });
+
+  useEffect(() => { checkAdminAndLoad(); }, []);
 
   const checkAdminAndLoad = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) { navigate("/connexion"); return; }
-    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: user.id, _role: "admin" });
-    const { data: isMod } = await supabase.rpc("has_role", { _user_id: user.id, _role: "moderator" });
-    if (!isAdmin && !isMod) { showError("Access denied", "You do not have administrator rights"); navigate("/"); return; }
-    if (isMod && !isAdmin) {
-      const { data: hasPerm } = await supabase.rpc("has_permission", { _user_id: user.id, _permission: "manage_deposits" });
-      if (!hasPerm) { showError("Access denied", "You do not have permission to manage deposits"); navigate("/"); return; }
-    }
+    const res = await fetch("/api/admin/check", { headers: hdrs() });
+    if (!res.ok) { showError("Access denied", "Admin rights required"); navigate("/"); return; }
     loadRecharges();
   };
 
   const loadRecharges = async () => {
-    const { data } = await supabase.from("recharges").select("*").order("created_at", { ascending: false });
-    if (data) {
-      setRecharges(data);
-      const userIds = [...new Set(data.map(d => d.user_id))];
+    const res = await fetch("/api/payments/recharges?admin=true", { headers: hdrs() });
+    if (res.ok) {
+      const data = await res.json();
+      const normalized = (Array.isArray(data) ? data : []).map((r: any) => ({
+        id: r.id, phone: r.phone, country_code: r.countryCode ?? r.country_code,
+        amount: Number(r.amount), transaction_ref: r.transactionRef ?? r.transaction_ref,
+        proof_image_url: r.proofImageUrl ?? r.proof_image_url,
+        payment_method: r.paymentMethod ?? r.payment_method,
+        status: r.status, created_at: r.createdAt ?? r.created_at, user_id: r.userId ?? r.user_id,
+      }));
+      setRecharges(normalized);
+      const userIds = [...new Set(normalized.map((r: any) => r.user_id))];
       if (userIds.length > 0) {
-        const { data: profilesData } = await supabase.from("profiles").select("user_id, full_name, phone, balance").in("user_id", userIds);
-        if (profilesData) {
+        const pRes = await fetch(`/api/profiles/batch?userIds=${userIds.join(",")}`, { headers: hdrs() });
+        if (pRes.ok) {
+          const pData = await pRes.json();
           const map: Record<string, ProfileInfo> = {};
-          profilesData.forEach(p => { map[p.user_id] = p; });
+          (Array.isArray(pData) ? pData : []).forEach((p: any) => {
+            map[p.userId ?? p.user_id] = { full_name: p.fullName ?? p.full_name, phone: p.phone, balance: p.balance };
+          });
           setProfiles(map);
         }
       }
@@ -74,33 +62,13 @@ const AdminRecharges = () => {
     setLoading(false);
   };
 
-  const handleAction = async (id: string, status: "approved" | "rejected", userId: string, amount: number) => {
-    const { error } = await supabase.from("recharges").update({ status }).eq("id", id);
-    if (error) { showError("Error", "Error updating record"); return; }
-
-    if (status === "approved") {
-      const { data: profile } = await supabase.from("profiles")
-        .select("balance, deposit_balance, referral_balance, referred_by, gift_points")
-        .eq("user_id", userId).single();
-      if (profile) {
-        const { data: pointSettings } = await supabase.from("site_settings")
-          .select("key, value").in("key", ["points_per_deposit_type", "points_per_deposit_value"]);
-        const getPS = (k: string) => pointSettings?.find((s: any) => s.key === k)?.value || "0";
-        const depositPointType = getPS("points_per_deposit_type")?.trim().toLowerCase();
-        const depositPointValue = Number(getPS("points_per_deposit_value")) || 0;
-        let earnedPoints = 0;
-        if (depositPointValue > 0) {
-          earnedPoints = depositPointType === "percent" ? Math.floor(amount * depositPointValue / 100) : depositPointValue;
-        }
-
-        await supabase.from("profiles").update({
-          balance: (profile.balance || 0) + amount,
-          deposit_balance: (profile.deposit_balance || 0) + amount,
-          ...(earnedPoints > 0 ? { gift_points: (profile.gift_points || 0) + earnedPoints } : {}),
-        }).eq("user_id", userId);
-      }
-    }
-
+  const handleAction = async (id: string, status: "approved" | "rejected") => {
+    const res = await fetch(`/api/payments/recharges/${id}/status`, {
+      method: "PATCH",
+      headers: { ...hdrs(), "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    if (!res.ok) { showError("Error", "Error updating record"); return; }
     showSuccess(
       status === "approved" ? "Deposit approved" : "Deposit rejected",
       status === "approved" ? "Deposit validated and balance credited ✅" : "Deposit rejected ❌"
@@ -120,20 +88,14 @@ const AdminRecharges = () => {
       if (!search.trim()) return true;
       const s = search.toLowerCase();
       const profile = profiles[r.user_id];
-      return (
-        r.phone.includes(s) ||
-        r.id.toLowerCase().includes(s) ||
-        (r.transaction_ref?.toLowerCase().includes(s)) ||
-        (r.payment_method?.toLowerCase().includes(s)) ||
-        (profile?.full_name?.toLowerCase().includes(s)) ||
-        (profile?.phone?.toLowerCase().includes(s))
-      );
+      return r.phone.includes(s) || r.id.toLowerCase().includes(s) ||
+        (r.transaction_ref?.toLowerCase().includes(s)) || (r.payment_method?.toLowerCase().includes(s)) ||
+        (profile?.full_name?.toLowerCase().includes(s)) || (profile?.phone?.toLowerCase().includes(s));
     });
 
   const formatDate = (d: string | null) => {
     if (!d) return "—";
-    const date = new Date(d);
-    return date.toLocaleDateString("en-US", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+    return new Date(d).toLocaleDateString("en-US", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
   };
 
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
@@ -141,130 +103,60 @@ const AdminRecharges = () => {
   return (
     <div className="min-h-screen bg-background pb-10">
       <PageHeader title="Admin — Deposits" showBack />
-
       <div className="px-4 pt-4 space-y-4">
-        {/* Stats cards */}
         <div className="grid grid-cols-3 gap-3">
-          <button
-            onClick={() => setFilter("pending")}
-            className={`bg-card rounded-xl border p-4 flex flex-col items-center gap-1 transition-colors ${filter === "pending" ? "border-warning" : "border-secondary"}`}
-          >
-            <span className="text-2xl font-bold text-warning">{counts.pending}</span>
-            <span className="text-[10px] text-muted-foreground">Pending</span>
-          </button>
-          <button
-            onClick={() => setFilter("approved")}
-            className={`bg-card rounded-xl border p-4 flex flex-col items-center gap-1 transition-colors ${filter === "approved" ? "border-success" : "border-secondary"}`}
-          >
-            <span className="text-2xl font-bold text-success">{counts.approved}</span>
-            <span className="text-[10px] text-muted-foreground">Approved</span>
-          </button>
-          <button
-            onClick={() => setFilter("rejected")}
-            className={`bg-card rounded-xl border p-4 flex flex-col items-center gap-1 transition-colors ${filter === "rejected" ? "border-destructive" : "border-secondary"}`}
-          >
-            <span className="text-2xl font-bold text-destructive">{counts.rejected}</span>
-            <span className="text-[10px] text-muted-foreground">Rejected</span>
-          </button>
+          {(["pending", "approved", "rejected"] as const).map(s => (
+            <button key={s} onClick={() => setFilter(s)} className={`bg-card rounded-xl border p-4 flex flex-col items-center gap-1 transition-colors ${filter === s ? s === "pending" ? "border-warning" : s === "approved" ? "border-success" : "border-destructive" : "border-secondary"}`}>
+              <span className={`text-2xl font-bold ${s === "pending" ? "text-warning" : s === "approved" ? "text-success" : "text-destructive"}`}>{counts[s]}</span>
+              <span className="text-[10px] text-muted-foreground">{s === "pending" ? "Pending" : s === "approved" ? "Approved" : "Rejected"}</span>
+            </button>
+          ))}
         </div>
-
-        {/* Search */}
         <div className="relative">
           <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search by account, name or phone"
-            className="w-full bg-card border border-secondary rounded-xl pl-11 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary transition-colors"
-          />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by account, name or phone" className="w-full bg-card border border-secondary rounded-xl pl-11 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:border-primary transition-colors" />
         </div>
-
-        {/* Items */}
         {filtered.length === 0 ? (
           <div className="text-center py-16"><p className="text-sm text-muted-foreground">No deposits</p></div>
         ) : filtered.map(r => {
           const profile = profiles[r.user_id];
-
           return (
             <div key={r.id} className="bg-card rounded-xl border border-secondary overflow-hidden">
               <div className="px-4 pt-4 pb-3">
                 <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <p className="text-lg font-bold text-foreground">{r.amount.toLocaleString("en-US")} USDT</p>
-                  </div>
-                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${
-                    r.status === "pending" ? "bg-warning/15 text-warning" :
-                    r.status === "approved" ? "bg-success/15 text-success" :
-                    "bg-destructive/15 text-destructive"
-                  }`}>
+                  <p className="text-lg font-bold text-foreground">{r.amount.toLocaleString("en-US")} USDT</p>
+                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold ${r.status === "pending" ? "bg-warning/15 text-warning" : r.status === "approved" ? "bg-success/15 text-success" : "bg-destructive/15 text-destructive"}`}>
                     {r.status === "pending" ? <Clock size={12} /> : r.status === "approved" ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
                     {r.status === "pending" ? "Pending" : r.status === "approved" ? "Approved" : "Rejected"}
                   </div>
                 </div>
-
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-3">
-                  <CreditCard size={12} />
-                  {(r.payment_method || "Mobile Money").toUpperCase()}
+                  <CreditCard size={12} />{(r.payment_method || "Mobile Money").toUpperCase()}
                 </div>
-
                 <div className="border-t border-secondary my-2" />
-
                 <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-3">
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Client:</p>
-                    <p className="text-xs font-semibold text-foreground">{r.country_code} {r.phone}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Current balance:</p>
-                    <p className="text-xs font-semibold text-foreground">{profile ? `${(profile.balance || 0).toLocaleString("en-US")} USDT` : "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Reference:</p>
-                    <p className="text-xs font-semibold text-foreground font-mono">{r.transaction_ref || "—"}</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Client name:</p>
-                    <p className="text-xs font-semibold text-foreground">{profile?.full_name || "—"}</p>
-                  </div>
+                  <div><p className="text-[10px] text-muted-foreground">Client:</p><p className="text-xs font-semibold text-foreground">{r.country_code} {r.phone}</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Current balance:</p><p className="text-xs font-semibold text-foreground">{profile ? `${(profile.balance || 0).toLocaleString("en-US")} USDT` : "—"}</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Reference:</p><p className="text-xs font-semibold text-foreground font-mono">{r.transaction_ref || "—"}</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Client name:</p><p className="text-xs font-semibold text-foreground">{profile?.full_name || "—"}</p></div>
                   {r.proof_image_url && (
                     <div className="col-span-2">
                       <p className="text-[10px] text-muted-foreground mb-1">Payment proof:</p>
-                      <button
-                        onClick={() => setZoomedImage(r.proof_image_url)}
-                        className="relative group cursor-pointer"
-                      >
-                        <img
-                          src={r.proof_image_url}
-                          alt="Payment proof"
-                          className="w-full max-w-[200px] h-24 object-cover rounded-lg border border-secondary"
-                        />
-                        <div className="absolute inset-0 max-w-[200px] bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg">
-                          <ZoomIn size={20} className="text-white" />
-                        </div>
+                      <button onClick={() => setZoomedImage(r.proof_image_url)} className="relative group cursor-pointer">
+                        <img src={r.proof_image_url} alt="Payment proof" className="w-full max-w-[200px] h-24 object-cover rounded-lg border border-secondary" />
+                        <div className="absolute inset-0 max-w-[200px] bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"><ZoomIn size={20} className="text-white" /></div>
                       </button>
                     </div>
                   )}
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Date:</p>
-                    <p className="text-xs font-semibold text-foreground">{formatDate(r.created_at)}</p>
-                  </div>
+                  <div><p className="text-[10px] text-muted-foreground">Date:</p><p className="text-xs font-semibold text-foreground">{formatDate(r.created_at)}</p></div>
                 </div>
-
                 {r.status === "pending" && (
                   <div className="grid grid-cols-2 gap-3 mt-4">
-                    <button
-                      onClick={() => handleAction(r.id, "approved", r.user_id, r.amount)}
-                      className="flex items-center justify-center gap-2 border-2 border-success text-success font-bold py-2.5 rounded-xl text-sm hover:bg-success/10 transition-colors"
-                    >
-                      <CheckCircle2 size={16} />
-                      Approve
+                    <button onClick={() => handleAction(r.id, "approved")} className="flex items-center justify-center gap-2 border-2 border-success text-success font-bold py-2.5 rounded-xl text-sm hover:bg-success/10 transition-colors">
+                      <CheckCircle2 size={16} />Approve
                     </button>
-                    <button
-                      onClick={() => handleAction(r.id, "rejected", r.user_id, r.amount)}
-                      className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10 transition-colors"
-                    >
-                      <XCircle size={16} />
-                      Reject
+                    <button onClick={() => handleAction(r.id, "rejected")} className="flex items-center justify-center gap-2 border-2 border-destructive text-destructive font-bold py-2.5 rounded-xl text-sm hover:bg-destructive/10 transition-colors">
+                      <XCircle size={16} />Reject
                     </button>
                   </div>
                 )}
@@ -273,23 +165,11 @@ const AdminRecharges = () => {
           );
         })}
       </div>
-
       <Dialog open={!!zoomedImage} onOpenChange={() => setZoomedImage(null)}>
         <DialogContent className="max-w-3xl p-0 bg-black/95 border-none">
           <DialogTitle className="sr-only">Payment proof</DialogTitle>
-          <button
-            onClick={() => setZoomedImage(null)}
-            className="absolute top-3 right-3 z-10 p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors"
-          >
-            <X size={20} className="text-white" />
-          </button>
-          {zoomedImage && (
-            <img
-              src={zoomedImage}
-              alt="Payment proof (enlarged)"
-              className="w-full h-auto max-h-[85vh] object-contain"
-            />
-          )}
+          <button onClick={() => setZoomedImage(null)} className="absolute top-3 right-3 z-10 p-2 bg-white/20 hover:bg-white/30 rounded-full transition-colors"><X size={20} className="text-white" /></button>
+          {zoomedImage && <img src={zoomedImage} alt="Payment proof (enlarged)" className="w-full h-auto max-h-[85vh] object-contain" />}
         </DialogContent>
       </Dialog>
     </div>

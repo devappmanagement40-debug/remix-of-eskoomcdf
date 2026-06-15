@@ -1,6 +1,6 @@
 import { X, Copy, Check } from "lucide-react";
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuthToken } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import { safeClipboardWrite } from "@/lib/clipboard";
 
@@ -19,20 +19,23 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
 
   useEffect(() => {
     if (!open) return;
+    const token = getAuthToken();
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        supabase.from("profiles").select("referral_code").eq("user_id", session.user.id).single().then(({ data }) => {
-          if (data?.referral_code) setReferralCode(data.referral_code);
-        });
-      }
-    });
+    if (token) {
+      fetch("/api/profiles/me", { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : null)
+        .then(profile => {
+          if (profile?.referralCode ?? profile?.referral_code) {
+            setReferralCode(profile.referralCode ?? profile.referral_code);
+          }
+        }).catch(() => {});
+    }
 
-    // Fetch dynamic referral info from site_settings
-    supabase.from("site_settings").select("key, value").eq("category", "referral").then(({ data }) => {
-      if (data) {
+    fetch("/api/site-settings?category=referral")
+      .then(r => r.ok ? r.json() : [])
+      .then((data: any[]) => {
         const map: Record<string, string> = {};
-        data.forEach((s) => { map[s.key] = s.value || ""; });
+        (Array.isArray(data) ? data : []).forEach((s: any) => { map[s.key] = s.value || ""; });
         if (map.referral_title) setTitle(map.referral_title);
         if (map.referral_subtitle) setSubtitle(map.referral_subtitle);
         if (map.referral_rules) {
@@ -43,8 +46,7 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
             setRules(map.referral_rules.split("\n").filter(Boolean).map((t) => ({ text: t })));
           }
         }
-      }
-    });
+      }).catch(() => {});
   }, [open]);
 
   if (!open) return null;
@@ -74,17 +76,13 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-      <div
-        className="relative w-full max-w-sm bg-card border border-border rounded-2xl overflow-hidden animate-in zoom-in-95 duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="relative w-full max-w-sm bg-card border border-border rounded-2xl overflow-hidden animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <h2 className="text-lg font-bold text-foreground uppercase tracking-wide">{title}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
             <X size={18} className="text-muted-foreground" />
           </button>
         </div>
-
         <div className="px-5 pb-6 space-y-4">
           <div>
             <p className="text-sm font-semibold text-primary mb-2 uppercase">Your invitation link</p>
@@ -92,15 +90,10 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
               <p className="text-xs text-foreground break-all">{inviteLink}</p>
             </div>
           </div>
-
-          <button
-            onClick={copyLink}
-            className="w-full gradient-button text-foreground font-bold py-3.5 rounded-xl text-sm uppercase tracking-wide transition-opacity hover:opacity-90 flex items-center justify-center gap-2"
-          >
+          <button onClick={copyLink} className="w-full gradient-button text-foreground font-bold py-3.5 rounded-xl text-sm uppercase tracking-wide transition-opacity hover:opacity-90 flex items-center justify-center gap-2">
             {copied ? <Check size={18} /> : <Copy size={18} />}
             {copied ? "Copied!" : "Copy link"}
           </button>
-
           <div>
             <p className="text-sm font-semibold text-primary mb-3 uppercase">{subtitle}</p>
             <ul className="space-y-3">

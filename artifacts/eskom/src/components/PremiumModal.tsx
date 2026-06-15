@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 
 type Tab = { label: string; content: string; url?: string };
 
@@ -26,23 +25,27 @@ interface PremiumModalProps {
 
 const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacements }: PremiumModalProps) => {
   const navigate = useNavigate();
+  void navigate;
   const [data, setData] = useState<PopupMessage | null>(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
     if (open) {
       Promise.all([
-        supabase.from("popup_messages").select("*").eq("trigger_key", triggerKey).eq("is_active", true).single(),
-        supabase.from("site_settings").select("key, value").in("key", [
-          "official_whatsapp_link",
-          "official_whatsapp_group",
-        ]),
-      ]).then(([{ data: msg }, { data: settings }]) => {
+        fetch(`/api/popup-messages?triggerKey=${encodeURIComponent(triggerKey)}`).then(r => r.ok ? r.json() : []),
+        fetch("/api/site-settings").then(r => r.ok ? r.json() : []),
+      ]).then(([popups, settings]) => {
+        const msgs = Array.isArray(popups) ? popups : [];
+        const msg = msgs.find((m: any) => (m.triggerKey ?? m.trigger_key) === triggerKey) ?? null;
         if (msg) {
           const urlMap: Record<string, string> = {};
-          (settings || []).forEach((s: any) => { if (s.value) urlMap[s.key] = s.value; });
+          (Array.isArray(settings) ? settings : []).forEach((s: any) => {
+            if (s.value && ["official_whatsapp_link", "official_whatsapp_group"].includes(s.key)) {
+              urlMap[s.key] = s.value;
+            }
+          });
 
-          const rawTabs: Tab[] = msg.tabs ? (Array.isArray(msg.tabs) ? (msg.tabs as unknown as Tab[]) : []) : [];
+          const rawTabs: Tab[] = msg.tabs ? (Array.isArray(msg.tabs) ? (msg.tabs as Tab[]) : []) : [];
           const enrichedTabs = rawTabs.map((tab) => {
             if (tab.url) return tab;
             const lbl = tab.label.toLowerCase();
@@ -52,7 +55,16 @@ const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacem
             return tab;
           });
 
-          setData({ ...(msg as unknown as PopupMessage), tabs: enrichedTabs });
+          const normalized: PopupMessage = {
+            id: msg.id,
+            trigger_key: msg.triggerKey ?? msg.trigger_key,
+            title: msg.title,
+            message: msg.message,
+            button_confirm: msg.buttonConfirm ?? msg.button_confirm ?? "OK",
+            button_cancel: msg.buttonCancel ?? msg.button_cancel ?? null,
+            tabs: enrichedTabs,
+          };
+          setData(normalized);
           requestAnimationFrame(() => setVisible(true));
         }
       });
@@ -92,16 +104,13 @@ const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacem
         visible ? "opacity-100" : "opacity-0 pointer-events-none"
       }`}
     >
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleCancel} />
 
-      {/* Modal Card */}
       <div
         className={`relative w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 ${
           visible ? "scale-100 translate-y-0" : "scale-95 translate-y-4"
         }`}
       >
-        {/* Gradient Header */}
         <div
           className="px-6 py-4 flex items-center justify-between"
           style={{
@@ -114,14 +123,11 @@ const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacem
           </button>
         </div>
 
-        {/* Body */}
         <div className="bg-white px-6 py-5">
-          {/* Message text */}
           <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line mb-4">
             {message}
           </p>
 
-          {/* Links displayed inline like the reference screenshot */}
           {tabs.length > 0 && (
             <div className="space-y-3 mb-5">
               <p className="text-lg">⬇️⬇️⬇️</p>
@@ -143,7 +149,6 @@ const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacem
             </div>
           )}
 
-          {/* Buttons */}
           <div className="flex gap-3">
             {data.button_cancel && (
               <button

@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import PageHeader from "@/components/PageHeader";
 import CountryPicker from "@/components/CountryPicker";
-import { supabase } from "@/integrations/supabase/client";
+import { localAuth } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import { usePhoneValidation } from "@/hooks/usePhoneValidation";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -24,7 +24,6 @@ const Signup = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Support ?invite_code= (lien de parrainage standard) et ?code= (ancien format)
     const code = searchParams.get("invite_code") || searchParams.get("code");
     if (code) setInviteCode(decodeURIComponent(code).trim());
   }, [searchParams]);
@@ -61,7 +60,6 @@ const Signup = () => {
       }
 
       if (data.session) {
-        const { localAuth } = await import("@/integrations/supabase/client");
         localAuth.setSession(data.session.access_token, data.user);
       }
 

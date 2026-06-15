@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import PageHeader from "@/components/PageHeader";
 import CountryPicker from "@/components/CountryPicker";
-import { supabase } from "@/integrations/supabase/client";
+import { localAuth } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PremiumModal from "@/components/PremiumModal";
 import { usePhoneValidation } from "@/hooks/usePhoneValidation";
@@ -30,18 +30,16 @@ const Login = () => {
     if (!phone || !password) { showError(t.common.error, t.login.errorFields); return; }
 
     const cleanPhone = phone.replace(/\D/g, "");
+
     let isAdminPhone = false;
-
     try {
-      const { data: setting } = await supabase
-        .from("site_settings")
-        .select("value")
-        .eq("key", "admin_phones")
-        .maybeSingle();
-
-      const adminPhones = setting?.value ? JSON.parse(setting.value) : [];
-      const normalizedAdminPhones = adminPhones.map((value: string) => value.replace(/\D/g, ""));
-      isAdminPhone = normalizedAdminPhones.includes(cleanPhone);
+      const settRes = await fetch("/api/site-settings/admin_phones");
+      if (settRes.ok) {
+        const setting = await settRes.json();
+        const adminPhones = setting?.value ? JSON.parse(setting.value) : [];
+        const normalized = adminPhones.map((v: string) => v.replace(/\D/g, ""));
+        isAdminPhone = normalized.includes(cleanPhone);
+      }
     } catch {
       isAdminPhone = false;
     }
@@ -68,16 +66,23 @@ const Login = () => {
         return;
       }
 
-      const { localAuth } = await import("@/integrations/supabase/client");
       localAuth.setSession(data.session.access_token, data.user);
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name, phone")
-        .eq("user_id", data.user.id)
-        .single();
+      // Fetch profile name via API
+      try {
+        const profileRes = await fetch("/api/profiles/me", {
+          headers: { Authorization: `Bearer ${data.session.access_token}` },
+        });
+        if (profileRes.ok) {
+          const profile = await profileRes.json();
+          setUserName(profile?.fullName ?? profile?.full_name ?? profile?.phone ?? phone);
+        } else {
+          setUserName(phone);
+        }
+      } catch {
+        setUserName(phone);
+      }
 
-      setUserName(profile?.full_name || profile?.phone || phone);
       setShowWelcome(true);
     } catch {
       showError(t.common.error, t.login.errorConnection);

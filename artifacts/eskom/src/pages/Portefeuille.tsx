@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { ChevronRight, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuthToken } from "@/integrations/supabase/client";
 import { useRealtimeProfile } from "@/hooks/useRealtimeProfile";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
@@ -19,31 +19,37 @@ const Portefeuille = () => {
   const [depositNotWithdrawable, setDepositNotWithdrawable] = useState(true);
   const [totalDeposits, setTotalDeposits] = useState(0);
   const [totalWithdrawals, setTotalWithdrawals] = useState(0);
-  const [todayEarnings, setTodayEarnings] = useState(0);
+  const [todayEarnings] = useState(0);
 
   useEffect(() => {
     const loadExtra = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
-      if (!user) return;
-      const [settingsRes, depositsRes, withdrawalsRes] = await Promise.all([
-        supabase.from("site_settings").select("value").eq("key", "deposit_not_withdrawable").single(),
-        supabase.from("recharges").select("amount").eq("user_id", user.id).eq("status", "approved"),
-        supabase.from("withdrawals").select("amount").eq("user_id", user.id).eq("status", "approved"),
-      ]);
-      if (settingsRes.data) setDepositNotWithdrawable(settingsRes.data.value === "true");
-      if (depositsRes.data) setTotalDeposits(depositsRes.data.reduce((s, r) => s + r.amount, 0));
-      if (withdrawalsRes.data) setTotalWithdrawals(withdrawalsRes.data.reduce((s, w) => s + w.amount, 0));
+      const token = getAuthToken();
+      if (!token) return;
+      try {
+        const [settingsRes, depositsRes, withdrawalsRes] = await Promise.all([
+          fetch("/api/site-settings/deposit_not_withdrawable"),
+          fetch("/api/payments/recharges/my?status=approved", { headers: { Authorization: `Bearer ${token}` } }),
+          fetch("/api/payments/withdrawals/my?status=approved", { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        if (settingsRes.ok) {
+          const s = await settingsRes.json();
+          setDepositNotWithdrawable(s.value === "true");
+        }
+        if (depositsRes.ok) {
+          const deposits = await depositsRes.json();
+          if (Array.isArray(deposits)) setTotalDeposits(deposits.reduce((s: number, r: any) => s + Number(r.amount ?? 0), 0));
+        }
+        if (withdrawalsRes.ok) {
+          const withdrawals = await withdrawalsRes.json();
+          if (Array.isArray(withdrawals)) setTotalWithdrawals(withdrawals.reduce((s: number, w: any) => s + Number(w.amount ?? 0), 0));
+        }
+      } catch (err) {
+        console.error("Wallet load error:", err);
+      }
     };
     loadExtra();
-
-    const channel = supabase
-      .channel("wallet-totals")
-      .on("postgres_changes", { event: "*", schema: "public", table: "recharges" }, () => loadExtra())
-      .on("postgres_changes", { event: "*", schema: "public", table: "withdrawals" }, () => loadExtra())
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+    const interval = setInterval(loadExtra, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const withdrawable = depositNotWithdrawable

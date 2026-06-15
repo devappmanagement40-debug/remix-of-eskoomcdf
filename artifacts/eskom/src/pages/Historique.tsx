@@ -3,7 +3,7 @@ import { History, ArrowDownLeft, ArrowUpRight, ShoppingBag, TrendingUp, Gift, Us
 import { safeClipboardWrite } from "@/lib/clipboard";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuthToken } from "@/integrations/supabase/client";
 
 type TabKey = "tous" | "depots" | "retraits" | "achats" | "gains" | "parrainage" | "points";
 
@@ -59,124 +59,125 @@ const Historique = () => {
 
   useEffect(() => {
     const load = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+      const token = getAuthToken();
+      if (!token) { setLoading(false); return; }
 
+      try {
+        const headers = { Authorization: `Bearer ${token}` };
         const [depositsRes, withdrawalsRes, purchasesRes, exchangesRes, commissionsRes] = await Promise.all([
-          supabase.from("recharges").select("id, amount, status, created_at, payment_method, phone, country_code, transaction_ref").eq("user_id", user.id).order("created_at", { ascending: false }),
-          supabase.from("withdrawals").select("id, amount, net_amount, fee_amount, status, created_at, network, phone, country_code").eq("user_id", user.id).order("created_at", { ascending: false }),
-          supabase.from("user_products").select("id, purchased_at, total_collected, products(name, price, daily_revenue, cycles)").eq("user_id", user.id).order("purchased_at", { ascending: false }),
-          supabase.from("point_exchanges").select("id, points_spent, money_credited, reward_name, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
-          supabase.from("referral_commissions").select("id, product_price, commission_rate, commission_amount, level, created_at").eq("beneficiary_id", user.id).order("created_at", { ascending: false }),
+          fetch("/api/payments/recharges/my", { headers }).then(r => r.ok ? r.json() : []),
+          fetch("/api/payments/withdrawals/my", { headers }).then(r => r.ok ? r.json() : []),
+          fetch("/api/products/user-products/my", { headers }).then(r => r.ok ? r.json() : []),
+          fetch("/api/point-exchanges/my", { headers }).then(r => r.ok ? r.json() : []),
+          fetch("/api/referral-commissions/my", { headers }).then(r => r.ok ? r.json() : []),
         ]);
 
         const ops: Operation[] = [];
 
-        (depositsRes.data || []).forEach((d: any) => {
+        (Array.isArray(depositsRes) ? depositsRes : []).forEach((d: any) => {
           ops.push({
-            id: `dep-${d.id}`, rawId: d.id, type: "depots", amount: d.amount, date: d.created_at,
-            status: d.status, description: `Deposit via ${d.payment_method || "USDT"}`,
+            id: `dep-${d.id}`, rawId: d.id, type: "depots", amount: Number(d.amount), date: d.createdAt ?? d.created_at,
+            status: d.status, description: `Deposit via ${d.paymentMethod ?? d.payment_method ?? "USDT"}`,
             icon: ArrowDownLeft, color: "text-success",
             details: {
               "Order #": d.id.substring(0, 8).toUpperCase(),
               "Type": "Deposit / Top-up",
               "Amount": `${Number(d.amount).toLocaleString("en-US")} USDT`,
-              "Payment method": d.payment_method || "USDT",
-              "Phone": `${d.country_code || ""} ${d.phone || ""}`,
-              "Transaction ref": d.transaction_ref || "—",
+              "Payment method": d.paymentMethod ?? d.payment_method ?? "USDT",
+              "Phone": `${d.countryCode ?? d.country_code ?? ""} ${d.phone ?? ""}`,
+              "Transaction ref": d.transactionRef ?? d.transaction_ref ?? "—",
               "Status": statusLabel(d.status),
-              "Date": fmtDateFull(d.created_at),
+              "Date": fmtDateFull(d.createdAt ?? d.created_at),
             },
           });
         });
 
-        (withdrawalsRes.data || []).forEach((w: any) => {
+        (Array.isArray(withdrawalsRes) ? withdrawalsRes : []).forEach((w: any) => {
           ops.push({
-            id: `ret-${w.id}`, rawId: w.id, type: "retraits", amount: w.amount, date: w.created_at,
+            id: `ret-${w.id}`, rawId: w.id, type: "retraits", amount: Number(w.amount), date: w.createdAt ?? w.created_at,
             status: w.status, description: `Withdrawal via ${w.network}`,
             icon: ArrowUpRight, color: "text-destructive",
             details: {
               "Order #": w.id.substring(0, 8).toUpperCase(),
               "Type": "Withdrawal",
               "Requested amount": `${Number(w.amount).toLocaleString("en-US")} USDT`,
-              "Fee": `${Number(w.fee_amount).toLocaleString("en-US")} USDT`,
-              "Amount received": `${Number(w.net_amount).toLocaleString("en-US")} USDT`,
+              "Fee": `${Number(w.feeAmount ?? w.fee_amount ?? 0).toLocaleString("en-US")} USDT`,
+              "Amount received": `${Number(w.netAmount ?? w.net_amount ?? 0).toLocaleString("en-US")} USDT`,
               "Network": w.network || "—",
-              "Phone": `${w.country_code || ""} ${w.phone || ""}`,
+              "Phone": `${w.countryCode ?? w.country_code ?? ""} ${w.phone ?? ""}`,
               "Status": statusLabel(w.status),
-              "Date": fmtDateFull(w.created_at),
+              "Date": fmtDateFull(w.createdAt ?? w.created_at),
             },
           });
         });
 
-        (purchasesRes.data || []).forEach((p: any) => {
-          const product = p.products;
+        (Array.isArray(purchasesRes) ? purchasesRes : []).forEach((p: any) => {
+          const product = p.product ?? p.products;
           ops.push({
-            id: `ach-${p.id}`, rawId: p.id, type: "achats", amount: Number(product?.price) || 0, date: p.purchased_at,
-            status: "completed", description: `Purchase: ${product?.name || "Product"}`,
+            id: `ach-${p.id}`, rawId: p.id, type: "achats", amount: Number(product?.price ?? 0), date: p.purchasedAt ?? p.purchased_at,
+            status: "completed", description: `Purchase: ${product?.name ?? "Product"}`,
             icon: ShoppingBag, color: "text-primary",
             details: {
               "Order #": p.id.substring(0, 8).toUpperCase(),
               "Type": "Product purchase",
-              "Product": product?.name || "—",
-              "Price": `${Number(product?.price || 0).toLocaleString("en-US")} USDT`,
-              "Daily revenue": `${Number(product?.daily_revenue || 0).toLocaleString("en-US")} USDT`,
-              "Duration": `${product?.cycles || 365} days`,
-              "Earnings collected": `${Number(p.total_collected || 0).toLocaleString("en-US")} USDT`,
+              "Product": product?.name ?? "—",
+              "Price": `${Number(product?.price ?? 0).toLocaleString("en-US")} USDT`,
+              "Daily revenue": `${Number(product?.dailyRevenue ?? product?.daily_revenue ?? 0).toLocaleString("en-US")} USDT`,
+              "Duration": `${product?.cycles ?? 365} days`,
+              "Earnings collected": `${Number(p.totalCollected ?? p.total_collected ?? 0).toLocaleString("en-US")} USDT`,
               "Status": "Approved",
-              "Purchase date": fmtDateFull(p.purchased_at),
+              "Purchase date": fmtDateFull(p.purchasedAt ?? p.purchased_at),
             },
           });
-          if ((p.total_collected || 0) > 0) {
+          if ((p.totalCollected ?? p.total_collected ?? 0) > 0) {
             ops.push({
-              id: `gain-${p.id}`, rawId: p.id, type: "gains", amount: p.total_collected, date: p.purchased_at,
-              status: "completed", description: `Earnings: ${product?.name || "Product"}`,
+              id: `gain-${p.id}`, rawId: p.id, type: "gains", amount: Number(p.totalCollected ?? p.total_collected), date: p.purchasedAt ?? p.purchased_at,
+              status: "completed", description: `Earnings: ${product?.name ?? "Product"}`,
               icon: TrendingUp, color: "text-success",
               details: {
                 "Order #": p.id.substring(0, 8).toUpperCase(),
                 "Type": "Product earnings",
-                "Product": product?.name || "—",
-                "Total collected": `${Number(p.total_collected).toLocaleString("en-US")} USDT`,
+                "Product": product?.name ?? "—",
+                "Total collected": `${Number(p.totalCollected ?? p.total_collected).toLocaleString("en-US")} USDT`,
                 "Status": "Approved",
-                "Date": fmtDateFull(p.purchased_at),
+                "Date": fmtDateFull(p.purchasedAt ?? p.purchased_at),
               },
             });
           }
         });
 
-        (exchangesRes.data || []).forEach((ex: any) => {
+        (Array.isArray(exchangesRes) ? exchangesRes : []).forEach((ex: any) => {
           ops.push({
-            id: `pts-${ex.id}`, rawId: ex.id, type: "points", amount: ex.money_credited, date: ex.created_at,
-            status: "completed", description: `Conversion: ${ex.reward_name} (${ex.points_spent} pts)`,
+            id: `pts-${ex.id}`, rawId: ex.id, type: "points", amount: Number(ex.moneyCredited ?? ex.money_credited), date: ex.createdAt ?? ex.created_at,
+            status: "completed", description: `Conversion: ${ex.rewardName ?? ex.reward_name} (${ex.pointsSpent ?? ex.points_spent} pts)`,
             icon: Gift, color: "text-primary",
             details: {
               "Order #": ex.id.substring(0, 8).toUpperCase(),
               "Type": "Points exchange",
-              "Reward": ex.reward_name,
-              "Points spent": `${ex.points_spent} pts`,
-              "Amount credited": `${Number(ex.money_credited).toLocaleString("en-US")} USDT`,
+              "Reward": ex.rewardName ?? ex.reward_name,
+              "Points spent": `${ex.pointsSpent ?? ex.points_spent} pts`,
+              "Amount credited": `${Number(ex.moneyCredited ?? ex.money_credited).toLocaleString("en-US")} USDT`,
               "Status": "Approved",
-              "Date": fmtDateFull(ex.created_at),
+              "Date": fmtDateFull(ex.createdAt ?? ex.created_at),
             },
           });
         });
 
-        ((commissionsRes.data as any[]) || []).forEach((c: any) => {
+        (Array.isArray(commissionsRes) ? commissionsRes : []).forEach((c: any) => {
           const levelLabel = c.level === 'B' ? 'Level E (direct)' : c.level === 'C' ? 'Level F' : 'Level G';
           ops.push({
-            id: `ref-${c.id}`, rawId: c.id, type: "parrainage", amount: c.commission_amount, date: c.created_at,
+            id: `ref-${c.id}`, rawId: c.id, type: "parrainage", amount: Number(c.commissionAmount ?? c.commission_amount), date: c.createdAt ?? c.created_at,
             status: "completed", description: `Referral bonus ${levelLabel}`,
             icon: Users, color: "text-success",
             details: {
               "Order #": c.id.substring(0, 8).toUpperCase(),
               "Type": "Referral bonus",
               "Level": levelLabel,
-              "Product price": `${Number(c.product_price).toLocaleString("en-US")} USDT`,
-              "Rate": `${c.commission_rate}%`,
-              "Bonus received": `${Number(c.commission_amount).toLocaleString("en-US")} USDT`,
+              "Product price": `${Number(c.productPrice ?? c.product_price).toLocaleString("en-US")} USDT`,
+              "Rate": `${c.commissionRate ?? c.commission_rate}%`,
+              "Bonus received": `${Number(c.commissionAmount ?? c.commission_amount).toLocaleString("en-US")} USDT`,
               "Status": "Approved",
-              "Date": fmtDateFull(c.created_at),
+              "Date": fmtDateFull(c.createdAt ?? c.created_at),
             },
           });
         });
@@ -191,20 +192,11 @@ const Historique = () => {
     };
 
     load();
-
-    const channel = supabase
-      .channel("history-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "recharges" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "withdrawals" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "user_products" }, () => load())
-      .on("postgres_changes", { event: "*", schema: "public", table: "referral_commissions" }, () => load())
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+    const interval = setInterval(load, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const filtered = activeTab === "tous" ? operations : operations.filter((o) => o.type === activeTab);
-
   const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 });
   const fmtDate = (d: string) => {
     const dt = new Date(d);
@@ -215,16 +207,13 @@ const Historique = () => {
     <div className="min-h-screen bg-background pb-20">
       <PageHeader title="History" showBack />
       <div className="px-4 pt-4">
-        {/* Tabs */}
         <div className="flex gap-1.5 mb-5 overflow-x-auto no-scrollbar">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
-                activeTab === tab.key
-                  ? "gradient-button text-primary-foreground"
-                  : "bg-secondary text-muted-foreground"
+                activeTab === tab.key ? "gradient-button text-primary-foreground" : "bg-secondary text-muted-foreground"
               }`}
             >
               {tab.label}
@@ -268,59 +257,34 @@ const Historique = () => {
         )}
       </div>
 
-      {/* Receipt Modal */}
       {selectedOp && (
-        <div
-          className="fixed inset-0 z-[200] flex items-center justify-center px-4 animate-in fade-in duration-200"
-          onClick={() => setSelectedOp(null)}
-        >
+        <div className="fixed inset-0 z-[200] flex items-center justify-center px-4 animate-in fade-in duration-200" onClick={() => setSelectedOp(null)}>
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-          <div
-            className="relative w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
+          <div className="relative w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
             <div
               className="px-5 py-4 flex items-center justify-between"
-              style={{
-                background: selectedOp.type === "retraits"
-                  ? "linear-gradient(135deg, hsl(0 72% 50%), hsl(15 80% 55%))"
-                  : "linear-gradient(135deg, hsl(174 72% 50%), hsl(200 80% 55%), hsl(210 70% 50%))",
-              }}
+              style={{ background: selectedOp.type === "retraits" ? "linear-gradient(135deg, hsl(0 72% 50%), hsl(15 80% 55%))" : "linear-gradient(135deg, hsl(174 72% 50%), hsl(200 80% 55%), hsl(210 70% 50%))" }}
             >
               <div className="flex items-center gap-2">
                 <selectedOp.icon size={20} className="text-white" />
                 <h3 className="text-white font-bold text-base">Transaction receipt</h3>
               </div>
-              <button onClick={() => setSelectedOp(null)} className="text-white/80 hover:text-white">
-                <X size={22} />
-              </button>
+              <button onClick={() => setSelectedOp(null)} className="text-white/80 hover:text-white"><X size={22} /></button>
             </div>
-
-            {/* Amount highlight */}
             <div className="bg-card px-5 py-4 text-center border-b border-border/20">
               <p className={`text-2xl font-black ${selectedOp.type === "retraits" ? "text-destructive" : "text-success"}`}>
                 {selectedOp.type === "retraits" ? "-" : "+"}{fmt(selectedOp.amount)} USDT
               </p>
               <p className="text-xs text-muted-foreground mt-1">{selectedOp.description}</p>
             </div>
-
-            {/* Details */}
             <div className="bg-card px-5 py-3 max-h-[50vh] overflow-y-auto">
               {Object.entries(selectedOp.details).map(([key, value]) => (
                 <div key={key} className="flex items-center justify-between py-2.5 border-b border-border/10 last:border-0">
                   <span className="text-xs text-muted-foreground">{key}</span>
                   <div className="flex items-center gap-1.5">
-                    <span className={`text-xs font-semibold text-foreground text-right max-w-[180px] truncate ${
-                      key === "Status" ? statusColor(selectedOp.status) : ""
-                    }`}>
-                      {value}
-                    </span>
+                    <span className={`text-xs font-semibold text-foreground text-right max-w-[180px] truncate ${key === "Status" ? statusColor(selectedOp.status) : ""}`}>{value}</span>
                     {(key === "Order #" || key === "Transaction ref") && value !== "—" && (
-                      <button
-                        onClick={() => copyText(value, key)}
-                        className="text-muted-foreground hover:text-foreground transition-colors"
-                      >
+                      <button onClick={() => copyText(value, key)} className="text-muted-foreground hover:text-foreground transition-colors">
                         {copied === key ? <CheckCircle2 size={14} className="text-success" /> : <Copy size={14} />}
                       </button>
                     )}
@@ -328,17 +292,11 @@ const Historique = () => {
                 </div>
               ))}
             </div>
-
-            {/* Footer */}
             <div className="bg-card px-5 py-4 border-t border-border/20">
               <button
                 onClick={() => setSelectedOp(null)}
                 className="w-full py-3 rounded-full text-sm font-bold text-white transition-all hover:opacity-90"
-                style={{
-                  background: selectedOp.type === "retraits"
-                    ? "linear-gradient(135deg, hsl(0 72% 50%), hsl(15 80% 55%))"
-                    : "linear-gradient(135deg, hsl(174 72% 50%), hsl(200 80% 55%))",
-                }}
+                style={{ background: selectedOp.type === "retraits" ? "linear-gradient(135deg, hsl(0 72% 50%), hsl(15 80% 55%))" : "linear-gradient(135deg, hsl(174 72% 50%), hsl(200 80% 55%))" }}
               >
                 Close
               </button>

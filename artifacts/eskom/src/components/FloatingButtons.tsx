@@ -1,7 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-
 
 const FloatingButtons = () => {
   const navigate = useNavigate();
@@ -12,12 +10,12 @@ const FloatingButtons = () => {
   const [supportIconUrl, setSupportIconUrl] = useState("");
 
   useEffect(() => {
-    supabase.from("site_settings").select("key, value").in("key", ["wheel_icon_url", "support_icon_url"]).then(({ data }) => {
-      (data || []).forEach((s: any) => {
+    fetch("/api/site-settings").then(r => r.ok ? r.json() : []).then((data: any[]) => {
+      (Array.isArray(data) ? data : []).forEach((s: any) => {
         if (s.key === "wheel_icon_url" && s.value) setWheelIconUrl(s.value);
         if (s.key === "support_icon_url" && s.value) setSupportIconUrl(s.value);
       });
-    });
+    }).catch(() => {});
   }, []);
 
   const getClientPos = (e: React.TouchEvent | React.MouseEvent) => {
@@ -81,7 +79,6 @@ const FloatingButtons = () => {
       onTouchMove={onMove}
       onTouchEnd={onEnd}
     >
-      {/* Fortune Wheel */}
       <button
         onClick={() => handleClick(() => navigate("/loterie"))}
         className="group w-[50px] h-[50px] rounded-full flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 overflow-hidden"
@@ -94,7 +91,6 @@ const FloatingButtons = () => {
         {wheelIconUrl ? <img src={wheelIconUrl} alt="Roue" className="w-full h-full object-contain rounded-full p-1" /> : defaultWheelIcon}
       </button>
 
-      {/* Customer Support */}
       <button
         onClick={() => handleClick(() => navigate("/service-chat"))}
         className="group w-[50px] h-[50px] rounded-full flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 overflow-hidden"
