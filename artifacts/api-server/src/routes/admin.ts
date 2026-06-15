@@ -104,6 +104,28 @@ router.post("/user-wallets/batch", async (req, res) => {
 });
 
 // ─── Admin users ─────────────────────────────────────────────────────────────
+router.get("/admin/users", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const page = parseInt((req.query.page as string) || "1");
+  const limit = parseInt((req.query.limit as string) || "50");
+  const offset = (page - 1) * limit;
+  const search = (req.query.search as string) || "";
+  let query = db.select().from(profiles);
+  const allProfiles = await db.select().from(profiles);
+  const filtered = search
+    ? allProfiles.filter(p => p.phone?.includes(search) || p.fullName?.toLowerCase().includes(search.toLowerCase()))
+    : allProfiles;
+  const sorted = filtered.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  const paginated = sorted.slice(offset, offset + limit);
+  const roles = await db.select().from(userRoles);
+  const usersWithRoles = paginated.map(p => ({
+    ...p,
+    role: roles.find(r => r.userId === p.userId)?.role ?? "user",
+  }));
+  return res.json({ users: usersWithRoles, total: filtered.length, page, limit });
+});
+
 router.patch("/admin/users/:userId", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
