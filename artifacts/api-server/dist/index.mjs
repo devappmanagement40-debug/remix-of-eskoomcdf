@@ -50875,7 +50875,7 @@ if (process.env.NODE_ENV === "production") {
 var app_default = app;
 
 // src/index.ts
-var rawPort = process.env["PORT"] ?? "3000";
+var rawPort = process.env["API_PORT"] ?? process.env["PORT"] ?? "8080";
 var port = Number(rawPort);
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
