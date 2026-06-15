@@ -39,11 +39,13 @@ app.use("/uploads", express.static(uploadsDir));
 
 // Serve pre-built React frontend in production
 if (process.env.NODE_ENV === "production") {
-  // __dirname = artifacts/api-server/dist/ (in the compiled bundle)
-  // So ../../dist/public = <repo-root>/dist/public — works regardless of cwd (Plesk, Docker, etc.)
+  // Always resolve dist/public relative to the repo root (process.cwd()).
+  // This works for both build strategies:
+  //   - root build.mjs  → cwd = repo root → dist/public ✅
+  //   - Plesk startup   → cwd = repo root → dist/public ✅
   const frontendDist =
     process.env.FRONTEND_DIST ||
-    path.resolve(__dirname, "../../dist/public");
+    path.resolve(process.cwd(), "dist/public");
   app.use(express.static(frontendDist));
   // SPA fallback — toutes les routes non-API servent index.html (Express 5 syntax)
   app.get("/{*path}", (_req, res) => {

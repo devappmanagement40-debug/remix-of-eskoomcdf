@@ -50856,7 +50856,7 @@ app.use("/api", routes_default);
 var uploadsDir = process.env.UPLOAD_DIR || path2.resolve(process.cwd(), "public", "uploads");
 app.use("/uploads", import_express13.default.static(uploadsDir));
 if (process.env.NODE_ENV === "production") {
-  const frontendDist = process.env.FRONTEND_DIST || path2.resolve(__dirname2, "../../dist/public");
+  const frontendDist = process.env.FRONTEND_DIST || path2.resolve(process.cwd(), "dist/public");
   app.use(import_express13.default.static(frontendDist));
   app.get("/{*path}", (_req, res) => {
     res.sendFile(path2.join(frontendDist, "index.html"));
