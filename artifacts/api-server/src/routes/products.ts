@@ -131,74 +131,36 @@ router.post("/user-products/buy/:productId", async (req, res) => {
 
   // Credit referral commissions to the upline (up to 3 levels)
   // L1 (direct referrer): 10%, L2: 5%, L3: 1%
-  // Uses Supabase REST API — no direct pool connection required
   if (price > 0) {
-    const SB_URL = process.env.VITE_SUPABASE_PROJECT_URL;
-    const SB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (SB_URL && SB_KEY) {
-      const SB_HEADERS = {
-        "Content-Type": "application/json",
-        apikey: SB_KEY,
-        Authorization: `Bearer ${SB_KEY}`,
-      };
-
-      try {
-        const RATES = [
-          { level: "L1", rate: 0.10 },
-          { level: "L2", rate: 0.05 },
-          { level: "L3", rate: 0.01 },
-        ];
-
-        let currentProfileId: string | null = me.referredBy ?? null;
-
-        for (const { level, rate } of RATES) {
-          if (!currentProfileId) break;
-
-          // Fetch the referrer profile
-          const refRes = await fetch(
-            `${SB_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(currentProfileId)}&select=id,user_id,referred_by,balance,referral_balance&limit=1`,
-            { headers: SB_HEADERS }
-          );
-          if (!refRes.ok) break;
-          const refData = await refRes.json();
-          if (!Array.isArray(refData) || !refData.length) break;
-          const referrer = refData[0];
-
-          const commission = Math.round(price * rate * 100) / 100;
-          const newBalance = Number(referrer.balance ?? 0) + commission;
-          const newReferralBalance = Number(referrer.referral_balance ?? 0) + commission;
-
-          // Credit referrer's balance and referral_balance
-          await fetch(
-            `${SB_URL}/rest/v1/profiles?user_id=eq.${encodeURIComponent(referrer.user_id)}`,
-            {
-              method: "PATCH",
-              headers: { ...SB_HEADERS, Prefer: "return=minimal" },
-              body: JSON.stringify({ balance: newBalance, referral_balance: newReferralBalance }),
-            }
-          );
-
-          // Record commission in referral_commissions table
-          await fetch(`${SB_URL}/rest/v1/referral_commissions`, {
-            method: "POST",
-            headers: { ...SB_HEADERS, Prefer: "return=minimal" },
-            body: JSON.stringify({
-              beneficiary_id: referrer.id,
-              buyer_id: me.id,
-              product_price: price,
-              commission_amount: commission,
-              commission_rate: rate,
-              level,
-            }),
-          });
-
-          currentProfileId = referrer.referred_by ?? null;
-        }
-      } catch (commErr) {
-        // Log but don't fail the purchase — commissions are secondary
-        console.error("[referral] Commission crediting error:", commErr);
+    try {
+      const { pool: dbPool } = await import("@workspace/db");
+      const RATES = [
+        { level: "L1", rate: 0.10 },
+        { level: "L2", rate: 0.05 },
+        { level: "L3", rate: 0.01 },
+      ];
+      let currentProfileId: string | null = me.referredBy ?? null;
+      for (const { level, rate } of RATES) {
+        if (!currentProfileId) break;
+        const { rows: refRows } = await dbPool.query(
+          `SELECT id, user_id, referred_by, balance, referral_balance FROM profiles WHERE id = $1 LIMIT 1`,
+          [currentProfileId]
+        );
+        if (!refRows.length) break;
+        const referrer = refRows[0];
+        const commission = Math.round(price * rate * 100) / 100;
+        await dbPool.query(
+          `UPDATE profiles SET balance = balance + $1, referral_balance = referral_balance + $1, updated_at = now() WHERE user_id = $2`,
+          [commission, referrer.user_id]
+        );
+        await dbPool.query(
+          `INSERT INTO referral_commissions (id, beneficiary_id, buyer_id, product_price, commission_amount, commission_rate, level, created_at) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, now())`,
+          [referrer.id, me.id, price, commission, rate, level]
+        );
+        currentProfileId = referrer.referred_by ?? null;
       }
+    } catch (commErr) {
+      console.error("[referral] Commission crediting error:", commErr);
     }
   }
 

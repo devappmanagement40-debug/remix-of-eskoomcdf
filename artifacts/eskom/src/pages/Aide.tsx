@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { HelpCircle, ChevronRight } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import { supabase } from "@/integrations/supabase/client";
 
 type FaqItem = {
   id: string;
@@ -14,16 +13,11 @@ const Aide = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const load = async () => {
-      const { data } = await supabase
-        .from("faq_items")
-        .select("id, question, answer")
-        .eq("is_active", true)
-        .order("sort_order");
-      if (data) setFaqItems(data);
-      setLoading(false);
-    };
-    load();
+    fetch("/api/db?table=faq_items&filter=eq:is_active:true&order=sort_order:asc")
+      .then(r => r.ok ? r.json() : [])
+      .then(data => { if (Array.isArray(data)) setFaqItems(data); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   return (

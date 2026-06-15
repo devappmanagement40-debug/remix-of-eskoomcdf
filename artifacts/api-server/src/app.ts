@@ -33,6 +33,10 @@ app.use(express.urlencoded({ extended: true }));
 // API routes
 app.use("/api", router);
 
+// Serve locally uploaded files (replaces Supabase Storage)
+const uploadsDir = process.env.UPLOAD_DIR || path.resolve(process.cwd(), "public", "uploads");
+app.use("/uploads", express.static(uploadsDir));
+
 // Serve pre-built React frontend in production
 if (process.env.NODE_ENV === "production") {
   // __dirname = artifacts/api-server/dist/ (in the compiled bundle)

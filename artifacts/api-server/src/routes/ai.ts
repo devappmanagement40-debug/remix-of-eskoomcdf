@@ -1,37 +1,24 @@
 import { Router, Request, Response } from "express";
+import { pool } from "@workspace/db";
 
 const router = Router();
 
-// ─── Supabase REST helpers ────────────────────────────────────────────────────
-const SB_URL = () => process.env["VITE_SUPABASE_PROJECT_URL"] ?? "";
-const SB_KEY = () => process.env["SUPABASE_SERVICE_ROLE_KEY"] ?? "";
-
-async function sbGet(table: string, query = ""): Promise<any[]> {
-  const url = `${SB_URL()}/rest/v1/${table}${query ? `?${query}` : ""}`;
-  const res = await fetch(url, {
-    headers: {
-      apikey: SB_KEY(),
-      Authorization: `Bearer ${SB_KEY()}`,
-      "Content-Type": "application/json",
-    },
-  });
-  if (!res.ok) return [];
-  return res.json();
+async function dbQuery(sql: string, params: any[] = []): Promise<any[]> {
+  try {
+    const { rows } = await pool.query(sql, params);
+    return rows;
+  } catch (e) {
+    return [];
+  }
 }
 
-async function sbInsert(table: string, body: object): Promise<any> {
-  const res = await fetch(`${SB_URL()}/rest/v1/${table}`, {
-    method: "POST",
-    headers: {
-      apikey: SB_KEY(),
-      Authorization: `Bearer ${SB_KEY()}`,
-      "Content-Type": "application/json",
-      Prefer: "return=representation",
-    },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  return Array.isArray(data) ? data[0] : data;
+async function dbInsert(sql: string, params: any[] = []): Promise<any> {
+  try {
+    const { rows } = await pool.query(sql, params);
+    return rows[0] ?? null;
+  } catch (e) {
+    return null;
+  }
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -479,13 +466,13 @@ router.post("/chat", async (req: Request, res: Response) => {
       settingsRows, products, paymentMethods, officialDocs,
       infoItems, countries, withdrawalMethods,
     ] = await Promise.all([
-      sbGet("site_settings", "select=key,value"),
-      sbGet("products", "select=name,price,daily_revenue,cycles,total_revenue,return_percent,is_active&is_active=eq.true&order=sort_order"),
-      sbGet("payment_methods", "select=name,phone,country,holder_name,instructions,is_active,payment_type,country_id,external_url&is_active=eq.true&order=sort_order"),
-      sbGet("official_documents", "select=title,description,doc_type,file_url&is_active=eq.true&order=sort_order"),
-      sbGet("info_items", "select=title,description&is_active=eq.true&order=sort_order&limit=10"),
-      sbGet("countries", "select=id,name,country_code,api_enabled,is_active,flag_emoji&is_active=eq.true&order=sort_order"),
-      sbGet("withdrawal_methods", "select=name,payment_type,api_provider,country_id,is_active&is_active=eq.true&order=sort_order"),
+      dbQuery(`SELECT key, value FROM site_settings`),
+      dbQuery(`SELECT name, price, daily_revenue, cycles, total_revenue, return_percent, is_active FROM products WHERE is_active = true ORDER BY sort_order`),
+      dbQuery(`SELECT name, phone, country, holder_name, instructions, is_active, payment_type, country_id, external_url FROM payment_methods WHERE is_active = true ORDER BY sort_order`),
+      dbQuery(`SELECT title, description, doc_type, file_url FROM official_documents WHERE is_active = true ORDER BY sort_order`),
+      dbQuery(`SELECT title, description FROM info_items WHERE is_active = true ORDER BY sort_order LIMIT 10`),
+      dbQuery(`SELECT id, name, country_code, api_enabled, is_active, flag_emoji FROM countries WHERE is_active = true ORDER BY sort_order`),
+      dbQuery(`SELECT name, payment_type, api_provider, country_id, is_active FROM withdrawal_methods WHERE is_active = true ORDER BY sort_order`),
     ]);
 
     const settingsMap: Record<string, string> = {};
@@ -505,15 +492,15 @@ router.post("/chat", async (req: Request, res: Response) => {
 
     if (userId) {
       const [profileRows, rechargesRows, withdrawalsRows, userProductsRows] = await Promise.all([
-        sbGet("profiles", `select=*&user_id=eq.${userId}&limit=1`),
-        sbGet("recharges", `select=amount,status,created_at,payment_method&user_id=eq.${userId}&order=created_at.desc&limit=5`),
-        sbGet("withdrawals", `select=amount,status,created_at,network,phone,net_amount,fee_amount&user_id=eq.${userId}&order=created_at.desc&limit=5`),
-        sbGet("user_products", `select=id,product_id,purchased_at,expires_at,is_active,total_collected,products(name,price,daily_revenue,cycles,total_revenue)&user_id=eq.${userId}&is_active=eq.true`),
+        dbQuery(`SELECT * FROM profiles WHERE user_id = $1 LIMIT 1`, [userId]),
+        dbQuery(`SELECT amount, status, created_at, payment_method FROM recharges WHERE user_id = $1 ORDER BY created_at DESC LIMIT 5`, [userId]),
+        dbQuery(`SELECT amount, status, created_at, network, phone, net_amount, fee_amount FROM withdrawals WHERE user_id = $1 ORDER BY created_at DESC LIMIT 5`, [userId]),
+        dbQuery(`SELECT up.id, up.product_id, up.purchased_at, up.expires_at, up.is_active, up.total_collected, p.name as product_name, p.price, p.daily_revenue, p.cycles, p.total_revenue FROM user_products up JOIN products p ON p.id = up.product_id WHERE up.user_id = $1 AND up.is_active = true`, [userId]),
       ]);
-      userProfile   = profileRows[0] ?? null;
-      userRecharges = rechargesRows;
+      userProfile     = profileRows[0] ?? null;
+      userRecharges   = rechargesRows;
       userWithdrawals = withdrawalsRows;
-      userProducts  = userProductsRows;
+      userProducts    = userProductsRows.map((r: any) => ({ ...r, products: { name: r.product_name, price: r.price, daily_revenue: r.daily_revenue, cycles: r.cycles, total_revenue: r.total_revenue } }));
     }
 
     // 3. Build system prompt
@@ -655,12 +642,10 @@ router.post("/chat", async (req: Request, res: Response) => {
     let savedReplyId: string | null = null;
     if (userId) {
       try {
-        const saved = await sbInsert("chat_messages", {
-          user_id: userId,
-          sender:  "support",
-          message: reply,
-          is_ai:   true,
-        });
+        const saved = await dbInsert(
+          `INSERT INTO chat_messages (id, user_id, sender, message, is_ai, created_at, updated_at) VALUES (gen_random_uuid(), $1, 'support', $2, true, now(), now()) RETURNING id`,
+          [userId, reply]
+        );
         savedReplyId = saved?.id ?? null;
       } catch (e) {
         console.error("[AI] Failed to save reply:", e);
