@@ -35,10 +35,11 @@ const AdminLogin = () => {
       }
 
       const data = await res.json();
-      localStorage.setItem("auth_token", data.token);
+      localStorage.setItem("auth_token", data.session?.access_token ?? data.token);
 
+      const token = data.session?.access_token ?? data.token;
       const checkRes = await fetch("/api/admin/check", {
-        headers: { Authorization: `Bearer ${data.token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (!checkRes.ok) {

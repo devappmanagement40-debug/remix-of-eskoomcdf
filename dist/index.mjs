@@ -48251,12 +48251,13 @@ router2.post("/auth/signup", async (req, res) => {
   }
 });
 router2.post("/auth/login", async (req, res) => {
-  const { phone, password } = req.body;
-  if (!phone || !password) {
+  const { phone, email, password } = req.body;
+  const identifier = phone || email;
+  if (!identifier || !password) {
     return res.status(400).json({ error: "phone and password are required" });
   }
   try {
-    const [profile] = await db.select().from(profiles).where(eq(profiles.phone, phone)).limit(1);
+    const [profile] = await db.select().from(profiles).where(eq(profiles.phone, identifier)).limit(1);
     if (!profile || !profile.passwordHash) {
       return res.status(401).json({ error: "Incorrect number or password" });
     }

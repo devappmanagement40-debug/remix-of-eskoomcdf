@@ -156,8 +156,9 @@ router.post("/auth/signup", async (req, res) => {
 });
 
 router.post("/auth/login", async (req, res) => {
-  const { phone, password } = req.body;
-  if (!phone || !password) {
+  const { phone, email, password } = req.body;
+  const identifier = phone || email;
+  if (!identifier || !password) {
     return res.status(400).json({ error: "phone and password are required" });
   }
 
@@ -165,7 +166,7 @@ router.post("/auth/login", async (req, res) => {
     const [profile] = await db
       .select()
       .from(profiles)
-      .where(eq(profiles.phone, phone))
+      .where(eq(profiles.phone, identifier))
       .limit(1);
 
     if (!profile || !profile.passwordHash) {
