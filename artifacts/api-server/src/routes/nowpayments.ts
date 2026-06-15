@@ -1,7 +1,7 @@
 import { Router } from "express";
 import crypto from "crypto";
 import { db, recharges, withdrawals, profiles } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, and } from "drizzle-orm";
 
 const router = Router();
 const NP_API = "https://api.nowpayments.io/v1";
@@ -62,29 +62,49 @@ const FALLBACK_CURRENCIES: CurrencyItem[] = [
 // ---- In-memory currencies cache (10 minutes) ----
 let currenciesCache: { data: CurrencyItem[]; ts: number } | null = null;
 
-// ---- DB helpers via Drizzle (no Supabase dependency) ----
+// ============================================================
+// IDEMPOTENT DB HELPERS — protected against double execution
+// ============================================================
 
-async function approveRechargeByPaymentId(paymentId: string): Promise<void> {
+/**
+ * Approve a recharge by NowPayments payment_id.
+ * IDEMPOTENT: uses atomic WHERE status='pending' so concurrent calls only credit once.
+ */
+async function approveRechargeByPaymentId(paymentId: string): Promise<boolean> {
+  // 1. Find the pending recharge for this payment_id
   const [recharge] = await db
-    .select({ id: recharges.id, userId: recharges.userId, amount: recharges.amount })
+    .select({ id: recharges.id, userId: recharges.userId, amount: recharges.amount, status: recharges.status })
     .from(recharges)
     .where(eq(recharges.transactionRef, paymentId))
     .limit(1);
 
   if (!recharge) {
-    console.warn(`[NP] approveRecharge: no pending recharge found for paymentId=${paymentId}`);
-    return;
+    console.warn(`[NP] approveRecharge: no recharge found for paymentId=${paymentId}`);
+    return false;
+  }
+
+  // 2. Already processed — skip (idempotency guard)
+  if (recharge.status !== "pending") {
+    console.log(`[NP] approveRecharge: already ${recharge.status} for paymentId=${paymentId} — skipping`);
+    return false;
   }
 
   const amount = Number(recharge.amount);
 
-  // Update recharge status
-  await db
+  // 3. Atomically update recharge status to approved, only if still pending
+  const [updated] = await db
     .update(recharges)
     .set({ status: "approved", updatedAt: new Date() })
-    .where(eq(recharges.id, recharge.id));
+    .where(and(eq(recharges.id, recharge.id), eq(recharges.status, "pending")))
+    .returning({ id: recharges.id });
 
-  // Increment user balance atomically
+  if (!updated) {
+    // Another concurrent call already approved it
+    console.warn(`[NP] approveRecharge: concurrent update blocked for rechargeId=${recharge.id} — no double credit`);
+    return false;
+  }
+
+  // 4. Atomically increment user balance (SQL-level, race-condition safe)
   await db
     .update(profiles)
     .set({
@@ -94,28 +114,48 @@ async function approveRechargeByPaymentId(paymentId: string): Promise<void> {
     })
     .where(eq(profiles.userId, recharge.userId));
 
-  console.log(`[NP] Recharge approved: ${recharge.id} — ${amount} USD → user ${recharge.userId}`);
+  console.log(`[NP] ✅ Recharge approved: ${recharge.id} — +${amount} USD → user ${recharge.userId}`);
+  return true;
 }
 
-async function approveWithdrawalByExternalId(externalId: string): Promise<void> {
+/**
+ * Approve a withdrawal by our local withdrawal ID (used as unique_external_id in NowPayments).
+ * IDEMPOTENT: skips if already approved.
+ */
+async function approveWithdrawalByExternalId(externalId: string): Promise<boolean> {
   const [withdrawal] = await db
     .select({ id: withdrawals.id, status: withdrawals.status })
     .from(withdrawals)
     .where(eq(withdrawals.id, externalId))
     .limit(1);
 
-  if (!withdrawal || withdrawal.status === "approved") return;
+  if (!withdrawal) {
+    console.warn(`[NP] approveWithdrawal: not found externalId=${externalId}`);
+    return false;
+  }
 
-  await db
+  if (withdrawal.status === "approved") {
+    console.log(`[NP] approveWithdrawal: already approved externalId=${externalId} — skipping`);
+    return false;
+  }
+
+  const [updated] = await db
     .update(withdrawals)
     .set({
       status: "approved",
       adminNote: "✅ Auto-approved via NowPayments payout IPN",
       updatedAt: new Date(),
     })
-    .where(eq(withdrawals.id, externalId));
+    .where(and(eq(withdrawals.id, externalId), eq(withdrawals.status, "processing")))
+    .returning({ id: withdrawals.id });
 
-  console.log(`[NP] Withdrawal auto-approved: ${externalId}`);
+  if (!updated) {
+    console.warn(`[NP] approveWithdrawal: status not 'processing' for externalId=${externalId} — skipped`);
+    return false;
+  }
+
+  console.log(`[NP] ✅ Withdrawal auto-approved: ${externalId}`);
+  return true;
 }
 
 // ---- Payout JWT ----
@@ -269,6 +309,22 @@ router.post("/nowpayments/create", async (req, res) => {
     return res.status(400).json({ error: "amount, currency and rechargeId are required" });
   }
 
+  // Guard: ensure recharge exists and is still pending before creating NowPayments payment
+  const [existingRecharge] = await db
+    .select({ id: recharges.id, status: recharges.status, transactionRef: recharges.transactionRef })
+    .from(recharges)
+    .where(eq(recharges.id, rechargeId))
+    .limit(1);
+
+  if (!existingRecharge) return res.status(404).json({ error: "Recharge not found" });
+  if (existingRecharge.status !== "pending") {
+    return res.status(400).json({ error: `Recharge already ${existingRecharge.status}` });
+  }
+  // If already has a payment_id — return error to avoid duplicate NowPayments payment
+  if (existingRecharge.transactionRef) {
+    return res.status(400).json({ error: "Payment already created for this recharge" });
+  }
+
   try {
     const webhookUrl = getWebhookUrl("webhook");
     const payCurrency = currency.toLowerCase();
@@ -354,6 +410,7 @@ router.get("/nowpayments/status/:paymentId", async (req, res) => {
 
     const status = data.payment_status;
 
+    // Auto-approve on finished/confirmed — idempotent, safe to call multiple times
     if (status === "finished" || status === "confirmed") {
       try {
         await approveRechargeByPaymentId(String(paymentId));
@@ -390,17 +447,26 @@ router.post("/nowpayments/webhook", async (req, res) => {
     }
   }
 
-  const payload = req.body as { payment_id?: string | number; payment_status?: string; order_id?: string };
+  const payload = req.body as {
+    payment_id?: string | number;
+    payment_status?: string;
+    order_id?: string;
+    actually_paid?: number;
+    pay_amount?: number;
+  };
   const status = payload.payment_status ?? "";
   const paymentId = String(payload.payment_id ?? "");
 
   console.log(`[NP IPN deposit] status=${status} payment_id=${paymentId} order_id=${payload.order_id}`);
 
+  // Idempotent — approveRechargeByPaymentId will no-op if already approved
   if (status === "finished" || status === "confirmed") {
     try {
-      await approveRechargeByPaymentId(paymentId);
+      const approved = await approveRechargeByPaymentId(paymentId);
+      console.log(`[NP IPN deposit] approved=${approved} for payment_id=${paymentId}`);
     } catch (err) {
       console.error("[NP] webhook approveRecharge error:", err);
+      // Still return 200 so NowPayments doesn't retry indefinitely
     }
   }
 
@@ -478,6 +544,7 @@ router.post("/nowpayments/payout", async (req, res) => {
     const data = (await r.json()) as { id?: string; batch_withdrawal_id?: string };
     const payoutId = data.id ?? data.batch_withdrawal_id ?? "unknown";
 
+    // Set to processing — balance already deducted at submission time
     await db
       .update(withdrawals)
       .set({
@@ -485,7 +552,7 @@ router.post("/nowpayments/payout", async (req, res) => {
         adminNote: `🚀 NowPayments payout submitted — batch ID: ${payoutId}`,
         updatedAt: new Date(),
       })
-      .where(eq(withdrawals.id, withdrawalId));
+      .where(and(eq(withdrawals.id, withdrawalId), eq(withdrawals.status, "pending")));
 
     console.log(`[NP] Payout submitted: batchId=${payoutId}`);
     return res.json({ success: true, payoutId });
@@ -545,7 +612,8 @@ router.post("/nowpayments/payout-webhook", async (req, res) => {
     console.log(`  [NP IPN payout item] extId=${extId} status=${st}`);
     if (extId && (st === "FINISHED" || st === "COMPLETE" || st === "COMPLETED" || st === "DONE")) {
       try {
-        await approveWithdrawalByExternalId(extId);
+        const approved = await approveWithdrawalByExternalId(extId);
+        console.log(`  [NP IPN payout item] approved=${approved} for extId=${extId}`);
       } catch (err) {
         console.error("[NP] payout-webhook approveWithdrawal error:", err);
       }
