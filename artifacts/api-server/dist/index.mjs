@@ -41961,6 +41961,7 @@ var init_profiles = __esm({
       referralCode: text("referral_code"),
       referredBy: text("referred_by"),
       passwordHash: text("password_hash"),
+      avatarUrl: text("avatar_url"),
       isSuspended: boolean("is_suspended").default(false),
       createdAt: timestamp("created_at").defaultNow(),
       updatedAt: timestamp("updated_at").defaultNow()
