@@ -1,8 +1,10 @@
-modules = ["nodejs-24", "python-3.11", "postgresql-16"]
+modules = ["python-3.11", "postgresql-16", "nodejs-20"]
 
 [deployment]
 router = "application"
 deploymentTarget = "autoscale"
+run = ["node", "./dist/index.cjs"]
+build = ["npm", "run", "build"]
 
 [deployment.postBuild]
 args = ["pnpm", "store", "prune"]
@@ -24,17 +26,18 @@ args = "Start application"
 name = "Start application"
 author = "agent"
 
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "pnpm --filter @workspace/api-server run dev & pnpm --filter @workspace/eskom run dev"
-waitForPort = 23962
-
 [workflows.workflow.metadata]
 outputType = "webview"
 
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "pnpm install && (PORT=8080 NODE_ENV=development pnpm --filter @workspace/api-server run dev &) && PORT=5000 pnpm --filter @workspace/eskom run dev"
+waitForPort = 5000
+
 [agent]
-stack = "PNPM_WORKSPACE"
+stack = "FULLSTACK_JS"
 expertMode = true
+integrations = ["javascript_database:1.0.0"]
 
 [postMerge]
 path = "scripts/post-merge.sh"
@@ -67,6 +70,10 @@ externalPort = 3003
 [[ports]]
 localPort = 23962
 externalPort = 3000
+
+[[ports]]
+localPort = 5000
+externalPort = 80
 
 [userenv]
 

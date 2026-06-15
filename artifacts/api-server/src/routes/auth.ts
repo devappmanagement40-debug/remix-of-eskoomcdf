@@ -1,85 +1,84 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { profiles, userRoles, userSessions } from "@workspace/db";
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, gt, ilike } from "drizzle-orm";
+import bcrypt from "bcryptjs";
+import crypto from "node:crypto";
 
 const router = Router();
 
-const SUPABASE_URL = process.env.VITE_SUPABASE_PROJECT_URL;
-const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const ADMIN_SETUP_TOKEN = "5849466548400404084435113616";
+const ADMIN_SETUP_TOKEN = process.env.ADMIN_SETUP_TOKEN || "5849466548400404084435113616";
+const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000;
 
-function phoneToIdentifier(phone: string): string {
-  return `${phone}@users.ge-energy.app`;
+function generateId(): string {
+  return crypto.randomUUID();
+}
+
+function generateToken(): string {
+  return crypto.randomBytes(48).toString("hex");
+}
+
+function generateReferralCode(phone: string): string {
+  return (
+    phone.slice(-4).toUpperCase() +
+    Math.random().toString(36).substring(2, 6).toUpperCase()
+  );
+}
+
+async function createSession(userId: string): Promise<string> {
+  const token = generateToken();
+  const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
+  await db.insert(userSessions).values({
+    id: generateId(),
+    userId,
+    token,
+    expiresAt,
+  });
+  return token;
 }
 
 router.post("/auth/admin-setup", async (req, res) => {
-  const { token, email, password } = req.body;
+  const { token, phone, password } = req.body;
   if (!token || token !== ADMIN_SETUP_TOKEN) {
     return res.status(403).json({ error: "Forbidden" });
   }
-  if (!email || !password) {
-    return res.status(400).json({ error: "email and password required" });
-  }
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-    return res.status(500).json({ error: "Service not configured" });
+  if (!phone || !password) {
+    return res.status(400).json({ error: "phone and password required" });
   }
 
   try {
-    const createRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: SUPABASE_SERVICE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
-      },
-      body: JSON.stringify({ email, password, email_confirm: true }),
-    });
+    const [existing] = await db
+      .select({ id: profiles.id })
+      .from(profiles)
+      .where(eq(profiles.phone, phone))
+      .limit(1);
 
-    const userData = await createRes.json();
-    if (!createRes.ok) {
-      return res.status(400).json({ error: userData.message || userData.msg || "Failed to create user" });
+    if (existing) {
+      return res.status(409).json({ error: "Admin already exists" });
     }
 
-    const userId: string = userData.id;
+    const passwordHash = await bcrypt.hash(password, 12);
+    const userId = generateId();
 
-    await fetch(`${SUPABASE_URL}/rest/v1/user_roles`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: SUPABASE_SERVICE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
-        Prefer: "return=minimal",
-      },
-      body: JSON.stringify({ user_id: userId, role: "admin" }),
+    await db.insert(profiles).values({
+      id: generateId(),
+      userId,
+      phone,
+      fullName: "Administrator",
+      countryCode: "+0",
+      referralCode: "ADMIN001",
+      passwordHash,
     });
 
-    const upsertProfile = await fetch(`${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${encodeURIComponent(userId)}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        apikey: SUPABASE_SERVICE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
-        Prefer: "return=minimal",
-      },
-      body: JSON.stringify({ full_name: "Administrator", phone: "admin", country_code: "+0", referral_code: "ADMIN001" }),
+    await db.insert(userRoles).values({
+      id: generateId(),
+      userId,
+      role: "admin",
     });
 
-    if (upsertProfile.status === 404 || upsertProfile.status === 200 || upsertProfile.status === 204) {
-      await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: SUPABASE_SERVICE_KEY,
-          Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
-          Prefer: "return=minimal,resolution=ignore-duplicates",
-        },
-        body: JSON.stringify({ user_id: userId, full_name: "Administrator", phone: "admin", country_code: "+0", referral_code: "ADMIN001" }),
-      });
-    }
+    const accessToken = await createSession(userId);
 
-    return res.json({ ok: true, userId });
+    return res.json({ ok: true, userId, session: { access_token: accessToken } });
   } catch (err) {
     req.log.error(err);
     return res.status(500).json({ error: "Admin setup failed" });
@@ -91,157 +90,59 @@ router.post("/auth/signup", async (req, res) => {
   if (!phone || !password || !inviteCode) {
     return res.status(400).json({ error: "phone, password and inviteCode are required" });
   }
-  if (!SUPABASE_URL || !SUPABASE_KEY) {
-    return res.status(500).json({ error: "Auth service not configured" });
-  }
-
-  if (!SUPABASE_SERVICE_KEY) {
-    return res.status(500).json({ error: "Service key not configured" });
-  }
-
-  const SERVICE_HEADERS = {
-    "Content-Type": "application/json",
-    apikey: SUPABASE_SERVICE_KEY,
-    Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
-  };
 
   try {
-    // Step 1: Validate referral code via Supabase REST API (no direct DB pool needed)
-    // Use service role key to bypass RLS and ensure reliable lookup
-    const codeRes = await fetch(
-      `${SUPABASE_URL}/rest/v1/profiles?select=id&referral_code=ilike.${encodeURIComponent(inviteCode.trim())}&limit=1`,
-      { headers: SERVICE_HEADERS }
-    );
-    const codeData = codeRes.ok ? await codeRes.json() : [];
-    const referrerId: string | null = Array.isArray(codeData) && codeData.length > 0
-      ? codeData[0].id
-      : null;
+    const [referrerRow] = await db
+      .select({ userId: profiles.userId })
+      .from(profiles)
+      .where(ilike(profiles.referralCode, inviteCode.trim()))
+      .limit(1);
 
-    if (!referrerId) {
+    if (!referrerRow) {
       return res.status(400).json({ error: "Invalid invitation code" });
     }
 
-    // Step 2: Create Supabase auth user via Admin API
-    // Using admin endpoint + service key bypasses email format restrictions
-    // and marks the user as email_confirmed so they can log in immediately
-    const email = phoneToIdentifier(phone);
+    const [existingUser] = await db
+      .select({ userId: profiles.userId })
+      .from(profiles)
+      .where(eq(profiles.phone, phone))
+      .limit(1);
 
-    // First check if user already exists (avoid duplicate)
-    const existCheck = await fetch(
-      `${SUPABASE_URL}/rest/v1/profiles?select=user_id&phone=eq.${encodeURIComponent(phone)}&limit=1`,
-      { headers: SERVICE_HEADERS }
-    );
-    const existData = existCheck.ok ? await existCheck.json() : [];
-    if (Array.isArray(existData) && existData.length > 0) {
+    if (existingUser) {
       return res.status(409).json({ error: "This number is already registered" });
     }
 
-    const signupRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
-      method: "POST",
-      headers: SERVICE_HEADERS,
-      body: JSON.stringify({
-        email,
-        password,
-        email_confirm: true,   // skip email confirmation — phone is already verified via invite code
-        user_metadata: { phone, country_code: countryCode || "+509" },
-      }),
+    const passwordHash = await bcrypt.hash(password, 12);
+    const userId = generateId();
+    const referralCode = generateReferralCode(phone);
+
+    await db.insert(profiles).values({
+      id: generateId(),
+      userId,
+      phone,
+      countryCode: countryCode || "+509",
+      referralCode,
+      referredBy: referrerRow.userId,
+      passwordHash,
     });
 
-    const signupData = await signupRes.json();
+    await db.insert(userRoles).values({
+      id: generateId(),
+      userId,
+      role: "user",
+    });
 
-    if (!signupRes.ok || signupData.error) {
-      const msg =
-        signupData.error?.message ||
-        signupData.msg ||
-        signupData.message ||
-        "Sign up failed";
-      if (
-        msg.toLowerCase().includes("already registered") ||
-        msg.toLowerCase().includes("already exists") ||
-        msg.toLowerCase().includes("duplicate")
-      ) {
-        return res.status(409).json({ error: "This number is already registered" });
-      }
-      return res.status(400).json({ error: msg });
-    }
-
-    const userId: string = signupData.id || signupData.user?.id;
-
-    if (userId) {
-      const referralCode =
-        phone.slice(-4).toUpperCase() +
-        Math.random().toString(36).substring(2, 6).toUpperCase();
-
-      const profileData = {
-        phone,
-        country_code: countryCode || "+509",
-        referral_code: referralCode,
-        referred_by: referrerId,
-      };
-
-      // Step 3a: Try PATCH first (profile may already exist from a Supabase trigger)
-      const patchRes = await fetch(
-        `${SUPABASE_URL}/rest/v1/profiles?user_id=eq.${encodeURIComponent(userId)}`,
-        {
-          method: "PATCH",
-          headers: { ...SERVICE_HEADERS, Prefer: "return=representation" },
-          body: JSON.stringify(profileData),
-        }
-      );
-      const patchData = patchRes.ok ? await patchRes.json() : [];
-
-      // Step 3b: If no row was updated, insert a fresh profile row
-      if (!patchData || (Array.isArray(patchData) && patchData.length === 0)) {
-        await fetch(`${SUPABASE_URL}/rest/v1/profiles`, {
-          method: "POST",
-          headers: {
-            ...SERVICE_HEADERS,
-            Prefer: "return=minimal,resolution=merge-duplicates",
-          },
-          body: JSON.stringify({
-            user_id: userId,
-            balance: 0,
-            deposit_balance: 0,
-            earnings_balance: 0,
-            referral_balance: 0,
-            gift_points: 0,
-            spins_balance: 0,
-            vip_level: 0,
-            ...profileData,
-          }),
-        });
-      }
-    }
-
-    // Step 4: Generate a session so the user is logged in immediately after signup
-    // Admin API does not return a session — get one via password grant
-    let session = null;
-    try {
-      const tokenRes = await fetch(
-        `${SUPABASE_URL}/auth/v1/token?grant_type=password`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", apikey: SUPABASE_KEY! },
-          body: JSON.stringify({ email, password }),
-        }
-      );
-      if (tokenRes.ok) {
-        const tokenData = await tokenRes.json();
-        if (!tokenData.error) {
-          session = {
-            access_token: tokenData.access_token,
-            refresh_token: tokenData.refresh_token,
-            expires_at: tokenData.expires_at,
-            expires_in: tokenData.expires_in,
-          };
-        }
-      }
-    } catch { /* session optional — user can log in manually */ }
+    const accessToken = await createSession(userId);
 
     return res.json({
       ok: true,
-      session,
-      user: signupData,
+      session: {
+        access_token: accessToken,
+        refresh_token: "",
+        expires_in: SESSION_DURATION_MS / 1000,
+        expires_at: Math.floor((Date.now() + SESSION_DURATION_MS) / 1000),
+      },
+      user: { id: userId },
     });
   } catch (err) {
     req.log.error(err);
@@ -254,39 +155,38 @@ router.post("/auth/login", async (req, res) => {
   if (!phone || !password) {
     return res.status(400).json({ error: "phone and password are required" });
   }
-  if (!SUPABASE_URL || !SUPABASE_KEY) {
-    return res.status(500).json({ error: "Auth service not configured" });
-  }
 
   try {
-    const email = phoneToIdentifier(phone);
-    const tokenRes = await fetch(
-      `${SUPABASE_URL}/auth/v1/token?grant_type=password`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          apikey: SUPABASE_KEY,
-        },
-        body: JSON.stringify({ email, password }),
-      }
-    );
+    const [profile] = await db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.phone, phone))
+      .limit(1);
 
-    const tokenData = await tokenRes.json();
-
-    if (!tokenRes.ok || tokenData.error) {
+    if (!profile || !profile.passwordHash) {
       return res.status(401).json({ error: "Incorrect number or password" });
     }
+
+    const valid = await bcrypt.compare(password, profile.passwordHash);
+    if (!valid) {
+      return res.status(401).json({ error: "Incorrect number or password" });
+    }
+
+    if (profile.isSuspended) {
+      return res.status(403).json({ error: "Account suspended" });
+    }
+
+    const accessToken = await createSession(profile.userId);
 
     return res.json({
       ok: true,
       session: {
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token,
-        expires_in: tokenData.expires_in,
-        token_type: tokenData.token_type,
+        access_token: accessToken,
+        refresh_token: "",
+        expires_in: SESSION_DURATION_MS / 1000,
+        token_type: "Bearer",
       },
-      user: tokenData.user ?? null,
+      user: { id: profile.userId },
     });
   } catch (err) {
     req.log.error(err);
@@ -294,8 +194,48 @@ router.post("/auth/login", async (req, res) => {
   }
 });
 
+router.post("/auth/change-password", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "").trim();
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+
+  const { oldPassword, newPassword } = req.body;
+  if (!oldPassword || !newPassword) {
+    return res.status(400).json({ error: "oldPassword and newPassword required" });
+  }
+  if (newPassword.length < 6) {
+    return res.status(400).json({ error: "New password must be at least 6 characters" });
+  }
+
+  try {
+    const [session] = await db
+      .select()
+      .from(userSessions)
+      .where(and(eq(userSessions.token, token), gt(userSessions.expiresAt, new Date())))
+      .limit(1);
+    if (!session) return res.status(401).json({ error: "Unauthorized" });
+
+    const [profile] = await db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.userId, session.userId))
+      .limit(1);
+    if (!profile || !profile.passwordHash) return res.status(404).json({ error: "User not found" });
+
+    const valid = await bcrypt.compare(oldPassword, profile.passwordHash);
+    if (!valid) return res.status(400).json({ error: "Current password is incorrect" });
+
+    const newHash = await bcrypt.hash(newPassword, 12);
+    await db.update(profiles).set({ passwordHash: newHash }).where(eq(profiles.userId, session.userId));
+
+    return res.json({ ok: true });
+  } catch (err) {
+    req.log.error(err);
+    return res.status(500).json({ error: "Failed to change password" });
+  }
+});
+
 router.post("/auth/logout", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
+  const token = req.headers.authorization?.replace("Bearer ", "").trim();
   if (token) {
     await db.delete(userSessions).where(eq(userSessions.token, token));
   }
@@ -303,7 +243,7 @@ router.post("/auth/logout", async (req, res) => {
 });
 
 router.get("/auth/me", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
+  const token = req.headers.authorization?.replace("Bearer ", "").trim();
   if (!token) return res.status(401).json({ error: "Unauthorized" });
 
   try {

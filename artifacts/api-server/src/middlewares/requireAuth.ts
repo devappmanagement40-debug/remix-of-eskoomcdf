@@ -1,8 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-
-const SUPABASE_URL = process.env.VITE_SUPABASE_PROJECT_URL;
-const SUPABASE_KEY = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+import { db, userSessions, userRoles } from "@workspace/db";
+import { eq, and, gt } from "drizzle-orm";
 
 export interface AuthUser {
   userId: string;
@@ -17,45 +15,26 @@ declare global {
   }
 }
 
-/** Look up user role via Supabase REST API (no direct DB pool needed) */
-async function getRoleViaApi(userId: string): Promise<string> {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) return "user";
-  try {
-    const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/user_roles?user_id=eq.${encodeURIComponent(userId)}&select=role&limit=1`,
-      {
-        headers: {
-          apikey: SUPABASE_SERVICE_KEY,
-          Authorization: `Bearer ${SUPABASE_SERVICE_KEY}`,
-        },
-      }
-    );
-    if (!res.ok) return "user";
-    const data = await res.json();
-    return data?.[0]?.role ?? "user";
-  } catch {
-    return "user";
-  }
-}
-
 async function resolveUser(token: string): Promise<AuthUser | null> {
-  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
-
-  // Verify the Supabase JWT via REST API (no pool dependency)
   try {
-    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-      headers: { Authorization: `Bearer ${token}`, apikey: SUPABASE_KEY },
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const uid: string = data.id;
-      if (!uid) return null;
-      const role = await getRoleViaApi(uid);
-      return { userId: uid, role };
-    }
-  } catch { /* fall through */ }
+    const [session] = await db
+      .select()
+      .from(userSessions)
+      .where(and(eq(userSessions.token, token), gt(userSessions.expiresAt, new Date())))
+      .limit(1);
 
-  return null;
+    if (!session) return null;
+
+    const [roleRow] = await db
+      .select()
+      .from(userRoles)
+      .where(eq(userRoles.userId, session.userId))
+      .limit(1);
+
+    return { userId: session.userId, role: roleRow?.role ?? "user" };
+  } catch {
+    return null;
+  }
 }
 
 /** Attaches authUser to req if token is valid — does NOT reject, for optional auth */

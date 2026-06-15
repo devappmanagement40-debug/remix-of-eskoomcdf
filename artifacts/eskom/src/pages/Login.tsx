@@ -68,10 +68,8 @@ const Login = () => {
         return;
       }
 
-      await supabase.auth.setSession({
-        access_token: data.session.access_token,
-        refresh_token: data.session.refresh_token,
-      });
+      const { localAuth } = await import("@/integrations/supabase/client");
+      localAuth.setSession(data.session.access_token, data.user);
 
       const { data: profile } = await supabase
         .from("profiles")

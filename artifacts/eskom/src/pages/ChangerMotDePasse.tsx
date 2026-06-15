@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { getAuthToken } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
 import { Input } from "@/components/ui/input";
@@ -29,28 +29,24 @@ const ChangerMotDePasse = () => {
     }
 
     setLoading(true);
+    const token = getAuthToken();
+    if (!token) { showError("Error", "User not logged in"); setLoading(false); return; }
 
-    // Verify old password by re-signing in
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user?.email) { showError("Error", "User not logged in"); setLoading(false); return; }
-
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email: user.email,
-      password: oldPassword,
-    });
-
-    if (signInError) {
-      showError("Error", "Current password is incorrect");
-      setLoading(false);
-      return;
-    }
-
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) {
-      showError("Error", "Failed to update password");
-    } else {
-      showSuccess("Success", "Password updated successfully ✅");
-      setTimeout(() => navigate("/parametres"), 1500);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ oldPassword, newPassword }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        showError("Error", data.error || "Failed to update password");
+      } else {
+        showSuccess("Success", "Password updated successfully ✅");
+        setTimeout(() => navigate("/parametres"), 1500);
+      }
+    } catch {
+      showError("Error", "Connection error");
     }
     setLoading(false);
   };
