@@ -42499,10 +42499,10 @@ var init_src = __esm({
     init_schema2();
     init_schema2();
     ({ Pool: Pool3 } = esm_default);
-    connectionString = process.env.DATABASE_URL;
+    connectionString = process.env.SUPABASE_DATABASE_URL ?? process.env.DATABASE_URL;
     if (!connectionString) {
       throw new Error(
-        "DATABASE_URL must be set. Did you forget to provision a database?"
+        "SUPABASE_DATABASE_URL or DATABASE_URL must be set."
       );
     }
     sslConfig = process.env.DB_SSL === "false" ? false : { rejectUnauthorized: false };
