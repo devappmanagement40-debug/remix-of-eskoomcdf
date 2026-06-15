@@ -50849,7 +50849,17 @@ app.use(
     }
   })
 );
-app.use((0, import_cors.default)());
+app.use((0, import_cors.default)({
+  origin: [
+    "https://geenergy.top",
+    "https://www.geenergy.top",
+    /\.replit\.app$/,
+    /\.replit\.dev$/,
+    "http://localhost:5000",
+    "http://localhost:5173"
+  ],
+  credentials: true
+}));
 app.use(import_express13.default.json());
 app.use(import_express13.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);

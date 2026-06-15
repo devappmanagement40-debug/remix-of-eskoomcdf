@@ -5,6 +5,7 @@ import path from "path";
 const isProd = process.env.NODE_ENV === "production";
 const port = Number(process.env.PORT ?? 5173);
 const basePath = process.env.BASE_PATH ?? "/";
+const domain = process.env.APP_DOMAIN || "geenergy.top";
 
 export default defineConfig({
   base: basePath,
@@ -46,7 +47,7 @@ export default defineConfig({
     port,
     strictPort: true,
     host: "0.0.0.0",
-    allowedHosts: true,
+    allowedHosts: [domain, `www.${domain}`, "localhost", ".replit.app", ".replit.dev", true],
     fs: { strict: true },
     proxy: {
       "/api": {
