@@ -8,6 +8,24 @@ import { rm, writeFile } from "node:fs/promises";
 globalThis.require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// Resolve @workspace/* packages to their source
+const workspaceAlias = {
+  "@workspace/db": path.resolve(__dirname, "lib/db/src/index.ts"),
+  "@workspace/api-zod": path.resolve(__dirname, "lib/api-zod/src/index.ts"),
+};
+
+/** esbuild plugin that resolves @workspace/* to local source paths */
+const workspacePlugin = {
+  name: "workspace-resolver",
+  setup(build) {
+    build.onResolve({ filter: /^@workspace\// }, (args) => {
+      const resolved = workspaceAlias[args.path];
+      if (resolved) return { path: resolved };
+      return null;
+    });
+  },
+};
+
 async function buildServer() {
   const distDir = path.resolve(__dirname, "dist");
   // Remove old server bundle (keep public/ from vite build)
@@ -19,7 +37,8 @@ async function buildServer() {
   await rm(path.join(distDir, "thread-stream-worker.mjs"), { force: true });
 
   await esbuild({
-    entryPoints: [path.resolve(__dirname, "server/index.ts")],
+    // Bundle from artifacts/api-server/src — the up-to-date backend code
+    entryPoints: [path.resolve(__dirname, "artifacts/api-server/src/index.ts")],
     platform: "node",
     bundle: true,
     format: "esm",
@@ -36,7 +55,10 @@ async function buildServer() {
       "bufferutil", "utf-8-validate", "pg-native",
     ],
     sourcemap: "linked",
-    plugins: [esbuildPluginPino({ transports: ["pino-pretty"] })],
+    plugins: [
+      workspacePlugin,
+      esbuildPluginPino({ transports: ["pino-pretty"] }),
+    ],
     banner: {
       js: `import { createRequire as __crReq } from 'node:module';
 import __path from 'node:path';
