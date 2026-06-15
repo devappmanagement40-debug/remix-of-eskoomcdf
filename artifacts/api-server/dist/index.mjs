@@ -50912,7 +50912,7 @@ app.use(import_express13.default.json());
 app.use(import_express13.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 if (process.env.NODE_ENV === "production") {
-  const frontendDist = process.env.FRONTEND_DIST || path.resolve(process.cwd(), "dist/public");
+  const frontendDist = process.env.FRONTEND_DIST || path.resolve(__dirname2, "../../dist/public");
   app.use(import_express13.default.static(frontendDist));
   app.get("/{*path}", (_req, res) => {
     res.sendFile(path.join(frontendDist, "index.html"));

@@ -35,10 +35,11 @@ app.use("/api", router);
 
 // Serve pre-built React frontend in production
 if (process.env.NODE_ENV === "production") {
-  // Resolve from CWD so it works wherever the process is launched from (Plesk, Docker, etc.)
+  // __dirname = artifacts/api-server/dist/ (in the compiled bundle)
+  // So ../../dist/public = <repo-root>/dist/public — works regardless of cwd (Plesk, Docker, etc.)
   const frontendDist =
     process.env.FRONTEND_DIST ||
-    path.resolve(process.cwd(), "dist/public");
+    path.resolve(__dirname, "../../dist/public");
   app.use(express.static(frontendDist));
   // SPA fallback — toutes les routes non-API servent index.html (Express 5 syntax)
   app.get("/{*path}", (_req, res) => {
