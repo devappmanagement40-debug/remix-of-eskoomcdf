@@ -41959,6 +41959,7 @@ var init_profiles = __esm({
       referralCode: text("referral_code"),
       referredBy: text("referred_by"),
       passwordHash: text("password_hash"),
+      avatarUrl: text("avatar_url"),
       isSuspended: boolean("is_suspended").default(false),
       createdAt: timestamp("created_at").defaultNow(),
       updatedAt: timestamp("updated_at").defaultNow()
@@ -42488,7 +42489,7 @@ __export(src_exports, {
   withdrawalMethods: () => withdrawalMethods,
   withdrawals: () => withdrawals
 });
-var Pool3, connectionString, pool, db;
+var Pool3, connectionString, isSupabase, pool, db;
 var init_src = __esm({
   "lib/db/src/index.ts"() {
     init_node_postgres();
@@ -42496,13 +42497,16 @@ var init_src = __esm({
     init_schema2();
     init_schema2();
     ({ Pool: Pool3 } = esm_default);
-    connectionString = process.env.DATABASE_URL;
+    connectionString = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
     if (!connectionString) {
-      throw new Error("DATABASE_URL must be set.");
+      throw new Error(
+        "No database URL found. Set DATABASE_URL (Replit dev) or SUPABASE_DATABASE_URL (Plesk/production)."
+      );
     }
+    isSupabase = !!process.env.SUPABASE_DATABASE_URL;
     pool = new Pool3({
       connectionString,
-      ssl: false
+      ssl: isSupabase ? { rejectUnauthorized: false } : false
     });
     db = drizzle(pool, { schema: schema_exports });
   }
@@ -48152,6 +48156,11 @@ function generateToken() {
 function generateReferralCode(phone) {
   return phone.slice(-4).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
 }
+function generateAvatarUrl() {
+  const gender = Math.random() > 0.5 ? "men" : "women";
+  const n = Math.floor(Math.random() * 100);
+  return `https://randomuser.me/api/portraits/${gender}/${n}.jpg`;
+}
 async function createSession(userId) {
   const token = generateToken();
   const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
@@ -48227,7 +48236,8 @@ router2.post("/auth/signup", async (req, res) => {
       countryCode: countryCode || "+509",
       referralCode,
       ...referredByUserId ? { referredBy: referredByUserId } : {},
-      passwordHash
+      passwordHash,
+      avatarUrl: generateAvatarUrl()
     });
     await db.insert(userRoles).values({
       id: generateId(),
@@ -48655,6 +48665,33 @@ async function isAdmin(userId) {
   const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, userId)).limit(1);
   return role?.role === "admin";
 }
+async function atomicApproveRecharge(rechargeId, adminNote) {
+  const [updated] = await db.update(recharges).set({ status: "approved", adminNote: adminNote ?? null, updatedAt: /* @__PURE__ */ new Date() }).where(and(eq(recharges.id, rechargeId), eq(recharges.status, "pending"))).returning({ id: recharges.id, userId: recharges.userId, amount: recharges.amount });
+  if (!updated) return null;
+  await db.update(profiles).set({
+    balance: sql`${profiles.balance} + ${Number(updated.amount)}`,
+    depositBalance: sql`${profiles.depositBalance} + ${Number(updated.amount)}`,
+    updatedAt: /* @__PURE__ */ new Date()
+  }).where(eq(profiles.userId, updated.userId));
+  return updated;
+}
+async function atomicRejectWithdrawal(withdrawalId, adminNote) {
+  const [withdrawal] = await db.select({ id: withdrawals.id, status: withdrawals.status, userId: withdrawals.userId, amount: withdrawals.amount }).from(withdrawals).where(eq(withdrawals.id, withdrawalId)).limit(1);
+  if (!withdrawal) return null;
+  if (withdrawal.status !== "pending" && withdrawal.status !== "processing") return null;
+  const [updated] = await db.update(withdrawals).set({ status: "rejected", adminNote: adminNote ?? null, updatedAt: /* @__PURE__ */ new Date() }).where(and(
+    eq(withdrawals.id, withdrawalId),
+    sql`${withdrawals.status} IN ('pending', 'processing')`
+  )).returning({ id: withdrawals.id });
+  if (!updated) return null;
+  const amount = Number(withdrawal.amount);
+  await db.update(profiles).set({
+    balance: sql`${profiles.balance} + ${amount}`,
+    earningsBalance: sql`${profiles.earningsBalance} + ${amount}`,
+    updatedAt: /* @__PURE__ */ new Date()
+  }).where(eq(profiles.userId, withdrawal.userId));
+  return updated;
+}
 router5.get("/countries", async (req, res) => {
   const all = await db.select().from(countries).where(eq(countries.isActive, true));
   return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
@@ -48709,19 +48746,11 @@ router5.patch("/recharges/:id/approve", async (req, res) => {
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken3(token);
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
-  const [recharge] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
-  if (!recharge) return res.status(404).json({ error: "Not found" });
-  if (recharge.status !== "pending") return res.status(400).json({ error: "Already processed" });
-  const [profile] = await db.select().from(profiles).where(eq(profiles.userId, recharge.userId)).limit(1);
-  if (profile) {
-    const amount = Number(recharge.amount);
-    await db.update(profiles).set({
-      balance: String(Number(profile.balance ?? 0) + amount),
-      depositBalance: String(Number(profile.depositBalance ?? 0) + amount),
-      updatedAt: /* @__PURE__ */ new Date()
-    }).where(eq(profiles.userId, recharge.userId));
+  const updated = await atomicApproveRecharge(req.params.id, req.body.adminNote);
+  if (!updated) {
+    const [current] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
+    return current ? res.status(409).json({ error: "Already processed", status: current.status }) : res.status(404).json({ error: "Not found" });
   }
-  const [updated] = await db.update(recharges).set({ status: "approved", adminNote: req.body.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq(recharges.id, req.params.id)).returning();
   return res.json(updated);
 });
 router5.patch("/recharges/:id/reject", async (req, res) => {
@@ -48730,6 +48759,25 @@ router5.patch("/recharges/:id/reject", async (req, res) => {
   const me = await getProfileFromToken3(token);
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
   const [updated] = await db.update(recharges).set({ status: "rejected", adminNote: req.body.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq(recharges.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router5.patch("/recharges/:id/status", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken3(token);
+  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
+  const { status, adminNote } = req.body;
+  if (status === "approved") {
+    const updated2 = await atomicApproveRecharge(req.params.id, adminNote);
+    if (!updated2) {
+      const [current] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
+      return current ? res.status(409).json({ error: "Already processed", status: current.status }) : res.status(404).json({ error: "Not found" });
+    }
+    return res.json(updated2);
+  }
+  const [recharge] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
+  if (!recharge) return res.status(404).json({ error: "Not found" });
+  const [updated] = await db.update(recharges).set({ status, adminNote: adminNote ?? null, updatedAt: /* @__PURE__ */ new Date() }).where(eq(recharges.id, req.params.id)).returning();
   return res.json(updated);
 });
 router5.get("/wallets/my", async (req, res) => {
@@ -48758,7 +48806,7 @@ router5.post("/wallets", async (req, res) => {
   }).returning();
   return res.json(wallet);
 });
-router5.post("/withdrawals", async (req, res) => {
+async function handleWithdrawalSubmit(req, res) {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken3(token);
@@ -48782,20 +48830,30 @@ router5.post("/withdrawals", async (req, res) => {
     status: "pending"
   }).returning();
   await db.update(profiles).set({
-    balance: String(Number(me.balance ?? 0) - totalAmount),
-    earningsBalance: String(Math.max(0, Number(me.earningsBalance ?? 0) - totalAmount)),
+    balance: sql`${profiles.balance} - ${totalAmount}`,
+    earningsBalance: sql`GREATEST(${profiles.earningsBalance} - ${totalAmount}, 0)`,
     updatedAt: /* @__PURE__ */ new Date()
   }).where(eq(profiles.userId, me.userId));
   return res.json(withdrawal);
-});
-router5.get("/withdrawals/my", async (req, res) => {
+}
+async function handleWithdrawalsMyGet(req, res) {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken3(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
   const myWithdrawals = await db.select().from(withdrawals).where(eq(withdrawals.userId, me.userId));
-  return res.json(myWithdrawals.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-});
+  const sorted = myWithdrawals.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  if (req.query.since === "today") {
+    const start = /* @__PURE__ */ new Date();
+    start.setHours(0, 0, 0, 0);
+    return res.json(sorted.filter((w) => new Date(w.createdAt).getTime() >= start.getTime()));
+  }
+  return res.json(sorted);
+}
+router5.post("/withdrawals", handleWithdrawalSubmit);
+router5.post("/payments/withdrawals", handleWithdrawalSubmit);
+router5.get("/withdrawals/my", handleWithdrawalsMyGet);
+router5.get("/payments/withdrawals/my", handleWithdrawalsMyGet);
 router5.get("/withdrawals", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
@@ -48817,40 +48875,11 @@ router5.patch("/withdrawals/:id/reject", async (req, res) => {
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken3(token);
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
-  const [withdrawal] = await db.select().from(withdrawals).where(eq(withdrawals.id, req.params.id)).limit(1);
-  if (withdrawal && withdrawal.status === "pending") {
-    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, withdrawal.userId)).limit(1);
-    if (profile) {
-      await db.update(profiles).set({
-        balance: String(Number(profile.balance ?? 0) + Number(withdrawal.amount)),
-        earningsBalance: String(Number(profile.earningsBalance ?? 0) + Number(withdrawal.amount)),
-        updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq(profiles.userId, withdrawal.userId));
-    }
+  const updated = await atomicRejectWithdrawal(req.params.id, req.body.adminNote);
+  if (!updated) {
+    const [current] = await db.select().from(withdrawals).where(eq(withdrawals.id, req.params.id)).limit(1);
+    return current ? res.status(409).json({ error: "Already processed", status: current.status }) : res.status(404).json({ error: "Not found" });
   }
-  const [updated] = await db.update(withdrawals).set({ status: "rejected", adminNote: req.body.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router5.patch("/recharges/:id/status", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken3(token);
-  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
-  const { status, adminNote } = req.body;
-  const [recharge] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
-  if (!recharge) return res.status(404).json({ error: "Not found" });
-  if (status === "approved" && recharge.status === "pending") {
-    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, recharge.userId)).limit(1);
-    if (profile) {
-      const amount = Number(recharge.amount);
-      await db.update(profiles).set({
-        balance: String(Number(profile.balance ?? 0) + amount),
-        depositBalance: String(Number(profile.depositBalance ?? 0) + amount),
-        updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq(profiles.userId, recharge.userId));
-    }
-  }
-  const [updated] = await db.update(recharges).set({ status, adminNote: adminNote ?? null, updatedAt: /* @__PURE__ */ new Date() }).where(eq(recharges.id, req.params.id)).returning();
   return res.json(updated);
 });
 router5.post("/withdrawals/:id/process", async (req, res) => {
@@ -48870,15 +48899,12 @@ router5.patch("/withdrawals/:id/status", async (req, res) => {
   const { status, adminNote } = req.body;
   const [withdrawal] = await db.select().from(withdrawals).where(eq(withdrawals.id, req.params.id)).limit(1);
   if (!withdrawal) return res.status(404).json({ error: "Not found" });
-  if (status === "rejected" && withdrawal.status === "pending") {
-    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, withdrawal.userId)).limit(1);
-    if (profile) {
-      await db.update(profiles).set({
-        balance: String(Number(profile.balance ?? 0) + Number(withdrawal.amount)),
-        earningsBalance: String(Number(profile.earningsBalance ?? 0) + Number(withdrawal.amount)),
-        updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq(profiles.userId, withdrawal.userId));
+  if (status === "rejected") {
+    const updated2 = await atomicRejectWithdrawal(req.params.id, adminNote);
+    if (!updated2) {
+      return res.status(409).json({ error: "Already processed", status: withdrawal.status });
     }
+    return res.json(updated2);
   }
   const [updated] = await db.update(withdrawals).set({ status, adminNote: adminNote ?? null, updatedAt: /* @__PURE__ */ new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
   return res.json(updated);
@@ -48906,19 +48932,16 @@ router5.patch("/payments/recharges/:id/status", async (req, res) => {
   const me = await getProfileFromToken3(token);
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
   const { status, adminNote } = req.body;
+  if (status === "approved") {
+    const updated2 = await atomicApproveRecharge(req.params.id, adminNote);
+    if (!updated2) {
+      const [current] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
+      return current ? res.status(409).json({ error: "Already processed", status: current.status }) : res.status(404).json({ error: "Not found" });
+    }
+    return res.json(updated2);
+  }
   const [recharge] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
   if (!recharge) return res.status(404).json({ error: "Not found" });
-  if (status === "approved" && recharge.status === "pending") {
-    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, recharge.userId)).limit(1);
-    if (profile) {
-      const amount = Number(recharge.amount);
-      await db.update(profiles).set({
-        balance: String(Number(profile.balance ?? 0) + amount),
-        depositBalance: String(Number(profile.depositBalance ?? 0) + amount),
-        updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq(profiles.userId, recharge.userId));
-    }
-  }
   const [updated] = await db.update(recharges).set({ status, adminNote: adminNote ?? null, updatedAt: /* @__PURE__ */ new Date() }).where(eq(recharges.id, req.params.id)).returning();
   return res.json(updated);
 });
@@ -48938,15 +48961,12 @@ router5.patch("/payments/withdrawals/:id/status", async (req, res) => {
   const { status, adminNote } = req.body;
   const [withdrawal] = await db.select().from(withdrawals).where(eq(withdrawals.id, req.params.id)).limit(1);
   if (!withdrawal) return res.status(404).json({ error: "Not found" });
-  if (status === "rejected" && withdrawal.status === "pending") {
-    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, withdrawal.userId)).limit(1);
-    if (profile) {
-      await db.update(profiles).set({
-        balance: String(Number(profile.balance ?? 0) + Number(withdrawal.amount)),
-        earningsBalance: String(Number(profile.earningsBalance ?? 0) + Number(withdrawal.amount)),
-        updatedAt: /* @__PURE__ */ new Date()
-      }).where(eq(profiles.userId, withdrawal.userId));
+  if (status === "rejected") {
+    const updated2 = await atomicRejectWithdrawal(req.params.id, adminNote);
+    if (!updated2) {
+      return res.status(409).json({ error: "Already processed", status: withdrawal.status });
     }
+    return res.json(updated2);
   }
   const [updated] = await db.update(withdrawals).set({ status, adminNote: adminNote ?? null, updatedAt: /* @__PURE__ */ new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
   return res.json(updated);
@@ -49927,29 +49947,78 @@ var FALLBACK_CURRENCIES = [
 ];
 var currenciesCache = null;
 async function approveRechargeByPaymentId(paymentId) {
-  const [recharge] = await db.select({ id: recharges.id, userId: recharges.userId, amount: recharges.amount }).from(recharges).where(eq(recharges.transactionRef, paymentId)).limit(1);
+  const [recharge] = await db.select({ id: recharges.id, userId: recharges.userId, amount: recharges.amount, status: recharges.status }).from(recharges).where(eq(recharges.transactionRef, paymentId)).limit(1);
   if (!recharge) {
-    console.warn(`[NP] approveRecharge: no pending recharge found for paymentId=${paymentId}`);
-    return;
+    console.warn(`[NP] approveRecharge: no recharge found for paymentId=${paymentId}`);
+    return false;
+  }
+  if (recharge.status !== "pending") {
+    console.log(`[NP] approveRecharge: already ${recharge.status} for paymentId=${paymentId} \u2014 skipping`);
+    return false;
   }
   const amount = Number(recharge.amount);
-  await db.update(recharges).set({ status: "approved", updatedAt: /* @__PURE__ */ new Date() }).where(eq(recharges.id, recharge.id));
+  const [updated] = await db.update(recharges).set({ status: "approved", updatedAt: /* @__PURE__ */ new Date() }).where(and(eq(recharges.id, recharge.id), eq(recharges.status, "pending"))).returning({ id: recharges.id });
+  if (!updated) {
+    console.warn(`[NP] approveRecharge: concurrent update blocked for rechargeId=${recharge.id} \u2014 no double credit`);
+    return false;
+  }
   await db.update(profiles).set({
     balance: sql`${profiles.balance} + ${amount}`,
     depositBalance: sql`${profiles.depositBalance} + ${amount}`,
     updatedAt: /* @__PURE__ */ new Date()
   }).where(eq(profiles.userId, recharge.userId));
-  console.log(`[NP] Recharge approved: ${recharge.id} \u2014 ${amount} USD \u2192 user ${recharge.userId}`);
+  console.log(`[NP] \u2705 Recharge approved: ${recharge.id} \u2014 +${amount} USD \u2192 user ${recharge.userId}`);
+  return true;
 }
 async function approveWithdrawalByExternalId(externalId) {
   const [withdrawal] = await db.select({ id: withdrawals.id, status: withdrawals.status }).from(withdrawals).where(eq(withdrawals.id, externalId)).limit(1);
-  if (!withdrawal || withdrawal.status === "approved") return;
-  await db.update(withdrawals).set({
+  if (!withdrawal) {
+    console.warn(`[NP] approveWithdrawal: not found externalId=${externalId}`);
+    return false;
+  }
+  if (withdrawal.status === "approved") {
+    console.log(`[NP] approveWithdrawal: already approved externalId=${externalId} \u2014 skipping`);
+    return false;
+  }
+  const [updated] = await db.update(withdrawals).set({
     status: "approved",
     adminNote: "\u2705 Auto-approved via NowPayments payout IPN",
     updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq(withdrawals.id, externalId));
-  console.log(`[NP] Withdrawal auto-approved: ${externalId}`);
+  }).where(and(eq(withdrawals.id, externalId), eq(withdrawals.status, "processing"))).returning({ id: withdrawals.id });
+  if (!updated) {
+    console.warn(`[NP] approveWithdrawal: status not 'processing' for externalId=${externalId} \u2014 skipped`);
+    return false;
+  }
+  console.log(`[NP] \u2705 Withdrawal auto-approved: ${externalId}`);
+  return true;
+}
+async function rejectWithdrawalByExternalId(externalId, reason) {
+  const [withdrawal] = await db.select({ id: withdrawals.id, status: withdrawals.status, userId: withdrawals.userId, amount: withdrawals.amount }).from(withdrawals).where(eq(withdrawals.id, externalId)).limit(1);
+  if (!withdrawal) {
+    console.warn(`[NP] rejectWithdrawal: not found externalId=${externalId}`);
+    return false;
+  }
+  if (withdrawal.status !== "processing") {
+    console.log(`[NP] rejectWithdrawal: status is '${withdrawal.status}' (not processing) \u2014 skipping`);
+    return false;
+  }
+  const [updated] = await db.update(withdrawals).set({
+    status: "rejected",
+    adminNote: `\u274C NowPayments payout ${reason} \u2014 balance refunded automatically`,
+    updatedAt: /* @__PURE__ */ new Date()
+  }).where(and(eq(withdrawals.id, externalId), eq(withdrawals.status, "processing"))).returning({ id: withdrawals.id });
+  if (!updated) {
+    console.warn(`[NP] rejectWithdrawal: concurrent update blocked for externalId=${externalId}`);
+    return false;
+  }
+  const amount = Number(withdrawal.amount);
+  await db.update(profiles).set({
+    balance: sql`${profiles.balance} + ${amount}`,
+    earningsBalance: sql`${profiles.earningsBalance} + ${amount}`,
+    updatedAt: /* @__PURE__ */ new Date()
+  }).where(eq(profiles.userId, withdrawal.userId));
+  console.log(`[NP] \u274C Withdrawal rejected + ${amount} refunded to user ${withdrawal.userId} \u2014 externalId=${externalId}`);
+  return true;
 }
 async function getPayoutToken() {
   const email = getPayoutEmail();
@@ -50072,6 +50141,14 @@ router9.post("/nowpayments/create", async (req, res) => {
   if (!amount || !currency || !rechargeId) {
     return res.status(400).json({ error: "amount, currency and rechargeId are required" });
   }
+  const [existingRecharge] = await db.select({ id: recharges.id, status: recharges.status, transactionRef: recharges.transactionRef }).from(recharges).where(eq(recharges.id, rechargeId)).limit(1);
+  if (!existingRecharge) return res.status(404).json({ error: "Recharge not found" });
+  if (existingRecharge.status !== "pending") {
+    return res.status(400).json({ error: `Recharge already ${existingRecharge.status}` });
+  }
+  if (existingRecharge.transactionRef) {
+    return res.status(400).json({ error: "Payment already created for this recharge" });
+  }
   try {
     const webhookUrl = getWebhookUrl("webhook");
     const payCurrency = currency.toLowerCase();
@@ -50161,7 +50238,8 @@ router9.post("/nowpayments/webhook", async (req, res) => {
   console.log(`[NP IPN deposit] status=${status} payment_id=${paymentId} order_id=${payload.order_id}`);
   if (status === "finished" || status === "confirmed") {
     try {
-      await approveRechargeByPaymentId(paymentId);
+      const approved = await approveRechargeByPaymentId(paymentId);
+      console.log(`[NP IPN deposit] approved=${approved} for payment_id=${paymentId}`);
     } catch (err) {
       console.error("[NP] webhook approveRecharge error:", err);
     }
@@ -50226,7 +50304,7 @@ router9.post("/nowpayments/payout", async (req, res) => {
       status: "processing",
       adminNote: `\u{1F680} NowPayments payout submitted \u2014 batch ID: ${payoutId}`,
       updatedAt: /* @__PURE__ */ new Date()
-    }).where(eq(withdrawals.id, withdrawalId));
+    }).where(and(eq(withdrawals.id, withdrawalId), eq(withdrawals.status, "pending")));
     console.log(`[NP] Payout submitted: batchId=${payoutId}`);
     return res.json({ success: true, payoutId });
   } catch (err) {
@@ -50264,16 +50342,27 @@ router9.post("/nowpayments/payout-webhook", async (req, res) => {
   const payload = req.body;
   const batchStatus = (payload.status ?? "").toUpperCase();
   console.log(`[NP IPN payout] batchId=${payload.id ?? payload.batch_withdrawal_id} status=${batchStatus}`);
+  const SUCCESS_STATUSES = /* @__PURE__ */ new Set(["FINISHED", "COMPLETE", "COMPLETED", "DONE", "CONFIRMED"]);
+  const FAILURE_STATUSES = /* @__PURE__ */ new Set(["REJECTED", "FAILED", "ERROR", "CANCELLED", "CANCELED"]);
   const items = payload.withdrawals ?? [];
   for (const item of items) {
     const extId = item.unique_external_id;
     const st = (item.status ?? "").toUpperCase();
     console.log(`  [NP IPN payout item] extId=${extId} status=${st}`);
-    if (extId && (st === "FINISHED" || st === "COMPLETE" || st === "COMPLETED" || st === "DONE")) {
+    if (!extId) continue;
+    if (SUCCESS_STATUSES.has(st)) {
       try {
-        await approveWithdrawalByExternalId(extId);
+        const approved = await approveWithdrawalByExternalId(extId);
+        console.log(`  [NP IPN payout item] approved=${approved} for extId=${extId}`);
       } catch (err) {
         console.error("[NP] payout-webhook approveWithdrawal error:", err);
+      }
+    } else if (FAILURE_STATUSES.has(st)) {
+      try {
+        const rejected = await rejectWithdrawalByExternalId(extId, st);
+        console.log(`  [NP IPN payout item] rejected+refunded=${rejected} for extId=${extId}`);
+      } catch (err) {
+        console.error("[NP] payout-webhook rejectWithdrawal error:", err);
       }
     }
   }

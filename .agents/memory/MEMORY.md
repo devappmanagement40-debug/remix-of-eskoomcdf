@@ -2,3 +2,4 @@
 - [Supabase project configuration](supabase-credentials.md) — env var naming convention and API security model; no credentials stored
 - [DB connection priority fix](db-connection-priority.md) — SUPABASE_DATABASE_URL env var takes priority over DATABASE_URL; must use only DATABASE_URL for Replit Postgres
 - [Port config for dual-service dev](port-config.md) — Vite frontend must run on port 5000 (webview); API server on port 8080; use PORT=5000 and API_PORT=8080 in dev script
+- [Plesk deployment workflow](plesk-deployment.md) — build on Replit → commit dist/ to git → Plesk: git pull + restart. app.js → dist/index.mjs. SUPABASE_DATABASE_URL required with SSL.

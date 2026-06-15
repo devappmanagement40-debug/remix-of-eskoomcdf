@@ -11,6 +11,7 @@ export type ProfileData = {
   phone: string;
   referral_code: string | null;
   full_name: string | null;
+  avatar_url: string | null;
 };
 
 const defaults: ProfileData = {
@@ -23,6 +24,7 @@ const defaults: ProfileData = {
   phone: "",
   referral_code: null,
   full_name: null,
+  avatar_url: null,
 };
 
 export const useRealtimeProfile = () => {
@@ -50,6 +52,7 @@ export const useRealtimeProfile = () => {
         phone: data.phone ?? "",
         referral_code: data.referralCode ?? data.referral_code ?? null,
         full_name: data.fullName ?? data.full_name ?? null,
+        avatar_url: data.avatarUrl ?? data.avatar_url ?? null,
       });
       if (data.userId ?? data.user_id) {
         setUserId(data.userId ?? data.user_id);

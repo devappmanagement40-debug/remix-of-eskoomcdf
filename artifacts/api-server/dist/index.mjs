@@ -42491,7 +42491,7 @@ __export(src_exports, {
   withdrawalMethods: () => withdrawalMethods,
   withdrawals: () => withdrawals
 });
-var Pool3, connectionString, pool, db;
+var Pool3, connectionString, isSupabase, pool, db;
 var init_src = __esm({
   "../../lib/db/src/index.ts"() {
     "use strict";
@@ -42500,13 +42500,16 @@ var init_src = __esm({
     init_schema2();
     init_schema2();
     ({ Pool: Pool3 } = esm_default);
-    connectionString = process.env.DATABASE_URL;
+    connectionString = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
     if (!connectionString) {
-      throw new Error("DATABASE_URL must be set.");
+      throw new Error(
+        "No database URL found. Set DATABASE_URL (Replit dev) or SUPABASE_DATABASE_URL (Plesk/production)."
+      );
     }
+    isSupabase = !!process.env.SUPABASE_DATABASE_URL;
     pool = new Pool3({
       connectionString,
-      ssl: false
+      ssl: isSupabase ? { rejectUnauthorized: false } : false
     });
     db = drizzle(pool, { schema: schema_exports });
   }
@@ -48156,6 +48159,11 @@ function generateToken() {
 function generateReferralCode(phone) {
   return phone.slice(-4).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
 }
+function generateAvatarUrl() {
+  const gender = Math.random() > 0.5 ? "men" : "women";
+  const n = Math.floor(Math.random() * 100);
+  return `https://randomuser.me/api/portraits/${gender}/${n}.jpg`;
+}
 async function createSession(userId) {
   const token = generateToken();
   const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
@@ -48231,7 +48239,8 @@ router2.post("/auth/signup", async (req, res) => {
       countryCode: countryCode || "+509",
       referralCode,
       ...referredByUserId ? { referredBy: referredByUserId } : {},
-      passwordHash
+      passwordHash,
+      avatarUrl: generateAvatarUrl()
     });
     await db.insert(userRoles).values({
       id: generateId(),

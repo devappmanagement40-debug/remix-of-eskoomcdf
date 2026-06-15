@@ -25,6 +25,17 @@ function generateReferralCode(phone: string): string {
   );
 }
 
+/**
+ * Assigns a realistic portrait photo from randomuser.me.
+ * Gender + index are random at signup and stored permanently.
+ * Photos are high-quality realistic portraits.
+ */
+function generateAvatarUrl(): string {
+  const gender = Math.random() > 0.5 ? "men" : "women";
+  const n = Math.floor(Math.random() * 100);
+  return `https://randomuser.me/api/portraits/${gender}/${n}.jpg`;
+}
+
 async function createSession(userId: string): Promise<string> {
   const token = generateToken();
   const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
@@ -129,6 +140,7 @@ router.post("/auth/signup", async (req, res) => {
       referralCode,
       ...(referredByUserId ? { referredBy: referredByUserId } : {}),
       passwordHash,
+      avatarUrl: generateAvatarUrl(),
     });
 
     await db.insert(userRoles).values({
