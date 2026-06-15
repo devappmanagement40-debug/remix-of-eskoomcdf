@@ -1,7 +1,7 @@
 'use strict';
-// Point d'entrée Plesk — lance le serveur API bundlé
+// Plesk entry point — delegates to root app.js
 (async () => {
-  await import('../artifacts/api-server/dist/index.mjs');
+  await import('../app.js');
 })().catch((err) => {
   console.error('Failed to start server:', err);
   process.exit(1);
