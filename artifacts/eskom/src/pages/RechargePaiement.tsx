@@ -76,10 +76,11 @@ const RechargePaiement = () => {
       const rechargeRes = await fetch("/api/recharges", {
         method: "POST",
         headers: h,
-        body: JSON.stringify({ amount, payment_method: currency.label, status: "pending", phone: "", country_code: "" }),
+        body: JSON.stringify({ amount, paymentMethod: currency.label, status: "pending" }),
       });
       if (!rechargeRes.ok) {
-        setCreateError("Failed to create deposit record. Please try again.");
+        const errData = await rechargeRes.json().catch(() => ({}));
+        setCreateError(errData.error || "Failed to create deposit record. Please try again.");
         return;
       }
       const recharge = await rechargeRes.json();

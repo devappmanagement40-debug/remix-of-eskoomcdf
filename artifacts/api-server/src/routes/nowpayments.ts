@@ -247,6 +247,50 @@ router.get("/nowpayments/ping", async (_req, res) => {
   }
 });
 
+// GET /nowpayments/diagnostic — Full system diagnostic for production debugging (no auth required)
+router.get("/nowpayments/diagnostic", async (_req, res) => {
+  const result: Record<string, any> = {
+    timestamp: new Date().toISOString(),
+    env: {
+      NOWPAYMENTS_API_KEY: !!process.env["NOWPAYMENTS_API_KEY"] ? "✅ set" : "❌ MISSING",
+      NOWPAYMENTS_IPN_SECRET: !!process.env["NOWPAYMENTS_IPN_SECRET"] ? "✅ set" : "⚠️ not set",
+      NOWPAYMENTS_PASSWORD: !!process.env["NOWPAYMENTS_PASSWORD"] ? "✅ set" : "⚠️ not set",
+      SUPABASE_DATABASE_URL: !!process.env["SUPABASE_DATABASE_URL"] ? "✅ set" : "❌ MISSING",
+      DATABASE_URL: !!process.env["DATABASE_URL"] ? "✅ set" : "not set",
+      NODE_ENV: process.env["NODE_ENV"] ?? "not set",
+    },
+    db: { ok: false, error: null as string | null, tablesFound: [] as string[] },
+    nowpayments: { ok: false, error: null as string | null },
+  };
+
+  // Test DB connectivity
+  try {
+    const rows = await db.select({ id: recharges.id }).from(recharges).limit(1);
+    result.db.ok = true;
+    result.db.tablesFound.push("recharges ✅");
+  } catch (err: any) {
+    result.db.error = err?.message ?? String(err);
+  }
+
+  // Test NowPayments API key
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    result.nowpayments.error = "NOWPAYMENTS_API_KEY not configured";
+  } else {
+    try {
+      const r = await fetch(`${NP_API}/status`, { headers: { "x-api-key": apiKey } });
+      const data = await r.json() as { message?: string };
+      result.nowpayments.ok = r.ok;
+      result.nowpayments.message = data.message ?? null;
+      if (!r.ok) result.nowpayments.error = `API returned ${r.status}`;
+    } catch (err: any) {
+      result.nowpayments.error = err?.message ?? String(err);
+    }
+  }
+
+  return res.json(result);
+});
+
 // GET /nowpayments/currencies
 router.get("/nowpayments/currencies", async (_req, res) => {
   if (currenciesCache && Date.now() - currenciesCache.ts < 600_000) {

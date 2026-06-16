@@ -48873,22 +48873,41 @@ router5.get("/withdrawal-methods", async (req, res) => {
 router5.post("/recharges", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken3(token);
-  if (!me) return res.status(401).json({ error: "Unauthorized" });
-  const { amount, phone, countryCode, paymentMethod, transactionRef, proofImageUrl } = req.body;
+  let me;
+  try {
+    me = await getProfileFromToken3(token);
+  } catch (dbErr) {
+    console.error("[recharges] DB error in getProfileFromToken:", dbErr?.message);
+    return res.status(503).json({ error: "Database unavailable. Please check server configuration." });
+  }
+  if (!me) return res.status(401).json({ error: "Session expired. Please login again." });
+  const body = req.body;
+  const amount = body.amount;
+  const phone = body.phone ?? body.phone ?? "";
+  const countryCode = body.countryCode ?? body.country_code ?? "";
+  const paymentMethod = body.paymentMethod ?? body.payment_method ?? null;
+  const transactionRef = body.transactionRef ?? body.transaction_ref ?? null;
+  const proofImageUrl = body.proofImageUrl ?? body.proof_image_url ?? null;
   if (!amount) return res.status(400).json({ error: "Amount is required" });
-  const [recharge] = await db.insert(recharges).values({
-    id: crypto4.randomUUID(),
-    userId: me.userId,
-    amount: String(amount),
-    phone,
-    countryCode,
-    paymentMethod,
-    transactionRef,
-    proofImageUrl,
-    status: "pending"
-  }).returning();
-  return res.json(recharge);
+  try {
+    const insertValues = {
+      id: crypto4.randomUUID(),
+      userId: me.userId,
+      amount: String(amount),
+      status: "pending"
+    };
+    if (phone) insertValues.phone = phone;
+    if (countryCode) insertValues.countryCode = countryCode;
+    if (paymentMethod) insertValues.paymentMethod = paymentMethod;
+    if (transactionRef) insertValues.transactionRef = transactionRef;
+    if (proofImageUrl) insertValues.proofImageUrl = proofImageUrl;
+    const [recharge] = await db.insert(recharges).values(insertValues).returning();
+    return res.json(recharge);
+  } catch (err) {
+    console.error("[recharges] DB insert error:", err?.message, err?.code);
+    const detail = err?.message || "Unknown database error";
+    return res.status(500).json({ error: `Failed to create deposit: ${detail}` });
+  }
 });
 router5.get("/recharges/my", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -50228,6 +50247,43 @@ router9.get("/nowpayments/ping", async (_req, res) => {
   } catch (err) {
     return res.json({ ok: false, reason: String(err) });
   }
+});
+router9.get("/nowpayments/diagnostic", async (_req, res) => {
+  const result = {
+    timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+    env: {
+      NOWPAYMENTS_API_KEY: !!process.env["NOWPAYMENTS_API_KEY"] ? "\u2705 set" : "\u274C MISSING",
+      NOWPAYMENTS_IPN_SECRET: !!process.env["NOWPAYMENTS_IPN_SECRET"] ? "\u2705 set" : "\u26A0\uFE0F not set",
+      NOWPAYMENTS_PASSWORD: !!process.env["NOWPAYMENTS_PASSWORD"] ? "\u2705 set" : "\u26A0\uFE0F not set",
+      SUPABASE_DATABASE_URL: !!process.env["SUPABASE_DATABASE_URL"] ? "\u2705 set" : "\u274C MISSING",
+      DATABASE_URL: !!process.env["DATABASE_URL"] ? "\u2705 set" : "not set",
+      NODE_ENV: process.env["NODE_ENV"] ?? "not set"
+    },
+    db: { ok: false, error: null, tablesFound: [] },
+    nowpayments: { ok: false, error: null }
+  };
+  try {
+    const rows = await db.select({ id: recharges.id }).from(recharges).limit(1);
+    result.db.ok = true;
+    result.db.tablesFound.push("recharges \u2705");
+  } catch (err) {
+    result.db.error = err?.message ?? String(err);
+  }
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    result.nowpayments.error = "NOWPAYMENTS_API_KEY not configured";
+  } else {
+    try {
+      const r = await fetch(`${NP_API}/status`, { headers: { "x-api-key": apiKey } });
+      const data = await r.json();
+      result.nowpayments.ok = r.ok;
+      result.nowpayments.message = data.message ?? null;
+      if (!r.ok) result.nowpayments.error = `API returned ${r.status}`;
+    } catch (err) {
+      result.nowpayments.error = err?.message ?? String(err);
+    }
+  }
+  return res.json(result);
 });
 router9.get("/nowpayments/currencies", async (_req, res) => {
   if (currenciesCache && Date.now() - currenciesCache.ts < 6e5) {
