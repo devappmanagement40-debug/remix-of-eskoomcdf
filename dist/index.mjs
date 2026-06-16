@@ -42,6 +42,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
   mod
 ));
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // node_modules/.pnpm/ms@2.1.3/node_modules/ms/index.js
 var require_ms = __commonJS({
@@ -162,7 +163,7 @@ var require_ms = __commonJS({
 // node_modules/.pnpm/debug@4.4.3/node_modules/debug/src/common.js
 var require_common = __commonJS({
   "node_modules/.pnpm/debug@4.4.3/node_modules/debug/src/common.js"(exports, module) {
-    function setup(env) {
+    function setup(env2) {
       createDebug.debug = createDebug;
       createDebug.default = createDebug;
       createDebug.coerce = coerce;
@@ -171,8 +172,8 @@ var require_common = __commonJS({
       createDebug.enabled = enabled;
       createDebug.humanize = require_ms();
       createDebug.destroy = destroy;
-      Object.keys(env).forEach((key) => {
-        createDebug[key] = env[key];
+      Object.keys(env2).forEach((key) => {
+        createDebug[key] = env2[key];
       });
       createDebug.names = [];
       createDebug.skips = [];
@@ -506,10 +507,159 @@ var require_browser = __commonJS({
   }
 });
 
+// node_modules/.pnpm/supports-color@10.2.2/node_modules/supports-color/index.js
+var supports_color_exports = {};
+__export(supports_color_exports, {
+  createSupportsColor: () => createSupportsColor,
+  default: () => supports_color_default
+});
+import process2 from "node:process";
+import os from "node:os";
+import tty from "node:tty";
+function hasFlag(flag, argv = globalThis.Deno ? globalThis.Deno.args : process2.argv) {
+  const prefix = flag.startsWith("-") ? "" : flag.length === 1 ? "-" : "--";
+  const position = argv.indexOf(prefix + flag);
+  const terminatorPosition = argv.indexOf("--");
+  return position !== -1 && (terminatorPosition === -1 || position < terminatorPosition);
+}
+function envForceColor() {
+  if (!("FORCE_COLOR" in env)) {
+    return;
+  }
+  if (env.FORCE_COLOR === "true") {
+    return 1;
+  }
+  if (env.FORCE_COLOR === "false") {
+    return 0;
+  }
+  if (env.FORCE_COLOR.length === 0) {
+    return 1;
+  }
+  const level = Math.min(Number.parseInt(env.FORCE_COLOR, 10), 3);
+  if (![0, 1, 2, 3].includes(level)) {
+    return;
+  }
+  return level;
+}
+function translateLevel(level) {
+  if (level === 0) {
+    return false;
+  }
+  return {
+    level,
+    hasBasic: true,
+    has256: level >= 2,
+    has16m: level >= 3
+  };
+}
+function _supportsColor(haveStream, { streamIsTTY, sniffFlags = true } = {}) {
+  const noFlagForceColor = envForceColor();
+  if (noFlagForceColor !== void 0) {
+    flagForceColor = noFlagForceColor;
+  }
+  const forceColor = sniffFlags ? flagForceColor : noFlagForceColor;
+  if (forceColor === 0) {
+    return 0;
+  }
+  if (sniffFlags) {
+    if (hasFlag("color=16m") || hasFlag("color=full") || hasFlag("color=truecolor")) {
+      return 3;
+    }
+    if (hasFlag("color=256")) {
+      return 2;
+    }
+  }
+  if ("TF_BUILD" in env && "AGENT_NAME" in env) {
+    return 1;
+  }
+  if (haveStream && !streamIsTTY && forceColor === void 0) {
+    return 0;
+  }
+  const min = forceColor || 0;
+  if (env.TERM === "dumb") {
+    return min;
+  }
+  if (process2.platform === "win32") {
+    const osRelease = os.release().split(".");
+    if (Number(osRelease[0]) >= 10 && Number(osRelease[2]) >= 10586) {
+      return Number(osRelease[2]) >= 14931 ? 3 : 2;
+    }
+    return 1;
+  }
+  if ("CI" in env) {
+    if (["GITHUB_ACTIONS", "GITEA_ACTIONS", "CIRCLECI"].some((key) => key in env)) {
+      return 3;
+    }
+    if (["TRAVIS", "APPVEYOR", "GITLAB_CI", "BUILDKITE", "DRONE"].some((sign) => sign in env) || env.CI_NAME === "codeship") {
+      return 1;
+    }
+    return min;
+  }
+  if ("TEAMCITY_VERSION" in env) {
+    return /^(9\.(0*[1-9]\d*)\.|\d{2,}\.)/.test(env.TEAMCITY_VERSION) ? 1 : 0;
+  }
+  if (env.COLORTERM === "truecolor") {
+    return 3;
+  }
+  if (env.TERM === "xterm-kitty") {
+    return 3;
+  }
+  if (env.TERM === "xterm-ghostty") {
+    return 3;
+  }
+  if (env.TERM === "wezterm") {
+    return 3;
+  }
+  if ("TERM_PROGRAM" in env) {
+    const version2 = Number.parseInt((env.TERM_PROGRAM_VERSION || "").split(".")[0], 10);
+    switch (env.TERM_PROGRAM) {
+      case "iTerm.app": {
+        return version2 >= 3 ? 3 : 2;
+      }
+      case "Apple_Terminal": {
+        return 2;
+      }
+    }
+  }
+  if (/-256(color)?$/i.test(env.TERM)) {
+    return 2;
+  }
+  if (/^screen|^xterm|^vt100|^vt220|^rxvt|color|ansi|cygwin|linux/i.test(env.TERM)) {
+    return 1;
+  }
+  if ("COLORTERM" in env) {
+    return 1;
+  }
+  return min;
+}
+function createSupportsColor(stream, options = {}) {
+  const level = _supportsColor(stream, {
+    streamIsTTY: stream && stream.isTTY,
+    ...options
+  });
+  return translateLevel(level);
+}
+var env, flagForceColor, supportsColor, supports_color_default;
+var init_supports_color = __esm({
+  "node_modules/.pnpm/supports-color@10.2.2/node_modules/supports-color/index.js"() {
+    ({ env } = process2);
+    if (hasFlag("no-color") || hasFlag("no-colors") || hasFlag("color=false") || hasFlag("color=never")) {
+      flagForceColor = 0;
+    } else if (hasFlag("color") || hasFlag("colors") || hasFlag("color=true") || hasFlag("color=always")) {
+      flagForceColor = 1;
+    }
+    supportsColor = {
+      stdout: createSupportsColor({ isTTY: tty.isatty(1) }),
+      stderr: createSupportsColor({ isTTY: tty.isatty(2) })
+    };
+    supports_color_default = supportsColor;
+  }
+});
+
 // node_modules/.pnpm/debug@4.4.3/node_modules/debug/src/node.js
 var require_node = __commonJS({
   "node_modules/.pnpm/debug@4.4.3/node_modules/debug/src/node.js"(exports, module) {
-    var tty = __require("tty");
+    var tty2 = __require("tty");
     var util2 = __require("util");
     exports.init = init;
     exports.log = log;
@@ -524,8 +674,8 @@ var require_node = __commonJS({
     );
     exports.colors = [6, 2, 3, 4, 5, 1];
     try {
-      const supportsColor = __require("supports-color");
-      if (supportsColor && (supportsColor.stderr || supportsColor).level >= 2) {
+      const supportsColor2 = (init_supports_color(), __toCommonJS(supports_color_exports));
+      if (supportsColor2 && (supportsColor2.stderr || supportsColor2).level >= 2) {
         exports.colors = [
           20,
           21,
@@ -627,7 +777,7 @@ var require_node = __commonJS({
       return obj;
     }, {});
     function useColors() {
-      return "colors" in exports.inspectOpts ? Boolean(exports.inspectOpts.colors) : tty.isatty(process.stderr.fd);
+      return "colors" in exports.inspectOpts ? Boolean(exports.inspectOpts.colors) : tty2.isatty(process.stderr.fd);
     }
     function formatArgs(args) {
       const { namespace: name, useColors: useColors2 } = this;
@@ -18561,7 +18711,7 @@ var require_finalhandler = __commonJS({
     module.exports = finalhandler;
     function finalhandler(req, res, options) {
       var opts = options || {};
-      var env = opts.env || process.env.NODE_ENV || "development";
+      var env2 = opts.env || process.env.NODE_ENV || "development";
       var onerror = opts.onerror;
       return function(err) {
         var headers;
@@ -18578,7 +18728,7 @@ var require_finalhandler = __commonJS({
           } else {
             headers = getErrorHeaders(err);
           }
-          msg = getErrorMessage(err, status, env);
+          msg = getErrorMessage(err, status, env2);
         } else {
           status = 404;
           msg = "Cannot " + req.method + " " + encodeUrl(getResourceName(req));
@@ -18603,9 +18753,9 @@ var require_finalhandler = __commonJS({
       }
       return { ...err.headers };
     }
-    function getErrorMessage(err, status, env) {
+    function getErrorMessage(err, status, env2) {
       var msg;
-      if (env !== "production") {
+      if (env2 !== "production") {
         msg = err.stack;
         if (!msg && typeof err.toString === "function") {
           msg = err.toString();
@@ -20069,10 +20219,10 @@ var require_dist = __commonJS({
       const keys = [];
       let source = "";
       let combinations = 0;
-      function process2(path4) {
+      function process3(path4) {
         if (Array.isArray(path4)) {
           for (const p of path4)
-            process2(p);
+            process3(p);
           return;
         }
         const data = typeof path4 === "object" ? path4 : parse(path4, options);
@@ -20086,7 +20236,7 @@ var require_dist = __commonJS({
           combinations++;
         });
       }
-      process2(path3);
+      process3(path3);
       let pattern = `^(?:${source})`;
       if (trailing)
         pattern += "(?:" + escape2(delimiter) + "$)?";
@@ -20923,10 +21073,10 @@ var require_application = __commonJS({
       });
     };
     app2.defaultConfiguration = function defaultConfiguration() {
-      var env = process.env.NODE_ENV || "development";
+      var env2 = process.env.NODE_ENV || "development";
       this.enable("x-powered-by");
       this.set("etag", "weak");
-      this.set("env", env);
+      this.set("env", env2);
       this.set("query parser", "simple");
       this.set("subdomain offset", 2);
       this.set("trust proxy", false);
@@ -20934,7 +21084,7 @@ var require_application = __commonJS({
         configurable: true,
         value: true
       });
-      debug("booting in %s mode", env);
+      debug("booting in %s mode", env2);
       this.on("mount", function onmount(parent) {
         if (this.settings[trustProxyDefaultSymbol] === true && typeof parent.settings["trust proxy fn"] === "function") {
           delete this.settings["trust proxy"];
@@ -20951,7 +21101,7 @@ var require_application = __commonJS({
       this.set("view", View2);
       this.set("views", resolve("views"));
       this.set("jsonp callback name", "callback");
-      if (env === "production") {
+      if (env2 === "production") {
         this.enable("view cache");
       }
     };
@@ -27997,7 +28147,7 @@ var require_pino = __commonJS({
       }
     }
     globalThis.__bundlerPathsOverrides = { ...globalThis.__bundlerPathsOverrides || {}, "thread-stream-worker": pinoBundlerAbsolutePath("./thread-stream-worker.mjs"), "pino-worker": pinoBundlerAbsolutePath("./pino-worker.mjs"), "pino/file": pinoBundlerAbsolutePath("./pino-file.mjs"), "pino-pretty": pinoBundlerAbsolutePath("./pino-pretty.mjs") };
-    var os = __require("node:os");
+    var os2 = __require("node:os");
     var stdSerializers = require_pino_std_serializers();
     var caller = require_caller();
     var redaction = require_redaction();
@@ -28044,7 +28194,7 @@ var require_pino = __commonJS({
     } = symbols;
     var { epochTime, nullTime } = time2;
     var { pid } = process;
-    var hostname = os.hostname();
+    var hostname = os2.hostname();
     var defaultErrorSerializer = stdSerializers.err;
     var defaultOptions = {
       level: "info",
@@ -31893,8 +32043,8 @@ var require_helper = __commonJS({
       return old;
     };
     module.exports.getFileName = function(rawEnv) {
-      var env = rawEnv || process.env;
-      var file = env.PGPASSFILE || (isWin ? path3.join(env.APPDATA || "./", "postgresql", "pgpass.conf") : path3.join(env.HOME || "./", ".pgpass"));
+      var env2 = rawEnv || process.env;
+      var file = env2.PGPASSFILE || (isWin ? path3.join(env2.APPDATA || "./", "postgresql", "pgpass.conf") : path3.join(env2.HOME || "./", ".pgpass"));
       return file;
     };
     module.exports.usePgPass = function(stats, fname) {
@@ -42132,7 +42282,7 @@ var init_payments = __esm({
       id: text("id").primaryKey().default("gen_random_uuid()"),
       userId: text("user_id").notNull(),
       amount: numeric("amount", { precision: 18, scale: 8 }).notNull(),
-      phone: text("phone").notNull(),
+      phone: text("phone"),
       countryCode: text("country_code").default(""),
       paymentMethod: text("payment_method"),
       transactionRef: text("transaction_ref"),
@@ -42497,11 +42647,9 @@ var init_src = __esm({
     init_schema2();
     init_schema2();
     ({ Pool: Pool3 } = esm_default);
-    connectionString = process.env.SUPABASE_DATABASE_URL;
+    connectionString = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
     if (!connectionString) {
-      throw new Error(
-        "SUPABASE_DATABASE_URL est requis. Configurez cette variable d'environnement avec votre URL Supabase."
-      );
+      throw new Error("SUPABASE_DATABASE_URL is required.");
     }
     pool = new Pool3({
       connectionString,
@@ -48490,6 +48638,14 @@ init_src();
 init_src();
 import crypto3 from "crypto";
 var router4 = (0, import_express4.Router)();
+function normalizeToCamelCase(obj) {
+  const result = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const camel = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+    result[camel] = value;
+  }
+  return result;
+}
 async function getProfileFromToken2(token) {
   const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
   if (!session || session.expiresAt < /* @__PURE__ */ new Date()) return null;
@@ -48510,6 +48666,10 @@ router4.get("/products", async (req, res) => {
     return res.status(500).json({ error: "DB error", detail: err?.message, cause: err?.cause?.message });
   }
 });
+router4.get("/products/series", async (req, res) => {
+  const all = await db.select().from(productSeries);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
 router4.get("/products/:id", async (req, res) => {
   const [product] = await db.select().from(products).where(eq(products.id, req.params.id)).limit(1);
   if (!product) return res.status(404).json({ error: "Not found" });
@@ -48522,7 +48682,7 @@ router4.post("/products", async (req, res) => {
   if (!me) return res.status(401).json({ error: "Unauthorized" });
   const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, me.userId)).limit(1);
   if (role?.role !== "admin") return res.status(403).json({ error: "Forbidden" });
-  const [product] = await db.insert(products).values({ id: crypto3.randomUUID(), ...req.body }).returning();
+  const [product] = await db.insert(products).values({ id: crypto3.randomUUID(), ...normalizeToCamelCase(req.body) }).returning();
   return res.json(product);
 });
 router4.patch("/products/:id", async (req, res) => {
@@ -48532,7 +48692,7 @@ router4.patch("/products/:id", async (req, res) => {
   if (!me) return res.status(401).json({ error: "Unauthorized" });
   const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, me.userId)).limit(1);
   if (role?.role !== "admin") return res.status(403).json({ error: "Forbidden" });
-  const [product] = await db.update(products).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(products.id, req.params.id)).returning();
+  const [product] = await db.update(products).set({ ...normalizeToCamelCase(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(products.id, req.params.id)).returning();
   return res.json(product);
 });
 router4.delete("/products/:id", async (req, res) => {
@@ -48548,6 +48708,14 @@ router4.delete("/products/:id", async (req, res) => {
 router4.get("/product-series", async (req, res) => {
   const all = await db.select().from(productSeries);
   return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router4.get("/products/series", async (req, res) => {
+  const all = await db.select().from(productSeries);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router4.get("/vip-conditions", async (req, res) => {
+  const all = await db.select().from(vipConditions);
+  return res.json(all.sort((a, b) => (a.level ?? 0) - (b.level ?? 0)));
 });
 router4.get("/user-products/my", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -48652,6 +48820,128 @@ router4.post("/user-products/:id/collect", async (req, res) => {
   }).where(eq(profiles.userId, me.userId));
   return res.json({ collected: dailyRev });
 });
+router4.post("/products/purchase", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken2(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { productId } = req.body;
+  if (!productId) return res.status(400).json({ error: "productId requis" });
+  const [product] = await db.select().from(products).where(eq(products.id, productId)).limit(1);
+  if (!product || !product.isActive) return res.status(400).json({ error: "Produit non disponible" });
+  const price = Number(product.price ?? 0);
+  const balance = Number(me.balance ?? 0);
+  if (balance < price) return res.status(400).json({ error: "Solde insuffisant" });
+  const cycles = product.cycles ?? 30;
+  const expiresAt = new Date(Date.now() + cycles * 24 * 60 * 60 * 1e3);
+  const [userProduct] = await db.insert(userProducts).values({
+    id: crypto3.randomUUID(),
+    userId: me.userId,
+    productId: product.id,
+    expiresAt
+  }).returning();
+  await db.update(profiles).set({
+    balance: String(balance - price),
+    depositBalance: String(Math.max(0, Number(me.depositBalance ?? 0) - price)),
+    updatedAt: /* @__PURE__ */ new Date()
+  }).where(eq(profiles.userId, me.userId));
+  if (price > 0) {
+    try {
+      const { pool: dbPool } = await Promise.resolve().then(() => (init_src(), src_exports));
+      const RATES = [
+        { level: "L1", rate: 0.1 },
+        { level: "L2", rate: 0.05 },
+        { level: "L3", rate: 0.01 }
+      ];
+      let currentProfileId = me.referredBy ?? null;
+      for (const { level, rate } of RATES) {
+        if (!currentProfileId) break;
+        const { rows: refRows } = await dbPool.query(
+          `SELECT id, user_id, referred_by, balance, referral_balance FROM profiles WHERE id = $1 LIMIT 1`,
+          [currentProfileId]
+        );
+        if (!refRows.length) break;
+        const referrer = refRows[0];
+        const commission = Math.round(price * rate * 100) / 100;
+        await dbPool.query(
+          `UPDATE profiles SET balance = balance + $1, referral_balance = referral_balance + $1, updated_at = now() WHERE user_id = $2`,
+          [commission, referrer.user_id]
+        );
+        await dbPool.query(
+          `INSERT INTO referral_commissions (id, beneficiary_id, buyer_id, product_price, commission_amount, commission_rate, level, created_at) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, now())`,
+          [referrer.id, me.id, price, commission, rate, level]
+        );
+        currentProfileId = referrer.referred_by ?? null;
+      }
+    } catch (commErr) {
+      console.error("[referral] Commission crediting error:", commErr);
+    }
+  }
+  return res.json(userProduct);
+});
+router4.get("/products/user-products/my", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken2(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { pool: pool2 } = await Promise.resolve().then(() => (init_src(), src_exports));
+  const { rows } = await pool2.query(`
+    SELECT
+      up.id, up.user_id, up.product_id, up.is_active,
+      up.purchased_at, up.expires_at, up.last_collected_at, up.total_collected,
+      json_build_object(
+        'name', p.name, 'price', p.price, 'daily_revenue', p.daily_revenue,
+        'total_revenue', p.total_revenue, 'cycles', p.cycles,
+        'description', p.description, 'image_url', p.image_url,
+        'series_id', p.series_id, 'gain_type', p.gain_type
+      ) as products
+    FROM user_products up
+    JOIN products p ON p.id = up.product_id
+    WHERE up.user_id = $1
+    ORDER BY up.purchased_at DESC
+  `, [me.userId]);
+  return res.json(rows);
+});
+router4.post("/products/user-products/collect", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken2(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { userProductId } = req.body;
+  if (!userProductId) return res.status(400).json({ error: "userProductId requis" });
+  const [up] = await db.select().from(userProducts).where(
+    and(eq(userProducts.id, userProductId), eq(userProducts.userId, me.userId))
+  ).limit(1);
+  if (!up) return res.status(404).json({ error: "Produit introuvable" });
+  const [product] = await db.select().from(products).where(eq(products.id, up.productId)).limit(1);
+  const dailyRev = Number(product?.dailyRevenue ?? 0);
+  const newCollected = Number(up.totalCollected ?? 0) + dailyRev;
+  await db.update(userProducts).set({
+    lastCollectedAt: /* @__PURE__ */ new Date(),
+    totalCollected: String(newCollected)
+  }).where(eq(userProducts.id, up.id));
+  await db.update(profiles).set({
+    balance: String(Number(me.balance ?? 0) + dailyRev),
+    earningsBalance: String(Number(me.earningsBalance ?? 0) + dailyRev),
+    updatedAt: /* @__PURE__ */ new Date()
+  }).where(eq(profiles.userId, me.userId));
+  return res.json({ collected: dailyRev, amount: dailyRev });
+});
+router4.get("/products/user-products/active-by-users", async (req, res) => {
+  const { userIds } = req.query;
+  if (!userIds) return res.json([]);
+  const ids = userIds.split(",").filter(Boolean);
+  if (!ids.length) return res.json([]);
+  const { pool: pool2 } = await Promise.resolve().then(() => (init_src(), src_exports));
+  const { rows } = await pool2.query(
+    `SELECT up.user_id as "userId", up.id
+     FROM user_products up
+     WHERE up.user_id = ANY($1::text[])
+     AND up.is_active = true`,
+    [ids]
+  );
+  return res.json(rows);
+});
 var products_default = router4;
 
 // artifacts/api-server/src/routes/payments.ts
@@ -48660,6 +48950,18 @@ init_src();
 init_src();
 import crypto4 from "crypto";
 var router5 = (0, import_express5.Router)();
+function toSnake(obj) {
+  if (Array.isArray(obj)) return obj.map(toSnake);
+  if (obj !== null && typeof obj === "object" && !(obj instanceof Date)) {
+    const out = {};
+    for (const [k, v] of Object.entries(obj)) {
+      const snake = k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+      out[snake] = toSnake(v);
+    }
+    return out;
+  }
+  return obj;
+}
 async function getProfileFromToken3(token) {
   const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
   if (!session || session.expiresAt < /* @__PURE__ */ new Date()) return null;
@@ -48712,29 +49014,60 @@ router5.get("/withdrawal-methods", async (req, res) => {
 router5.post("/recharges", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken3(token);
-  if (!me) return res.status(401).json({ error: "Unauthorized" });
-  const { amount, phone, countryCode, paymentMethod, transactionRef, proofImageUrl } = req.body;
-  if (!amount || !phone) return res.status(400).json({ error: "Amount and phone required" });
-  const [recharge] = await db.insert(recharges).values({
-    id: crypto4.randomUUID(),
-    userId: me.userId,
-    amount: String(amount),
-    phone,
-    countryCode,
-    paymentMethod,
-    transactionRef,
-    proofImageUrl,
-    status: "pending"
-  }).returning();
-  return res.json(recharge);
+  let me;
+  try {
+    me = await getProfileFromToken3(token);
+  } catch (dbErr) {
+    console.error("[recharges] DB error in getProfileFromToken:", dbErr?.message);
+    return res.status(503).json({ error: "Database unavailable. Please check server configuration." });
+  }
+  if (!me) return res.status(401).json({ error: "Session expired. Please login again." });
+  const body = req.body;
+  const amount = body.amount;
+  const phone = body.phone ?? body.phone ?? "";
+  const countryCode = body.countryCode ?? body.country_code ?? "";
+  const paymentMethod = body.paymentMethod ?? body.payment_method ?? null;
+  const transactionRef = body.transactionRef ?? body.transaction_ref ?? null;
+  const proofImageUrl = body.proofImageUrl ?? body.proof_image_url ?? null;
+  if (!amount) return res.status(400).json({ error: "Amount is required" });
+  try {
+    const insertValues = {
+      id: crypto4.randomUUID(),
+      userId: me.userId,
+      amount: String(amount),
+      status: "pending"
+    };
+    if (phone) insertValues.phone = phone;
+    if (countryCode) insertValues.countryCode = countryCode;
+    if (paymentMethod) insertValues.paymentMethod = paymentMethod;
+    if (transactionRef) insertValues.transactionRef = transactionRef;
+    if (proofImageUrl) insertValues.proofImageUrl = proofImageUrl;
+    const [recharge] = await db.insert(recharges).values(insertValues).returning();
+    return res.json(recharge);
+  } catch (err) {
+    console.error("[recharges] DB insert error:", err?.message, err?.code);
+    const detail = err?.message || "Unknown database error";
+    return res.status(500).json({ error: `Failed to create deposit: ${detail}` });
+  }
 });
 router5.get("/recharges/my", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken3(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
-  const myRecharges = await db.select().from(recharges).where(eq(recharges.userId, me.userId));
+  const statusFilter = req.query.status;
+  let myRecharges = await db.select().from(recharges).where(eq(recharges.userId, me.userId));
+  if (statusFilter) myRecharges = myRecharges.filter((r) => r.status === statusFilter);
+  return res.json(myRecharges.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+});
+router5.get("/payments/recharges/my", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken3(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const statusFilter = req.query.status;
+  let myRecharges = await db.select().from(recharges).where(eq(recharges.userId, me.userId));
+  if (statusFilter) myRecharges = myRecharges.filter((r) => r.status === statusFilter);
   return res.json(myRecharges.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
 });
 router5.get("/recharges", async (req, res) => {
@@ -48744,7 +49077,7 @@ router5.get("/recharges", async (req, res) => {
   if (!me) return res.status(401).json({ error: "Unauthorized" });
   if (!await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
   const all = await db.select().from(recharges);
-  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+  return res.json(toSnake(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
 });
 router5.patch("/recharges/:id/approve", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -48865,7 +49198,7 @@ router5.get("/withdrawals", async (req, res) => {
   const me = await getProfileFromToken3(token);
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
   const all = await db.select().from(withdrawals);
-  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+  return res.json(toSnake(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
 });
 router5.patch("/withdrawals/:id/approve", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -48994,6 +49327,14 @@ router5.patch("/payments/fee-payments/:id/status", async (req, res) => {
   if (!updated) return res.status(404).json({ error: "Not found" });
   return res.json(updated);
 });
+router5.get("/user-wallets/my", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken3(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const wallets = await db.select().from(userWallets).where(eq(userWallets.userId, me.userId));
+  return res.json(wallets);
+});
 router5.get("/user-wallets/batch", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
@@ -49012,6 +49353,14 @@ init_src();
 init_src();
 import crypto5 from "crypto";
 var router6 = (0, import_express6.Router)();
+function normalizeToCamelCase2(obj) {
+  const result = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const camel = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+    result[camel] = value;
+  }
+  return result;
+}
 async function getProfileFromToken4(token) {
   const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
   if (!session || session.expiresAt < /* @__PURE__ */ new Date()) return null;
@@ -49045,6 +49394,15 @@ router6.put("/site-settings/:key", async (req, res) => {
     return res.json(created);
   }
 });
+router6.get("/popups", async (req, res) => {
+  const all = await db.select().from(popupMessages);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router6.patch("/popups/:id", async (req, res) => {
+  const [updated] = await db.update(popupMessages).set({ ...normalizeToCamelCase2(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(popupMessages.id, req.params.id)).returning();
+  if (!updated) return res.status(404).json({ error: "Not found" });
+  return res.json(updated);
+});
 router6.get("/popup-messages", async (req, res) => {
   const { triggerKey } = req.query;
   const all = await db.select().from(popupMessages).where(eq(popupMessages.isActive, true));
@@ -49056,7 +49414,7 @@ router6.post("/popup-messages", async (req, res) => {
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken4(token);
   if (!me || !await isAdmin2(me.userId)) return res.status(403).json({ error: "Forbidden" });
-  const [popup] = await db.insert(popupMessages).values({ id: crypto5.randomUUID(), ...req.body }).returning();
+  const [popup] = await db.insert(popupMessages).values({ id: crypto5.randomUUID(), ...normalizeToCamelCase2(req.body) }).returning();
   return res.json(popup);
 });
 router6.patch("/popup-messages/:id", async (req, res) => {
@@ -49064,7 +49422,7 @@ router6.patch("/popup-messages/:id", async (req, res) => {
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken4(token);
   if (!me || !await isAdmin2(me.userId)) return res.status(403).json({ error: "Forbidden" });
-  const [updated] = await db.update(popupMessages).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(popupMessages.id, req.params.id)).returning();
+  const [updated] = await db.update(popupMessages).set({ ...normalizeToCamelCase2(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(popupMessages.id, req.params.id)).returning();
   return res.json(updated);
 });
 router6.delete("/popup-messages/:id", async (req, res) => {
@@ -49094,6 +49452,11 @@ router6.get("/banners", async (req, res) => {
 router6.get("/info-items", async (req, res) => {
   const all = await db.select().from(infoItems).where(eq(infoItems.isActive, true));
   return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router6.get("/info-items/:id", async (req, res) => {
+  const [item] = await db.select().from(infoItems).where(eq(infoItems.id, req.params.id)).limit(1);
+  if (!item) return res.status(404).json({ error: "Not found" });
+  return res.json(item);
 });
 var settings_default = router6;
 
@@ -49241,6 +49604,35 @@ router7.post("/chat/send", async (req, res) => {
     isAi: true
   }).returning();
   return res.json({ message: msg, reply: aiReply[0] });
+});
+router7.post("/chat/send-system", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken5(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { message, sender } = req.body;
+  if (!message) return res.status(400).json({ error: "Message required" });
+  const [msg] = await db.insert(chatMessages).values({
+    id: crypto6.randomUUID(),
+    userId: me.userId,
+    message,
+    sender: sender ?? "system",
+    isAi: true
+  }).returning();
+  return res.json(msg);
+});
+router7.get("/wheel/prizes", async (req, res) => {
+  const all = await db.select().from(wheelPrizes).where(eq(wheelPrizes.isActive, true));
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router7.get("/wheel/my-spins", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken5(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const limit = Math.min(Number(req.query.limit ?? 20), 100);
+  const spins = await db.select().from(wheelSpins).where(eq(wheelSpins.userId, me.userId));
+  return res.json(spins.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, limit));
 });
 var content_default = router7;
 
@@ -49428,7 +49820,7 @@ var CAMEL_TO_SNAKE = {
   minPersonalInvestment: "min_personal_investment",
   color: "color"
 };
-function toSnake(col) {
+function toSnake2(col) {
   return CAMEL_TO_SNAKE[col] ?? col;
 }
 var PUBLIC_READ_TABLES = /* @__PURE__ */ new Set([
@@ -49521,7 +49913,7 @@ function buildWhereClause(filters, params) {
   for (const f of filters) {
     const [type, col, ...rest] = f.split(":");
     const val = rest.join(":");
-    const colName = toSnake(col);
+    const colName = toSnake2(col);
     if (!/^[a-z_][a-z0-9_]*$/.test(colName)) continue;
     if (type === "in") {
       const vals = val.split(",");
@@ -49571,7 +49963,7 @@ router8.get("/db", attachUser, async (req, res) => {
     if (conditions.length) sql2 += ` WHERE ${conditions.join(" AND ")}`;
     if (order) {
       const [col, dir] = String(order).split(":");
-      const colName = toSnake(col);
+      const colName = toSnake2(col);
       if (/^[a-z_][a-z0-9_]*$/.test(colName)) {
         sql2 += ` ORDER BY "${colName}" ${dir === "desc" ? "DESC" : "ASC"}`;
       }
@@ -49603,10 +49995,10 @@ router8.post("/db", requireAuth, async (req, res) => {
         return res.status(403).json({ error: "Cannot write data for another user" });
       }
       if (!isAdmin3) {
-        const protectedAttempt = Object.keys(row).map((k) => toSnake(k)).find((c) => PROTECTED_WRITE_COLUMNS.has(c));
+        const protectedAttempt = Object.keys(row).map((k) => toSnake2(k)).find((c) => PROTECTED_WRITE_COLUMNS.has(c));
         if (protectedAttempt) return res.status(403).json({ error: `Column '${protectedAttempt}' is read-only` });
       }
-      const cols = Object.keys(row).map((k) => toSnake(k)).filter((c) => /^[a-z_][a-z0-9_]*$/.test(c));
+      const cols = Object.keys(row).map((k) => toSnake2(k)).filter((c) => /^[a-z_][a-z0-9_]*$/.test(c));
       const origKeys = Object.keys(row);
       const vals = origKeys.map((k) => row[k]);
       if (!cols.length) continue;
@@ -49638,10 +50030,10 @@ router8.patch("/db", requireAuth, async (req, res) => {
     }
     const updates = req.body;
     if (!isAdmin3) {
-      const protectedAttempt = Object.keys(updates).map((k) => toSnake(k)).find((c) => PROTECTED_WRITE_COLUMNS.has(c));
+      const protectedAttempt = Object.keys(updates).map((k) => toSnake2(k)).find((c) => PROTECTED_WRITE_COLUMNS.has(c));
       if (protectedAttempt) return res.status(403).json({ error: `Column '${protectedAttempt}' is read-only` });
     }
-    const setCols = Object.keys(updates).map((k) => toSnake(k)).filter((c) => /^[a-z_][a-z0-9_]*$/.test(c));
+    const setCols = Object.keys(updates).map((k) => toSnake2(k)).filter((c) => /^[a-z_][a-z0-9_]*$/.test(c));
     const origKeys = Object.keys(updates);
     const setVals = origKeys.map((k) => updates[k]);
     if (!setCols.length) return res.status(400).json({ error: "No updates" });
@@ -49651,7 +50043,7 @@ router8.patch("/db", requireAuth, async (req, res) => {
     if (!isAdmin3) {
       const hasUserFilter = filters.some((f) => {
         const [, col, ...rest] = f.split(":");
-        return toSnake(col) === "user_id" && rest.join(":") === req.authUser?.userId;
+        return toSnake2(col) === "user_id" && rest.join(":") === req.authUser?.userId;
       });
       if (!hasUserFilter) {
         return res.status(403).json({ error: "Must filter by your own user_id" });
@@ -49683,7 +50075,7 @@ router8.delete("/db", requireAuth, async (req, res) => {
     if (!isAdmin3) {
       const hasUserFilter = filters.some((f) => {
         const [, col, ...rest] = f.split(":");
-        return toSnake(col) === "user_id" && rest.join(":") === req.authUser?.userId;
+        return toSnake2(col) === "user_id" && rest.join(":") === req.authUser?.userId;
       });
       if (!hasUserFilter) {
         return res.status(403).json({ error: "Must filter by your own user_id" });
@@ -50055,6 +50447,43 @@ router9.get("/nowpayments/ping", async (_req, res) => {
     return res.json({ ok: false, reason: String(err) });
   }
 });
+router9.get("/nowpayments/diagnostic", async (_req, res) => {
+  const result = {
+    timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+    env: {
+      NOWPAYMENTS_API_KEY: !!process.env["NOWPAYMENTS_API_KEY"] ? "\u2705 set" : "\u274C MISSING",
+      NOWPAYMENTS_IPN_SECRET: !!process.env["NOWPAYMENTS_IPN_SECRET"] ? "\u2705 set" : "\u26A0\uFE0F not set",
+      NOWPAYMENTS_PASSWORD: !!process.env["NOWPAYMENTS_PASSWORD"] ? "\u2705 set" : "\u26A0\uFE0F not set",
+      SUPABASE_DATABASE_URL: !!process.env["SUPABASE_DATABASE_URL"] ? "\u2705 set" : "\u274C MISSING",
+      DATABASE_URL: !!process.env["DATABASE_URL"] ? "\u2705 set" : "not set",
+      NODE_ENV: process.env["NODE_ENV"] ?? "not set"
+    },
+    db: { ok: false, error: null, tablesFound: [] },
+    nowpayments: { ok: false, error: null }
+  };
+  try {
+    const rows = await db.select({ id: recharges.id }).from(recharges).limit(1);
+    result.db.ok = true;
+    result.db.tablesFound.push("recharges \u2705");
+  } catch (err) {
+    result.db.error = err?.message ?? String(err);
+  }
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    result.nowpayments.error = "NOWPAYMENTS_API_KEY not configured";
+  } else {
+    try {
+      const r = await fetch(`${NP_API}/status`, { headers: { "x-api-key": apiKey } });
+      const data = await r.json();
+      result.nowpayments.ok = r.ok;
+      result.nowpayments.message = data.message ?? null;
+      if (!r.ok) result.nowpayments.error = `API returned ${r.status}`;
+    } catch (err) {
+      result.nowpayments.error = err?.message ?? String(err);
+    }
+  }
+  return res.json(result);
+});
 router9.get("/nowpayments/currencies", async (_req, res) => {
   if (currenciesCache && Date.now() - currenciesCache.ts < 6e5) {
     return res.json({ currencies: currenciesCache.data });
@@ -50418,6 +50847,26 @@ init_src();
 init_src();
 import crypto8 from "crypto";
 var router11 = (0, import_express11.Router)();
+function normalizeToCamelCase3(obj) {
+  const result = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const camel = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+    result[camel] = value;
+  }
+  return result;
+}
+function toSnake3(obj) {
+  if (Array.isArray(obj)) return obj.map(toSnake3);
+  if (obj !== null && typeof obj === "object" && !(obj instanceof Date)) {
+    const out = {};
+    for (const [k, v] of Object.entries(obj)) {
+      const snake = k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+      out[snake] = toSnake3(v);
+    }
+    return out;
+  }
+  return obj;
+}
 async function getProfileFromToken6(token) {
   const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
   if (!session || session.expiresAt < /* @__PURE__ */ new Date()) return null;
@@ -50472,7 +50921,7 @@ router11.get("/admin/check", async (req, res) => {
   const role = await getRole(me.userId);
   if (role !== "admin" && role !== "moderator") return res.status(403).json({ error: "Forbidden" });
   const perms = await db.select().from(adminPermissions).where(eq(adminPermissions.userId, me.userId));
-  return res.json({ isAdmin: true, role, permissions: perms.map((p) => p.permission) });
+  return res.json({ isAdmin: true, role, userId: me.userId, permissions: perms.map((p) => p.permission) });
 });
 router11.post("/admin/logs", async (req, res) => {
   const auth = await requireAdmin(req, res);
@@ -50492,7 +50941,7 @@ router11.get("/admin/logs", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(adminLogs);
-  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+  return res.json(toSnake3(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
 });
 router11.post("/profiles/batch", async (req, res) => {
   const auth = await requireAdmin(req, res);
@@ -50505,9 +50954,10 @@ router11.post("/profiles/batch", async (req, res) => {
 router11.post("/user-wallets/batch", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
-  const { userIds } = req.body;
-  if (!Array.isArray(userIds) || userIds.length === 0) return res.json([]);
-  const result = await db.select().from(userWallets).where(inArray(userWallets.userId, userIds));
+  const { userIds, ids } = req.body;
+  const idList = userIds ?? ids ?? [];
+  if (!Array.isArray(idList) || idList.length === 0) return res.json([]);
+  const result = await db.select().from(userWallets).where(inArray(userWallets.userId, idList));
   return res.json(result);
 });
 router11.get("/admin/users", async (req, res) => {
@@ -50611,7 +51061,7 @@ router11.post("/admin/gift-codes", async (req, res) => {
 router11.patch("/admin/gift-codes/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(giftCodes).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(giftCodes.id, req.params.id)).returning();
+  const [updated] = await db.update(giftCodes).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(giftCodes.id, req.params.id)).returning();
   return res.json(updated);
 });
 router11.delete("/admin/gift-codes/:id", async (req, res) => {
@@ -50629,13 +51079,13 @@ router11.get("/admin/gift-rewards", async (req, res) => {
 router11.post("/admin/gift-rewards", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [reward] = await db.insert(giftRewards).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  const [reward] = await db.insert(giftRewards).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
   return res.json(reward);
 });
 router11.patch("/admin/gift-rewards/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(giftRewards).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(giftRewards.id, req.params.id)).returning();
+  const [updated] = await db.update(giftRewards).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(giftRewards.id, req.params.id)).returning();
   return res.json(updated);
 });
 router11.delete("/admin/gift-rewards/:id", async (req, res) => {
@@ -50653,13 +51103,13 @@ router11.get("/admin/faq", async (req, res) => {
 router11.post("/admin/faq", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [item] = await db.insert(faqItems).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  const [item] = await db.insert(faqItems).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
   return res.json(item);
 });
 router11.patch("/admin/faq/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(faqItems).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(faqItems.id, req.params.id)).returning();
+  const [updated] = await db.update(faqItems).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(faqItems.id, req.params.id)).returning();
   return res.json(updated);
 });
 router11.delete("/admin/faq/:id", async (req, res) => {
@@ -50677,13 +51127,13 @@ router11.get("/admin/info-items", async (req, res) => {
 router11.post("/admin/info-items", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [item] = await db.insert(infoItems).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  const [item] = await db.insert(infoItems).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
   return res.json(item);
 });
 router11.patch("/admin/info-items/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(infoItems).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(infoItems.id, req.params.id)).returning();
+  const [updated] = await db.update(infoItems).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(infoItems.id, req.params.id)).returning();
   return res.json(updated);
 });
 router11.delete("/admin/info-items/:id", async (req, res) => {
@@ -50701,16 +51151,40 @@ router11.get("/admin/official-documents", async (req, res) => {
 router11.post("/admin/official-documents", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [doc] = await db.insert(officialDocuments).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  const [doc] = await db.insert(officialDocuments).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
   return res.json(doc);
 });
 router11.patch("/admin/official-documents/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(officialDocuments).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(officialDocuments.id, req.params.id)).returning();
+  const [updated] = await db.update(officialDocuments).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(officialDocuments.id, req.params.id)).returning();
   return res.json(updated);
 });
 router11.delete("/admin/official-documents/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(officialDocuments).where(eq(officialDocuments.id, req.params.id));
+  return res.json({ ok: true });
+});
+router11.get("/admin/official-docs", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(officialDocuments);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router11.post("/admin/official-docs", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [doc] = await db.insert(officialDocuments).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
+  return res.json(doc);
+});
+router11.patch("/admin/official-docs/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(officialDocuments).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(officialDocuments.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router11.delete("/admin/official-docs/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
   await db.delete(officialDocuments).where(eq(officialDocuments.id, req.params.id));
@@ -50720,18 +51194,18 @@ router11.get("/admin/banners", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(banners);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 router11.post("/admin/banners", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [banner] = await db.insert(banners).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  const [banner] = await db.insert(banners).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
   return res.json(banner);
 });
 router11.patch("/admin/banners/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(banners).set(req.body).where(eq(banners.id, req.params.id)).returning();
+  const [updated] = await db.update(banners).set(normalizeToCamelCase3(req.body)).where(eq(banners.id, req.params.id)).returning();
   return res.json(updated);
 });
 router11.delete("/admin/banners/:id", async (req, res) => {
@@ -50744,18 +51218,18 @@ router11.get("/admin/countries", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(countries);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 router11.post("/admin/countries", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [country] = await db.insert(countries).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  const [country] = await db.insert(countries).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
   return res.json(country);
 });
 router11.patch("/admin/countries/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(countries).set(req.body).where(eq(countries.id, req.params.id)).returning();
+  const [updated] = await db.update(countries).set(normalizeToCamelCase3(req.body)).where(eq(countries.id, req.params.id)).returning();
   return res.json(updated);
 });
 router11.delete("/admin/countries/:id", async (req, res) => {
@@ -50768,18 +51242,18 @@ router11.get("/admin/withdrawal-methods", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(withdrawalMethods);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 router11.post("/admin/withdrawal-methods", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [method] = await db.insert(withdrawalMethods).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  const [method] = await db.insert(withdrawalMethods).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
   return res.json(method);
 });
 router11.patch("/admin/withdrawal-methods/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(withdrawalMethods).set(req.body).where(eq(withdrawalMethods.id, req.params.id)).returning();
+  const [updated] = await db.update(withdrawalMethods).set(normalizeToCamelCase3(req.body)).where(eq(withdrawalMethods.id, req.params.id)).returning();
   return res.json(updated);
 });
 router11.delete("/admin/withdrawal-methods/:id", async (req, res) => {
@@ -50792,18 +51266,18 @@ router11.get("/admin/payment-api-configs", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
   const all = await db.select().from(paymentApiConfigs);
-  return res.json(all);
+  return res.json(toSnake3(all));
 });
 router11.post("/admin/payment-api-configs", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [config] = await db.insert(paymentApiConfigs).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  const [config] = await db.insert(paymentApiConfigs).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
   return res.json(config);
 });
 router11.patch("/admin/payment-api-configs/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(paymentApiConfigs).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(paymentApiConfigs.id, req.params.id)).returning();
+  const [updated] = await db.update(paymentApiConfigs).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(paymentApiConfigs.id, req.params.id)).returning();
   return res.json(updated);
 });
 router11.delete("/admin/payment-api-configs/:id", async (req, res) => {
@@ -50816,18 +51290,18 @@ router11.get("/admin/vip-conditions", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(vipConditions);
-  return res.json(all.sort((a, b) => (a.level ?? 0) - (b.level ?? 0)));
+  return res.json(toSnake3(all.sort((a, b) => (a.level ?? 0) - (b.level ?? 0))));
 });
 router11.post("/admin/vip-conditions", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [vc] = await db.insert(vipConditions).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  const [vc] = await db.insert(vipConditions).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
   return res.json(vc);
 });
 router11.patch("/admin/vip-conditions/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(vipConditions).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(vipConditions.id, req.params.id)).returning();
+  const [updated] = await db.update(vipConditions).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(vipConditions.id, req.params.id)).returning();
   return res.json(updated);
 });
 router11.delete("/admin/vip-conditions/:id", async (req, res) => {
@@ -50856,18 +51330,18 @@ router11.get("/admin/wheel-prizes", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(wheelPrizes);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 router11.post("/admin/wheel-prizes", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [prize] = await db.insert(wheelPrizes).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  const [prize] = await db.insert(wheelPrizes).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
   return res.json(prize);
 });
 router11.patch("/admin/wheel-prizes/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(wheelPrizes).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(wheelPrizes.id, req.params.id)).returning();
+  const [updated] = await db.update(wheelPrizes).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(wheelPrizes.id, req.params.id)).returning();
   return res.json(updated);
 });
 router11.delete("/admin/wheel-prizes/:id", async (req, res) => {
@@ -50880,7 +51354,7 @@ router11.get("/admin/wheel-spins", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(wheelSpins);
-  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+  return res.json(toSnake3(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
 });
 router11.patch("/admin/wheel-spins/:id/status", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
@@ -50893,18 +51367,18 @@ router11.get("/admin/product-series", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(productSeries);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 router11.post("/admin/product-series", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [series] = await db.insert(productSeries).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  const [series] = await db.insert(productSeries).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
   return res.json(series);
 });
 router11.patch("/admin/product-series/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(productSeries).set(req.body).where(eq(productSeries.id, req.params.id)).returning();
+  const [updated] = await db.update(productSeries).set(normalizeToCamelCase3(req.body)).where(eq(productSeries.id, req.params.id)).returning();
   return res.json(updated);
 });
 router11.delete("/admin/product-series/:id", async (req, res) => {
@@ -50917,18 +51391,18 @@ router11.get("/admin/products", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(products);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 router11.post("/admin/products", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [product] = await db.insert(products).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  const [product] = await db.insert(products).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
   return res.json(product);
 });
 router11.patch("/admin/products/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(products).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(products.id, req.params.id)).returning();
+  const [updated] = await db.update(products).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(products.id, req.params.id)).returning();
   return res.json(updated);
 });
 router11.delete("/admin/products/:id", async (req, res) => {
@@ -50941,18 +51415,18 @@ router11.get("/admin/payment-methods", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(paymentMethods);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 router11.post("/admin/payment-methods", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [method] = await db.insert(paymentMethods).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  const [method] = await db.insert(paymentMethods).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
   return res.json(method);
 });
 router11.patch("/admin/payment-methods/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(paymentMethods).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(paymentMethods.id, req.params.id)).returning();
+  const [updated] = await db.update(paymentMethods).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(paymentMethods.id, req.params.id)).returning();
   return res.json(updated);
 });
 router11.delete("/admin/payment-methods/:id", async (req, res) => {
@@ -50966,18 +51440,18 @@ router11.get("/admin/popups", async (req, res) => {
   if (!auth) return;
   const { trigger_key } = req.query;
   const all = trigger_key ? await db.select().from(popupMessages).where(eq(popupMessages.triggerKey, trigger_key)) : await db.select().from(popupMessages);
-  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+  return res.json(toSnake3(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
 });
 router11.post("/admin/popups", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [popup] = await db.insert(popupMessages).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  const [popup] = await db.insert(popupMessages).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
   return res.json(popup);
 });
 router11.patch("/admin/popups/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(popupMessages).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(popupMessages.id, req.params.id)).returning();
+  const [updated] = await db.update(popupMessages).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(popupMessages.id, req.params.id)).returning();
   return res.json(updated);
 });
 router11.delete("/admin/popups/:id", async (req, res) => {
@@ -50995,17 +51469,41 @@ router11.post("/admin/users/:userId/suspend", async (req, res) => {
   if (!updated) return res.status(404).json({ error: "User not found" });
   return res.json(updated);
 });
+router11.patch("/admin/users/:userId/suspend", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { suspended } = req.body;
+  const newVal = suspended ?? true;
+  const [updated] = await db.update(profiles).set({ isSuspended: newVal, updatedAt: /* @__PURE__ */ new Date() }).where(eq(profiles.userId, req.params.userId)).returning();
+  if (!updated) return res.status(404).json({ error: "User not found" });
+  return res.json(updated);
+});
 router11.get("/admin/user-products", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
-  const all = await db.select().from(userProducts);
-  return res.json(all.sort((a, b) => new Date(b.purchasedAt).getTime() - new Date(a.purchasedAt).getTime()));
+  const { userId } = req.query;
+  const rows = userId ? await db.select().from(userProducts).where(eq(userProducts.userId, userId)) : await db.select().from(userProducts);
+  const productIds = [...new Set(rows.map((r) => r.productId).filter(Boolean))];
+  const prodRows = productIds.length > 0 ? await db.select().from(products).where(inArray(products.id, productIds)) : [];
+  const prodMap = {};
+  for (const p of prodRows) prodMap[p.id] = p;
+  const enriched = rows.map((r) => ({
+    ...r,
+    products: r.productId ? prodMap[r.productId] ?? null : null
+  })).sort((a, b) => new Date(b.purchasedAt).getTime() - new Date(a.purchasedAt).getTime());
+  return res.json(toSnake3(enriched));
+});
+router11.delete("/admin/user-products/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(userProducts).where(eq(userProducts.id, req.params.id));
+  return res.json({ ok: true });
 });
 router11.get("/admin/referral-commissions", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(referralCommissions);
-  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+  return res.json(toSnake3(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
 });
 router11.post("/admin/site-settings/batch", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
@@ -51029,18 +51527,18 @@ router11.get("/admin/social-links", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(socialLinks);
-  return res.json(all);
+  return res.json(toSnake3(all));
 });
 router11.post("/admin/social-links", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [link] = await db.insert(socialLinks).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  const [link] = await db.insert(socialLinks).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
   return res.json(link);
 });
 router11.patch("/admin/social-links/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(socialLinks).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(socialLinks.id, req.params.id)).returning();
+  const [updated] = await db.update(socialLinks).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(socialLinks.id, req.params.id)).returning();
   return res.json(updated);
 });
 router11.delete("/admin/social-links/:id", async (req, res) => {
@@ -51053,18 +51551,18 @@ router11.get("/admin/api-configs", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
   const all = await db.select().from(paymentApiConfigs);
-  return res.json(all);
+  return res.json(toSnake3(all));
 });
 router11.post("/admin/api-configs", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [config] = await db.insert(paymentApiConfigs).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  const [config] = await db.insert(paymentApiConfigs).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
   return res.json(config);
 });
 router11.patch("/admin/api-configs/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(paymentApiConfigs).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(paymentApiConfigs.id, req.params.id)).returning();
+  const [updated] = await db.update(paymentApiConfigs).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(paymentApiConfigs.id, req.params.id)).returning();
   return res.json(updated);
 });
 router11.delete("/admin/api-configs/:id", async (req, res) => {
@@ -51141,6 +51639,75 @@ router11.post("/admin/chat/:userId/reply", async (req, res) => {
   }).returning();
   return res.json(msg);
 });
+router11.get("/admin/payment-logs", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const logs = await db.select().from(paymentLogs).orderBy(desc(paymentLogs.createdAt)).limit(200);
+  return res.json(toSnake3(logs));
+});
+router11.get("/admin/all-data", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  try {
+    const [
+      profilesAll,
+      rechargesAll,
+      withdrawalsAll,
+      seriesAll,
+      productsAll,
+      paymentMethodsAll,
+      socialLinksAll,
+      siteSettingsAll,
+      popupsAll,
+      logsAll,
+      countriesAll,
+      vipAll,
+      bannersAll,
+      withdrawalMethodsAll,
+      apiConfigsAll,
+      paymentLogsAll
+    ] = await Promise.all([
+      db.select().from(profiles),
+      db.select().from(recharges),
+      db.select().from(withdrawals),
+      db.select().from(productSeries),
+      db.select().from(products),
+      db.select().from(paymentMethods),
+      db.select().from(socialLinks),
+      db.select().from(siteSettings),
+      db.select().from(popupMessages),
+      db.select().from(adminLogs),
+      db.select().from(countries),
+      db.select().from(vipConditions),
+      db.select().from(banners),
+      db.select().from(withdrawalMethods),
+      db.select().from(paymentApiConfigs),
+      db.select().from(paymentLogs)
+    ]);
+    const byDate = (a, b) => new Date(b.createdAt ?? b.created_at ?? 0).getTime() - new Date(a.createdAt ?? a.created_at ?? 0).getTime();
+    return res.json({
+      profiles: toSnake3(profilesAll.sort(byDate)),
+      recharges: toSnake3(rechargesAll.sort(byDate)),
+      withdrawals: toSnake3(withdrawalsAll.sort(byDate)),
+      series: toSnake3(seriesAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      products: toSnake3(productsAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      paymentMethods: toSnake3(paymentMethodsAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      socialLinks: toSnake3(socialLinksAll),
+      siteSettings: toSnake3(siteSettingsAll),
+      popups: toSnake3(popupsAll),
+      adminLogs: toSnake3(logsAll.sort(byDate).slice(0, 100)),
+      countries: toSnake3(countriesAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      vipConditions: toSnake3(vipAll.sort((a, b) => (a.level ?? 0) - (b.level ?? 0))),
+      banners: toSnake3(bannersAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      withdrawalMethods: toSnake3(withdrawalMethodsAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      apiConfigs: toSnake3(apiConfigsAll),
+      paymentLogs: toSnake3(paymentLogsAll.sort(byDate).slice(0, 200))
+    });
+  } catch (err) {
+    console.error("[admin/all-data] DB error:", err?.message ?? err);
+    return res.status(500).json({ error: err?.message ?? "Database error loading admin data" });
+  }
+});
 var admin_default = router11;
 
 // artifacts/api-server/src/routes/index.ts
@@ -51204,9 +51771,15 @@ app.use((0, import_cors.default)({
   ],
   credentials: true
 }));
-app.use(import_express13.default.json());
-app.use(import_express13.default.urlencoded({ extended: true }));
+app.use(import_express13.default.json({ limit: "50mb" }));
+app.use(import_express13.default.urlencoded({ extended: true, limit: "50mb" }));
 app.use("/api", routes_default);
+app.use((err, _req, res, next) => {
+  if (res.headersSent) return next(err);
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal server error";
+  return res.status(status).json({ error: message });
+});
 var uploadsDir = process.env.UPLOAD_DIR || path2.resolve(process.cwd(), "public", "uploads");
 app.use("/uploads", import_express13.default.static(uploadsDir));
 if (process.env.NODE_ENV === "production") {
