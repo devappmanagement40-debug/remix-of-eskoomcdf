@@ -4,6 +4,24 @@ import { useNavigate } from "react-router-dom";
 const DEFAULT_WHEEL_ICON = "/icons/wheel-floating.png";
 const DEFAULT_SUPPORT_ICON = "/icons/support-floating.png";
 
+const WheelFallback = () => (
+  <div style={{
+    width: "56px", height: "56px", borderRadius: "50%",
+    background: "linear-gradient(135deg, #f59e0b, #d97706)",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    fontSize: "26px", boxShadow: "0 4px 12px rgba(245,158,11,0.5)",
+  }}>🎰</div>
+);
+
+const SupportFallback = () => (
+  <div style={{
+    width: "56px", height: "56px", borderRadius: "50%",
+    background: "linear-gradient(135deg, #22c55e, #16a34a)",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    fontSize: "26px", boxShadow: "0 4px 12px rgba(34,197,94,0.5)",
+  }}>💬</div>
+);
+
 const FloatingButtons = () => {
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -12,6 +30,8 @@ const FloatingButtons = () => {
   const [wheelIconUrl, setWheelIconUrl] = useState(DEFAULT_WHEEL_ICON);
   const [supportIconUrl, setSupportIconUrl] = useState(DEFAULT_SUPPORT_ICON);
   const [supportLink, setSupportLink] = useState("");
+  const [wheelImgFailed, setWheelImgFailed] = useState(false);
+  const [supportImgFailed, setSupportImgFailed] = useState(false);
 
   useEffect(() => {
     fetch("/api/site-settings").then(r => r.ok ? r.json() : []).then((data: any[]) => {
@@ -79,12 +99,15 @@ const FloatingButtons = () => {
         }}
         aria-label="Loterie"
       >
-        <img
-          src={wheelIconUrl}
-          alt="Roue"
-          className="w-full h-full object-contain rounded-full"
-          style={{ filter: "drop-shadow(0 2px 8px rgba(218,165,32,0.5))" }}
-        />
+        {wheelImgFailed ? <WheelFallback /> : (
+          <img
+            src={wheelIconUrl}
+            alt="Roue"
+            className="w-full h-full object-contain rounded-full"
+            style={{ filter: "drop-shadow(0 2px 8px rgba(218,165,32,0.5))" }}
+            onError={() => setWheelImgFailed(true)}
+          />
+        )}
       </button>
 
       {/* Bouton Service Client */}
@@ -100,12 +123,15 @@ const FloatingButtons = () => {
         }}
         aria-label="Support"
       >
-        <img
-          src={supportIconUrl}
-          alt="Support"
-          className="w-full h-full object-contain rounded-full"
-          style={{ filter: "drop-shadow(0 2px 8px rgba(34,197,94,0.4))" }}
-        />
+        {supportImgFailed ? <SupportFallback /> : (
+          <img
+            src={supportIconUrl}
+            alt="Support"
+            className="w-full h-full object-contain rounded-full"
+            style={{ filter: "drop-shadow(0 2px 8px rgba(34,197,94,0.4))" }}
+            onError={() => setSupportImgFailed(true)}
+          />
+        )}
       </button>
     </div>
   );
