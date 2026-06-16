@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { recharges, withdrawals, userWallets, withdrawalMethods, paymentMethods, countries, paymentApiConfigs, withdrawalFeePayments, userSessions, profiles, userRoles } from "@workspace/db";
+import { recharges, withdrawals, userWallets, withdrawalMethods, paymentMethods, countries, paymentApiConfigs, withdrawalFeePayments, userSessions, profiles, userRoles, siteSettings } from "@workspace/db";
 import { eq, and, desc, inArray, sql } from "drizzle-orm";
 import crypto from "crypto";
 
@@ -503,11 +503,36 @@ router.post("/payments/recharges", async (req, res) => {
 
   if (!amount) return res.status(400).json({ error: "Amount is required" });
 
+  const numAmount = Number(amount);
+  if (isNaN(numAmount) || numAmount <= 0) {
+    return res.status(400).json({ error: "Montant invalide" });
+  }
+
+  try {
+    // Validate min/max from site_settings
+    const settingRows = await db.select().from(siteSettings)
+      .where(inArray(siteSettings.key, ["deposit_min", "deposit_max"]));
+    const getSetting = (key: string) => {
+      const row = settingRows.find((r) => r.key === key);
+      return row ? Number(row.value) : null;
+    };
+    const depMin = getSetting("deposit_min");
+    const depMax = getSetting("deposit_max");
+    if (depMin !== null && !isNaN(depMin) && numAmount < depMin) {
+      return res.status(400).json({ error: `Le montant minimum de dépôt est ${depMin} USDT` });
+    }
+    if (depMax !== null && !isNaN(depMax) && numAmount > depMax) {
+      return res.status(400).json({ error: `Le montant maximum de dépôt est ${depMax} USDT` });
+    }
+  } catch (settErr: any) {
+    console.warn("[payments/recharges] Could not fetch site settings for validation:", settErr?.message);
+  }
+
   try {
     const insertValues: Record<string, any> = {
       id: crypto.randomUUID(),
       userId: me.userId,
-      amount: String(amount),
+      amount: String(numAmount),
       status: "pending",
     };
     if (phone)          insertValues.phone          = phone;

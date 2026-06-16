@@ -66196,11 +66196,32 @@ router5.post("/payments/recharges", async (req, res) => {
   const transactionRef = body.transactionRef ?? body.transaction_ref ?? null;
   const proofImageUrl = body.proofImageUrl ?? body.proof_image_url ?? null;
   if (!amount) return res.status(400).json({ error: "Amount is required" });
+  const numAmount = Number(amount);
+  if (isNaN(numAmount) || numAmount <= 0) {
+    return res.status(400).json({ error: "Montant invalide" });
+  }
+  try {
+    const settingRows = await db.select().from(siteSettings).where(inArray(siteSettings.key, ["deposit_min", "deposit_max"]));
+    const getSetting = (key) => {
+      const row = settingRows.find((r) => r.key === key);
+      return row ? Number(row.value) : null;
+    };
+    const depMin = getSetting("deposit_min");
+    const depMax = getSetting("deposit_max");
+    if (depMin !== null && !isNaN(depMin) && numAmount < depMin) {
+      return res.status(400).json({ error: `Le montant minimum de d\xE9p\xF4t est ${depMin} USDT` });
+    }
+    if (depMax !== null && !isNaN(depMax) && numAmount > depMax) {
+      return res.status(400).json({ error: `Le montant maximum de d\xE9p\xF4t est ${depMax} USDT` });
+    }
+  } catch (settErr) {
+    console.warn("[payments/recharges] Could not fetch site settings for validation:", settErr?.message);
+  }
   try {
     const insertValues = {
       id: crypto4.randomUUID(),
       userId: me.userId,
-      amount: String(amount),
+      amount: String(numAmount),
       status: "pending"
     };
     if (phone) insertValues.phone = phone;
