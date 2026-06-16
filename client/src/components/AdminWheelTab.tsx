@@ -104,10 +104,12 @@ const PrizesSection = ({ prizes, reload, showSuccess, showError }: any) => {
       vip_level: form.prize_type === "vip" ? (Number(form.vip_level) || 1) : null,
       probability: Number(form.probability) || 10,
     };
-    if (editing) await api.patch(`/admin/wheel-prizes/${editing.id}`, payload).catch(() => {});
-    else await api.post("/admin/wheel-prizes", { ...payload, sortOrder: prizes.length }).catch(() => {});
-    showSuccess(editing ? "Gain modifié ✅" : "Gain ajouté ✅", "");
-    setShowForm(false); reload();
+    try {
+      if (editing) await api.patch(`/admin/wheel-prizes/${editing.id}`, payload);
+      else await api.post("/admin/wheel-prizes", { ...payload, sortOrder: prizes.length });
+      showSuccess(editing ? "Gain modifié ✅" : "Gain ajouté ✅", "");
+      setShowForm(false); reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Échec de la sauvegarde"); }
   };
 
   const totalProb = prizes.filter((p: WheelPrize) => p.is_active).reduce((s: number, p: WheelPrize) => s + p.probability, 0);
@@ -176,7 +178,7 @@ const PrizesSection = ({ prizes, reload, showSuccess, showError }: any) => {
               <button onClick={async () => { await api.patch(`/admin/wheel-prizes/${p.id}`, { isWinnable: !(p as any).is_winnable }).catch(() => {}); reload(); }}
                 className={`h-7 px-1.5 rounded-lg flex items-center justify-center text-[9px] font-bold ${(p as any).is_winnable !== false ? "bg-warning/20 text-warning" : "bg-destructive/20 text-destructive"}`}>{(p as any).is_winnable !== false ? "WIN" : "NO WIN"}</button>
               <button onClick={() => openForm(p)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
-              <button onClick={async () => { await api.delete(`/admin/wheel-prizes/${p.id}`).catch(() => {}); showSuccess("Supprimé", ""); reload(); }}
+              <button onClick={async () => { try { await api.delete(`/admin/wheel-prizes/${p.id}`); showSuccess("Supprimé ✅", ""); reload(); } catch (e: any) { showError("Erreur", e?.message || "Impossible de supprimer"); } }}
                 className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
             </div>
           </div>
@@ -218,7 +220,7 @@ const WinnersSection = ({ spins, reload }: { spins: WheelSpin[]; reload: () => v
     if (!confirm("⚠️ Êtes-vous sûr de vouloir supprimer TOUS les gagnants ? Cette action est irréversible.")) return;
     setResetting(true);
     try {
-      await api.delete("/admin/wheel-spins/all").catch(() => {});
+      await api.delete("/admin/wheel-spins/all");
       reload();
     } finally {
       setResetting(false);
@@ -381,10 +383,12 @@ const VipSpinsSection = ({ spins, reload, showSuccess, showError, logAction, adm
   };
 
   const handleAction = async (spin: WheelSpin, action: "vip_approved" | "vip_rejected") => {
-    await api.patch(`/admin/wheel-spins/${spin.id}`, { status: action, adminId }).catch(() => {});
-    logAction(action === "vip_approved" ? "vip_wheel_approved" : "vip_wheel_rejected", "wheel_spin", spin.id, spin.prize_label);
-    showSuccess(action === "vip_approved" ? "VIP activé ✅" : "VIP refusé", "");
-    reload();
+    try {
+      await api.patch(`/admin/wheel-spins/${spin.id}`, { status: action, adminId });
+      logAction(action === "vip_approved" ? "vip_wheel_approved" : "vip_wheel_rejected", "wheel_spin", spin.id, spin.prize_label);
+      showSuccess(action === "vip_approved" ? "VIP activé ✅" : "VIP refusé", "");
+      reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible de traiter la demande"); }
   };
 
   const filtered = spins.filter((s: WheelSpin) => s.status === filter);

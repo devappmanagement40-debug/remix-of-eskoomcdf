@@ -249,7 +249,7 @@ const AdminPanel = () => {
         {activeTab === "payments" && <PaymentsTab methods={paymentMethods} countries={countries} apiConfigs={apiConfigs} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "wmethods" && <WithdrawalMethodsTab methods={withdrawalMethods} countries={countries} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "apiconfigs" && <ApiConfigsTab configs={apiConfigs} countries={countries} paymentLogs={paymentLogs} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
-        {activeTab === "links" && <LinksTab links={socialLinks} reload={loadAll} showSuccess={showSuccess} />}
+        {activeTab === "links" && <LinksTab links={socialLinks} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "annonces" && <AnnoncesTab reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "popups" && <PopupsTab popups={popups} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "vip" && <VipTab conditions={vipConditions} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
@@ -330,17 +330,19 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
 
   const saveUser = async () => {
     if (!editingUser) return;
-    await api.patch(`/admin/users/${editingUser.id}`, {
-      fullName: editName,
-      balance: Number(editBalance) || 0,
-      depositBalance: Number(editDepositBalance) || 0,
-      earningsBalance: Number(editEarningsBalance) || 0,
-      referralBalance: Number(editReferralBalance) || 0,
-      vipLevel: Number(editVipLevel) || 0,
-      giftPoints: Number(editGiftPoints) || 0,
-    }).catch(() => {});
+    try {
+      await api.patch(`/admin/users/${editingUser.id}`, {
+        fullName: editName,
+        balance: Number(editBalance) || 0,
+        depositBalance: Number(editDepositBalance) || 0,
+        earningsBalance: Number(editEarningsBalance) || 0,
+        referralBalance: Number(editReferralBalance) || 0,
+        vipLevel: Number(editVipLevel) || 0,
+        giftPoints: Number(editGiftPoints) || 0,
+      });
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible de modifier l'utilisateur"); return; }
     logAction("edit_user", "profile", editingUser.id, `Balance: ${editBalance}, Deposit: ${editDepositBalance}, Earnings: ${editEarningsBalance}, Referral: ${editReferralBalance}, VIP: ${editVipLevel}, ESK: ${editGiftPoints}, Name: ${editName}`);
-    showSuccess("User updated", "Changes saved ✅");
+    showSuccess("User updated ✅", "Changes saved");
     setEditingUser(null);
     reload();
   };
@@ -377,16 +379,20 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
   };
 
   const removeUserProduct = async (upId: string) => {
-    await api.delete(`/admin/user-products/${upId}`).catch(() => {});
-    if (detailUser) loadUserDetail(detailUser);
-    showSuccess("Product removed", "");
+    try {
+      await api.delete(`/admin/user-products/${upId}`);
+      if (detailUser) loadUserDetail(detailUser);
+      showSuccess("Product removed ✅", "");
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible de retirer le produit"); }
   };
 
   const addProductToUser = async (productId: string) => {
     if (!detailUser) return;
-    await api.post("/admin/user-products", { userId: detailUser.user_id, productId }).catch(() => {});
-    loadUserDetail(detailUser);
-    showSuccess("Product added", "");
+    try {
+      await api.post("/admin/user-products", { userId: detailUser.user_id, productId });
+      loadUserDetail(detailUser);
+      showSuccess("Product added ✅", "");
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible d'ajouter le produit"); }
   };
 
   // Detail view
@@ -944,10 +950,12 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
       max_purchases: form.max_purchases ? Number(form.max_purchases) : null,
       description: form.description || null,
     };
-    if (editingProduct) await api.patch(`/admin/products/${editingProduct.id}`, payload).catch(() => {});
-    else await api.post("/admin/products", { ...payload, sortOrder: products.filter((p: Product) => p.series_id === formSeriesId).length }).catch(() => {});
-    showSuccess(editingProduct ? "Product updated ✅" : "Product created ✅", "");
-    setShowForm(false); reload();
+    try {
+      if (editingProduct) await api.patch(`/admin/products/${editingProduct.id}`, payload);
+      else await api.post("/admin/products", { ...payload, sortOrder: products.filter((p: Product) => p.series_id === formSeriesId).length });
+      showSuccess(editingProduct ? "Product updated ✅" : "Product created ✅", "");
+      setShowForm(false); reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Échec de la sauvegarde"); }
   };
 
   const saveSeries = async () => {
@@ -959,10 +967,12 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
       minTeamInvestment: Number(seriesConditions.min_team_investment) || 0,
       minActiveMembers: Number(seriesConditions.min_active_members) || 0,
     };
-    if (editingSeries) await api.patch(`/admin/product-series/${editingSeries.id}`, payload).catch(() => {});
-    else await api.post("/admin/product-series", { ...payload, sortOrder: series.length }).catch(() => {});
-    showSuccess(editingSeries ? "Series updated ✅" : "Series created ✅", "");
-    setShowSeriesForm(false); reload();
+    try {
+      if (editingSeries) await api.patch(`/admin/product-series/${editingSeries.id}`, payload);
+      else await api.post("/admin/product-series", { ...payload, sortOrder: series.length });
+      showSuccess(editingSeries ? "Series updated ✅" : "Series created ✅", "");
+      setShowSeriesForm(false); reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Échec de la sauvegarde"); }
   };
 
   const setStockStatus = async (p: Product, status: "available" | "sold_out" | "terminated") => {
@@ -1064,7 +1074,7 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
               </button>
               <div className="flex gap-1.5">
                 <button onClick={() => { setEditingSeries(s); setSeriesName(s.name); setSeriesColor(s.color || "primary"); setSeriesConditions({ min_vip_level: String(s.min_vip_level || 0), min_personal_investment: String(s.min_personal_investment || 0), min_team_investment: String(s.min_team_investment || 0), min_active_members: String(s.min_active_members || 0) }); setShowSeriesForm(true); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
-                <button onClick={async () => { await api.delete(`/admin/product-series/${s.id}`).catch(() => {}); showSuccess("Deleted", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+                <button onClick={async () => { try { await api.delete(`/admin/product-series/${s.id}`); showSuccess("Deleted ✅", ""); reload(); } catch (e: any) { showError("Erreur", e?.message || "Impossible de supprimer"); } }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
               </div>
             </div>
             {isExpanded && (
@@ -1086,9 +1096,8 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
                           <button onClick={async () => { await api.patch(`/admin/products/${p.id}`, { isActive: !p.is_active }).catch(() => {}); reload(); }} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{p.is_active ? "ON" : "OFF"}</button>
                           <button onClick={() => openProductForm(s.id, p)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
                           <button onClick={async () => {
-                            await api.delete(`/admin/products/${p.id}`).catch(() => {});
-                            showSuccess("Product deleted", "");
-                            reload();
+                            try { await api.delete(`/admin/products/${p.id}`); showSuccess("Product deleted ✅", ""); reload(); }
+                            catch (e: any) { showError("Erreur", e?.message || "Impossible de supprimer"); }
                           }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
                         </div>
                       </div>
@@ -1180,21 +1189,27 @@ const BannersTab = ({ banners, reload, showSuccess, showError }: any) => {
   };
 
   const deleteBanner = async (id: string) => {
-    await api.delete(`/admin/banners/${id}`).catch(() => {});
-    showSuccess("Banner deleted", "");
-    reload();
+    try {
+      await api.delete(`/admin/banners/${id}`);
+      showSuccess("Banner deleted ✅", "");
+      reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible de supprimer la bannière"); }
   };
 
   const toggleBanner = async (b: Banner) => {
-    await api.patch(`/admin/banners/${b.id}`, { isActive: !b.is_active }).catch(() => {});
-    reload();
+    try {
+      await api.patch(`/admin/banners/${b.id}`, { isActive: !b.is_active });
+      reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible de modifier la bannière"); }
   };
 
   const updateLink = async (id: string) => {
-    await api.patch(`/admin/banners/${id}`, { linkPath }).catch(() => {});
-    showSuccess("Link updated ✅", "");
-    setEditingBanner(null);
-    reload();
+    try {
+      await api.patch(`/admin/banners/${id}`, { linkPath });
+      showSuccess("Link updated ✅", "");
+      setEditingBanner(null);
+      reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible de mettre à jour le lien"); }
   };
 
   return (
@@ -1269,10 +1284,12 @@ const PaymentsTab = ({ methods, countries, apiConfigs, reload, showSuccess, show
   const save = async () => {
     if (!form.name.trim()) { showError("Error", "Nom requis"); return; }
     const payload = { ...form, country_id: form.country_id || null, external_url: form.external_url || null, logo_url: form.logo_url || null, api_config_id: form.api_config_id || null };
-    if (editing) await api.patch(`/admin/payment-methods/${editing.id}`, payload).catch(() => {});
-    else await api.post("/admin/payment-methods", { ...payload, sortOrder: methods.length }).catch(() => {});
-    showSuccess(editing ? "Modifie" : "Cree", "");
-    setShowForm(false); reload();
+    try {
+      if (editing) await api.patch(`/admin/payment-methods/${editing.id}`, payload);
+      else await api.post("/admin/payment-methods", { ...payload, sortOrder: methods.length });
+      showSuccess(editing ? "Modifié ✅" : "Créé ✅", "");
+      setShowForm(false); reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Échec de la sauvegarde"); }
   };
 
   const countryApiConfigs = (apiConfigs || []).filter((ac: ApiConfig) => !form.country_id || ac.country_id === form.country_id || !ac.country_id);
@@ -1372,7 +1389,7 @@ const PaymentsTab = ({ methods, countries, apiConfigs, reload, showSuccess, show
               <button onClick={async () => { await api.patch(`/admin/payment-methods/${m.id}`, { isActive: !m.is_active }).catch(() => {}); reload(); }}
                 className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${m.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{m.is_active ? "ON" : "OFF"}</button>
               <button onClick={() => openForm(m)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
-              <button onClick={async () => { await api.delete(`/admin/payment-methods/${m.id}`).catch(() => {}); showSuccess("Supprime", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+              <button onClick={async () => { try { await api.delete(`/admin/payment-methods/${m.id}`); showSuccess("Supprimé ✅", ""); reload(); } catch (e: any) { showError("Erreur", e?.message || "Impossible de supprimer"); } }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
             </div>
           </div>
         </div>
@@ -1382,14 +1399,16 @@ const PaymentsTab = ({ methods, countries, apiConfigs, reload, showSuccess, show
 };
 
 // ==================== LINKS ====================
-const LinksTab = ({ links, reload, showSuccess }: any) => {
+const LinksTab = ({ links, reload, showSuccess, showError }: any) => {
   const [editId, setEditId] = useState<string | null>(null);
   const [editUrl, setEditUrl] = useState("");
 
   const save = async (id: string) => {
-    await api.patch(`/admin/social-links/${id}`, { url: editUrl }).catch(() => {});
-    showSuccess("Link updated ✅", "");
-    setEditId(null); reload();
+    try {
+      await api.patch(`/admin/social-links/${id}`, { url: editUrl });
+      showSuccess("Link updated ✅", "");
+      setEditId(null); reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Échec de la mise à jour"); }
   };
 
   return (
@@ -1538,9 +1557,11 @@ const PopupsTab = ({ popups, reload, showSuccess, showError }: any) => {
 
   const save = async () => {
     if (!editing) return;
-    await api.patch(`/admin/popup-messages/${editing}`, { title: form.title, message: form.message, buttonConfirm: form.button_confirm, buttonCancel: form.button_cancel || null, isActive: form.is_active }).catch(() => {});
-    showSuccess("Saved ✅", "");
-    setEditing(null); reload();
+    try {
+      await api.patch(`/admin/popup-messages/${editing}`, { title: form.title, message: form.message, buttonConfirm: form.button_confirm, buttonCancel: form.button_cancel || null, isActive: form.is_active });
+      showSuccess("Saved ✅", "");
+      setEditing(null); reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Échec de la sauvegarde"); }
   };
 
   return (
@@ -1762,8 +1783,10 @@ const SarahTab = ({ settings, reload, showSuccess, showError }: any) => {
   const getSetting = (key: string) => settings.find((s: SiteSetting) => s.key === key)?.value || "";
 
   const saveSetting = async (key: string, value: string, category = "sarah") => {
-    await api.patch("/admin/site-settings", { key, value, category }).catch(() => {});
-    reload();
+    try {
+      await api.patch("/admin/site-settings", { key, value, category });
+      reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Échec de la sauvegarde"); }
   };
 
   const toggle = async () => {
@@ -2016,22 +2039,27 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
   const saveReward = async () => {
     if (!form.name || !form.points_required || !form.money_value) { showError("Error", "Please fill in all required fields"); return; }
     const payload = { name: form.name, pointsRequired: Number(form.points_required), moneyValue: Number(form.money_value), imageUrl: form.image_url || null, sortOrder: rewards.length };
-    if (editing) await api.patch(`/admin/gift-rewards/${editing.id}`, payload).catch(() => {});
-    else await api.post("/admin/gift-rewards", payload).catch(() => {});
-    showSuccess(editing ? "Reward updated" : "Reward added", "");
-    setShowForm(false);
-    loadRewards();
+    try {
+      if (editing) await api.patch(`/admin/gift-rewards/${editing.id}`, payload);
+      else await api.post("/admin/gift-rewards", payload);
+      showSuccess(editing ? "Reward updated ✅" : "Reward added ✅", "");
+      setShowForm(false); loadRewards();
+    } catch (err: any) { showError("Erreur", err?.message || "Échec de la sauvegarde"); }
   };
 
   const toggleReward = async (r: any) => {
-    await api.patch(`/admin/gift-rewards/${r.id}`, { isActive: !r.is_active }).catch(() => {});
-    loadRewards();
+    try {
+      await api.patch(`/admin/gift-rewards/${r.id}`, { isActive: !r.is_active });
+      loadRewards();
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible de modifier la récompense"); }
   };
 
   const deleteReward = async (r: any) => {
-    await api.delete(`/admin/gift-rewards/${r.id}`).catch(() => {});
-    showSuccess("Reward deleted", "");
-    loadRewards();
+    try {
+      await api.delete(`/admin/gift-rewards/${r.id}`);
+      showSuccess("Reward deleted ✅", "");
+      loadRewards();
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible de supprimer la récompense"); }
   };
 
   const pointsKeys = [
@@ -2135,23 +2163,23 @@ const GiftCodesTab = ({ showSuccess, showError }: any) => {
       maxUses: Number(form.max_uses) || 1,
       expiresAt: form.expires_at ? new Date(form.expires_at).toISOString() : null,
     };
-    if (editing) {
-      await api.patch(`/admin/gift-codes/${editing.id}`, payload).catch(() => {});
-    } else {
-      await api.post("/admin/gift-codes", payload).catch(() => {});
-    }
-    showSuccess(editing ? "Code updated" : "Code created", "");
-    setShowForm(false);
-    loadCodes();
+    try {
+      if (editing) await api.patch(`/admin/gift-codes/${editing.id}`, payload);
+      else await api.post("/admin/gift-codes", payload);
+      showSuccess(editing ? "Code updated ✅" : "Code created ✅", "");
+      setShowForm(false); loadCodes();
+    } catch (err: any) { showError("Erreur", err?.message || "Échec de la sauvegarde"); }
   };
 
   const toggleCode = async (c: any) => {
-    await api.patch(`/admin/gift-codes/${c.id}`, { isActive: !c.is_active }).catch(() => {});
-    loadCodes();
+    try {
+      await api.patch(`/admin/gift-codes/${c.id}`, { isActive: !c.is_active });
+      loadCodes();
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible de modifier le code"); }
   };
 
   const deleteCode = async (c: any) => {
-    await api.delete(`/admin/gift-codes/${c.id}`).catch(() => {});
+    try { await api.delete(`/admin/gift-codes/${c.id}`); } catch (err: any) { showError("Erreur", err?.message || "Impossible de supprimer"); return; }
     showSuccess("Code deleted", "");
     loadCodes();
   };
@@ -2234,20 +2262,26 @@ const FaqTab = ({ showSuccess, showError }: any) => {
 
   const save = async () => {
     if (!form.question || !form.answer) { showError("Error", "Please fill in all fields"); return; }
-    if (editing) await api.patch(`/admin/faq-items/${editing.id}`, form).catch(() => {});
-    else await api.post("/admin/faq-items", { ...form, sortOrder: items.length }).catch(() => {});
-    showSuccess(editing ? "Question updated" : "Question added", "");
-    setShowForm(false); load();
+    try {
+      if (editing) await api.patch(`/admin/faq-items/${editing.id}`, form);
+      else await api.post("/admin/faq-items", { ...form, sortOrder: items.length });
+      showSuccess(editing ? "Question updated ✅" : "Question added ✅", "");
+      setShowForm(false); load();
+    } catch (err: any) { showError("Erreur", err?.message || "Échec de la sauvegarde"); }
   };
 
   const toggle = async (item: any) => {
-    await api.patch(`/admin/faq-items/${item.id}`, { isActive: !item.is_active }).catch(() => {});
-    load();
+    try {
+      await api.patch(`/admin/faq-items/${item.id}`, { isActive: !item.is_active });
+      load();
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible de modifier"); }
   };
 
   const remove = async (id: string) => {
-    await api.delete(`/admin/faq-items/${id}`).catch(() => {});
-    showSuccess("Question deleted", ""); load();
+    try {
+      await api.delete(`/admin/faq-items/${id}`);
+      showSuccess("Question deleted ✅", ""); load();
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible de supprimer"); }
   };
 
   return (
@@ -2306,27 +2340,33 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
 
   const save = async () => {
     if (!form.title || !form.description) { showError("Error", "Please fill in all fields"); return; }
-    if (editing) await api.patch(`/admin/info-items/${editing.id}`, form).catch(() => {});
-    else await api.post("/admin/info-items", { ...form, sortOrder: items.length }).catch(() => {});
-    showSuccess(editing ? "Announcement updated" : "Announcement added", "");
-    setShowForm(false); load();
+    try {
+      if (editing) await api.patch(`/admin/info-items/${editing.id}`, form);
+      else await api.post("/admin/info-items", { ...form, sortOrder: items.length });
+      showSuccess(editing ? "Announcement updated ✅" : "Announcement added ✅", "");
+      setShowForm(false); load();
+    } catch (err: any) { showError("Erreur", err?.message || "Échec de la sauvegarde"); }
   };
 
   const toggle = async (item: any) => {
-    await api.patch(`/admin/info-items/${item.id}`, { isActive: !item.is_active }).catch(() => {});
-    load();
+    try {
+      await api.patch(`/admin/info-items/${item.id}`, { isActive: !item.is_active });
+      load();
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible de modifier"); }
   };
 
   const remove = async (id: string) => {
-    await api.delete(`/admin/info-items/${id}`).catch(() => {});
-    showSuccess("Announcement deleted", ""); load();
+    try {
+      await api.delete(`/admin/info-items/${id}`);
+      showSuccess("Announcement deleted ✅", ""); load();
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible de supprimer"); }
   };
 
   const uploadImage = async (itemId: string, file: File) => {
     setUploading(true);
     try {
       const url = await uploadFile(file, "site-assets");
-      await api.patch(`/admin/info-items/${itemId}`, { imageUrl: url }).catch(() => {});
+      await api.patch(`/admin/info-items/${itemId}`, { imageUrl: url });
       showSuccess("Image ajoutée ✅", "");
       load();
     } catch (err: any) {
@@ -2337,9 +2377,11 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
   };
 
   const removeImage = async (itemId: string) => {
-    await api.patch(`/admin/info-items/${itemId}`, { imageUrl: null }).catch(() => {});
-    showSuccess("Image deleted", "");
-    load();
+    try {
+      await api.patch(`/admin/info-items/${itemId}`, { imageUrl: null });
+      showSuccess("Image deleted ✅", "");
+      load();
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible de supprimer l'image"); }
   };
 
   return (
@@ -2861,14 +2903,18 @@ const OfficialDocsTab = ({ showSuccess, showError }: { showSuccess: (t: string, 
   };
 
   const toggleActive = async (id: string, current: boolean) => {
-    await api.patch(`/admin/official-documents/${id}`, { isActive: !current }).catch(() => {});
-    loadDocs();
+    try {
+      await api.patch(`/admin/official-documents/${id}`, { isActive: !current });
+      loadDocs();
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible de modifier"); }
   };
 
   const deleteDoc = async (id: string) => {
-    await api.delete(`/admin/official-documents/${id}`).catch(() => {});
-    showSuccess("Deleted", "Document deleted ✅");
-    loadDocs();
+    try {
+      await api.delete(`/admin/official-documents/${id}`);
+      showSuccess("Deleted", "Document deleted ✅");
+      loadDocs();
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible de supprimer"); }
   };
 
   if (loading) return <p className="text-xs text-muted-foreground text-center py-10">Loading...</p>;
@@ -2950,9 +2996,11 @@ const SecurityTab = ({ logs, settings, reload, showSuccess, showError }: { logs:
 
   const savePhones = async (updated: string[]) => {
     const val = JSON.stringify(updated);
-    await api.patch("/admin/site-settings", { key: "admin_phones", value: val, category: "security" }).catch(() => {});
-    setPhones(updated);
-    reload();
+    try {
+      await api.patch("/admin/site-settings", { key: "admin_phones", value: val, category: "security" });
+      setPhones(updated);
+      reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Échec de la sauvegarde"); }
   };
 
   const addPhone = async () => {
@@ -3060,10 +3108,12 @@ const WithdrawalMethodsTab = ({ methods, countries, reload, showSuccess, showErr
     if (!form.name.trim()) { showError("Error", "Nom requis"); return; }
     if (!form.country_id) { showError("Error", "Country required"); return; }
     const payload = { name: form.name, country_id: form.country_id || null, payment_type: form.payment_type, api_provider: form.api_provider || null, logo_url: form.logo_url || null };
-    if (editing) await api.patch(`/admin/withdrawal-methods/${editing.id}`, payload).catch(() => {});
-    else await api.post("/admin/withdrawal-methods", { ...payload, sortOrder: methods.length }).catch(() => {});
-    showSuccess(editing ? "Updated" : "Created", "");
-    setShowForm(false); reload();
+    try {
+      if (editing) await api.patch(`/admin/withdrawal-methods/${editing.id}`, payload);
+      else await api.post("/admin/withdrawal-methods", { ...payload, sortOrder: methods.length });
+      showSuccess(editing ? "Updated ✅" : "Created ✅", "");
+      setShowForm(false); reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Échec de la sauvegarde"); }
   };
 
   // Group by country
@@ -3157,7 +3207,7 @@ const WithdrawalMethodsTab = ({ methods, countries, reload, showSuccess, showErr
                     <button onClick={async () => { await api.patch(`/admin/withdrawal-methods/${m.id}`, { isActive: !m.is_active }).catch(() => {}); reload(); }}
                       className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${m.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{m.is_active ? "ON" : "OFF"}</button>
                     <button onClick={() => openForm(m)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
-                    <button onClick={async () => { await api.delete(`/admin/withdrawal-methods/${m.id}`).catch(() => {}); showSuccess("Supprimé", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+                    <button onClick={async () => { try { await api.delete(`/admin/withdrawal-methods/${m.id}`); showSuccess("Supprimé ✅", ""); reload(); } catch (e: any) { showError("Erreur", e?.message || "Impossible de supprimer"); } }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
                   </div>
                 </div>
               ))}
@@ -3184,28 +3234,36 @@ const CountriesTab = ({ countries, methods, withdrawalMethods = [], reload, show
   const save = async () => {
     if (!form.name.trim()) { showError("Error", "Nom requis"); return; }
     const payload = { name: form.name, country_code: form.country_code, phone_digits: Number(form.phone_digits) || 8, validation_enabled: form.validation_enabled };
-    if (editing) await api.patch(`/admin/countries/${editing.id}`, payload).catch(() => {});
-    else await api.post("/admin/countries", { ...payload, sortOrder: countries.length, apiEnabled: true }).catch(() => {});
-    showSuccess(editing ? "Country updated" : "Country added", "");
-    setShowForm(false); reload();
+    try {
+      if (editing) await api.patch(`/admin/countries/${editing.id}`, payload);
+      else await api.post("/admin/countries", { ...payload, sortOrder: countries.length, apiEnabled: true });
+      showSuccess(editing ? "Country updated ✅" : "Country added ✅", "");
+      setShowForm(false); reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Échec de la sauvegarde"); }
   };
 
   const toggleActive = async (c: Country) => {
-    await api.patch(`/admin/countries/${c.id}`, { isActive: !c.is_active }).catch(() => {});
-    showSuccess(c.is_active ? "Country deactivated" : "Country activated ✅", "");
-    reload();
+    try {
+      await api.patch(`/admin/countries/${c.id}`, { isActive: !c.is_active });
+      showSuccess(c.is_active ? "Country deactivated" : "Country activated ✅", "");
+      reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible de modifier le pays"); }
   };
 
   const toggleApi = async (c: Country) => {
-    await api.patch(`/admin/countries/${c.id}`, { apiEnabled: !(c as any).api_enabled }).catch(() => {});
-    showSuccess((c as any).api_enabled ? "API disabled for " + c.name : "API enabled for " + c.name + " ✅", "");
-    reload();
+    try {
+      await api.patch(`/admin/countries/${c.id}`, { apiEnabled: !(c as any).api_enabled });
+      showSuccess((c as any).api_enabled ? "API disabled for " + c.name : "API enabled for " + c.name + " ✅", "");
+      reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible de modifier l'API"); }
   };
 
   const deleteCountry = async (c: Country) => {
-    await api.delete(`/admin/countries/${c.id}`).catch(() => {});
-    showSuccess("Country deleted", "");
-    reload();
+    try {
+      await api.delete(`/admin/countries/${c.id}`);
+      showSuccess("Country deleted ✅", "");
+      reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible de supprimer le pays"); }
   };
 
   return (
@@ -3325,24 +3383,25 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
 
   const save = async () => {
     if (!editingId) return;
-    await api.patch(`/admin/vip-conditions/${editingId}`, {
-      minInvestment: Number(form.min_investment) || 0,
-      minActiveMembers: Number(form.min_active_members) || 0,
-      minPurchases: Number(form.min_purchases) || 0,
-      minProductsBought: Number(form.min_products_bought) || 0,
-      minTeamInvestment: Number(form.min_team_investment) || 0,
-      conditionLogic: form.condition_logic,
-    }).catch(() => {});
-    showSuccess("VIP conditions updated", "");
-    setEditingId(null);
-    reload();
+    try {
+      await api.patch(`/admin/vip-conditions/${editingId}`, {
+        minInvestment: Number(form.min_investment) || 0,
+        minActiveMembers: Number(form.min_active_members) || 0,
+        minPurchases: Number(form.min_purchases) || 0,
+        minProductsBought: Number(form.min_products_bought) || 0,
+        minTeamInvestment: Number(form.min_team_investment) || 0,
+        conditionLogic: form.condition_logic,
+      });
+      showSuccess("VIP conditions updated ✅", "");
+      setEditingId(null); reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Échec de la sauvegarde"); }
   };
 
   const uploadImage = async (condId: string, _level: number, file: File) => {
     setUploading(true);
     try {
       const url = await uploadFile(file, "site-assets");
-      await api.patch(`/admin/vip-conditions/${condId}`, { imageUrl: url }).catch(() => {});
+      await api.patch(`/admin/vip-conditions/${condId}`, { imageUrl: url });
       showSuccess("Image VIP ajoutée ✅", "");
       reload();
     } catch (err: any) {
@@ -3353,9 +3412,11 @@ const VipTab = ({ conditions, reload, showSuccess, showError }: any) => {
   };
 
   const removeImage = async (condId: string) => {
-    await api.patch(`/admin/vip-conditions/${condId}`, { imageUrl: null }).catch(() => {});
-    showSuccess("Image deleted", "");
-    reload();
+    try {
+      await api.patch(`/admin/vip-conditions/${condId}`, { imageUrl: null });
+      showSuccess("Image deleted ✅", "");
+      reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible de supprimer l'image"); }
   };
 
   return (
@@ -3494,23 +3555,29 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
   const save = async () => {
     if (!form.name.trim()) { showError("Error", "Nom requis"); return; }
     const payload = { ...form, country_id: form.country_id || null, api_key: form.api_key || null, secret_key: form.secret_key || null, endpoint_url: form.endpoint_url || null, callback_url: form.callback_url || null, notes: form.notes || null };
-    if (editing) await api.patch(`/admin/payment-api-configs/${editing.id}`, payload).catch(() => {});
-    else await api.post("/admin/payment-api-configs", payload).catch(() => {});
-    showSuccess(editing ? "API updated" : "API added", "");
-    setShowForm(false); reload();
+    try {
+      if (editing) await api.patch(`/admin/payment-api-configs/${editing.id}`, payload);
+      else await api.post("/admin/payment-api-configs", payload);
+      showSuccess(editing ? "API updated ✅" : "API added ✅", "");
+      setShowForm(false); reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Échec de la sauvegarde"); }
   };
 
   const toggleActive = async (c: ApiConfig) => {
-    await api.patch(`/admin/payment-api-configs/${c.id}`, { isActive: !c.is_active }).catch(() => {});
-    showSuccess(c.is_active ? "API deactivated" : "API activated ⚡", "");
-    reload();
+    try {
+      await api.patch(`/admin/payment-api-configs/${c.id}`, { isActive: !c.is_active });
+      showSuccess(c.is_active ? "API deactivated" : "API activated ⚡", "");
+      reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible de modifier la config"); }
   };
 
   const deleteConfig = async (id: string) => {
     if (!confirm("Delete this API configuration?")) return;
-    await api.delete(`/admin/payment-api-configs/${id}`).catch(() => {});
-    showSuccess("Configuration deleted", "");
-    reload();
+    try {
+      await api.delete(`/admin/payment-api-configs/${id}`);
+      showSuccess("Configuration deleted ✅", "");
+      reload();
+    } catch (err: any) { showError("Erreur", err?.message || "Impossible de supprimer la configuration"); }
   };
 
   const getCountryName = (id: string | null) => {

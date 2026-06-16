@@ -76,14 +76,19 @@ const AdminReferralTab = ({
       showError("Erreur", "Les taux doivent être entre 0 et 100"); return;
     }
     setSaving(true);
-    await Promise.all([
-      api.patch("/admin/site-settings", { key: "referral_rate_l1", value: rateL1, category: "referral" }).catch(() => {}),
-      api.patch("/admin/site-settings", { key: "referral_rate_l2", value: rateL2, category: "referral" }).catch(() => {}),
-      api.patch("/admin/site-settings", { key: "referral_rate_l3", value: rateL3, category: "referral" }).catch(() => {}),
-    ]);
-    showSuccess("Taux sauvegardés ✅", `E: ${rateL1}% • F: ${rateL2}% • G: ${rateL3}%`);
-    setSaving(false);
-    reload();
+    try {
+      await Promise.all([
+        api.patch("/admin/site-settings", { key: "referral_rate_l1", value: rateL1, category: "referral" }),
+        api.patch("/admin/site-settings", { key: "referral_rate_l2", value: rateL2, category: "referral" }),
+        api.patch("/admin/site-settings", { key: "referral_rate_l3", value: rateL3, category: "referral" }),
+      ]);
+      showSuccess("Taux sauvegardés ✅", `E: ${rateL1}% • F: ${rateL2}% • G: ${rateL3}%`);
+      reload();
+    } catch (err: any) {
+      showError("Erreur", err?.message || "Échec de la sauvegarde des taux");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const updateCode = async (profileId: string, code: string) => {
