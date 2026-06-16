@@ -42650,15 +42650,14 @@ var init_src = __esm({
     init_schema2();
     init_schema2();
     ({ Pool: Pool3 } = esm_default);
-    connectionString = process.env.SUPABASE_DATABASE_URL;
+    connectionString = process.env.DATABASE_URL;
     if (!connectionString) {
       throw new Error(
-        "SUPABASE_DATABASE_URL est requis. Configurez cette variable d'environnement avec votre URL Supabase."
+        "DATABASE_URL is required. Make sure the PostgreSQL database is provisioned."
       );
     }
     pool = new Pool3({
-      connectionString,
-      ssl: { rejectUnauthorized: false }
+      connectionString
     });
     db = drizzle(pool, { schema: schema_exports });
   }
