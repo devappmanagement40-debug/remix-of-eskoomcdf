@@ -32,16 +32,16 @@ function resolveNowPaymentsCode(name: string, network?: string): string | null {
 }
 
 const CRYPTO_META: Record<string, Partial<CryptoCurrency>> = {
-  usdtbsc:   { network: "BNB Smart Chain (BEP20)", color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.18)", logoUrl: "/crypto-logos/usdt.png" },
-  usdttrc20: { network: "TRON (TRC20)",            color: "#EF0027", symbol: "₮", bg: "rgba(239,0,39,0.18)",  logoUrl: "/crypto-logos/usdt.png" },
-  usdterc20: { network: "Ethereum (ERC20)",         color: "#627EEA", symbol: "₮", bg: "rgba(98,126,234,0.18)", logoUrl: "/crypto-logos/usdt.png" },
-  usdtmatic: { network: "Polygon (MATIC)",          color: "#8247E5", symbol: "₮", bg: "rgba(130,71,229,0.18)", logoUrl: "/crypto-logos/usdt.png" },
-  trx:       { network: "TRON",                     color: "#EF0027", symbol: "◈", bg: "rgba(239,0,39,0.18)",  logoUrl: "/crypto-logos/trx.png" },
-  bnbbsc:    { network: "BNB Smart Chain (BEP20)",  color: "#F0B90B", symbol: "⬡", bg: "rgba(240,185,11,0.18)", logoUrl: "/crypto-logos/bnb.png" },
-  eth:       { network: "Ethereum",                 color: "#627EEA", symbol: "Ξ", bg: "rgba(98,126,234,0.18)", logoUrl: "/crypto-logos/eth.png" },
-  btc:       { network: "Bitcoin",                  color: "#F7931A", symbol: "₿", bg: "rgba(247,147,26,0.18)", logoUrl: "/crypto-logos/btc.png" },
-  sol:       { network: "Solana",                   color: "#9945FF", symbol: "◎", bg: "rgba(153,69,255,0.18)", logoUrl: "/crypto-logos/sol.png" },
-  ltc:       { network: "Litecoin",                 color: "#BFBBBB", symbol: "Ł", bg: "rgba(191,187,187,0.18)", logoUrl: "/crypto-logos/ltc.png" },
+  usdtbsc:   { network: "BNB Smart Chain (BEP20)", color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.18)", logoUrl: "/crypto-logos/usdt.svg" },
+  usdttrc20: { network: "TRON (TRC20)",            color: "#EF0027", symbol: "₮", bg: "rgba(239,0,39,0.18)",  logoUrl: "/crypto-logos/usdt.svg" },
+  usdterc20: { network: "Ethereum (ERC20)",         color: "#627EEA", symbol: "₮", bg: "rgba(98,126,234,0.18)", logoUrl: "/crypto-logos/usdt.svg" },
+  usdtmatic: { network: "Polygon (MATIC)",          color: "#8247E5", symbol: "₮", bg: "rgba(130,71,229,0.18)", logoUrl: "/crypto-logos/usdt.svg" },
+  trx:       { network: "TRON",                     color: "#EF0027", symbol: "◈", bg: "rgba(239,0,39,0.18)",  logoUrl: "/crypto-logos/trx.svg" },
+  bnbbsc:    { network: "BNB Smart Chain (BEP20)",  color: "#F0B90B", symbol: "⬡", bg: "rgba(240,185,11,0.18)", logoUrl: "/crypto-logos/bnb.svg" },
+  eth:       { network: "Ethereum",                 color: "#627EEA", symbol: "Ξ", bg: "rgba(98,126,234,0.18)", logoUrl: "/crypto-logos/eth.svg" },
+  btc:       { network: "Bitcoin",                  color: "#F7931A", symbol: "₿", bg: "rgba(247,147,26,0.18)", logoUrl: "/crypto-logos/btc.svg" },
+  sol:       { network: "Solana",                   color: "#9945FF", symbol: "◎", bg: "rgba(153,69,255,0.18)", logoUrl: "/crypto-logos/sol.svg" },
+  ltc:       { network: "Litecoin",                 color: "#BFBBBB", symbol: "Ł", bg: "rgba(191,187,187,0.18)", logoUrl: "/crypto-logos/ltc.svg" },
 };
 
 const FALLBACK_CURRENCIES: CryptoCurrency[] = [

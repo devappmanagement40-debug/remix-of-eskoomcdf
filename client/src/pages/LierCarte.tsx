@@ -22,7 +22,7 @@ const USDT_BEP20 = {
   color: "#26A17B",
   symbol: "₮",
   bg: "rgba(38,161,123,0.15)",
-  logo: "/crypto-logos/usdt.png",
+  logo: "/crypto-logos/usdt.svg",
 };
 
 function validateBEP20(address: string): boolean {

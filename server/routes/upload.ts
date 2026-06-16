@@ -1,12 +1,10 @@
 import { Router } from "express";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
-import { fileURLToPath } from "url";
 
 const router = Router();
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const UPLOAD_DIR = process.env.UPLOAD_DIR || path.resolve(__dirname, "../../public/uploads");
+const UPLOAD_DIR = process.env.UPLOAD_DIR || path.resolve(process.cwd(), "public/uploads");
 
 const ALLOWED_MIME = new Set([
   "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp",

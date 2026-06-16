@@ -46411,7 +46411,7 @@ var import_express14 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path2 from "path";
-import { fileURLToPath as fileURLToPath2 } from "url";
+import { fileURLToPath } from "url";
 
 // server/routes/index.ts
 var import_express13 = __toESM(require_express2(), 1);
@@ -55396,10 +55396,8 @@ var nowpayments_default = router10;
 var import_express11 = __toESM(require_express2(), 1);
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
-import { fileURLToPath } from "url";
 var router11 = (0, import_express11.Router)();
-var __dirname2 = path.dirname(fileURLToPath(import.meta.url));
-var UPLOAD_DIR = process.env.UPLOAD_DIR || path.resolve(__dirname2, "../../public/uploads");
+var UPLOAD_DIR = process.env.UPLOAD_DIR || path.resolve(process.cwd(), "public/uploads");
 var ALLOWED_MIME = /* @__PURE__ */ new Set([
   "image/jpeg",
   "image/jpg",
@@ -56119,7 +56117,7 @@ var logger = (0, import_pino.default)({
 });
 
 // server/app.ts
-var __dirname3 = path2.dirname(fileURLToPath2(import.meta.url));
+var __dirname2 = path2.dirname(fileURLToPath(import.meta.url));
 var app = (0, import_express14.default)();
 app.set("trust proxy", 1);
 app.use(
