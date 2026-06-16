@@ -42650,11 +42650,9 @@ var init_src = __esm({
     init_schema2();
     init_schema2();
     ({ Pool: Pool3 } = esm_default);
-    connectionString = process.env.SUPABASE_DATABASE_URL;
+    connectionString = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
     if (!connectionString) {
-      throw new Error(
-        "SUPABASE_DATABASE_URL est requis. Configurez cette variable d'environnement avec votre URL Supabase."
-      );
+      throw new Error("SUPABASE_DATABASE_URL is required.");
     }
     pool = new Pool3({
       connectionString,
