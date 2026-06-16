@@ -73,8 +73,8 @@ const tabs = [
   { key: "rewards", icon: Star, label: "Rewards" },
   { key: "giftcodes", icon: Gift, label: "Codes" },
   { key: "countries", icon: Globe, label: "Countries" },
-  { key: "payments", icon: CreditCard, label: "Deposit" },
-  { key: "wmethods", icon: Wallet, label: "Withdrawal M." },
+  { key: "payments", icon: CreditCard, label: "Dépôts" },
+  { key: "wmethods", icon: Wallet, label: "Retraits" },
   { key: "apiconfigs", icon: Power, label: "APIs" },
   { key: "links", icon: Link2, label: "Links" },
   { key: "popups", icon: Bell, label: "Popups" },
@@ -312,8 +312,8 @@ const AdminPanel = () => {
         {activeTab === "wheel" && <AdminWheelTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} logAction={logAction} adminId={adminId} />}
         {activeTab === "rewards" && <RewardsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "giftcodes" && <GiftCodesTab showSuccess={showSuccess} showError={showError} />}
-        {activeTab === "payments" && <PaymentsTab methods={paymentMethods} countries={countries} apiConfigs={apiConfigs} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
-        {activeTab === "wmethods" && <WithdrawalMethodsTab methods={withdrawalMethods} countries={countries} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
+        {activeTab === "payments" && <PaymentsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
+        {activeTab === "wmethods" && <WithdrawalMethodsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "apiconfigs" && <ApiConfigsTab configs={apiConfigs} countries={countries} paymentLogs={paymentLogs} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "links" && <LinksTab links={socialLinks} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "annonces" && <AnnoncesTab reload={loadAll} showSuccess={showSuccess} showError={showError} />}
@@ -777,7 +777,7 @@ const DepositsTab = ({ recharges, profiles, reload, showSuccess, showError, logA
                 <StatusBadge status={r.status} />
               </div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-3">
-                <CreditCard size={12} /> {(r.payment_method || "Mobile Money").toUpperCase()}
+                <CreditCard size={12} /> {r.payment_method ? r.payment_method.toUpperCase() : "CRYPTO"}
               </div>
               <div className="border-t border-secondary my-2" />
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
@@ -1479,146 +1479,134 @@ const BannersTab = ({ banners, reload, showSuccess, showError }: any) => {
 };
 
 // ==================== PAYMENTS ====================
-const PaymentsTab = ({ methods, countries, apiConfigs, reload, showSuccess, showError }: any) => {
-  const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState<PaymentMethod | null>(null);
-  const [form, setForm] = useState({ name: "", country: "Haiti", phone: "", holder_name: "", instructions: "", country_id: "", payment_type: "manual", external_url: "", logo_url: "", api_config_id: "" });
-  const [uploading, setUploading] = useState(false);
-  const logoRef = useRef<HTMLInputElement>(null);
+type CryptoNetworkDef = { code: string; label: string; network: string; color: string; symbol: string; bg: string; logoUrl: string; enabled: boolean };
 
-  const openForm = (m?: PaymentMethod) => {
-    if (m) { setEditing(m); setForm({ name: m.name, country: m.country, phone: m.phone || "", holder_name: m.holder_name || "", instructions: m.instructions || "", country_id: m.country_id || "", payment_type: m.payment_type || "manual", external_url: m.external_url || "", logo_url: m.logo_url || "", api_config_id: (m as any).api_config_id || "" }); }
-    else { setEditing(null); setForm({ name: "", country: "Haiti", phone: "", holder_name: "", instructions: "", country_id: "", payment_type: "manual", external_url: "", logo_url: "", api_config_id: "" }); }
-    setShowForm(true);
+const DEFAULT_CRYPTO_DEPOSIT_CURRENCIES: CryptoNetworkDef[] = [
+  { code: "usdtbsc",   label: "BEP20-USDT", network: "BNB Smart Chain (BEP20)", color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.18)", logoUrl: "/crypto-logos/usdt.png",  enabled: true },
+  { code: "usdttrc20", label: "TRC20-USDT", network: "TRON (TRC20)",            color: "#EF0027", symbol: "₮", bg: "rgba(239,0,39,0.18)",    logoUrl: "/crypto-logos/usdt.png",  enabled: true },
+  { code: "trx",       label: "TRX",        network: "TRON",                    color: "#EF0027", symbol: "◈", bg: "rgba(239,0,39,0.18)",    logoUrl: "/crypto-logos/trx.png",   enabled: true },
+  { code: "bnbbsc",    label: "BNB",        network: "BNB Smart Chain (BEP20)", color: "#F0B90B", symbol: "⬡", bg: "rgba(240,185,11,0.18)", logoUrl: "/crypto-logos/bnb.png",   enabled: true },
+];
+
+const CryptoNetworkCard = ({ c, i, onToggle, onEdit, onRemove, editMode = true }: { c: CryptoNetworkDef; i: number; onToggle: () => void; onEdit: (field: string, val: string) => void; onRemove: () => void; editMode?: boolean }) => (
+  <div className={`bg-card rounded-xl border p-4 space-y-3 transition-opacity ${c.enabled ? "border-secondary" : "border-muted opacity-60"}`}>
+    <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center gap-3 min-w-0">
+        <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 overflow-hidden" style={{ background: c.bg, border: `2px solid ${c.color}` }}>
+          <img src={c.logoUrl} alt={c.code} className="w-6 h-6 object-contain" onError={e => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-foreground truncate">{c.label}</p>
+          <p className="text-xs text-muted-foreground truncate">{c.network}</p>
+          <p className="text-[10px] text-muted-foreground/60 font-mono">{c.code}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        <button onClick={onToggle} className={`px-3 py-1 rounded-full text-[10px] font-bold transition-colors ${c.enabled ? "bg-success/20 text-success" : "bg-muted text-muted-foreground"}`}>
+          {c.enabled ? "Actif" : "Inactif"}
+        </button>
+        {editMode && <button onClick={onRemove} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>}
+      </div>
+    </div>
+    {editMode && (
+      <div className="grid grid-cols-2 gap-2 pt-1">
+        <div>
+          <label className="text-[10px] text-muted-foreground">Label affiché</label>
+          <input value={c.label} onChange={e => onEdit("label", e.target.value)} className="w-full bg-secondary text-foreground rounded-lg px-3 py-1.5 text-xs border border-secondary outline-none mt-0.5" />
+        </div>
+        <div>
+          <label className="text-[10px] text-muted-foreground">Réseau</label>
+          <input value={c.network} onChange={e => onEdit("network", e.target.value)} className="w-full bg-secondary text-foreground rounded-lg px-3 py-1.5 text-xs border border-secondary outline-none mt-0.5" />
+        </div>
+        <div>
+          <label className="text-[10px] text-muted-foreground">Code NowPayments</label>
+          <input value={c.code} onChange={e => onEdit("code", e.target.value)} className="w-full bg-secondary text-foreground rounded-lg px-3 py-1.5 text-xs border border-secondary outline-none mt-0.5 font-mono" />
+        </div>
+        <div>
+          <label className="text-[10px] text-muted-foreground">URL logo</label>
+          <input value={c.logoUrl} onChange={e => onEdit("logoUrl", e.target.value)} className="w-full bg-secondary text-foreground rounded-lg px-3 py-1.5 text-xs border border-secondary outline-none mt-0.5" />
+        </div>
+      </div>
+    )}
+  </div>
+);
+
+const PaymentsTab = ({ settings, reload, showSuccess, showError }: any) => {
+  const [currencies, setCurrencies] = useState<CryptoNetworkDef[]>(DEFAULT_CRYPTO_DEPOSIT_CURRENCIES);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newCode, setNewCode] = useState("");
+
+  useEffect(() => {
+    const s = (settings || []).find((s: SiteSetting) => s.key === "crypto_currencies");
+    if (s?.value) { try { const parsed = JSON.parse(s.value); if (Array.isArray(parsed) && parsed.length > 0) setCurrencies(parsed); } catch {} }
+  }, [settings]);
+
+  const update = (idx: number, field: string, val: any) => {
+    setCurrencies(prev => prev.map((c, i) => i === idx ? { ...c, [field]: val } : c));
+    setDirty(true);
   };
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const url = await uploadFile(file, "site-assets");
-      setForm({ ...form, logo_url: url });
-    } catch (err: any) {
-      showError("Erreur upload", err?.message || "Échec du téléchargement");
-    } finally {
-      setUploading(false);
-    }
+  const remove = (idx: number) => { setCurrencies(prev => prev.filter((_, i) => i !== idx)); setDirty(true); };
+
+  const addCurrency = () => {
+    const code = newCode.trim().toLowerCase();
+    if (!code) return;
+    if (currencies.find(c => c.code === code)) { showError("Doublon", `Le code "${code}" existe déjà`); return; }
+    setCurrencies(prev => [...prev, { code, label: code.toUpperCase(), network: "", color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.18)", logoUrl: "/crypto-logos/usdt.png", enabled: true }]);
+    setNewCode(""); setShowAdd(false); setDirty(true);
   };
 
   const save = async () => {
-    if (!form.name.trim()) { showError("Error", "Nom requis"); return; }
-    const payload = { ...form, country_id: form.country_id || null, external_url: form.external_url || null, logo_url: form.logo_url || null, api_config_id: form.api_config_id || null };
-    const token = getAuthToken();
-    const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-    if (editing) await fetch(`/api/admin/payment-methods/${editing.id}`, { method: "PATCH", headers: h, body: JSON.stringify(payload) });
-    else await fetch("/api/admin/payment-methods", { method: "POST", headers: h, body: JSON.stringify({ ...payload, sort_order: methods.length }) });
-    showSuccess(editing ? "Modifie" : "Cree", "");
-    setShowForm(false); reload();
+    setSaving(true);
+    try {
+      const token = getAuthToken();
+      const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+      await fetch("/api/admin/site-settings/batch", { method: "POST", headers: h, body: JSON.stringify({ settings: [{ key: "crypto_currencies", value: JSON.stringify(currencies), category: "finance" }] }) });
+      showSuccess("Méthodes de dépôt sauvegardées ✅", "Le site est mis à jour en temps réel");
+      setDirty(false); reload();
+    } finally { setSaving(false); }
   };
 
-  const countryApiConfigs = (apiConfigs || []).filter((ac: ApiConfig) => !form.country_id || ac.country_id === form.country_id || !ac.country_id);
-
   return (
-    <div className="space-y-3">
-      <button onClick={() => openForm()} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2"><Plus size={16} /> Add a payment method</button>
+    <div className="space-y-4 pb-6">
+      <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+        <h3 className="text-sm font-bold text-foreground mb-1">🪙 Méthodes de dépôt crypto</h3>
+        <p className="text-xs text-muted-foreground">
+          Ces réseaux s'affichent sur la page de dépôt. Activez ou désactivez chaque réseau.
+          Les dépôts sont traités automatiquement via NOWPayments et crédités en <strong>USDT</strong>.
+        </p>
+      </div>
 
-      {showForm && (
+      {currencies.map((c, i) => (
+        <CryptoNetworkCard key={`dep-${c.code}-${i}`} c={c} i={i}
+          onToggle={() => update(i, "enabled", !c.enabled)}
+          onEdit={(field, val) => update(i, field, val)}
+          onRemove={() => remove(i)}
+        />
+      ))}
+
+      {showAdd ? (
         <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
-          <div className="flex justify-between"><h3 className="text-sm font-bold text-foreground">{editing ? "Edit" : "New"}</h3><button onClick={() => setShowForm(false)}><X size={16} className="text-muted-foreground" /></button></div>
-          <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Name (e.g. Orange Money)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
-
-          <div>
-            <label className="text-xs text-muted-foreground">Payment type</label>
-            <div className="flex gap-2 mt-1">
-              {[{ key: "manual", label: "Manuel" }, { key: "external", label: "Lien ext." }, { key: "api", label: "API auto" }].map(t => (
-                <button key={t.key} onClick={() => setForm({ ...form, payment_type: t.key })}
-                  className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors ${form.payment_type === t.key ? "gradient-button text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
-                  {t.label}
-                </button>
-              ))}
-            </div>
+          <p className="text-sm font-bold text-foreground">Ajouter un réseau</p>
+          <input value={newCode} onChange={e => setNewCode(e.target.value)} onKeyDown={e => e.key === "Enter" && addCurrency()}
+            placeholder="Code NowPayments (ex: usdtsol, usdtmatic…)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none font-mono" />
+          <p className="text-[10px] text-muted-foreground">Trouvez les codes sur <span className="font-mono">nowpayments.io/currencies</span></p>
+          <div className="flex gap-2">
+            <button onClick={addCurrency} className="flex-1 gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm">Ajouter</button>
+            <button onClick={() => setShowAdd(false)} className="flex-1 bg-secondary text-foreground font-bold py-2.5 rounded-xl text-sm">Annuler</button>
           </div>
-
-          <div>
-            <label className="text-xs text-muted-foreground">Logo</label>
-            <input ref={logoRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-            {form.logo_url ? (
-              <div className="flex items-center gap-3 mt-1">
-                <img src={form.logo_url} className="w-10 h-10 rounded-lg object-cover" />
-                <button onClick={() => setForm({ ...form, logo_url: "" })} className="text-xs text-destructive">Delete</button>
-              </div>
-            ) : (
-              <button onClick={() => logoRef.current?.click()} disabled={uploading} className="mt-1 w-full h-12 rounded-xl border-2 border-dashed border-secondary hover:border-primary flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                {uploading ? "Upload..." : <><UploadIcon size={14} /> Add logo</>}
-              </button>
-            )}
-          </div>
-
-          <select value={form.country_id} onChange={e => { const c = countries.find((ct: Country) => ct.id === e.target.value); setForm({ ...form, country_id: e.target.value, country: c?.name || form.country }); }}
-            className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none">
-            <option value="">-- Select a country --</option>
-            {countries.filter((c: Country) => c.is_active).map((c: Country) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
-
-          {form.payment_type === "manual" && (
-            <>
-              <input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="Number" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
-              <input value={form.holder_name} onChange={e => setForm({ ...form, holder_name: e.target.value })} placeholder="Account holder" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
-              <textarea value={form.instructions} onChange={e => setForm({ ...form, instructions: e.target.value })} placeholder="Payment instructions" rows={3} className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none resize-none" />
-            </>
-          )}
-
-          {form.payment_type === "external" && (
-            <input value={form.external_url} onChange={e => setForm({ ...form, external_url: e.target.value })} placeholder="External payment URL (https://...)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
-          )}
-
-          {form.payment_type === "api" && (
-            <div>
-              <label className="text-xs text-muted-foreground">Linked API configuration</label>
-              <select value={form.api_config_id} onChange={e => setForm({ ...form, api_config_id: e.target.value })}
-                className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none">
-                <option value="">-- Select an API --</option>
-                {countryApiConfigs.filter((ac: ApiConfig) => ac.is_active).map((ac: ApiConfig) => (
-                  <option key={ac.id} value={ac.id}>{ac.name} ({ac.provider}) - {ac.mode}</option>
-                ))}
-              </select>
-              {countryApiConfigs.length === 0 && (
-                <p className="text-[10px] text-warning mt-1">⚠️ No API configured. Go to the "APIs" tab.</p>
-              )}
-            </div>
-          )}
-
-          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editing ? "Update" : "Create"}</button>
         </div>
+      ) : (
+        <button onClick={() => setShowAdd(true)} className="w-full border-2 border-dashed border-secondary hover:border-primary rounded-xl py-3 text-sm text-muted-foreground flex items-center justify-center gap-2 transition-colors">
+          <Plus size={16} /> Ajouter un réseau crypto
+        </button>
       )}
 
-      {methods.map((m: PaymentMethod) => (
-        <div key={m.id} className="bg-card rounded-xl border border-secondary px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {m.logo_url ? (
-                <img src={m.logo_url} className="w-8 h-8 rounded-lg object-cover" />
-              ) : (
-                <div className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center"><CreditCard size={14} className="text-muted-foreground" /></div>
-              )}
-              <div>
-                <p className="text-sm font-bold text-foreground">{m.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  {m.country} • {m.payment_type === "external" ? "External link" : m.payment_type === "api" ? "API auto ⚡" : `Manual ${m.phone || "—"}`}
-                </p>
-                {m.holder_name && <p className="text-xs text-muted-foreground">{m.holder_name}</p>}
-              </div>
-            </div>
-            <div className="flex gap-1.5">
-              <button onClick={async () => { const t = getAuthToken(); const h: HeadersInit = { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) }; await fetch(`/api/admin/payment-methods/${m.id}`, { method: "PATCH", headers: h, body: JSON.stringify({ is_active: !m.is_active }) }); reload(); }}
-                className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${m.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{m.is_active ? "ON" : "OFF"}</button>
-              <button onClick={() => openForm(m)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
-              <button onClick={async () => { const t = getAuthToken(); const h: HeadersInit = { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) }; await fetch(`/api/admin/payment-methods/${m.id}`, { method: "DELETE", headers: h }); showSuccess("Supprime", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
-            </div>
-          </div>
-        </div>
-      ))}
+      <button onClick={save} disabled={!dirty || saving} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-40">
+        <Save size={16} /> {saving ? "Sauvegarde..." : "Sauvegarder les méthodes de dépôt"}
+      </button>
     </div>
   );
 };
@@ -3478,144 +3466,93 @@ const SecurityTab = ({ logs, settings, reload, showSuccess, showError }: { logs:
 };
 
 // ==================== WITHDRAWAL METHODS ====================
-const WithdrawalMethodsTab = ({ methods, countries, reload, showSuccess, showError }: any) => {
-  const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState<WithdrawalMethod | null>(null);
-  const [form, setForm] = useState({ name: "", country_id: "", payment_type: "manual", api_provider: "", logo_url: "" });
-  const [uploading, setUploading] = useState(false);
-  const logoRef = useRef<HTMLInputElement>(null);
+const DEFAULT_CRYPTO_WITHDRAWAL_CURRENCIES: CryptoNetworkDef[] = [
+  { code: "usdtbsc",   label: "BEP20-USDT", network: "BNB Smart Chain (BEP20)", color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.18)", logoUrl: "/crypto-logos/usdt.png",  enabled: true },
+  { code: "usdttrc20", label: "TRC20-USDT", network: "TRON (TRC20)",            color: "#EF0027", symbol: "₮", bg: "rgba(239,0,39,0.18)",    logoUrl: "/crypto-logos/usdt.png",  enabled: true },
+];
 
-  const openForm = (m?: WithdrawalMethod) => {
-    if (m) { setEditing(m); setForm({ name: m.name, country_id: m.country_id || "", payment_type: m.payment_type || "manual", api_provider: m.api_provider || "", logo_url: m.logo_url || "" }); }
-    else { setEditing(null); setForm({ name: "", country_id: "", payment_type: "manual", api_provider: "", logo_url: "" }); }
-    setShowForm(true);
+const WithdrawalMethodsTab = ({ settings, reload, showSuccess, showError }: any) => {
+  const [currencies, setCurrencies] = useState<CryptoNetworkDef[]>(DEFAULT_CRYPTO_WITHDRAWAL_CURRENCIES);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newCode, setNewCode] = useState("");
+
+  useEffect(() => {
+    const wd  = (settings || []).find((s: SiteSetting) => s.key === "withdrawal_currencies");
+    const dep = (settings || []).find((s: SiteSetting) => s.key === "crypto_currencies");
+    const src = wd || dep;
+    if (src?.value) {
+      try {
+        const parsed = JSON.parse(src.value);
+        if (Array.isArray(parsed) && parsed.length > 0) setCurrencies(parsed);
+      } catch {}
+    }
+  }, [settings]);
+
+  const update = (idx: number, field: string, val: any) => {
+    setCurrencies(prev => prev.map((c, i) => i === idx ? { ...c, [field]: val } : c));
+    setDirty(true);
   };
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const url = await uploadFile(file, "site-assets");
-      setForm({ ...form, logo_url: url });
-    } catch (err: any) {
-      showError("Erreur upload", err?.message || "Échec du téléchargement");
-    } finally {
-      setUploading(false);
-    }
+  const remove = (idx: number) => { setCurrencies(prev => prev.filter((_, i) => i !== idx)); setDirty(true); };
+
+  const addCurrency = () => {
+    const code = newCode.trim().toLowerCase();
+    if (!code) return;
+    if (currencies.find(c => c.code === code)) { showError("Doublon", `Le code "${code}" existe déjà`); return; }
+    setCurrencies(prev => [...prev, { code, label: code.toUpperCase(), network: "", color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.18)", logoUrl: "/crypto-logos/usdt.png", enabled: true }]);
+    setNewCode(""); setShowAdd(false); setDirty(true);
   };
 
   const save = async () => {
-    if (!form.name.trim()) { showError("Error", "Nom requis"); return; }
-    if (!form.country_id) { showError("Error", "Country required"); return; }
-    const payload = { name: form.name, country_id: form.country_id || null, payment_type: form.payment_type, api_provider: form.api_provider || null, logo_url: form.logo_url || null };
-    const token = getAuthToken();
-    const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-    if (editing) await fetch(`/api/admin/withdrawal-methods/${editing.id}`, { method: "PATCH", headers: h, body: JSON.stringify(payload) });
-    else await fetch("/api/admin/withdrawal-methods", { method: "POST", headers: h, body: JSON.stringify({ ...payload, sort_order: methods.length }) });
-    showSuccess(editing ? "Updated" : "Created", "");
-    setShowForm(false); reload();
+    setSaving(true);
+    try {
+      const token = getAuthToken();
+      const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+      await fetch("/api/admin/site-settings/batch", { method: "POST", headers: h, body: JSON.stringify({ settings: [{ key: "withdrawal_currencies", value: JSON.stringify(currencies), category: "finance" }] }) });
+      showSuccess("Réseaux de retrait sauvegardés ✅", "Les modifications prennent effet immédiatement");
+      setDirty(false); reload();
+    } finally { setSaving(false); }
   };
 
-  // Group by country
-  const activeCountries = countries.filter((c: Country) => c.is_active);
-
   return (
-    <div className="space-y-3">
-      <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
+    <div className="space-y-4 pb-6">
+      <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+        <h3 className="text-sm font-bold text-foreground mb-1">📤 Réseaux de retrait crypto</h3>
         <p className="text-xs text-muted-foreground">
-          Manage available withdrawal methods by country. These networks will appear when adding a wallet.
+          Ces réseaux sont disponibles lorsqu'un utilisateur lie son wallet pour effectuer un retrait en <strong>USDT</strong>.
+          Activez uniquement les réseaux que vous souhaitez proposer.
         </p>
       </div>
 
-      <button onClick={() => openForm()} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2"><Plus size={16} /> Add a withdrawal method</button>
+      {currencies.map((c, i) => (
+        <CryptoNetworkCard key={`wd-${c.code}-${i}`} c={c} i={i}
+          onToggle={() => update(i, "enabled", !c.enabled)}
+          onEdit={(field, val) => update(i, field, val)}
+          onRemove={() => remove(i)}
+        />
+      ))}
 
-      {showForm && (
+      {showAdd ? (
         <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
-          <div className="flex justify-between"><h3 className="text-sm font-bold text-foreground">{editing ? "Edit" : "New"}</h3><button onClick={() => setShowForm(false)}><X size={16} className="text-muted-foreground" /></button></div>
-          <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Name (e.g. Orange Money)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
-
-          <select value={form.country_id} onChange={e => setForm({ ...form, country_id: e.target.value })}
-            className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none">
-            <option value="">-- Select a country --</option>
-            {activeCountries.map((c: Country) => <option key={c.id} value={c.id}>{c.name} ({c.country_code})</option>)}
-          </select>
-
-          <div>
-            <label className="text-xs text-muted-foreground">Type</label>
-            <div className="flex gap-2 mt-1">
-              <button onClick={() => setForm({ ...form, payment_type: "manual" })}
-                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors ${form.payment_type === "manual" ? "gradient-button text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
-                Manual
-              </button>
-              <button onClick={() => setForm({ ...form, payment_type: "api" })}
-                className={`flex-1 py-2.5 rounded-xl text-xs font-bold transition-colors ${form.payment_type === "api" ? "gradient-button text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>
-                API (automatic)
-              </button>
-            </div>
+          <p className="text-sm font-bold text-foreground">Ajouter un réseau de retrait</p>
+          <input value={newCode} onChange={e => setNewCode(e.target.value)} onKeyDown={e => e.key === "Enter" && addCurrency()}
+            placeholder="Code réseau (ex: usdttrc20, usdtbsc…)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none font-mono" />
+          <div className="flex gap-2">
+            <button onClick={addCurrency} className="flex-1 gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm">Ajouter</button>
+            <button onClick={() => setShowAdd(false)} className="flex-1 bg-secondary text-foreground font-bold py-2.5 rounded-xl text-sm">Annuler</button>
           </div>
-
-          {form.payment_type === "api" && (
-            <input value={form.api_provider} onChange={e => setForm({ ...form, api_provider: e.target.value })} placeholder="API provider (e.g. mtn, orange)" className="w-full bg-secondary text-foreground rounded-xl px-4 py-3 text-sm border border-secondary outline-none" />
-          )}
-
-          {/* Logo */}
-          <div>
-            <label className="text-xs text-muted-foreground">Logo</label>
-            <input ref={logoRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
-            {form.logo_url ? (
-              <div className="flex items-center gap-3 mt-1">
-                <img src={form.logo_url} className="w-10 h-10 rounded-lg object-cover" />
-                <button onClick={() => setForm({ ...form, logo_url: "" })} className="text-xs text-destructive">Delete</button>
-              </div>
-            ) : (
-              <button onClick={() => logoRef.current?.click()} disabled={uploading} className="mt-1 w-full h-12 rounded-xl border-2 border-dashed border-secondary hover:border-primary flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                {uploading ? "Upload..." : <><UploadIcon size={14} /> Add logo</>}
-              </button>
-            )}
-          </div>
-
-          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm">{editing ? "Update" : "Create"}</button>
         </div>
+      ) : (
+        <button onClick={() => setShowAdd(true)} className="w-full border-2 border-dashed border-secondary hover:border-primary rounded-xl py-3 text-sm text-muted-foreground flex items-center justify-center gap-2 transition-colors">
+          <Plus size={16} /> Ajouter un réseau de retrait
+        </button>
       )}
 
-      {/* Group by country */}
-      {activeCountries.map((c: Country) => {
-        const countryMethods = methods.filter((m: WithdrawalMethod) => m.country_id === c.id);
-        if (countryMethods.length === 0 && !showForm) return null;
-        return (
-          <div key={c.id} className="bg-card rounded-xl border border-secondary overflow-hidden">
-            <div className="px-4 py-2.5 bg-secondary/30 border-b border-secondary">
-              <p className="text-xs font-bold text-foreground">{c.name} <span className="text-muted-foreground font-normal">({c.country_code})</span></p>
-            </div>
-            <div className="p-2 space-y-1">
-              {countryMethods.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-3">No withdrawal methods</p>
-              ) : countryMethods.map((m: WithdrawalMethod) => (
-                <div key={m.id} className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-secondary/20">
-                  <div className="flex items-center gap-3">
-                    {m.logo_url ? (
-                      <img src={m.logo_url} className="w-7 h-7 rounded-lg object-cover" />
-                    ) : (
-                      <div className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Wallet size={12} className="text-muted-foreground" /></div>
-                    )}
-                    <div>
-                      <p className="text-sm font-semibold text-foreground">{m.name}</p>
-                      <p className="text-[10px] text-muted-foreground">{m.payment_type === "api" ? `API (${m.api_provider || "—"})` : "Manuel"}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-1.5">
-                    <button onClick={async () => { const t = getAuthToken(); const h: HeadersInit = { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) }; await fetch(`/api/admin/withdrawal-methods/${m.id}`, { method: "PATCH", headers: h, body: JSON.stringify({ is_active: !m.is_active }) }); reload(); }}
-                      className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${m.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{m.is_active ? "ON" : "OFF"}</button>
-                    <button onClick={() => openForm(m)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
-                    <button onClick={async () => { const t = getAuthToken(); const h: HeadersInit = { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) }; await fetch(`/api/admin/withdrawal-methods/${m.id}`, { method: "DELETE", headers: h }); showSuccess("Supprimé", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })}
+      <button onClick={save} disabled={!dirty || saving} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2 disabled:opacity-40">
+        <Save size={16} /> {saving ? "Sauvegarde..." : "Sauvegarder les réseaux de retrait"}
+      </button>
     </div>
   );
 };
