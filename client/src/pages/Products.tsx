@@ -59,11 +59,11 @@ const Products = () => {
   const [activeSeries, setActiveSeries] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [purchasedName, setPurchasedName] = useState("");
   const [confirmProduct, setConfirmProduct] = useState<Product | null>(null);
   const [userAccess, setUserAccess] = useState<UserAccessData | null>(null);
-  const { showError } = useActionPopup();
+  const { showError, showSuccess } = useActionPopup();
 
   useEffect(() => {
     const load = async () => {
@@ -114,19 +114,17 @@ const Products = () => {
   };
 
   const handlePurchase = async (product: Product) => {
-
     setPurchasing(product.id);
-
     try {
-      const result = await api.post("/products/purchase", { productId: product.id });
-      if (result?.error) {
-        showError("Error", result.error);
-        return;
-      }
-
-      // Spins and commissions handled server-side via /products/purchase
+      await api.post("/products/purchase", { productId: product.id });
+      // Succès : affichage immédiat du popup ActionPopup + PremiumModal si configuré
       setPurchasedName(product.name);
-      setShowSuccess(true);
+      showSuccess("Achat réussi !", `${product.name} a été activé sur votre compte.`);
+      setShowPremiumModal(true);
+    } catch (err: any) {
+      // api.post lance une exception sur toute erreur HTTP (400, 500…)
+      const msg = err?.message || "Une erreur est survenue. Veuillez réessayer.";
+      showError("Erreur", msg);
     } finally {
       setPurchasing(null);
     }
@@ -354,8 +352,8 @@ const Products = () => {
 
       <PremiumModal
         triggerKey="purchase_success"
-        open={showSuccess}
-        onClose={() => setShowSuccess(false)}
+        open={showPremiumModal}
+        onClose={() => setShowPremiumModal(false)}
         replacements={{ product: purchasedName }}
       />
 
