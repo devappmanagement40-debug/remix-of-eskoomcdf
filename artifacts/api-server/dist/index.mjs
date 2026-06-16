@@ -48674,7 +48674,7 @@ router4.get("/products", async (req, res) => {
     const all = await db.select().from(products);
     let filtered = all;
     if (active !== void 0) filtered = filtered.filter((p) => p.isActive === (active === "true"));
-    if (featured !== void 0) filtered = filtered.filter((p) => p.isFeatured === (featured === "true"));
+    if (featured !== void 0) filtered = filtered.filter((p) => featured === "true" ? p.isFeatured === true || p.isNew === true : p.isFeatured === false);
     if (seriesId) filtered = filtered.filter((p) => p.seriesId === seriesId);
     return res.json(filtered.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
   } catch (err) {
