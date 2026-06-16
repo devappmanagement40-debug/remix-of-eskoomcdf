@@ -1,17 +1,23 @@
 ---
 name: CamelCase vs snake_case systemic fix
-description: Drizzle ORM needs camelCase property names; frontend sends snake_case; fix applied everywhere
+description: Drizzle ORM returns camelCase; AdminPanel expects snake_case; normalization strategy for both directions
 ---
 
-## The Rule
-Drizzle ORM uses the **JS property name** (camelCase) for `set({})` and `values({})`, NOT the DB column name. Passing `{ is_active: true }` is silently ignored; `{ isActive: true }` works.
+## The Rule (Two Directions)
 
-**Why:** Drizzle schema defines `isActive: boolean("is_active")` — the JS key is camelCase, the DB column is snake_case.
+### Writing to DB (incoming requests → Drizzle)
+Drizzle ORM uses the **JS property name** (camelCase) for `set({})` and `values({})`, NOT the DB column name. Passing `{ is_active: true }` is silently ignored; `{ isActive: true }` works.
+→ Fix: `normalizeToCamelCase(req.body)` before every Drizzle insert/update.
+
+### Reading from DB (Drizzle → API response → frontend)
+Drizzle always returns camelCase field names. The AdminPanel (`AdminPanel.tsx`, `AdminProduits.tsx`) uses snake_case throughout (e.g., `p.is_active`, `r.user_id`, `p.proof_image_url`).
+→ Fix: `toSnake(result)` on every admin GET route response.
+
+**Why:** Without `toSnake()` on GET responses, all displayed data in the admin panel was `undefined` / empty — counts showed 0, names showed "—", images didn't load.
 
 ## How to Apply
 
-### API side (admin.ts, settings.ts, products.ts)
-Add this helper and call it before any Drizzle insert/update:
+### normalizeToCamelCase (incoming bodies)
 ```ts
 function normalizeToCamelCase(obj: Record<string, any>): Record<string, any> {
   const result: Record<string, any> = {};
@@ -26,18 +32,41 @@ db.insert(table).values({ id: crypto.randomUUID(), ...normalizeToCamelCase(req.b
 db.update(table).set({ ...normalizeToCamelCase(req.body), updatedAt: new Date() })
 ```
 
-### Frontend reading API responses (camelCase returned by Drizzle)
-Always use dual-read pattern: `item.isActive ?? item.is_active` so it works regardless of API version.
+### toSnake (outgoing GET responses)
+```ts
+function toSnake(obj: any): any {
+  if (Array.isArray(obj)) return obj.map(toSnake);
+  if (obj !== null && typeof obj === "object" && !(obj instanceof Date)) {
+    const out: any = {};
+    for (const [k, v] of Object.entries(obj)) {
+      const snake = k.replace(/[A-Z]/g, c => `_${c.toLowerCase()}`);
+      out[snake] = toSnake(v);
+    }
+    return out;
+  }
+  return obj;
+}
+// Usage: return res.json(toSnake(all.sort(...)));
+```
 
-### Products page series endpoint
-`/api/products/series` does NOT exist — correct path is `/api/product-series`.
+## Routes that must use toSnake (admin GET routes in admin.ts)
+banners, countries, withdrawal-methods, payment-api-configs, vip-conditions,
+wheel-prizes, wheel-spins, product-series, products, payment-methods, popups,
+social-links, api-configs, payment-logs, referral-commissions, admin-logs,
+user-products (with JOIN + userId filter)
 
-## Files Fixed
-- `artifacts/api-server/src/routes/admin.ts` — normalizeToCamelCase added + applied to ALL PATCH/POST routes
-- `artifacts/api-server/src/routes/settings.ts` — same for popup-messages routes
-- `artifacts/api-server/src/routes/products.ts` — same for products routes
-- `artifacts/eskom/src/pages/AdminPanel.tsx` — InfoItemsTab + ProductsTab dual-read pattern
-- `artifacts/eskom/src/pages/Products.tsx` — fixed series endpoint URL
+## Routes in payments.ts that must use toSnake
+`/recharges` (admin-only GET), `/withdrawals` (admin-only GET)
 
-## Consequence for Existing Data
-Products/items created BEFORE the fix have null values for snake_case fields (returnPercent, imageUrl, etc.). They must be re-edited in the admin panel to populate those values.
+## Exception: profiles
+The AdminPanel has an explicit `mapProfile()` function that converts camelCase to snake_case. No `toSnake()` needed on the `/profiles` GET route.
+
+## Frontend: use admin routes not public routes
+AdminPanel `loadAll()` must call `/api/admin/payment-methods` (returns toSnake) NOT `/api/payment-methods` (returns camelCase).
+
+## Other route bugs fixed alongside
+- `/api/admin/check` now returns `userId` (AdminPanel sets `setAdminId(data.userId)`)
+- `PATCH /admin/users/:userId/suspend` alias added (frontend calls PATCH, only POST existed)
+- `/api/user-wallets/batch` accepts both `{ ids }` and `{ userIds }` field names
+- `/api/admin/user-products` accepts `?userId=` query param + JOINs products table; DELETE endpoint added
+- DepositsTab uses atomic routes `/api/recharges/:id/approve|reject` (prevents double-credit on concurrent calls)

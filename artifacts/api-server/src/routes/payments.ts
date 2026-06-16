@@ -6,6 +6,19 @@ import crypto from "crypto";
 
 const router = Router();
 
+function toSnake(obj: any): any {
+  if (Array.isArray(obj)) return obj.map(toSnake);
+  if (obj !== null && typeof obj === "object" && !(obj instanceof Date)) {
+    const out: any = {};
+    for (const [k, v] of Object.entries(obj)) {
+      const snake = k.replace(/[A-Z]/g, c => `_${c.toLowerCase()}`);
+      out[snake] = toSnake(v);
+    }
+    return out;
+  }
+  return obj;
+}
+
 async function getProfileFromToken(token: string) {
   const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
   if (!session || session.expiresAt < new Date()) return null;
@@ -190,7 +203,7 @@ router.get("/recharges", async (req, res) => {
   if (!await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
 
   const all = await db.select().from(recharges);
-  return res.json(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
+  return res.json(toSnake(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())));
 });
 
 // FIXED: atomic approve — no double-credit even if IPN fires concurrently
@@ -367,7 +380,7 @@ router.get("/withdrawals", async (req, res) => {
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
 
   const all = await db.select().from(withdrawals);
-  return res.json(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
+  return res.json(toSnake(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())));
 });
 
 router.patch("/withdrawals/:id/approve", async (req, res) => {

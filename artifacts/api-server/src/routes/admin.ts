@@ -79,7 +79,7 @@ router.get("/admin/check", async (req, res) => {
   const role = await getRole(me.userId);
   if (role !== "admin" && role !== "moderator") return res.status(403).json({ error: "Forbidden" });
   const perms = await db.select().from(adminPermissions).where(eq(adminPermissions.userId, me.userId));
-  return res.json({ isAdmin: true, role, permissions: perms.map(p => p.permission) });
+  return res.json({ isAdmin: true, role, userId: me.userId, permissions: perms.map(p => p.permission) });
 });
 
 // ─── Admin logs ──────────────────────────────────────────────────────────────
@@ -102,7 +102,7 @@ router.get("/admin/logs", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(adminLogs);
-  return res.json(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
+  return res.json(toSnake(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())));
 });
 
 // ─── Profiles batch ──────────────────────────────────────────────────────────
@@ -119,9 +119,10 @@ router.post("/profiles/batch", async (req, res) => {
 router.post("/user-wallets/batch", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
-  const { userIds } = req.body as { userIds: string[] };
-  if (!Array.isArray(userIds) || userIds.length === 0) return res.json([]);
-  const result = await db.select().from(userWallets).where(inArray(userWallets.userId, userIds));
+  const { userIds, ids } = req.body as { userIds?: string[]; ids?: string[] };
+  const idList = userIds ?? ids ?? [];
+  if (!Array.isArray(idList) || idList.length === 0) return res.json([]);
+  const result = await db.select().from(userWallets).where(inArray(userWallets.userId, idList));
   return res.json(result);
 });
 
@@ -398,7 +399,7 @@ router.get("/admin/banners", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(banners);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 
 router.post("/admin/banners", async (req, res) => {
@@ -427,7 +428,7 @@ router.get("/admin/countries", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(countries);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 
 router.post("/admin/countries", async (req, res) => {
@@ -456,7 +457,7 @@ router.get("/admin/withdrawal-methods", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(withdrawalMethods);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 
 router.post("/admin/withdrawal-methods", async (req, res) => {
@@ -485,7 +486,7 @@ router.get("/admin/payment-api-configs", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
   const all = await db.select().from(paymentApiConfigs);
-  return res.json(all);
+  return res.json(toSnake(all));
 });
 
 router.post("/admin/payment-api-configs", async (req, res) => {
@@ -514,7 +515,7 @@ router.get("/admin/vip-conditions", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(vipConditions);
-  return res.json(all.sort((a, b) => (a.level ?? 0) - (b.level ?? 0)));
+  return res.json(toSnake(all.sort((a, b) => (a.level ?? 0) - (b.level ?? 0))));
 });
 
 router.post("/admin/vip-conditions", async (req, res) => {
@@ -561,7 +562,7 @@ router.get("/admin/wheel-prizes", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(wheelPrizes);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 
 router.post("/admin/wheel-prizes", async (req, res) => {
@@ -590,7 +591,7 @@ router.get("/admin/wheel-spins", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(wheelSpins);
-  return res.json(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
+  return res.json(toSnake(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())));
 });
 
 router.patch("/admin/wheel-spins/:id/status", async (req, res) => {
@@ -606,7 +607,7 @@ router.get("/admin/product-series", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(productSeries);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 
 router.post("/admin/product-series", async (req, res) => {
@@ -635,7 +636,7 @@ router.get("/admin/products", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(products);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 
 router.post("/admin/products", async (req, res) => {
@@ -664,7 +665,7 @@ router.get("/admin/payment-methods", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(paymentMethods);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 
 router.post("/admin/payment-methods", async (req, res) => {
@@ -696,7 +697,7 @@ router.get("/admin/popups", async (req, res) => {
   const all = trigger_key
     ? await db.select().from(popupMessages).where(eq(popupMessages.triggerKey, trigger_key))
     : await db.select().from(popupMessages);
-  return res.json(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
+  return res.json(toSnake(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())));
 });
 
 router.post("/admin/popups", async (req, res) => {
@@ -734,12 +735,43 @@ router.post("/admin/users/:userId/suspend", async (req, res) => {
   return res.json(updated);
 });
 
+router.patch("/admin/users/:userId/suspend", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { suspended } = req.body as { suspended?: boolean };
+  const newVal = suspended ?? true;
+  const [updated] = await db.update(profiles)
+    .set({ isSuspended: newVal, updatedAt: new Date() })
+    .where(eq(profiles.userId, req.params.userId))
+    .returning();
+  if (!updated) return res.status(404).json({ error: "User not found" });
+  return res.json(updated);
+});
+
 // ─── User products (admin) ────────────────────────────────────────────────────
 router.get("/admin/user-products", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
-  const all = await db.select().from(userProducts);
-  return res.json(all.sort((a, b) => new Date(b.purchasedAt!).getTime() - new Date(a.purchasedAt!).getTime()));
+  const { userId } = req.query as { userId?: string };
+  const rows = userId
+    ? await db.select().from(userProducts).where(eq(userProducts.userId, userId))
+    : await db.select().from(userProducts);
+  const productIds = [...new Set(rows.map((r) => r.productId).filter(Boolean))] as string[];
+  const prodRows = productIds.length > 0 ? await db.select().from(products).where(inArray(products.id, productIds)) : [];
+  const prodMap: Record<string, any> = {};
+  for (const p of prodRows) prodMap[p.id] = p;
+  const enriched = rows.map((r) => ({
+    ...r,
+    products: r.productId ? prodMap[r.productId] ?? null : null,
+  })).sort((a, b) => new Date(b.purchasedAt!).getTime() - new Date(a.purchasedAt!).getTime());
+  return res.json(toSnake(enriched));
+});
+
+router.delete("/admin/user-products/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(userProducts).where(eq(userProducts.id, req.params.id));
+  return res.json({ ok: true });
 });
 
 // ─── Referral commissions (admin) ─────────────────────────────────────────────
@@ -747,7 +779,7 @@ router.get("/admin/referral-commissions", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(referralCommissions);
-  return res.json(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
+  return res.json(toSnake(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())));
 });
 
 // ─── Site settings batch upsert (admin) ───────────────────────────────────────
@@ -775,7 +807,7 @@ router.get("/admin/social-links", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(socialLinks);
-  return res.json(all);
+  return res.json(toSnake(all));
 });
 
 router.post("/admin/social-links", async (req, res) => {
@@ -804,7 +836,7 @@ router.get("/admin/api-configs", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
   const all = await db.select().from(paymentApiConfigs);
-  return res.json(all);
+  return res.json(toSnake(all));
 });
 
 router.post("/admin/api-configs", async (req, res) => {
@@ -909,7 +941,7 @@ router.get("/admin/payment-logs", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const logs = await db.select().from(paymentLogs).orderBy(desc(paymentLogs.createdAt)).limit(200);
-  return res.json(logs);
+  return res.json(toSnake(logs));
 });
 
 // ─── /admin/all-data  (single bulk load for AdminPanel) ──────────────────────

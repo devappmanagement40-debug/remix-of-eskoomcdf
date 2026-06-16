@@ -48953,6 +48953,18 @@ init_src();
 init_src();
 import crypto4 from "crypto";
 var router5 = (0, import_express5.Router)();
+function toSnake(obj) {
+  if (Array.isArray(obj)) return obj.map(toSnake);
+  if (obj !== null && typeof obj === "object" && !(obj instanceof Date)) {
+    const out = {};
+    for (const [k, v] of Object.entries(obj)) {
+      const snake = k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+      out[snake] = toSnake(v);
+    }
+    return out;
+  }
+  return obj;
+}
 async function getProfileFromToken3(token) {
   const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
   if (!session || session.expiresAt < /* @__PURE__ */ new Date()) return null;
@@ -49068,7 +49080,7 @@ router5.get("/recharges", async (req, res) => {
   if (!me) return res.status(401).json({ error: "Unauthorized" });
   if (!await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
   const all = await db.select().from(recharges);
-  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+  return res.json(toSnake(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
 });
 router5.patch("/recharges/:id/approve", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -49189,7 +49201,7 @@ router5.get("/withdrawals", async (req, res) => {
   const me = await getProfileFromToken3(token);
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
   const all = await db.select().from(withdrawals);
-  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+  return res.json(toSnake(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
 });
 router5.patch("/withdrawals/:id/approve", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -49811,7 +49823,7 @@ var CAMEL_TO_SNAKE = {
   minPersonalInvestment: "min_personal_investment",
   color: "color"
 };
-function toSnake(col) {
+function toSnake2(col) {
   return CAMEL_TO_SNAKE[col] ?? col;
 }
 var PUBLIC_READ_TABLES = /* @__PURE__ */ new Set([
@@ -49904,7 +49916,7 @@ function buildWhereClause(filters, params) {
   for (const f of filters) {
     const [type, col, ...rest] = f.split(":");
     const val = rest.join(":");
-    const colName = toSnake(col);
+    const colName = toSnake2(col);
     if (!/^[a-z_][a-z0-9_]*$/.test(colName)) continue;
     if (type === "in") {
       const vals = val.split(",");
@@ -49954,7 +49966,7 @@ router8.get("/db", attachUser, async (req, res) => {
     if (conditions.length) sql2 += ` WHERE ${conditions.join(" AND ")}`;
     if (order) {
       const [col, dir] = String(order).split(":");
-      const colName = toSnake(col);
+      const colName = toSnake2(col);
       if (/^[a-z_][a-z0-9_]*$/.test(colName)) {
         sql2 += ` ORDER BY "${colName}" ${dir === "desc" ? "DESC" : "ASC"}`;
       }
@@ -49986,10 +49998,10 @@ router8.post("/db", requireAuth, async (req, res) => {
         return res.status(403).json({ error: "Cannot write data for another user" });
       }
       if (!isAdmin3) {
-        const protectedAttempt = Object.keys(row).map((k) => toSnake(k)).find((c) => PROTECTED_WRITE_COLUMNS.has(c));
+        const protectedAttempt = Object.keys(row).map((k) => toSnake2(k)).find((c) => PROTECTED_WRITE_COLUMNS.has(c));
         if (protectedAttempt) return res.status(403).json({ error: `Column '${protectedAttempt}' is read-only` });
       }
-      const cols = Object.keys(row).map((k) => toSnake(k)).filter((c) => /^[a-z_][a-z0-9_]*$/.test(c));
+      const cols = Object.keys(row).map((k) => toSnake2(k)).filter((c) => /^[a-z_][a-z0-9_]*$/.test(c));
       const origKeys = Object.keys(row);
       const vals = origKeys.map((k) => row[k]);
       if (!cols.length) continue;
@@ -50021,10 +50033,10 @@ router8.patch("/db", requireAuth, async (req, res) => {
     }
     const updates = req.body;
     if (!isAdmin3) {
-      const protectedAttempt = Object.keys(updates).map((k) => toSnake(k)).find((c) => PROTECTED_WRITE_COLUMNS.has(c));
+      const protectedAttempt = Object.keys(updates).map((k) => toSnake2(k)).find((c) => PROTECTED_WRITE_COLUMNS.has(c));
       if (protectedAttempt) return res.status(403).json({ error: `Column '${protectedAttempt}' is read-only` });
     }
-    const setCols = Object.keys(updates).map((k) => toSnake(k)).filter((c) => /^[a-z_][a-z0-9_]*$/.test(c));
+    const setCols = Object.keys(updates).map((k) => toSnake2(k)).filter((c) => /^[a-z_][a-z0-9_]*$/.test(c));
     const origKeys = Object.keys(updates);
     const setVals = origKeys.map((k) => updates[k]);
     if (!setCols.length) return res.status(400).json({ error: "No updates" });
@@ -50034,7 +50046,7 @@ router8.patch("/db", requireAuth, async (req, res) => {
     if (!isAdmin3) {
       const hasUserFilter = filters.some((f) => {
         const [, col, ...rest] = f.split(":");
-        return toSnake(col) === "user_id" && rest.join(":") === req.authUser?.userId;
+        return toSnake2(col) === "user_id" && rest.join(":") === req.authUser?.userId;
       });
       if (!hasUserFilter) {
         return res.status(403).json({ error: "Must filter by your own user_id" });
@@ -50066,7 +50078,7 @@ router8.delete("/db", requireAuth, async (req, res) => {
     if (!isAdmin3) {
       const hasUserFilter = filters.some((f) => {
         const [, col, ...rest] = f.split(":");
-        return toSnake(col) === "user_id" && rest.join(":") === req.authUser?.userId;
+        return toSnake2(col) === "user_id" && rest.join(":") === req.authUser?.userId;
       });
       if (!hasUserFilter) {
         return res.status(403).json({ error: "Must filter by your own user_id" });
@@ -50846,13 +50858,13 @@ function normalizeToCamelCase3(obj) {
   }
   return result;
 }
-function toSnake2(obj) {
-  if (Array.isArray(obj)) return obj.map(toSnake2);
+function toSnake3(obj) {
+  if (Array.isArray(obj)) return obj.map(toSnake3);
   if (obj !== null && typeof obj === "object" && !(obj instanceof Date)) {
     const out = {};
     for (const [k, v] of Object.entries(obj)) {
       const snake = k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
-      out[snake] = toSnake2(v);
+      out[snake] = toSnake3(v);
     }
     return out;
   }
@@ -50912,7 +50924,7 @@ router11.get("/admin/check", async (req, res) => {
   const role = await getRole(me.userId);
   if (role !== "admin" && role !== "moderator") return res.status(403).json({ error: "Forbidden" });
   const perms = await db.select().from(adminPermissions).where(eq(adminPermissions.userId, me.userId));
-  return res.json({ isAdmin: true, role, permissions: perms.map((p) => p.permission) });
+  return res.json({ isAdmin: true, role, userId: me.userId, permissions: perms.map((p) => p.permission) });
 });
 router11.post("/admin/logs", async (req, res) => {
   const auth = await requireAdmin(req, res);
@@ -50932,7 +50944,7 @@ router11.get("/admin/logs", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(adminLogs);
-  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+  return res.json(toSnake3(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
 });
 router11.post("/profiles/batch", async (req, res) => {
   const auth = await requireAdmin(req, res);
@@ -50945,9 +50957,10 @@ router11.post("/profiles/batch", async (req, res) => {
 router11.post("/user-wallets/batch", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
-  const { userIds } = req.body;
-  if (!Array.isArray(userIds) || userIds.length === 0) return res.json([]);
-  const result = await db.select().from(userWallets).where(inArray(userWallets.userId, userIds));
+  const { userIds, ids } = req.body;
+  const idList = userIds ?? ids ?? [];
+  if (!Array.isArray(idList) || idList.length === 0) return res.json([]);
+  const result = await db.select().from(userWallets).where(inArray(userWallets.userId, idList));
   return res.json(result);
 });
 router11.get("/admin/users", async (req, res) => {
@@ -51184,7 +51197,7 @@ router11.get("/admin/banners", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(banners);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 router11.post("/admin/banners", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
@@ -51208,7 +51221,7 @@ router11.get("/admin/countries", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(countries);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 router11.post("/admin/countries", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
@@ -51232,7 +51245,7 @@ router11.get("/admin/withdrawal-methods", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(withdrawalMethods);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 router11.post("/admin/withdrawal-methods", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
@@ -51256,7 +51269,7 @@ router11.get("/admin/payment-api-configs", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
   const all = await db.select().from(paymentApiConfigs);
-  return res.json(all);
+  return res.json(toSnake3(all));
 });
 router11.post("/admin/payment-api-configs", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
@@ -51280,7 +51293,7 @@ router11.get("/admin/vip-conditions", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(vipConditions);
-  return res.json(all.sort((a, b) => (a.level ?? 0) - (b.level ?? 0)));
+  return res.json(toSnake3(all.sort((a, b) => (a.level ?? 0) - (b.level ?? 0))));
 });
 router11.post("/admin/vip-conditions", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
@@ -51320,7 +51333,7 @@ router11.get("/admin/wheel-prizes", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(wheelPrizes);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 router11.post("/admin/wheel-prizes", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
@@ -51344,7 +51357,7 @@ router11.get("/admin/wheel-spins", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(wheelSpins);
-  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+  return res.json(toSnake3(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
 });
 router11.patch("/admin/wheel-spins/:id/status", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
@@ -51357,7 +51370,7 @@ router11.get("/admin/product-series", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(productSeries);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 router11.post("/admin/product-series", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
@@ -51381,7 +51394,7 @@ router11.get("/admin/products", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(products);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 router11.post("/admin/products", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
@@ -51405,7 +51418,7 @@ router11.get("/admin/payment-methods", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(paymentMethods);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 router11.post("/admin/payment-methods", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
@@ -51430,7 +51443,7 @@ router11.get("/admin/popups", async (req, res) => {
   if (!auth) return;
   const { trigger_key } = req.query;
   const all = trigger_key ? await db.select().from(popupMessages).where(eq(popupMessages.triggerKey, trigger_key)) : await db.select().from(popupMessages);
-  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+  return res.json(toSnake3(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
 });
 router11.post("/admin/popups", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
@@ -51459,17 +51472,41 @@ router11.post("/admin/users/:userId/suspend", async (req, res) => {
   if (!updated) return res.status(404).json({ error: "User not found" });
   return res.json(updated);
 });
+router11.patch("/admin/users/:userId/suspend", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { suspended } = req.body;
+  const newVal = suspended ?? true;
+  const [updated] = await db.update(profiles).set({ isSuspended: newVal, updatedAt: /* @__PURE__ */ new Date() }).where(eq(profiles.userId, req.params.userId)).returning();
+  if (!updated) return res.status(404).json({ error: "User not found" });
+  return res.json(updated);
+});
 router11.get("/admin/user-products", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
-  const all = await db.select().from(userProducts);
-  return res.json(all.sort((a, b) => new Date(b.purchasedAt).getTime() - new Date(a.purchasedAt).getTime()));
+  const { userId } = req.query;
+  const rows = userId ? await db.select().from(userProducts).where(eq(userProducts.userId, userId)) : await db.select().from(userProducts);
+  const productIds = [...new Set(rows.map((r) => r.productId).filter(Boolean))];
+  const prodRows = productIds.length > 0 ? await db.select().from(products).where(inArray(products.id, productIds)) : [];
+  const prodMap = {};
+  for (const p of prodRows) prodMap[p.id] = p;
+  const enriched = rows.map((r) => ({
+    ...r,
+    products: r.productId ? prodMap[r.productId] ?? null : null
+  })).sort((a, b) => new Date(b.purchasedAt).getTime() - new Date(a.purchasedAt).getTime());
+  return res.json(toSnake3(enriched));
+});
+router11.delete("/admin/user-products/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(userProducts).where(eq(userProducts.id, req.params.id));
+  return res.json({ ok: true });
 });
 router11.get("/admin/referral-commissions", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(referralCommissions);
-  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+  return res.json(toSnake3(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
 });
 router11.post("/admin/site-settings/batch", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
@@ -51493,7 +51530,7 @@ router11.get("/admin/social-links", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const all = await db.select().from(socialLinks);
-  return res.json(all);
+  return res.json(toSnake3(all));
 });
 router11.post("/admin/social-links", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
@@ -51517,7 +51554,7 @@ router11.get("/admin/api-configs", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
   const all = await db.select().from(paymentApiConfigs);
-  return res.json(all);
+  return res.json(toSnake3(all));
 });
 router11.post("/admin/api-configs", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
@@ -51609,7 +51646,7 @@ router11.get("/admin/payment-logs", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
   const logs = await db.select().from(paymentLogs).orderBy(desc(paymentLogs.createdAt)).limit(200);
-  return res.json(logs);
+  return res.json(toSnake3(logs));
 });
 router11.get("/admin/all-data", async (req, res) => {
   const auth = await requireAdmin(req, res);
@@ -51652,22 +51689,22 @@ router11.get("/admin/all-data", async (req, res) => {
     ]);
     const byDate = (a, b) => new Date(b.createdAt ?? b.created_at ?? 0).getTime() - new Date(a.createdAt ?? a.created_at ?? 0).getTime();
     return res.json({
-      profiles: toSnake2(profilesAll.sort(byDate)),
-      recharges: toSnake2(rechargesAll.sort(byDate)),
-      withdrawals: toSnake2(withdrawalsAll.sort(byDate)),
-      series: toSnake2(seriesAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
-      products: toSnake2(productsAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
-      paymentMethods: toSnake2(paymentMethodsAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
-      socialLinks: toSnake2(socialLinksAll),
-      siteSettings: toSnake2(siteSettingsAll),
-      popups: toSnake2(popupsAll),
-      adminLogs: toSnake2(logsAll.sort(byDate).slice(0, 100)),
-      countries: toSnake2(countriesAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
-      vipConditions: toSnake2(vipAll.sort((a, b) => (a.level ?? 0) - (b.level ?? 0))),
-      banners: toSnake2(bannersAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
-      withdrawalMethods: toSnake2(withdrawalMethodsAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
-      apiConfigs: toSnake2(apiConfigsAll),
-      paymentLogs: toSnake2(paymentLogsAll.sort(byDate).slice(0, 200))
+      profiles: toSnake3(profilesAll.sort(byDate)),
+      recharges: toSnake3(rechargesAll.sort(byDate)),
+      withdrawals: toSnake3(withdrawalsAll.sort(byDate)),
+      series: toSnake3(seriesAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      products: toSnake3(productsAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      paymentMethods: toSnake3(paymentMethodsAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      socialLinks: toSnake3(socialLinksAll),
+      siteSettings: toSnake3(siteSettingsAll),
+      popups: toSnake3(popupsAll),
+      adminLogs: toSnake3(logsAll.sort(byDate).slice(0, 100)),
+      countries: toSnake3(countriesAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      vipConditions: toSnake3(vipAll.sort((a, b) => (a.level ?? 0) - (b.level ?? 0))),
+      banners: toSnake3(bannersAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      withdrawalMethods: toSnake3(withdrawalMethodsAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      apiConfigs: toSnake3(apiConfigsAll),
+      paymentLogs: toSnake3(paymentLogsAll.sort(byDate).slice(0, 200))
     });
   } catch (err) {
     console.error("[admin/all-data] DB error:", err?.message ?? err);

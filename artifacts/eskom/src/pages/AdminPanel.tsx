@@ -183,7 +183,7 @@ const AdminPanel = () => {
         apiFetch("/api/withdrawals"),
         apiFetch("/api/admin/product-series"),
         apiFetch("/api/admin/products"),
-        apiFetch("/api/payment-methods"),
+        apiFetch("/api/admin/payment-methods"),
         apiFetch("/api/admin/social-links"),
         apiFetch("/api/site-settings"),
         apiFetch("/api/admin/popups"),
@@ -712,11 +712,18 @@ const DepositsTab = ({ recharges, profiles, reload, showSuccess, showError, logA
   const handleAction = async (r: Recharge, status: "approved" | "rejected") => {
     const token = getAuthToken();
     const headers: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-    await fetch(`/api/recharges/${r.id}/status`, {
-      method: "PATCH",
-      headers,
-      body: JSON.stringify({ status }),
-    });
+    const url = status === "approved" ? `/api/recharges/${r.id}/approve` : `/api/recharges/${r.id}/reject`;
+    const res = await fetch(url, { method: "PATCH", headers, body: JSON.stringify({ adminNote: "" }) });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 409) {
+        showError("Already processed", `This deposit has already been ${data.status || "processed"}`);
+      } else {
+        showError("Error", data?.error || "Action failed");
+      }
+      reload();
+      return;
+    }
     logAction(`deposit_${status}`, "recharge", r.id, `${r.amount} USDT`);
     showSuccess(status === "approved" ? "Deposit approved ✅" : "Deposit rejected ❌", "");
     reload();
