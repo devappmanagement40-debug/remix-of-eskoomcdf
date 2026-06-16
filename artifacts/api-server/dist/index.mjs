@@ -50324,6 +50324,24 @@ function getPayoutEmail() {
 function getPayoutPassword() {
   return process.env["NOWPAYMENTS_PASSWORD"] ?? "";
 }
+async function requireAdmin(req, res) {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) {
+    res.status(401).json({ error: "Unauthorized" });
+    return null;
+  }
+  const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
+  if (!session || session.expiresAt < /* @__PURE__ */ new Date()) {
+    res.status(401).json({ error: "Session expired" });
+    return null;
+  }
+  const [role] = await db.select({ role: userRoles.role }).from(userRoles).where(eq(userRoles.userId, session.userId)).limit(1);
+  if (role?.role !== "admin" && role?.role !== "moderator") {
+    res.status(403).json({ error: "Forbidden" });
+    return null;
+  }
+  return { userId: session.userId };
+}
 function getWebhookUrl(path3) {
   const base = process.env["NOWPAYMENTS_WEBHOOK_URL"];
   if (base) {
@@ -50464,15 +50482,24 @@ router9.get("/nowpayments/ping", async (_req, res) => {
   }
 });
 router9.get("/nowpayments/diagnostic", async (_req, res) => {
+  const webhookBase = process.env["NOWPAYMENTS_WEBHOOK_URL"];
+  const devDomain = process.env["REPLIT_DEV_DOMAIN"];
+  const webhookDeposit = webhookBase ? webhookBase : devDomain ? `https://${devDomain}/api/nowpayments/webhook` : "";
+  const webhookPayout = webhookBase ? webhookBase.replace(/\/webhook$/, "") + "/payout-webhook" : devDomain ? `https://${devDomain}/api/nowpayments/payout-webhook` : "";
   const result = {
     timestamp: (/* @__PURE__ */ new Date()).toISOString(),
     env: {
-      NOWPAYMENTS_API_KEY: !!process.env["NOWPAYMENTS_API_KEY"] ? "\u2705 set" : "\u274C MISSING",
-      NOWPAYMENTS_IPN_SECRET: !!process.env["NOWPAYMENTS_IPN_SECRET"] ? "\u2705 set" : "\u26A0\uFE0F not set",
-      NOWPAYMENTS_PASSWORD: !!process.env["NOWPAYMENTS_PASSWORD"] ? "\u2705 set" : "\u26A0\uFE0F not set",
+      NOWPAYMENTS_API_KEY: !!process.env["NOWPAYMENTS_API_KEY"] ? "\u2705 set" : "\u274C MISSING \u2014 payments cannot be created",
+      NOWPAYMENTS_IPN_SECRET: !!process.env["NOWPAYMENTS_IPN_SECRET"] ? "\u2705 set" : "\u26A0\uFE0F not set \u2014 IPN webhooks unverified (insecure)",
+      NOWPAYMENTS_EMAIL: !!process.env["NOWPAYMENTS_EMAIL"] ? "\u2705 set" : "\u274C MISSING \u2014 automatic payouts (withdrawals) will FAIL",
+      NOWPAYMENTS_PASSWORD: !!process.env["NOWPAYMENTS_PASSWORD"] ? "\u2705 set" : "\u274C MISSING \u2014 automatic payouts will FAIL",
       SUPABASE_DATABASE_URL: !!process.env["SUPABASE_DATABASE_URL"] ? "\u2705 set" : "\u274C MISSING",
-      DATABASE_URL: !!process.env["DATABASE_URL"] ? "\u2705 set" : "not set",
       NODE_ENV: process.env["NODE_ENV"] ?? "not set"
+    },
+    webhooks: {
+      deposit: webhookDeposit || "\u26A0\uFE0F EMPTY \u2014 set NOWPAYMENTS_WEBHOOK_URL on Plesk (e.g. https://geenergy.top/api/nowpayments/webhook)",
+      payout: webhookPayout || "\u26A0\uFE0F EMPTY \u2014 set NOWPAYMENTS_WEBHOOK_URL on Plesk",
+      note: webhookBase ? "\u2705 Using NOWPAYMENTS_WEBHOOK_URL" : devDomain ? "\u26A0\uFE0F Using REPLIT_DEV_DOMAIN (dev only, won't work in production)" : "\u274C No webhook URL configured \u2014 IPN will not reach this server in production"
     },
     db: { ok: false, error: null, tablesFound: [] },
     nowpayments: { ok: false, error: null }
@@ -50697,8 +50724,18 @@ router9.post("/nowpayments/webhook", async (req, res) => {
   return res.status(200).json({ ok: true });
 });
 router9.post("/nowpayments/payout", async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
   const apiKey = getApiKey();
   if (!apiKey) return res.status(503).json({ error: "NowPayments not configured" });
+  const email = getPayoutEmail();
+  const password = getPayoutPassword();
+  if (!email || !password) {
+    return res.status(503).json({
+      error: "Automatic payouts not configured",
+      detail: "NOWPAYMENTS_EMAIL and NOWPAYMENTS_PASSWORD are required. Please add NOWPAYMENTS_EMAIL to your environment secrets (same email as your NOWPayments account)."
+    });
+  }
   const { withdrawalId } = req.body;
   if (!withdrawalId) return res.status(400).json({ error: "withdrawalId is required" });
   try {
@@ -50763,6 +50800,8 @@ router9.post("/nowpayments/payout", async (req, res) => {
   }
 });
 router9.get("/nowpayments/payout/:payoutId", async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
   const apiKey = getApiKey();
   if (!apiKey) return res.status(503).json({ error: "Not configured" });
   try {
@@ -50893,7 +50932,7 @@ async function getRole(userId) {
   const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, userId)).limit(1);
   return role?.role ?? "user";
 }
-async function requireAdmin(req, res) {
+async function requireAdmin2(req, res) {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) {
     res.status(401).json({ error: "Unauthorized" });
@@ -50940,7 +50979,7 @@ router11.get("/admin/check", async (req, res) => {
   return res.json({ isAdmin: true, role, userId: me.userId, permissions: perms.map((p) => p.permission) });
 });
 router11.post("/admin/logs", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const { action, targetType, targetId, details } = req.body;
   const [log] = await db.insert(adminLogs).values({
@@ -50954,13 +50993,13 @@ router11.post("/admin/logs", async (req, res) => {
   return res.json(log);
 });
 router11.get("/admin/logs", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const all = await db.select().from(adminLogs);
   return res.json(toSnake3(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
 });
 router11.post("/profiles/batch", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const { ids } = req.body;
   if (!Array.isArray(ids) || ids.length === 0) return res.json([]);
@@ -50968,7 +51007,7 @@ router11.post("/profiles/batch", async (req, res) => {
   return res.json(result);
 });
 router11.post("/user-wallets/batch", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const { userIds, ids } = req.body;
   const idList = userIds ?? ids ?? [];
@@ -50977,7 +51016,7 @@ router11.post("/user-wallets/batch", async (req, res) => {
   return res.json(result);
 });
 router11.get("/admin/users", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const page = parseInt(req.query.page || "1");
   const limit = parseInt(req.query.limit || "50");
@@ -51063,7 +51102,7 @@ router11.delete("/admin/team/:userId", async (req, res) => {
   return res.json({ ok: true });
 });
 router11.get("/admin/gift-codes", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const all = await db.select().from(giftCodes);
   return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
@@ -51087,7 +51126,7 @@ router11.delete("/admin/gift-codes/:id", async (req, res) => {
   return res.json({ ok: true });
 });
 router11.get("/admin/gift-rewards", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const all = await db.select().from(giftRewards);
   return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
@@ -51111,7 +51150,7 @@ router11.delete("/admin/gift-rewards/:id", async (req, res) => {
   return res.json({ ok: true });
 });
 router11.get("/admin/faq", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const all = await db.select().from(faqItems);
   return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
@@ -51135,7 +51174,7 @@ router11.delete("/admin/faq/:id", async (req, res) => {
   return res.json({ ok: true });
 });
 router11.get("/admin/info-items", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const all = await db.select().from(infoItems);
   return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
@@ -51159,7 +51198,7 @@ router11.delete("/admin/info-items/:id", async (req, res) => {
   return res.json({ ok: true });
 });
 router11.get("/admin/official-documents", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const all = await db.select().from(officialDocuments);
   return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
@@ -51183,7 +51222,7 @@ router11.delete("/admin/official-documents/:id", async (req, res) => {
   return res.json({ ok: true });
 });
 router11.get("/admin/official-docs", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const all = await db.select().from(officialDocuments);
   return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
@@ -51207,7 +51246,7 @@ router11.delete("/admin/official-docs/:id", async (req, res) => {
   return res.json({ ok: true });
 });
 router11.get("/admin/banners", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const all = await db.select().from(banners);
   return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
@@ -51231,7 +51270,7 @@ router11.delete("/admin/banners/:id", async (req, res) => {
   return res.json({ ok: true });
 });
 router11.get("/admin/countries", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const all = await db.select().from(countries);
   return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
@@ -51255,7 +51294,7 @@ router11.delete("/admin/countries/:id", async (req, res) => {
   return res.json({ ok: true });
 });
 router11.get("/admin/withdrawal-methods", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const all = await db.select().from(withdrawalMethods);
   return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
@@ -51303,7 +51342,7 @@ router11.delete("/admin/payment-api-configs/:id", async (req, res) => {
   return res.json({ ok: true });
 });
 router11.get("/admin/vip-conditions", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const all = await db.select().from(vipConditions);
   return res.json(toSnake3(all.sort((a, b) => (a.level ?? 0) - (b.level ?? 0))));
@@ -51343,7 +51382,7 @@ router11.patch("/admin/users/:userId/vip", async (req, res) => {
   return res.json(updated);
 });
 router11.get("/admin/wheel-prizes", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const all = await db.select().from(wheelPrizes);
   return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
@@ -51367,7 +51406,7 @@ router11.delete("/admin/wheel-prizes/:id", async (req, res) => {
   return res.json({ ok: true });
 });
 router11.get("/admin/wheel-spins", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const all = await db.select().from(wheelSpins);
   return res.json(toSnake3(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
@@ -51380,7 +51419,7 @@ router11.patch("/admin/wheel-spins/:id/status", async (req, res) => {
   return res.json(updated);
 });
 router11.get("/admin/product-series", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const all = await db.select().from(productSeries);
   return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
@@ -51404,7 +51443,7 @@ router11.delete("/admin/product-series/:id", async (req, res) => {
   return res.json({ ok: true });
 });
 router11.get("/admin/products", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const all = await db.select().from(products);
   return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
@@ -51428,7 +51467,7 @@ router11.delete("/admin/products/:id", async (req, res) => {
   return res.json({ ok: true });
 });
 router11.get("/admin/payment-methods", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const all = await db.select().from(paymentMethods);
   return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
@@ -51452,7 +51491,7 @@ router11.delete("/admin/payment-methods/:id", async (req, res) => {
   return res.json({ ok: true });
 });
 router11.get("/admin/popups", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const { trigger_key } = req.query;
   const all = trigger_key ? await db.select().from(popupMessages).where(eq(popupMessages.triggerKey, trigger_key)) : await db.select().from(popupMessages);
@@ -51477,7 +51516,7 @@ router11.delete("/admin/popups/:id", async (req, res) => {
   return res.json({ ok: true });
 });
 async function suspendUser(req, res) {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const [targetRole] = await db.select().from(userRoles).where(eq(userRoles.userId, req.params.userId)).limit(1);
   if (targetRole?.role === "admin" || targetRole?.role === "moderator") {
@@ -51492,7 +51531,7 @@ async function suspendUser(req, res) {
 router11.post("/admin/users/:userId/suspend", suspendUser);
 router11.patch("/admin/users/:userId/suspend", suspendUser);
 router11.get("/admin/user-products", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const { userId } = req.query;
   const rows = userId ? await db.select().from(userProducts).where(eq(userProducts.userId, userId)) : await db.select().from(userProducts);
@@ -51513,7 +51552,7 @@ router11.delete("/admin/user-products/:id", async (req, res) => {
   return res.json({ ok: true });
 });
 router11.get("/admin/referral-commissions", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const all = await db.select().from(referralCommissions);
   return res.json(toSnake3(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
@@ -51537,7 +51576,7 @@ router11.post("/admin/site-settings/batch", async (req, res) => {
   return res.json(results);
 });
 router11.get("/admin/social-links", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const all = await db.select().from(socialLinks);
   return res.json(toSnake3(all));
@@ -51585,13 +51624,13 @@ router11.delete("/admin/api-configs/:id", async (req, res) => {
   return res.json({ ok: true });
 });
 router11.get("/admin/chat", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const all = await db.select().from(chatMessages);
   return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
 });
 router11.get("/admin/chat/conversations", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const msgs = await db.select().from(chatMessages).orderBy(desc(chatMessages.createdAt));
   const userMap = {};
@@ -51613,13 +51652,13 @@ router11.get("/admin/chat/conversations", async (req, res) => {
   return res.json(convos);
 });
 router11.get("/admin/chat/messages/:userId", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const msgs = await db.select().from(chatMessages).where(eq(chatMessages.userId, req.params.userId));
   return res.json(msgs.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
 });
 router11.post("/admin/chat/reply", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const { user_id, message } = req.body;
   if (!user_id || !message) return res.status(400).json({ error: "user_id and message required" });
@@ -51633,13 +51672,13 @@ router11.post("/admin/chat/reply", async (req, res) => {
   return res.json(msg);
 });
 router11.get("/admin/chat/:userId", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const msgs = await db.select().from(chatMessages).where(eq(chatMessages.userId, req.params.userId));
   return res.json(msgs.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
 });
 router11.post("/admin/chat/:userId/reply", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const { message } = req.body;
   if (!message) return res.status(400).json({ error: "Message required" });
@@ -51653,13 +51692,13 @@ router11.post("/admin/chat/:userId/reply", async (req, res) => {
   return res.json(msg);
 });
 router11.get("/admin/payment-logs", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   const logs = await db.select().from(paymentLogs).orderBy(desc(paymentLogs.createdAt)).limit(200);
   return res.json(toSnake3(logs));
 });
 router11.get("/admin/all-data", async (req, res) => {
-  const auth = await requireAdmin(req, res);
+  const auth = await requireAdmin2(req, res);
   if (!auth) return;
   try {
     const [
