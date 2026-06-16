@@ -999,15 +999,20 @@ router.get("/admin/referral-tree/:profileId", async (req, res) => {
 router.patch("/admin/site-settings", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
-  const { key, value, category } = req.body;
-  if (!key) return res.status(400).json({ error: "key required" });
-  const existing = await db.select().from(siteSettings).where(eq(siteSettings.key, key)).limit(1);
-  if (existing.length > 0) {
-    await db.update(siteSettings).set({ value }).where(eq(siteSettings.key, key));
-  } else {
-    await db.insert(siteSettings).values({ id: crypto.randomUUID(), key, value, category: category ?? "general" });
+  try {
+    const { key, value, category } = req.body;
+    if (!key) return res.status(400).json({ error: "key required" });
+    const existing = await db.select().from(siteSettings).where(eq(siteSettings.key, key)).limit(1);
+    if (existing.length > 0) {
+      await db.update(siteSettings).set({ value, updatedAt: new Date() }).where(eq(siteSettings.key, key));
+    } else {
+      await db.insert(siteSettings).values({ id: crypto.randomUUID(), key, value, category: category ?? "general" });
+    }
+    return res.json({ ok: true });
+  } catch (err: any) {
+    console.error("[admin/site-settings PATCH] error:", err?.message ?? err);
+    return res.status(500).json({ error: err?.message ?? "Failed to save setting" });
   }
-  return res.json({ ok: true });
 });
 
 // ─── Popup messages ──────────────────────────────────────────────────────────

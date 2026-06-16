@@ -5,3 +5,4 @@
 - [Plesk deployment workflow](plesk-deployment.md) — build on Replit → commit dist/ to git → Plesk: git pull + restart. app.js → dist/index.mjs. SUPABASE_DATABASE_URL required with SSL.
 - [CamelCase vs snake_case systemic fix](camelcase-fix.md) — Drizzle ORM requires camelCase in set()/values(); admin panel sends snake_case; fix: normalizeToCamelCase() in all routes + dual read (p.isActive ?? p.is_active) in frontend
 - [Route alias mismatches](route-alias-mismatches.md) — frontend calls different URL patterns than API; add alias routes rather than changing frontend
+- [Site settings seeding](site-settings-seed.md) — site_settings table must be seeded with defaults; many keys (deposit_min, deposit_max, referral, VIP, toggles, points) are missing until seeded; PATCH /admin/site-settings upserts by key

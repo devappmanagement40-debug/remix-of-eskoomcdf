@@ -261,7 +261,7 @@ const AdminPanel = () => {
         {activeTab === "infos" && <InfoItemsTab showSuccess={showSuccess} showError={showError} />}
         {activeTab === "app" && <AppSettingsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "dates" && <DatesTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
-        {activeTab === "settings" && <SettingsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} />}
+        {activeTab === "settings" && <SettingsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "security" && <SecurityTab logs={adminLogs} settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "team" && <AdminTeamTab showSuccess={showSuccess} showError={showError} logAction={logAction} adminId={adminId} />}
       </div>
@@ -1993,10 +1993,16 @@ const RewardsTab = ({ settings, reload, showSuccess, showError }: any) => {
   };
 
   const saveSettings = async () => {
+    let errors = 0;
     for (const [key, value] of Object.entries(edits)) {
-      await api.patch("/admin/site-settings", { key, value, category: "points" }).catch(() => {});
+      try {
+        await api.patch("/admin/site-settings", { key, value, category: "points" });
+      } catch (err: any) {
+        console.error("Failed to save setting", key, err?.message);
+        errors++;
+      }
     }
-    showSuccess("GE Energy Currency Configuration sauvegardée", "");
+    if (errors === 0) showSuccess("GE Energy Currency Configuration sauvegardée", "");
     setEdits({});
     reload();
   };
@@ -2394,10 +2400,16 @@ const AppSettingsTab = ({ settings, reload, showSuccess }: any) => {
   const setVal = (key: string, val: string) => setEdits({ ...edits, [key]: val });
 
   const saveAll = async () => {
+    let errors = 0;
     for (const [key, value] of Object.entries(edits)) {
-      await api.patch("/admin/site-settings", { key, value, category: "app" }).catch(() => {});
+      try {
+        await api.patch("/admin/site-settings", { key, value, category: "app" });
+      } catch (err: any) {
+        console.error("Failed to save setting", key, err?.message);
+        errors++;
+      }
     }
-    showSuccess("App settings saved", "");
+    if (errors === 0) showSuccess("App settings saved", "");
     setEdits({}); reload();
   };
 
@@ -2550,13 +2562,19 @@ const DatesTab = ({ settings, reload, showSuccess }: any) => {
 
   const saveAll = async () => {
     setSaving(true);
+    let errors = 0;
     for (const [key, value] of Object.entries(edits)) {
-      await api.patch("/admin/site-settings", { key, value, category: "dates" }).catch(() => {});
+      try {
+        await api.patch("/admin/site-settings", { key, value, category: "dates" });
+      } catch (err: any) {
+        console.error("Failed to save setting", key, err?.message);
+        errors++;
+      }
     }
     setEdits({});
     await reload();
     setSaving(false);
-    showSuccess("Dates sauvegardées !");
+    if (errors === 0) showSuccess("Dates sauvegardées !");
   };
 
   const dateFields = [
@@ -2611,17 +2629,27 @@ const DatesTab = ({ settings, reload, showSuccess }: any) => {
 };
 
 // ==================== SETTINGS TAB ====================
-const SettingsTab = ({ settings, reload, showSuccess }: any) => {
+const SettingsTab = ({ settings, reload, showSuccess, showError }: any) => {
   const [edits, setEdits] = useState<Record<string, string>>({});
 
   const getValue = (key: string) => edits[key] ?? settings.find((s: SiteSetting) => s.key === key)?.value ?? "";
   const setVal = (key: string, val: string) => setEdits({ ...edits, [key]: val });
 
   const saveAll = async () => {
+    let errors = 0;
     for (const [key, value] of Object.entries(edits)) {
-      await api.patch("/admin/site-settings", { key, value, category: "finance" }).catch(() => {});
+      try {
+        await api.patch("/admin/site-settings", { key, value, category: "finance" });
+      } catch (err: any) {
+        console.error("Failed to save setting", key, err?.message);
+        errors++;
+      }
     }
-    showSuccess("Settings saved", "");
+    if (errors > 0) {
+      showError("Erreur", `${errors} paramètre(s) n'ont pas pu être sauvegardé(s). Vérifiez la connexion.`);
+    } else {
+      showSuccess("Settings saved", "");
+    }
     setEdits({});
     reload();
   };
@@ -2738,10 +2766,16 @@ const OfficialInfoTab = ({ settings, reload, showSuccess }: { settings: SiteSett
   const setVal = (key: string, val: string) => setEdits(prev => ({ ...prev, [key]: val }));
 
   const saveAll = async () => {
+    let errors = 0;
     for (const [key, value] of Object.entries(edits)) {
-      await api.patch("/admin/site-settings", { key, value, category: "official_info" }).catch(() => {});
+      try {
+        await api.patch("/admin/site-settings", { key, value, category: "official_info" });
+      } catch (err: any) {
+        console.error("Failed to save setting", key, err?.message);
+        errors++;
+      }
     }
-    showSuccess("Official information saved", "Changes take effect immediately ✅");
+    if (errors === 0) showSuccess("Official information saved", "Changes take effect immediately ✅");
     setEdits({});
     reload();
   };
