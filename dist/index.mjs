@@ -46411,7 +46411,7 @@ var import_express14 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path2 from "path";
-import { fileURLToPath } from "url";
+import { existsSync } from "fs";
 
 // server/routes/index.ts
 var import_express13 = __toESM(require_express2(), 1);
@@ -56117,7 +56117,6 @@ var logger = (0, import_pino.default)({
 });
 
 // server/app.ts
-var __dirname2 = path2.dirname(fileURLToPath(import.meta.url));
 var app = (0, import_express14.default)();
 app.set("trust proxy", 1);
 app.use(
@@ -56145,8 +56144,8 @@ app.use((err, _req, res, next) => {
   const message = err.message || "Internal server error";
   return res.status(status).json({ error: message });
 });
-if (process.env.NODE_ENV === "production") {
-  const frontendDist = process.env.FRONTEND_DIST || path2.resolve(process.cwd(), "dist/public");
+var frontendDist = process.env.FRONTEND_DIST || path2.resolve(process.cwd(), "dist/public");
+if (existsSync(path2.join(frontendDist, "index.html"))) {
   app.use(import_express14.default.static(frontendDist));
   app.get("/{*path}", (_req, res) => {
     res.sendFile(path2.join(frontendDist, "index.html"));

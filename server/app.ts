@@ -2,11 +2,10 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import path from "path";
-import { fileURLToPath } from "url";
+import { existsSync } from "fs";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app: Express = express();
 
 // Trust Plesk / Nginx / Apache reverse proxy — exposes real client IP and correct protocol
@@ -45,11 +44,11 @@ app.use((err: any, _req: any, res: any, next: any) => {
   return res.status(status).json({ error: message });
 });
 
-// Serve pre-built React frontend in production
-if (process.env.NODE_ENV === "production") {
-  const frontendDist =
-    process.env.FRONTEND_DIST ||
-    path.resolve(process.cwd(), "dist/public");
+// Serve pre-built React frontend (production + Plesk — does not depend on NODE_ENV)
+const frontendDist =
+  process.env.FRONTEND_DIST ||
+  path.resolve(process.cwd(), "dist/public");
+if (existsSync(path.join(frontendDist, "index.html"))) {
   app.use(express.static(frontendDist));
   app.get("/{*path}", (_req, res) => {
     res.sendFile(path.join(frontendDist, "index.html"));
