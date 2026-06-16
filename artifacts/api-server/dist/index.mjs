@@ -42650,13 +42650,13 @@ var init_src = __esm({
     init_schema2();
     init_schema2();
     ({ Pool: Pool3 } = esm_default);
-    connectionString = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
+    connectionString = process.env.DATABASE_URL;
     if (!connectionString) {
-      throw new Error("SUPABASE_DATABASE_URL is required.");
+      throw new Error("DATABASE_URL environment variable is required.");
     }
     pool = new Pool3({
       connectionString,
-      ssl: { rejectUnauthorized: false }
+      ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false
     });
     db = drizzle(pool, { schema: schema_exports });
   }
