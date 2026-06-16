@@ -112,7 +112,9 @@ const Products = () => {
   }, []);
 
   const checkSeriesAccess = (s: Series): string[] => {
-    if (!userAccess) return [t.products.signInToPurchase];
+    const token = getAuthToken();
+    if (!token) return [t.products.signInToPurchase];
+    if (!userAccess) return [];
     const missing: string[] = [];
     if ((s.min_vip_level || 0) > 0 && userAccess.vipLevel < (s.min_vip_level || 0)) missing.push(`VIP ${s.min_vip_level} required (you are VIP ${userAccess.vipLevel})`);
     if ((s.min_personal_investment || 0) > 0 && userAccess.personalInvestment < (s.min_personal_investment || 0)) missing.push(`Personal investment of ${Number(s.min_personal_investment).toLocaleString("en-US")} USDT required`);

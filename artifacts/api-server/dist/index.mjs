@@ -42641,7 +42641,7 @@ __export(src_exports, {
   withdrawalMethods: () => withdrawalMethods,
   withdrawals: () => withdrawals
 });
-var Pool3, connectionString, pool, db;
+var Pool3, connectionString, isSupabase, pool, db;
 var init_src = __esm({
   "../../lib/db/src/index.ts"() {
     "use strict";
@@ -42650,13 +42650,14 @@ var init_src = __esm({
     init_schema2();
     init_schema2();
     ({ Pool: Pool3 } = esm_default);
-    connectionString = process.env.DATABASE_URL;
+    connectionString = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
     if (!connectionString) {
-      throw new Error("DATABASE_URL environment variable is required.");
+      throw new Error("SUPABASE_DATABASE_URL or DATABASE_URL environment variable is required.");
     }
+    isSupabase = connectionString.includes("supabase.com");
     pool = new Pool3({
       connectionString,
-      ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false
+      ssl: isSupabase ? { rejectUnauthorized: false } : false
     });
     db = drizzle(pool, { schema: schema_exports });
   }
@@ -48583,6 +48584,14 @@ router3.get("/team/my", async (req, res) => {
   if (!me) return res.status(401).json({ error: "Unauthorized" });
   const teamMembers = await db.select().from(profiles).where(eq(profiles.referredBy, me.id));
   return res.json(teamMembers);
+});
+router3.get("/profiles/team/direct", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const directMembers = await db.select().from(profiles).where(eq(profiles.referredBy, me.id));
+  return res.json(directMembers);
 });
 router3.get("/team", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");

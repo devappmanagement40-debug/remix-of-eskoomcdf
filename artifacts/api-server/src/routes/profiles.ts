@@ -105,6 +105,16 @@ router.get("/team/my", async (req, res) => {
   return res.json(teamMembers);
 });
 
+router.get("/profiles/team/direct", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+
+  const directMembers = await db.select().from(profiles).where(eq(profiles.referredBy, me.id));
+  return res.json(directMembers);
+});
+
 // Full team tree endpoint used by Team.tsx
 router.get("/team", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
