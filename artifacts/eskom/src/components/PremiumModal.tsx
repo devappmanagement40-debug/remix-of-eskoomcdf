@@ -40,7 +40,7 @@ const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacem
         if (msg) {
           const urlMap: Record<string, string> = {};
           (Array.isArray(settings) ? settings : []).forEach((s: any) => {
-            if (s.value && ["official_whatsapp_link", "official_whatsapp_group"].includes(s.key)) {
+            if (s.value && ["official_whatsapp_link", "official_whatsapp_group", "official_telegram_link", "official_telegram_group"].includes(s.key)) {
               urlMap[s.key] = s.value;
             }
           });
@@ -49,6 +49,8 @@ const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacem
           const enrichedTabs = rawTabs.map((tab) => {
             if (tab.url) return tab;
             const lbl = tab.label.toLowerCase();
+            if (lbl.includes("telegram") && lbl.includes("group")) return { ...tab, url: urlMap["official_telegram_group"] || "" };
+            if (lbl.includes("telegram")) return { ...tab, url: urlMap["official_telegram_link"] || "" };
             if (lbl.includes("whatsapp") && lbl.includes("group")) return { ...tab, url: urlMap["official_whatsapp_group"] || "" };
             if (lbl.includes("whatsapp")) return { ...tab, url: urlMap["official_whatsapp_link"] || "" };
             if (lbl.includes("groupe")) return { ...tab, url: urlMap["official_whatsapp_group"] || "" };

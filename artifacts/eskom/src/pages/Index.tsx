@@ -24,6 +24,7 @@ const Index = () => {
   const [banners, setBanners] = useState<{ image_url: string; link_path: string }[]>(fallbackBanners);
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [annonces, setAnnonces] = useState<any[]>([]);
+  const [supportLink, setSupportLink] = useState("");
 
   const circleActions = [
     { icon: ShoppingBag, label: t.index.myProducts, path: "/mes-produits" },
@@ -41,11 +42,18 @@ const Index = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [bannersRes, productsRes, annoncesRes] = await Promise.allSettled([
+        const [bannersRes, productsRes, annoncesRes, settingsRes] = await Promise.allSettled([
           fetch("/api/banners").then(r => r.ok ? r.json() : []),
           fetch("/api/products?featured=true").then(r => r.ok ? r.json() : []),
           fetch("/api/info-items").then(r => r.ok ? r.json() : []),
+          fetch("/api/site-settings").then(r => r.ok ? r.json() : []),
         ]);
+        if (settingsRes.status === "fulfilled" && Array.isArray(settingsRes.value)) {
+          const sl = settingsRes.value;
+          const tg = sl.find((s: any) => s.key === "official_telegram_link")?.value;
+          const wa = sl.find((s: any) => s.key === "official_whatsapp_link")?.value;
+          setSupportLink(tg || wa || "");
+        }
         if (bannersRes.status === "fulfilled" && Array.isArray(bannersRes.value) && bannersRes.value.length) {
           setBanners(bannersRes.value.map((b: any) => ({
             image_url: b.imageUrl ?? b.image_url,
@@ -259,7 +267,10 @@ const Index = () => {
         triggerKey="service_client"
         open={showService}
         onClose={() => setShowService(false)}
-        onConfirm={() => navigate("/service-chat")}
+        onConfirm={() => {
+          if (supportLink) window.open(supportLink, "_blank", "noopener,noreferrer");
+          else navigate("/service-chat");
+        }}
       />
 
       <PremiumModal

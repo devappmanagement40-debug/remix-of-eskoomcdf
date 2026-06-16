@@ -8,13 +8,18 @@ const FloatingButtons = () => {
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [wheelIconUrl, setWheelIconUrl] = useState("");
   const [supportIconUrl, setSupportIconUrl] = useState("");
+  const [supportLink, setSupportLink] = useState("");
 
   useEffect(() => {
     fetch("/api/site-settings").then(r => r.ok ? r.json() : []).then((data: any[]) => {
-      (Array.isArray(data) ? data : []).forEach((s: any) => {
+      const list = Array.isArray(data) ? data : [];
+      list.forEach((s: any) => {
         if (s.key === "wheel_icon_url" && s.value) setWheelIconUrl(s.value);
         if (s.key === "support_icon_url" && s.value) setSupportIconUrl(s.value);
       });
+      const telegram = list.find((s: any) => s.key === "official_telegram_link")?.value;
+      const whatsapp = list.find((s: any) => s.key === "official_whatsapp_link")?.value;
+      setSupportLink(telegram || whatsapp || "");
     }).catch(() => {});
   }, []);
 
@@ -92,7 +97,10 @@ const FloatingButtons = () => {
       </button>
 
       <button
-        onClick={() => handleClick(() => navigate("/service-chat"))}
+        onClick={() => handleClick(() => {
+          if (supportLink) window.open(supportLink, "_blank", "noopener,noreferrer");
+          else navigate("/service-chat");
+        })}
         className="group w-[50px] h-[50px] rounded-full flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 overflow-hidden"
         style={{
           background: supportIconUrl ? "transparent" : "linear-gradient(135deg, hsl(210 80% 55%), hsl(230 70% 50%))",

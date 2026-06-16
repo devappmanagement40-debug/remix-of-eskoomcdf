@@ -357,8 +357,8 @@ const DashboardTab = ({ profiles, recharges, withdrawals, products }: any) => {
       <div className="grid grid-cols-2 gap-3">
         {stats.map(s => (
           <div key={s.label} className="bg-card rounded-xl border border-secondary p-4">
-            <p className="text-[10px] text-muted-foreground">{s.label}</p>
-            <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
+            <p className="text-[10px] text-muted-foreground leading-tight">{s.label}</p>
+            <p className={`text-base font-bold truncate mt-0.5 ${s.color}`}>{s.value}</p>
           </div>
         ))}
       </div>
@@ -3083,6 +3083,8 @@ const SettingsTab = ({ settings, reload, showSuccess }: any) => {
 const OfficialInfoTab = ({ settings, reload, showSuccess }: { settings: SiteSetting[]; reload: () => void; showSuccess: (t: string, m: string) => void }) => {
   const fields = [
     { key: "official_service_phone", label: "Customer service number", placeholder: "+509 XX XXX XXXX" },
+    { key: "official_telegram_link", label: "Telegram support link", placeholder: "https://t.me/..." },
+    { key: "official_telegram_group", label: "Telegram group link", placeholder: "https://t.me/..." },
     { key: "official_whatsapp_link", label: "WhatsApp link", placeholder: "https://wa.me/243XXXXXXXX" },
     { key: "official_whatsapp_group", label: "WhatsApp Group link", placeholder: "https://chat.whatsapp.com/..." },
     { key: "official_private_group_msg", label: "Private Investor Group message", placeholder: "Message shown when private group is requested...", multiline: true },
