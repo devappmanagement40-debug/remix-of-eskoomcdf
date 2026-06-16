@@ -42641,7 +42641,7 @@ __export(src_exports, {
   withdrawalMethods: () => withdrawalMethods,
   withdrawals: () => withdrawals
 });
-var Pool3, connectionString, isSupabase, pool, db;
+var Pool3, connectionString, pool, db;
 var init_src = __esm({
   "../../lib/db/src/index.ts"() {
     "use strict";
@@ -42650,14 +42650,13 @@ var init_src = __esm({
     init_schema2();
     init_schema2();
     ({ Pool: Pool3 } = esm_default);
-    connectionString = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
+    connectionString = process.env.DATABASE_URL;
     if (!connectionString) {
-      throw new Error("SUPABASE_DATABASE_URL or DATABASE_URL environment variable is required.");
+      throw new Error("DATABASE_URL environment variable is required.");
     }
-    isSupabase = connectionString.includes("supabase.com");
     pool = new Pool3({
       connectionString,
-      ssl: isSupabase ? { rejectUnauthorized: false } : false
+      ssl: false
     });
     db = drizzle(pool, { schema: schema_exports });
   }
