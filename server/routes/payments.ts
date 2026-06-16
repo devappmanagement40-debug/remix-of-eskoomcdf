@@ -227,6 +227,52 @@ router.patch("/withdrawals/:id/reject", async (req, res) => {
   return res.json(toSnake(updated));
 });
 
+// POST alias used by RechargePaiement.tsx frontend (was missing — caused "Failed to create deposit record")
+router.post("/payments/recharges", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+
+  let me: Awaited<ReturnType<typeof getProfileFromToken>>;
+  try {
+    me = await getProfileFromToken(token);
+  } catch (dbErr: any) {
+    console.error("[payments/recharges] DB error:", dbErr?.message);
+    return res.status(503).json({ error: "Database unavailable." });
+  }
+  if (!me) return res.status(401).json({ error: "Session expired. Please login again." });
+
+  const body = req.body as Record<string, any>;
+  const amount        = body.amount;
+  const phone         = body.phone        ?? "";
+  const countryCode   = body.countryCode  ?? body.country_code  ?? "";
+  const paymentMethod = body.paymentMethod ?? body.payment_method ?? null;
+  const transactionRef  = body.transactionRef  ?? body.transaction_ref  ?? null;
+  const proofImageUrl   = body.proofImageUrl   ?? body.proof_image_url  ?? null;
+
+  if (!amount) return res.status(400).json({ error: "Amount is required" });
+
+  try {
+    const insertValues: Record<string, any> = {
+      id: crypto.randomUUID(),
+      userId: me.userId,
+      amount: String(amount),
+      status: "pending",
+    };
+    if (phone)          insertValues.phone          = phone;
+    if (countryCode)    insertValues.countryCode    = countryCode;
+    if (paymentMethod)  insertValues.paymentMethod  = paymentMethod;
+    if (transactionRef) insertValues.transactionRef = transactionRef;
+    if (proofImageUrl)  insertValues.proofImageUrl  = proofImageUrl;
+
+    const [recharge] = await db.insert(recharges).values(insertValues as any).returning();
+    return res.json(recharge);
+  } catch (err: any) {
+    console.error("[payments/recharges POST] DB insert error:", err?.message, err?.code);
+    const detail = err?.message || "Unknown database error";
+    return res.status(500).json({ error: `Failed to create deposit: ${detail}` });
+  }
+});
+
 router.get("/payments/withdrawals", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
