@@ -73,7 +73,7 @@ const AdminWheelTab = ({ settings, reload, showSuccess, showError, logAction, ad
       {subTab === "winners" && <WinnersSection spins={spins} reload={() => { loadData(); reload(); }} />}
       {subTab === "settings" && <SettingsSection settings={wheelSettings} financeSettings={financeSettings} reload={reload} showSuccess={showSuccess} />}
       {subTab === "vip_spins" && <VipSpinsSection spins={spins} reload={() => { loadData(); reload(); }} showSuccess={showSuccess} showError={showError} logAction={logAction} adminId={adminId} />}
-      {subTab === "images" && <ImagesSection settings={wheelSettings} reload={reload} showSuccess={showSuccess} showError={showError} />}
+      {subTab === "images" && <ImagesSection settings={settings} reload={reload} showSuccess={showSuccess} showError={showError} />}
     </div>
   );
 };
@@ -310,10 +310,16 @@ const SettingsSection = ({ settings, financeSettings, reload, showSuccess }: any
   const setVal = (key: string, val: string) => setEdits({ ...edits, [key]: val });
 
   const saveAll = async () => {
+    let errors = 0;
     for (const [key, value] of Object.entries(edits)) {
-      await api.patch("/admin/site-settings", { key, value, category: "wheel" }).catch(() => {});
+      try {
+        await api.patch("/admin/site-settings", { key, value, category: "wheel" });
+      } catch {
+        errors++;
+      }
     }
-    showSuccess("Paramètres roue sauvegardés ✅", "");
+    if (errors === 0) showSuccess("Paramètres roue sauvegardés ✅", "");
+    else showError("Erreur sauvegarde", `${errors} paramètre(s) n'ont pas pu être sauvegardés`);
     setEdits({});
     reload();
   };
@@ -458,10 +464,11 @@ const ImagesSection = ({ settings, reload, showSuccess, showError }: any) => {
         body: JSON.stringify({ base64, mimeType: file.type, fileName: file.name, bucket: "site-assets" }),
       });
       const data = await res.json();
-      if (!res.ok) { showError("Erreur upload", data.error || "Échec"); setUploading(null); return; }
+      if (!res.ok) { showError("Erreur upload", data.error || "Échec upload"); setUploading(null); return; }
+      if (!data.url) { showError("Erreur upload", "URL manquante dans la réponse"); setUploading(null); return; }
       const publicUrl = `${data.url}?t=${Date.now()}`;
-      await api.patch("/admin/site-settings", { key, value: publicUrl, category: "wheel" }).catch(() => {});
-      showSuccess("Image uploadée ✅", "");
+      await api.patch("/admin/site-settings", { key, value: publicUrl, category: "general" });
+      showSuccess("Image uploadée ✅", "L'image a bien été enregistrée");
       reload();
     } catch (err: any) {
       showError("Erreur upload", err?.message || "Échec du téléchargement");
@@ -471,9 +478,13 @@ const ImagesSection = ({ settings, reload, showSuccess, showError }: any) => {
   };
 
   const handleRemove = async (key: string) => {
-    await api.patch("/admin/site-settings", { key, value: "", category: "wheel" }).catch(() => {});
-    showSuccess("Image supprimée", "");
-    reload();
+    try {
+      await api.patch("/admin/site-settings", { key, value: "", category: "general" });
+      showSuccess("Image supprimée ✅", "");
+      reload();
+    } catch (err: any) {
+      showError("Erreur suppression", err?.message || "Impossible de supprimer l'image");
+    }
   };
 
   return (
