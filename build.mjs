@@ -37,8 +37,8 @@ async function buildServer() {
   await rm(path.join(distDir, "thread-stream-worker.mjs"), { force: true });
 
   await esbuild({
-    // Bundle from artifacts/api-server/src — the up-to-date backend code
-    entryPoints: [path.resolve(__dirname, "artifacts/api-server/src/index.ts")],
+    // Bundle from server/ — single source of truth for backend (dev + prod)
+    entryPoints: [path.resolve(__dirname, "server/index.ts")],
     platform: "node",
     bundle: true,
     format: "esm",

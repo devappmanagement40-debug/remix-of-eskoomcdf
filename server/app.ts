@@ -9,6 +9,9 @@ import { logger } from "./lib/logger";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app: Express = express();
 
+// Trust Plesk / Nginx / Apache reverse proxy — exposes real client IP and correct protocol
+app.set("trust proxy", 1);
+
 app.use(
   pinoHttp({
     logger,

@@ -166,7 +166,7 @@ var require_common = __commonJS({
     function setup(env2) {
       createDebug.debug = createDebug;
       createDebug.default = createDebug;
-      createDebug.coerce = coerce;
+      createDebug.coerce = coerce2;
       createDebug.disable = disable;
       createDebug.enable = enable;
       createDebug.enabled = enabled;
@@ -321,7 +321,7 @@ var require_common = __commonJS({
         }
         return false;
       }
-      function coerce(val) {
+      function coerce2(val) {
         if (val instanceof Error) {
           return val.stack || val.message;
         }
@@ -18826,7 +18826,7 @@ var require_view = __commonJS({
     "use strict";
     var debug = require_src()("express:view");
     var path3 = __require("node:path");
-    var fs2 = __require("node:fs");
+    var fs = __require("node:fs");
     var dirname = path3.dirname;
     var basename = path3.basename;
     var extname = path3.extname;
@@ -18906,7 +18906,7 @@ var require_view = __commonJS({
     function tryStat(path4) {
       debug('stat "%s"', path4);
       try {
-        return fs2.statSync(path4);
+        return fs.statSync(path4);
       } catch (e) {
         return void 0;
       }
@@ -18919,14 +18919,14 @@ var require_etag = __commonJS({
   "node_modules/.pnpm/etag@1.8.1/node_modules/etag/index.js"(exports, module) {
     "use strict";
     module.exports = etag;
-    var crypto9 = __require("crypto");
+    var crypto10 = __require("crypto");
     var Stats = __require("fs").Stats;
     var toString = Object.prototype.toString;
     function entitytag(entity) {
       if (entity.length === 0) {
         return '"0-2jmj7l5rSw0yVb/vlWAYkK/YBwk"';
       }
-      var hash2 = crypto9.createHash("sha1").update(entity, "utf8").digest("base64").substring(0, 27);
+      var hash2 = crypto10.createHash("sha1").update(entity, "utf8").digest("base64").substring(0, 27);
       var len = typeof entity === "string" ? Buffer.byteLength(entity, "utf8") : entity.length;
       return '"' + len.toString(16) + "-" + hash2 + '"';
     }
@@ -20649,27 +20649,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router13;
+    module.exports = Router14;
     module.exports.Route = Route;
-    function Router13(options) {
-      if (!(this instanceof Router13)) {
-        return new Router13(options);
+    function Router14(options) {
+      if (!(this instanceof Router14)) {
+        return new Router14(options);
       }
       const opts = options || {};
-      function router13(req, res, next) {
-        router13.handle(req, res, next);
+      function router14(req, res, next) {
+        router14.handle(req, res, next);
       }
-      Object.setPrototypeOf(router13, this);
-      router13.caseSensitive = opts.caseSensitive;
-      router13.mergeParams = opts.mergeParams;
-      router13.params = {};
-      router13.strict = opts.strict;
-      router13.stack = [];
-      return router13;
+      Object.setPrototypeOf(router14, this);
+      router14.caseSensitive = opts.caseSensitive;
+      router14.mergeParams = opts.mergeParams;
+      router14.params = {};
+      router14.strict = opts.strict;
+      router14.stack = [];
+      return router14;
     }
-    Router13.prototype = function() {
+    Router14.prototype = function() {
     };
-    Router13.prototype.param = function param(name, fn) {
+    Router14.prototype.param = function param(name, fn) {
       if (!name) {
         throw new TypeError("argument name is required");
       }
@@ -20689,7 +20689,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router13.prototype.handle = function handle(req, res, callback) {
+    Router14.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20816,7 +20816,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router13.prototype.use = function use(handler) {
+    Router14.prototype.use = function use(handler) {
       let offset = 0;
       let path3 = "/";
       if (typeof handler !== "function") {
@@ -20849,7 +20849,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router13.prototype.route = function route(path3) {
+    Router14.prototype.route = function route(path3) {
       const route2 = new Route(path3);
       const layer = new Layer(path3, {
         sensitive: this.caseSensitive,
@@ -20864,7 +20864,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router13.prototype[method] = function(path3) {
+      Router14.prototype[method] = function(path3) {
         const route = this.route(path3);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -21047,13 +21047,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve = __require("node:path").resolve;
     var once = require_once();
-    var Router13 = require_router();
+    var Router14 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router13 = null;
+      var router14 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -21062,13 +21062,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router13 === null) {
-            router13 = new Router13({
+          if (router14 === null) {
+            router14 = new Router14({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router13;
+          return router14;
         }
       });
     };
@@ -21139,15 +21139,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router13 = this.router;
+      var router14 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router13.use(path3, fn2);
+          return router14.use(path3, fn2);
         }
         debug(".use app under %s", path3);
         fn2.mountpath = path3;
         fn2.parent = this;
-        router13.use(path3, function mounted_app(req, res, next) {
+        router14.use(path3, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -22401,17 +22401,17 @@ var require_content_disposition = __commonJS({
 // node_modules/.pnpm/cookie-signature@1.2.2/node_modules/cookie-signature/index.js
 var require_cookie_signature = __commonJS({
   "node_modules/.pnpm/cookie-signature@1.2.2/node_modules/cookie-signature/index.js"(exports) {
-    var crypto9 = __require("crypto");
+    var crypto10 = __require("crypto");
     exports.sign = function(val, secret) {
       if ("string" != typeof val) throw new TypeError("Cookie value must be provided as a string.");
       if (null == secret) throw new TypeError("Secret key must be provided.");
-      return val + "." + crypto9.createHmac("sha256", secret).update(val).digest("base64").replace(/\=+$/, "");
+      return val + "." + crypto10.createHmac("sha256", secret).update(val).digest("base64").replace(/\=+$/, "");
     };
     exports.unsign = function(input, secret) {
       if ("string" != typeof input) throw new TypeError("Signed cookie string must be provided.");
       if (null == secret) throw new TypeError("Secret key must be provided.");
       var tentativeValue = input.slice(0, input.lastIndexOf(".")), expectedInput = exports.sign(tentativeValue, secret), expectedBuffer = Buffer.from(expectedInput), inputBuffer = Buffer.from(input);
-      return expectedBuffer.length === inputBuffer.length && crypto9.timingSafeEqual(expectedBuffer, inputBuffer) ? tentativeValue : false;
+      return expectedBuffer.length === inputBuffer.length && crypto10.timingSafeEqual(expectedBuffer, inputBuffer) ? tentativeValue : false;
     };
   }
 });
@@ -22592,7 +22592,7 @@ var require_send = __commonJS({
     var escapeHtml = require_escape_html();
     var etag = require_etag();
     var fresh = require_fresh();
-    var fs2 = __require("fs");
+    var fs = __require("fs");
     var mime = require_mime_types();
     var ms = require_ms();
     var onFinished = require_on_finished();
@@ -22874,7 +22874,7 @@ var require_send = __commonJS({
       var i = 0;
       var self = this;
       debug('stat "%s"', path4);
-      fs2.stat(path4, function onstat(err, stat) {
+      fs.stat(path4, function onstat(err, stat) {
         var pathEndsWithSep = path4[path4.length - 1] === sep;
         if (err && err.code === "ENOENT" && !extname(path4) && !pathEndsWithSep) {
           return next(err);
@@ -22891,7 +22891,7 @@ var require_send = __commonJS({
         }
         var p = path4 + "." + self._extensions[i++];
         debug('stat "%s"', p);
-        fs2.stat(p, function(err2, stat) {
+        fs.stat(p, function(err2, stat) {
           if (err2) return next(err2);
           if (stat.isDirectory()) return next();
           self.emit("file", p, stat);
@@ -22909,7 +22909,7 @@ var require_send = __commonJS({
         }
         var p = join(path4, self._index[i]);
         debug('stat "%s"', p);
-        fs2.stat(p, function(err2, stat) {
+        fs.stat(p, function(err2, stat) {
           if (err2) return next(err2);
           if (stat.isDirectory()) return next();
           self.emit("file", p, stat);
@@ -22921,7 +22921,7 @@ var require_send = __commonJS({
     SendStream.prototype.stream = function stream(path4, options) {
       var self = this;
       var res = this.res;
-      var stream2 = fs2.createReadStream(path4, options);
+      var stream2 = fs.createReadStream(path4, options);
       this.emit("stream", stream2);
       stream2.pipe(res);
       function cleanup() {
@@ -23720,7 +23720,7 @@ var require_express = __commonJS({
     var EventEmitter = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router13 = require_router();
+    var Router14 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23742,8 +23742,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router13.Route;
-    exports.Router = Router13;
+    exports.Route = Router14.Route;
+    exports.Router = Router14;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -25213,7 +25213,7 @@ var require_atomic_sleep = __commonJS({
 var require_sonic_boom = __commonJS({
   "node_modules/.pnpm/sonic-boom@4.2.1/node_modules/sonic-boom/index.js"(exports, module) {
     "use strict";
-    var fs2 = __require("fs");
+    var fs = __require("fs");
     var EventEmitter = __require("events");
     var inherits = __require("util").inherits;
     var path3 = __require("path");
@@ -25270,27 +25270,27 @@ var require_sonic_boom = __commonJS({
       const mode = sonic.mode;
       if (sonic.sync) {
         try {
-          if (sonic.mkdir) fs2.mkdirSync(path3.dirname(file), { recursive: true });
-          const fd = fs2.openSync(file, flags, mode);
+          if (sonic.mkdir) fs.mkdirSync(path3.dirname(file), { recursive: true });
+          const fd = fs.openSync(file, flags, mode);
           fileOpened(null, fd);
         } catch (err) {
           fileOpened(err);
           throw err;
         }
       } else if (sonic.mkdir) {
-        fs2.mkdir(path3.dirname(file), { recursive: true }, (err) => {
+        fs.mkdir(path3.dirname(file), { recursive: true }, (err) => {
           if (err) return fileOpened(err);
-          fs2.open(file, flags, mode, fileOpened);
+          fs.open(file, flags, mode, fileOpened);
         });
       } else {
-        fs2.open(file, flags, mode, fileOpened);
+        fs.open(file, flags, mode, fileOpened);
       }
     }
     function SonicBoom(opts) {
       if (!(this instanceof SonicBoom)) {
         return new SonicBoom(opts);
       }
-      let { fd, dest, minLength, maxLength, maxWrite, periodicFlush, sync, append = true, mkdir, retryEAGAIN, fsync, contentMode, mode } = opts || {};
+      let { fd, dest, minLength, maxLength, maxWrite, periodicFlush, sync, append = true, mkdir: mkdir2, retryEAGAIN, fsync, contentMode, mode } = opts || {};
       fd = fd || dest;
       this._len = 0;
       this.fd = -1;
@@ -25315,7 +25315,7 @@ var require_sonic_boom = __commonJS({
       this.append = append || false;
       this.mode = mode;
       this.retryEAGAIN = retryEAGAIN || (() => true);
-      this.mkdir = mkdir || false;
+      this.mkdir = mkdir2 || false;
       let fsWriteSync;
       let fsWrite;
       if (contentMode === kContentModeBuffer) {
@@ -25324,8 +25324,8 @@ var require_sonic_boom = __commonJS({
         this.flush = flushBuffer;
         this.flushSync = flushBufferSync;
         this._actualWrite = actualWriteBuffer;
-        fsWriteSync = () => fs2.writeSync(this.fd, this._writingBuf);
-        fsWrite = () => fs2.write(this.fd, this._writingBuf, this.release);
+        fsWriteSync = () => fs.writeSync(this.fd, this._writingBuf);
+        fsWrite = () => fs.write(this.fd, this._writingBuf, this.release);
       } else if (contentMode === void 0 || contentMode === kContentModeUtf8) {
         this._writingBuf = "";
         this.write = write;
@@ -25334,15 +25334,15 @@ var require_sonic_boom = __commonJS({
         this._actualWrite = actualWrite;
         fsWriteSync = () => {
           if (Buffer.isBuffer(this._writingBuf)) {
-            return fs2.writeSync(this.fd, this._writingBuf);
+            return fs.writeSync(this.fd, this._writingBuf);
           }
-          return fs2.writeSync(this.fd, this._writingBuf, "utf8");
+          return fs.writeSync(this.fd, this._writingBuf, "utf8");
         };
         fsWrite = () => {
           if (Buffer.isBuffer(this._writingBuf)) {
-            return fs2.write(this.fd, this._writingBuf, this.release);
+            return fs.write(this.fd, this._writingBuf, this.release);
           }
-          return fs2.write(this.fd, this._writingBuf, "utf8", this.release);
+          return fs.write(this.fd, this._writingBuf, "utf8", this.release);
         };
       } else {
         throw new Error(`SonicBoom supports "${kContentModeUtf8}" and "${kContentModeBuffer}", but passed ${contentMode}`);
@@ -25399,7 +25399,7 @@ var require_sonic_boom = __commonJS({
           }
         }
         if (this._fsync) {
-          fs2.fsyncSync(this.fd);
+          fs.fsyncSync(this.fd);
         }
         const len = this._len;
         if (this._reopening) {
@@ -25513,7 +25513,7 @@ var require_sonic_boom = __commonJS({
       const onDrain = () => {
         if (!this._fsync) {
           try {
-            fs2.fsync(this.fd, (err) => {
+            fs.fsync(this.fd, (err) => {
               this._flushPending = false;
               cb(err);
             });
@@ -25615,7 +25615,7 @@ var require_sonic_boom = __commonJS({
       const fd = this.fd;
       this.once("ready", () => {
         if (fd !== this.fd) {
-          fs2.close(fd, (err) => {
+          fs.close(fd, (err) => {
             if (err) {
               return this.emit("error", err);
             }
@@ -25664,7 +25664,7 @@ var require_sonic_boom = __commonJS({
           buf = this._bufs[0];
         }
         try {
-          const n = Buffer.isBuffer(buf) ? fs2.writeSync(this.fd, buf) : fs2.writeSync(this.fd, buf, "utf8");
+          const n = Buffer.isBuffer(buf) ? fs.writeSync(this.fd, buf) : fs.writeSync(this.fd, buf, "utf8");
           const releasedBufObj = releaseWritingBuf(buf, this._len, n);
           buf = releasedBufObj.writingBuf;
           this._len = releasedBufObj.len;
@@ -25680,7 +25680,7 @@ var require_sonic_boom = __commonJS({
         }
       }
       try {
-        fs2.fsyncSync(this.fd);
+        fs.fsyncSync(this.fd);
       } catch {
       }
     }
@@ -25701,7 +25701,7 @@ var require_sonic_boom = __commonJS({
           buf = mergeBuf(this._bufs[0], this._lens[0]);
         }
         try {
-          const n = fs2.writeSync(this.fd, buf);
+          const n = fs.writeSync(this.fd, buf);
           buf = buf.subarray(n);
           this._len = Math.max(this._len - n, 0);
           if (buf.length <= 0) {
@@ -25729,13 +25729,13 @@ var require_sonic_boom = __commonJS({
       this._writingBuf = this._writingBuf.length ? this._writingBuf : this._bufs.shift() || "";
       if (this.sync) {
         try {
-          const written = Buffer.isBuffer(this._writingBuf) ? fs2.writeSync(this.fd, this._writingBuf) : fs2.writeSync(this.fd, this._writingBuf, "utf8");
+          const written = Buffer.isBuffer(this._writingBuf) ? fs.writeSync(this.fd, this._writingBuf) : fs.writeSync(this.fd, this._writingBuf, "utf8");
           release(null, written);
         } catch (err) {
           release(err);
         }
       } else {
-        fs2.write(this.fd, this._writingBuf, release);
+        fs.write(this.fd, this._writingBuf, release);
       }
     }
     function actualWriteBuffer() {
@@ -25744,7 +25744,7 @@ var require_sonic_boom = __commonJS({
       this._writingBuf = this._writingBuf.length ? this._writingBuf : mergeBuf(this._bufs.shift(), this._lens.shift());
       if (this.sync) {
         try {
-          const written = fs2.writeSync(this.fd, this._writingBuf);
+          const written = fs.writeSync(this.fd, this._writingBuf);
           release(null, written);
         } catch (err) {
           release(err);
@@ -25753,7 +25753,7 @@ var require_sonic_boom = __commonJS({
         if (kCopyBuffer) {
           this._writingBuf = Buffer.from(this._writingBuf);
         }
-        fs2.write(this.fd, this._writingBuf, release);
+        fs.write(this.fd, this._writingBuf, release);
       }
     }
     function actualClose(sonic) {
@@ -25769,12 +25769,12 @@ var require_sonic_boom = __commonJS({
       sonic._lens = [];
       assert(typeof sonic.fd === "number", `sonic.fd must be a number, got ${typeof sonic.fd}`);
       try {
-        fs2.fsync(sonic.fd, closeWrapped);
+        fs.fsync(sonic.fd, closeWrapped);
       } catch {
       }
       function closeWrapped() {
         if (sonic.fd !== 1 && sonic.fd !== 2) {
-          fs2.close(sonic.fd, done);
+          fs.close(sonic.fd, done);
         } else {
           done();
         }
@@ -29977,7 +29977,7 @@ var require_cert_signatures = __commonJS({
 var require_sasl = __commonJS({
   "node_modules/.pnpm/pg@8.20.0/node_modules/pg/lib/crypto/sasl.js"(exports, module) {
     "use strict";
-    var crypto9 = require_utils5();
+    var crypto10 = require_utils5();
     var { signatureAlgorithmHashFromCertificate } = require_cert_signatures();
     function startSession(mechanisms, stream) {
       const candidates = ["SCRAM-SHA-256"];
@@ -29989,7 +29989,7 @@ var require_sasl = __commonJS({
       if (mechanism === "SCRAM-SHA-256-PLUS" && typeof stream.getPeerCertificate !== "function") {
         throw new Error("SASL: Mechanism SCRAM-SHA-256-PLUS requires a certificate");
       }
-      const clientNonce = crypto9.randomBytes(18).toString("base64");
+      const clientNonce = crypto10.randomBytes(18).toString("base64");
       const gs2Header = mechanism === "SCRAM-SHA-256-PLUS" ? "p=tls-server-end-point" : stream ? "y" : "n";
       return {
         mechanism,
@@ -30024,20 +30024,20 @@ var require_sasl = __commonJS({
         const peerCert = stream.getPeerCertificate().raw;
         let hashName = signatureAlgorithmHashFromCertificate(peerCert);
         if (hashName === "MD5" || hashName === "SHA-1") hashName = "SHA-256";
-        const certHash = await crypto9.hashByName(hashName, peerCert);
+        const certHash = await crypto10.hashByName(hashName, peerCert);
         const bindingData = Buffer.concat([Buffer.from("p=tls-server-end-point,,"), Buffer.from(certHash)]);
         channelBinding = bindingData.toString("base64");
       }
       const clientFinalMessageWithoutProof = "c=" + channelBinding + ",r=" + sv.nonce;
       const authMessage = clientFirstMessageBare + "," + serverFirstMessage + "," + clientFinalMessageWithoutProof;
       const saltBytes = Buffer.from(sv.salt, "base64");
-      const saltedPassword = await crypto9.deriveKey(password, saltBytes, sv.iteration);
-      const clientKey = await crypto9.hmacSha256(saltedPassword, "Client Key");
-      const storedKey = await crypto9.sha256(clientKey);
-      const clientSignature = await crypto9.hmacSha256(storedKey, authMessage);
+      const saltedPassword = await crypto10.deriveKey(password, saltBytes, sv.iteration);
+      const clientKey = await crypto10.hmacSha256(saltedPassword, "Client Key");
+      const storedKey = await crypto10.sha256(clientKey);
+      const clientSignature = await crypto10.hmacSha256(storedKey, authMessage);
       const clientProof = xorBuffers(Buffer.from(clientKey), Buffer.from(clientSignature)).toString("base64");
-      const serverKey = await crypto9.hmacSha256(saltedPassword, "Server Key");
-      const serverSignatureBytes = await crypto9.hmacSha256(serverKey, authMessage);
+      const serverKey = await crypto10.hmacSha256(saltedPassword, "Server Key");
+      const serverSignatureBytes = await crypto10.hmacSha256(serverKey, authMessage);
       session.message = "SASLResponse";
       session.serverSignature = Buffer.from(serverSignatureBytes).toString("base64");
       session.response = clientFinalMessageWithoutProof + ",p=" + clientProof;
@@ -30232,15 +30232,15 @@ var require_pg_connection_string = __commonJS({
       if (config.sslcert || config.sslkey || config.sslrootcert || config.sslmode) {
         config.ssl = {};
       }
-      const fs2 = config.sslcert || config.sslkey || config.sslrootcert ? __require("fs") : null;
+      const fs = config.sslcert || config.sslkey || config.sslrootcert ? __require("fs") : null;
       if (config.sslcert) {
-        config.ssl.cert = fs2.readFileSync(config.sslcert).toString();
+        config.ssl.cert = fs.readFileSync(config.sslcert).toString();
       }
       if (config.sslkey) {
-        config.ssl.key = fs2.readFileSync(config.sslkey).toString();
+        config.ssl.key = fs.readFileSync(config.sslkey).toString();
       }
       if (config.sslrootcert) {
-        config.ssl.ca = fs2.readFileSync(config.sslrootcert).toString();
+        config.ssl.ca = fs.readFileSync(config.sslrootcert).toString();
       }
       if (options.useLibpqCompat && config.uselibpqcompat) {
         throw new Error("Both useLibpqCompat and uselibpqcompat are set. Please use only one of them.");
@@ -32177,15 +32177,15 @@ var require_lib4 = __commonJS({
   "node_modules/.pnpm/pgpass@1.0.5/node_modules/pgpass/lib/index.js"(exports, module) {
     "use strict";
     var path3 = __require("path");
-    var fs2 = __require("fs");
+    var fs = __require("fs");
     var helper = require_helper();
     module.exports = function(connInfo, cb) {
       var file = helper.getFileName();
-      fs2.stat(file, function(err, stat) {
+      fs.stat(file, function(err, stat) {
         if (err || !helper.usePgPass(stat, file)) {
           return cb(void 0);
         }
-        var st = fs2.createReadStream(file);
+        var st = fs.createReadStream(file);
         helper.getPassword(connInfo, st, cb);
       });
     };
@@ -32205,7 +32205,7 @@ var require_client = __commonJS({
     var Query2 = require_query();
     var defaults2 = require_defaults();
     var Connection2 = require_connection();
-    var crypto9 = require_utils5();
+    var crypto10 = require_utils5();
     var activeQueryDeprecationNotice = nodeUtils.deprecate(
       () => {
       },
@@ -32440,7 +32440,7 @@ var require_client = __commonJS({
       _handleAuthMD5Password(msg) {
         this._getPassword(async () => {
           try {
-            const hashedPassword = await crypto9.postgresMd5PasswordHash(this.user, this.password, msg.salt);
+            const hashedPassword = await crypto10.postgresMd5PasswordHash(this.user, this.password, msg.salt);
             this.connection.password(hashedPassword);
           } catch (e) {
             this.emit("error", e);
@@ -42086,10 +42086,49 @@ var init_node_postgres = __esm({
   }
 });
 
-// lib/db/src/schema/profiles.ts
-var appRoleEnum, profiles, userRoles, adminPermissions, vipConditions, vipHistory;
-var init_profiles = __esm({
-  "lib/db/src/schema/profiles.ts"() {
+// shared/schema.ts
+var schema_exports = {};
+__export(schema_exports, {
+  adminLogs: () => adminLogs,
+  adminPermissions: () => adminPermissions,
+  appRoleEnum: () => appRoleEnum,
+  banners: () => banners,
+  chatMessages: () => chatMessages,
+  countries: () => countries,
+  faqItems: () => faqItems,
+  giftCodeUses: () => giftCodeUses,
+  giftCodes: () => giftCodes,
+  giftRewards: () => giftRewards,
+  infoItems: () => infoItems,
+  officialDocuments: () => officialDocuments,
+  omnipayCallbacks: () => omnipayCallbacks,
+  paymentApiConfigs: () => paymentApiConfigs,
+  paymentLogs: () => paymentLogs,
+  paymentMethods: () => paymentMethods,
+  pointExchanges: () => pointExchanges,
+  popupMessages: () => popupMessages,
+  productSeries: () => productSeries,
+  products: () => products,
+  profiles: () => profiles,
+  recharges: () => recharges,
+  referralCommissions: () => referralCommissions,
+  siteSettings: () => siteSettings,
+  socialLinks: () => socialLinks,
+  userProducts: () => userProducts,
+  userRoles: () => userRoles,
+  userSessions: () => userSessions,
+  userWallets: () => userWallets,
+  vipConditions: () => vipConditions,
+  vipHistory: () => vipHistory,
+  wheelPrizes: () => wheelPrizes,
+  wheelSpins: () => wheelSpins,
+  withdrawalFeePayments: () => withdrawalFeePayments,
+  withdrawalMethods: () => withdrawalMethods,
+  withdrawals: () => withdrawals
+});
+var appRoleEnum, profiles, userRoles, adminPermissions, vipConditions, vipHistory, userSessions, productSeries, products, userProducts, referralCommissions, countries, paymentApiConfigs, paymentMethods, recharges, userWallets, withdrawalMethods, withdrawals, withdrawalFeePayments, paymentLogs, omnipayCallbacks, siteSettings, socialLinks, officialDocuments, popupMessages, faqItems, banners, infoItems, chatMessages, giftCodes, giftCodeUses, giftRewards, pointExchanges, wheelPrizes, wheelSpins, adminLogs;
+var init_schema2 = __esm({
+  "shared/schema.ts"() {
     "use strict";
     init_pg_core();
     appRoleEnum = pgEnum("app_role", ["admin", "moderator", "user"]);
@@ -42108,6 +42147,7 @@ var init_profiles = __esm({
       vipLevel: integer("vip_level").default(0),
       referralCode: text("referral_code"),
       referredBy: text("referred_by"),
+      email: text("email"),
       passwordHash: text("password_hash"),
       avatarUrl: text("avatar_url"),
       isSuspended: boolean("is_suspended").default(false),
@@ -42149,15 +42189,6 @@ var init_profiles = __esm({
       changedBy: text("changed_by"),
       createdAt: timestamp("created_at").defaultNow()
     });
-  }
-});
-
-// lib/db/src/schema/auth.ts
-var userSessions;
-var init_auth = __esm({
-  "lib/db/src/schema/auth.ts"() {
-    "use strict";
-    init_pg_core();
     userSessions = pgTable("user_sessions", {
       id: text("id").primaryKey().default("gen_random_uuid()"),
       userId: text("user_id").notNull(),
@@ -42165,15 +42196,6 @@ var init_auth = __esm({
       expiresAt: timestamp("expires_at").notNull(),
       createdAt: timestamp("created_at").defaultNow()
     });
-  }
-});
-
-// lib/db/src/schema/products.ts
-var productSeries, products, userProducts, referralCommissions;
-var init_products = __esm({
-  "lib/db/src/schema/products.ts"() {
-    "use strict";
-    init_pg_core();
     productSeries = pgTable("product_series", {
       id: text("id").primaryKey().default("gen_random_uuid()"),
       name: text("name").notNull(),
@@ -42226,15 +42248,6 @@ var init_products = __esm({
       level: text("level").default("L1"),
       createdAt: timestamp("created_at").defaultNow()
     });
-  }
-});
-
-// lib/db/src/schema/payments.ts
-var countries, paymentApiConfigs, paymentMethods, recharges, userWallets, withdrawalMethods, withdrawals, withdrawalFeePayments, paymentLogs, omnipayCallbacks;
-var init_payments = __esm({
-  "lib/db/src/schema/payments.ts"() {
-    "use strict";
-    init_pg_core();
     countries = pgTable("countries", {
       id: text("id").primaryKey().default("gen_random_uuid()"),
       name: text("name").notNull(),
@@ -42282,7 +42295,7 @@ var init_payments = __esm({
       id: text("id").primaryKey().default("gen_random_uuid()"),
       userId: text("user_id").notNull(),
       amount: numeric("amount", { precision: 18, scale: 8 }).notNull(),
-      phone: text("phone"),
+      phone: text("phone").notNull(),
       countryCode: text("country_code").default(""),
       paymentMethod: text("payment_method"),
       transactionRef: text("transaction_ref"),
@@ -42368,15 +42381,6 @@ var init_payments = __esm({
       rawPayload: jsonb("raw_payload"),
       createdAt: timestamp("created_at").defaultNow()
     });
-  }
-});
-
-// lib/db/src/schema/settings.ts
-var siteSettings, socialLinks, officialDocuments, popupMessages, faqItems;
-var init_settings = __esm({
-  "lib/db/src/schema/settings.ts"() {
-    "use strict";
-    init_pg_core();
     siteSettings = pgTable("site_settings", {
       id: text("id").primaryKey().default("gen_random_uuid()"),
       key: text("key").notNull().unique(),
@@ -42425,15 +42429,6 @@ var init_settings = __esm({
       createdAt: timestamp("created_at").defaultNow(),
       updatedAt: timestamp("updated_at").defaultNow()
     });
-  }
-});
-
-// lib/db/src/schema/content.ts
-var banners, infoItems, chatMessages, giftCodes, giftCodeUses, giftRewards, pointExchanges, wheelPrizes, wheelSpins;
-var init_content = __esm({
-  "lib/db/src/schema/content.ts"() {
-    "use strict";
-    init_pg_core();
     banners = pgTable("banners", {
       id: text("id").primaryKey().default("gen_random_uuid()"),
       imageUrl: text("image_url").notNull(),
@@ -42523,15 +42518,6 @@ var init_content = __esm({
       createdAt: timestamp("created_at").defaultNow(),
       updatedAt: timestamp("updated_at").defaultNow()
     });
-  }
-});
-
-// lib/db/src/schema/admin.ts
-var adminLogs;
-var init_admin = __esm({
-  "lib/db/src/schema/admin.ts"() {
-    "use strict";
-    init_pg_core();
     adminLogs = pgTable("admin_logs", {
       id: text("id").primaryKey().default("gen_random_uuid()"),
       adminId: text("admin_id").notNull(),
@@ -42544,62 +42530,9 @@ var init_admin = __esm({
   }
 });
 
-// lib/db/src/schema/index.ts
-var schema_exports = {};
-__export(schema_exports, {
-  adminLogs: () => adminLogs,
-  adminPermissions: () => adminPermissions,
-  appRoleEnum: () => appRoleEnum,
-  banners: () => banners,
-  chatMessages: () => chatMessages,
-  countries: () => countries,
-  faqItems: () => faqItems,
-  giftCodeUses: () => giftCodeUses,
-  giftCodes: () => giftCodes,
-  giftRewards: () => giftRewards,
-  infoItems: () => infoItems,
-  officialDocuments: () => officialDocuments,
-  omnipayCallbacks: () => omnipayCallbacks,
-  paymentApiConfigs: () => paymentApiConfigs,
-  paymentLogs: () => paymentLogs,
-  paymentMethods: () => paymentMethods,
-  pointExchanges: () => pointExchanges,
-  popupMessages: () => popupMessages,
-  productSeries: () => productSeries,
-  products: () => products,
-  profiles: () => profiles,
-  recharges: () => recharges,
-  referralCommissions: () => referralCommissions,
-  siteSettings: () => siteSettings,
-  socialLinks: () => socialLinks,
-  userProducts: () => userProducts,
-  userRoles: () => userRoles,
-  userSessions: () => userSessions,
-  userWallets: () => userWallets,
-  vipConditions: () => vipConditions,
-  vipHistory: () => vipHistory,
-  wheelPrizes: () => wheelPrizes,
-  wheelSpins: () => wheelSpins,
-  withdrawalFeePayments: () => withdrawalFeePayments,
-  withdrawalMethods: () => withdrawalMethods,
-  withdrawals: () => withdrawals
-});
-var init_schema2 = __esm({
-  "lib/db/src/schema/index.ts"() {
-    "use strict";
-    init_profiles();
-    init_auth();
-    init_products();
-    init_payments();
-    init_settings();
-    init_content();
-    init_admin();
-  }
-});
-
-// lib/db/src/index.ts
-var src_exports = {};
-__export(src_exports, {
+// server/db.ts
+var db_exports = {};
+__export(db_exports, {
   adminLogs: () => adminLogs,
   adminPermissions: () => adminPermissions,
   appRoleEnum: () => appRoleEnum,
@@ -42640,8 +42573,9 @@ __export(src_exports, {
   withdrawals: () => withdrawals
 });
 var Pool3, connectionString, isSupabase, pool, db;
-var init_src = __esm({
-  "lib/db/src/index.ts"() {
+var init_db2 = __esm({
+  "server/db.ts"() {
+    "use strict";
     init_node_postgres();
     init_esm();
     init_schema2();
@@ -42651,7 +42585,7 @@ var init_src = __esm({
     if (!connectionString) {
       throw new Error("SUPABASE_DATABASE_URL or DATABASE_URL environment variable is required.");
     }
-    isSupabase = connectionString.includes("supabase.com");
+    isSupabase = connectionString.includes("supabase.com") || connectionString.includes("pooler.supabase");
     pool = new Pool3({
       connectionString,
       ssl: isSupabase ? { rejectUnauthorized: false } : false
@@ -42660,18 +42594,3942 @@ var init_src = __esm({
   }
 });
 
-// artifacts/api-server/src/app.ts
-var import_express13 = __toESM(require_express2(), 1);
+// node_modules/.pnpm/safe-buffer@5.2.1/node_modules/safe-buffer/index.js
+var require_safe_buffer = __commonJS({
+  "node_modules/.pnpm/safe-buffer@5.2.1/node_modules/safe-buffer/index.js"(exports, module) {
+    var buffer = __require("buffer");
+    var Buffer2 = buffer.Buffer;
+    function copyProps(src, dst) {
+      for (var key in src) {
+        dst[key] = src[key];
+      }
+    }
+    if (Buffer2.from && Buffer2.alloc && Buffer2.allocUnsafe && Buffer2.allocUnsafeSlow) {
+      module.exports = buffer;
+    } else {
+      copyProps(buffer, exports);
+      exports.Buffer = SafeBuffer;
+    }
+    function SafeBuffer(arg, encodingOrOffset, length) {
+      return Buffer2(arg, encodingOrOffset, length);
+    }
+    SafeBuffer.prototype = Object.create(Buffer2.prototype);
+    copyProps(Buffer2, SafeBuffer);
+    SafeBuffer.from = function(arg, encodingOrOffset, length) {
+      if (typeof arg === "number") {
+        throw new TypeError("Argument must not be a number");
+      }
+      return Buffer2(arg, encodingOrOffset, length);
+    };
+    SafeBuffer.alloc = function(size, fill, encoding) {
+      if (typeof size !== "number") {
+        throw new TypeError("Argument must be a number");
+      }
+      var buf = Buffer2(size);
+      if (fill !== void 0) {
+        if (typeof encoding === "string") {
+          buf.fill(fill, encoding);
+        } else {
+          buf.fill(fill);
+        }
+      } else {
+        buf.fill(0);
+      }
+      return buf;
+    };
+    SafeBuffer.allocUnsafe = function(size) {
+      if (typeof size !== "number") {
+        throw new TypeError("Argument must be a number");
+      }
+      return Buffer2(size);
+    };
+    SafeBuffer.allocUnsafeSlow = function(size) {
+      if (typeof size !== "number") {
+        throw new TypeError("Argument must be a number");
+      }
+      return buffer.SlowBuffer(size);
+    };
+  }
+});
+
+// node_modules/.pnpm/jws@4.0.1/node_modules/jws/lib/data-stream.js
+var require_data_stream = __commonJS({
+  "node_modules/.pnpm/jws@4.0.1/node_modules/jws/lib/data-stream.js"(exports, module) {
+    var Buffer2 = require_safe_buffer().Buffer;
+    var Stream = __require("stream");
+    var util2 = __require("util");
+    function DataStream(data) {
+      this.buffer = null;
+      this.writable = true;
+      this.readable = true;
+      if (!data) {
+        this.buffer = Buffer2.alloc(0);
+        return this;
+      }
+      if (typeof data.pipe === "function") {
+        this.buffer = Buffer2.alloc(0);
+        data.pipe(this);
+        return this;
+      }
+      if (data.length || typeof data === "object") {
+        this.buffer = data;
+        this.writable = false;
+        process.nextTick(function() {
+          this.emit("end", data);
+          this.readable = false;
+          this.emit("close");
+        }.bind(this));
+        return this;
+      }
+      throw new TypeError("Unexpected data type (" + typeof data + ")");
+    }
+    util2.inherits(DataStream, Stream);
+    DataStream.prototype.write = function write(data) {
+      this.buffer = Buffer2.concat([this.buffer, Buffer2.from(data)]);
+      this.emit("data", data);
+    };
+    DataStream.prototype.end = function end(data) {
+      if (data)
+        this.write(data);
+      this.emit("end", data);
+      this.emit("close");
+      this.writable = false;
+      this.readable = false;
+    };
+    module.exports = DataStream;
+  }
+});
+
+// node_modules/.pnpm/ecdsa-sig-formatter@1.0.11/node_modules/ecdsa-sig-formatter/src/param-bytes-for-alg.js
+var require_param_bytes_for_alg = __commonJS({
+  "node_modules/.pnpm/ecdsa-sig-formatter@1.0.11/node_modules/ecdsa-sig-formatter/src/param-bytes-for-alg.js"(exports, module) {
+    "use strict";
+    function getParamSize(keySize) {
+      var result = (keySize / 8 | 0) + (keySize % 8 === 0 ? 0 : 1);
+      return result;
+    }
+    var paramBytesForAlg = {
+      ES256: getParamSize(256),
+      ES384: getParamSize(384),
+      ES512: getParamSize(521)
+    };
+    function getParamBytesForAlg(alg) {
+      var paramBytes = paramBytesForAlg[alg];
+      if (paramBytes) {
+        return paramBytes;
+      }
+      throw new Error('Unknown algorithm "' + alg + '"');
+    }
+    module.exports = getParamBytesForAlg;
+  }
+});
+
+// node_modules/.pnpm/ecdsa-sig-formatter@1.0.11/node_modules/ecdsa-sig-formatter/src/ecdsa-sig-formatter.js
+var require_ecdsa_sig_formatter = __commonJS({
+  "node_modules/.pnpm/ecdsa-sig-formatter@1.0.11/node_modules/ecdsa-sig-formatter/src/ecdsa-sig-formatter.js"(exports, module) {
+    "use strict";
+    var Buffer2 = require_safe_buffer().Buffer;
+    var getParamBytesForAlg = require_param_bytes_for_alg();
+    var MAX_OCTET = 128;
+    var CLASS_UNIVERSAL = 0;
+    var PRIMITIVE_BIT = 32;
+    var TAG_SEQ = 16;
+    var TAG_INT = 2;
+    var ENCODED_TAG_SEQ = TAG_SEQ | PRIMITIVE_BIT | CLASS_UNIVERSAL << 6;
+    var ENCODED_TAG_INT = TAG_INT | CLASS_UNIVERSAL << 6;
+    function base64Url(base64) {
+      return base64.replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+    }
+    function signatureAsBuffer(signature) {
+      if (Buffer2.isBuffer(signature)) {
+        return signature;
+      } else if ("string" === typeof signature) {
+        return Buffer2.from(signature, "base64");
+      }
+      throw new TypeError("ECDSA signature must be a Base64 string or a Buffer");
+    }
+    function derToJose(signature, alg) {
+      signature = signatureAsBuffer(signature);
+      var paramBytes = getParamBytesForAlg(alg);
+      var maxEncodedParamLength = paramBytes + 1;
+      var inputLength = signature.length;
+      var offset = 0;
+      if (signature[offset++] !== ENCODED_TAG_SEQ) {
+        throw new Error('Could not find expected "seq"');
+      }
+      var seqLength = signature[offset++];
+      if (seqLength === (MAX_OCTET | 1)) {
+        seqLength = signature[offset++];
+      }
+      if (inputLength - offset < seqLength) {
+        throw new Error('"seq" specified length of "' + seqLength + '", only "' + (inputLength - offset) + '" remaining');
+      }
+      if (signature[offset++] !== ENCODED_TAG_INT) {
+        throw new Error('Could not find expected "int" for "r"');
+      }
+      var rLength = signature[offset++];
+      if (inputLength - offset - 2 < rLength) {
+        throw new Error('"r" specified length of "' + rLength + '", only "' + (inputLength - offset - 2) + '" available');
+      }
+      if (maxEncodedParamLength < rLength) {
+        throw new Error('"r" specified length of "' + rLength + '", max of "' + maxEncodedParamLength + '" is acceptable');
+      }
+      var rOffset = offset;
+      offset += rLength;
+      if (signature[offset++] !== ENCODED_TAG_INT) {
+        throw new Error('Could not find expected "int" for "s"');
+      }
+      var sLength = signature[offset++];
+      if (inputLength - offset !== sLength) {
+        throw new Error('"s" specified length of "' + sLength + '", expected "' + (inputLength - offset) + '"');
+      }
+      if (maxEncodedParamLength < sLength) {
+        throw new Error('"s" specified length of "' + sLength + '", max of "' + maxEncodedParamLength + '" is acceptable');
+      }
+      var sOffset = offset;
+      offset += sLength;
+      if (offset !== inputLength) {
+        throw new Error('Expected to consume entire buffer, but "' + (inputLength - offset) + '" bytes remain');
+      }
+      var rPadding = paramBytes - rLength, sPadding = paramBytes - sLength;
+      var dst = Buffer2.allocUnsafe(rPadding + rLength + sPadding + sLength);
+      for (offset = 0; offset < rPadding; ++offset) {
+        dst[offset] = 0;
+      }
+      signature.copy(dst, offset, rOffset + Math.max(-rPadding, 0), rOffset + rLength);
+      offset = paramBytes;
+      for (var o = offset; offset < o + sPadding; ++offset) {
+        dst[offset] = 0;
+      }
+      signature.copy(dst, offset, sOffset + Math.max(-sPadding, 0), sOffset + sLength);
+      dst = dst.toString("base64");
+      dst = base64Url(dst);
+      return dst;
+    }
+    function countPadding(buf, start, stop) {
+      var padding = 0;
+      while (start + padding < stop && buf[start + padding] === 0) {
+        ++padding;
+      }
+      var needsSign = buf[start + padding] >= MAX_OCTET;
+      if (needsSign) {
+        --padding;
+      }
+      return padding;
+    }
+    function joseToDer(signature, alg) {
+      signature = signatureAsBuffer(signature);
+      var paramBytes = getParamBytesForAlg(alg);
+      var signatureBytes = signature.length;
+      if (signatureBytes !== paramBytes * 2) {
+        throw new TypeError('"' + alg + '" signatures must be "' + paramBytes * 2 + '" bytes, saw "' + signatureBytes + '"');
+      }
+      var rPadding = countPadding(signature, 0, paramBytes);
+      var sPadding = countPadding(signature, paramBytes, signature.length);
+      var rLength = paramBytes - rPadding;
+      var sLength = paramBytes - sPadding;
+      var rsBytes = 1 + 1 + rLength + 1 + 1 + sLength;
+      var shortLength = rsBytes < MAX_OCTET;
+      var dst = Buffer2.allocUnsafe((shortLength ? 2 : 3) + rsBytes);
+      var offset = 0;
+      dst[offset++] = ENCODED_TAG_SEQ;
+      if (shortLength) {
+        dst[offset++] = rsBytes;
+      } else {
+        dst[offset++] = MAX_OCTET | 1;
+        dst[offset++] = rsBytes & 255;
+      }
+      dst[offset++] = ENCODED_TAG_INT;
+      dst[offset++] = rLength;
+      if (rPadding < 0) {
+        dst[offset++] = 0;
+        offset += signature.copy(dst, offset, 0, paramBytes);
+      } else {
+        offset += signature.copy(dst, offset, rPadding, paramBytes);
+      }
+      dst[offset++] = ENCODED_TAG_INT;
+      dst[offset++] = sLength;
+      if (sPadding < 0) {
+        dst[offset++] = 0;
+        signature.copy(dst, offset, paramBytes);
+      } else {
+        signature.copy(dst, offset, paramBytes + sPadding);
+      }
+      return dst;
+    }
+    module.exports = {
+      derToJose,
+      joseToDer
+    };
+  }
+});
+
+// node_modules/.pnpm/buffer-equal-constant-time@1.0.1/node_modules/buffer-equal-constant-time/index.js
+var require_buffer_equal_constant_time = __commonJS({
+  "node_modules/.pnpm/buffer-equal-constant-time@1.0.1/node_modules/buffer-equal-constant-time/index.js"(exports, module) {
+    "use strict";
+    var Buffer2 = __require("buffer").Buffer;
+    var SlowBuffer = __require("buffer").SlowBuffer;
+    module.exports = bufferEq;
+    function bufferEq(a, b) {
+      if (!Buffer2.isBuffer(a) || !Buffer2.isBuffer(b)) {
+        return false;
+      }
+      if (a.length !== b.length) {
+        return false;
+      }
+      var c = 0;
+      for (var i = 0; i < a.length; i++) {
+        c |= a[i] ^ b[i];
+      }
+      return c === 0;
+    }
+    bufferEq.install = function() {
+      Buffer2.prototype.equal = SlowBuffer.prototype.equal = function equal(that) {
+        return bufferEq(this, that);
+      };
+    };
+    var origBufEqual = Buffer2.prototype.equal;
+    var origSlowBufEqual = SlowBuffer.prototype.equal;
+    bufferEq.restore = function() {
+      Buffer2.prototype.equal = origBufEqual;
+      SlowBuffer.prototype.equal = origSlowBufEqual;
+    };
+  }
+});
+
+// node_modules/.pnpm/jwa@2.0.1/node_modules/jwa/index.js
+var require_jwa = __commonJS({
+  "node_modules/.pnpm/jwa@2.0.1/node_modules/jwa/index.js"(exports, module) {
+    var Buffer2 = require_safe_buffer().Buffer;
+    var crypto10 = __require("crypto");
+    var formatEcdsa = require_ecdsa_sig_formatter();
+    var util2 = __require("util");
+    var MSG_INVALID_ALGORITHM = '"%s" is not a valid algorithm.\n  Supported algorithms are:\n  "HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "PS256", "PS384", "PS512", "ES256", "ES384", "ES512" and "none".';
+    var MSG_INVALID_SECRET = "secret must be a string or buffer";
+    var MSG_INVALID_VERIFIER_KEY = "key must be a string or a buffer";
+    var MSG_INVALID_SIGNER_KEY = "key must be a string, a buffer or an object";
+    var supportsKeyObjects = typeof crypto10.createPublicKey === "function";
+    if (supportsKeyObjects) {
+      MSG_INVALID_VERIFIER_KEY += " or a KeyObject";
+      MSG_INVALID_SECRET += "or a KeyObject";
+    }
+    function checkIsPublicKey(key) {
+      if (Buffer2.isBuffer(key)) {
+        return;
+      }
+      if (typeof key === "string") {
+        return;
+      }
+      if (!supportsKeyObjects) {
+        throw typeError(MSG_INVALID_VERIFIER_KEY);
+      }
+      if (typeof key !== "object") {
+        throw typeError(MSG_INVALID_VERIFIER_KEY);
+      }
+      if (typeof key.type !== "string") {
+        throw typeError(MSG_INVALID_VERIFIER_KEY);
+      }
+      if (typeof key.asymmetricKeyType !== "string") {
+        throw typeError(MSG_INVALID_VERIFIER_KEY);
+      }
+      if (typeof key.export !== "function") {
+        throw typeError(MSG_INVALID_VERIFIER_KEY);
+      }
+    }
+    function checkIsPrivateKey(key) {
+      if (Buffer2.isBuffer(key)) {
+        return;
+      }
+      if (typeof key === "string") {
+        return;
+      }
+      if (typeof key === "object") {
+        return;
+      }
+      throw typeError(MSG_INVALID_SIGNER_KEY);
+    }
+    function checkIsSecretKey(key) {
+      if (Buffer2.isBuffer(key)) {
+        return;
+      }
+      if (typeof key === "string") {
+        return key;
+      }
+      if (!supportsKeyObjects) {
+        throw typeError(MSG_INVALID_SECRET);
+      }
+      if (typeof key !== "object") {
+        throw typeError(MSG_INVALID_SECRET);
+      }
+      if (key.type !== "secret") {
+        throw typeError(MSG_INVALID_SECRET);
+      }
+      if (typeof key.export !== "function") {
+        throw typeError(MSG_INVALID_SECRET);
+      }
+    }
+    function fromBase64(base64) {
+      return base64.replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+    }
+    function toBase64(base64url) {
+      base64url = base64url.toString();
+      var padding = 4 - base64url.length % 4;
+      if (padding !== 4) {
+        for (var i = 0; i < padding; ++i) {
+          base64url += "=";
+        }
+      }
+      return base64url.replace(/\-/g, "+").replace(/_/g, "/");
+    }
+    function typeError(template) {
+      var args = [].slice.call(arguments, 1);
+      var errMsg = util2.format.bind(util2, template).apply(null, args);
+      return new TypeError(errMsg);
+    }
+    function bufferOrString(obj) {
+      return Buffer2.isBuffer(obj) || typeof obj === "string";
+    }
+    function normalizeInput(thing) {
+      if (!bufferOrString(thing))
+        thing = JSON.stringify(thing);
+      return thing;
+    }
+    function createHmacSigner(bits) {
+      return function sign(thing, secret) {
+        checkIsSecretKey(secret);
+        thing = normalizeInput(thing);
+        var hmac = crypto10.createHmac("sha" + bits, secret);
+        var sig = (hmac.update(thing), hmac.digest("base64"));
+        return fromBase64(sig);
+      };
+    }
+    var bufferEqual;
+    var timingSafeEqual = "timingSafeEqual" in crypto10 ? function timingSafeEqual2(a, b) {
+      if (a.byteLength !== b.byteLength) {
+        return false;
+      }
+      return crypto10.timingSafeEqual(a, b);
+    } : function timingSafeEqual2(a, b) {
+      if (!bufferEqual) {
+        bufferEqual = require_buffer_equal_constant_time();
+      }
+      return bufferEqual(a, b);
+    };
+    function createHmacVerifier(bits) {
+      return function verify(thing, signature, secret) {
+        var computedSig = createHmacSigner(bits)(thing, secret);
+        return timingSafeEqual(Buffer2.from(signature), Buffer2.from(computedSig));
+      };
+    }
+    function createKeySigner(bits) {
+      return function sign(thing, privateKey) {
+        checkIsPrivateKey(privateKey);
+        thing = normalizeInput(thing);
+        var signer = crypto10.createSign("RSA-SHA" + bits);
+        var sig = (signer.update(thing), signer.sign(privateKey, "base64"));
+        return fromBase64(sig);
+      };
+    }
+    function createKeyVerifier(bits) {
+      return function verify(thing, signature, publicKey) {
+        checkIsPublicKey(publicKey);
+        thing = normalizeInput(thing);
+        signature = toBase64(signature);
+        var verifier = crypto10.createVerify("RSA-SHA" + bits);
+        verifier.update(thing);
+        return verifier.verify(publicKey, signature, "base64");
+      };
+    }
+    function createPSSKeySigner(bits) {
+      return function sign(thing, privateKey) {
+        checkIsPrivateKey(privateKey);
+        thing = normalizeInput(thing);
+        var signer = crypto10.createSign("RSA-SHA" + bits);
+        var sig = (signer.update(thing), signer.sign({
+          key: privateKey,
+          padding: crypto10.constants.RSA_PKCS1_PSS_PADDING,
+          saltLength: crypto10.constants.RSA_PSS_SALTLEN_DIGEST
+        }, "base64"));
+        return fromBase64(sig);
+      };
+    }
+    function createPSSKeyVerifier(bits) {
+      return function verify(thing, signature, publicKey) {
+        checkIsPublicKey(publicKey);
+        thing = normalizeInput(thing);
+        signature = toBase64(signature);
+        var verifier = crypto10.createVerify("RSA-SHA" + bits);
+        verifier.update(thing);
+        return verifier.verify({
+          key: publicKey,
+          padding: crypto10.constants.RSA_PKCS1_PSS_PADDING,
+          saltLength: crypto10.constants.RSA_PSS_SALTLEN_DIGEST
+        }, signature, "base64");
+      };
+    }
+    function createECDSASigner(bits) {
+      var inner = createKeySigner(bits);
+      return function sign() {
+        var signature = inner.apply(null, arguments);
+        signature = formatEcdsa.derToJose(signature, "ES" + bits);
+        return signature;
+      };
+    }
+    function createECDSAVerifer(bits) {
+      var inner = createKeyVerifier(bits);
+      return function verify(thing, signature, publicKey) {
+        signature = formatEcdsa.joseToDer(signature, "ES" + bits).toString("base64");
+        var result = inner(thing, signature, publicKey);
+        return result;
+      };
+    }
+    function createNoneSigner() {
+      return function sign() {
+        return "";
+      };
+    }
+    function createNoneVerifier() {
+      return function verify(thing, signature) {
+        return signature === "";
+      };
+    }
+    module.exports = function jwa(algorithm) {
+      var signerFactories = {
+        hs: createHmacSigner,
+        rs: createKeySigner,
+        ps: createPSSKeySigner,
+        es: createECDSASigner,
+        none: createNoneSigner
+      };
+      var verifierFactories = {
+        hs: createHmacVerifier,
+        rs: createKeyVerifier,
+        ps: createPSSKeyVerifier,
+        es: createECDSAVerifer,
+        none: createNoneVerifier
+      };
+      var match = algorithm.match(/^(RS|PS|ES|HS)(256|384|512)$|^(none)$/);
+      if (!match)
+        throw typeError(MSG_INVALID_ALGORITHM, algorithm);
+      var algo = (match[1] || match[3]).toLowerCase();
+      var bits = match[2];
+      return {
+        sign: signerFactories[algo](bits),
+        verify: verifierFactories[algo](bits)
+      };
+    };
+  }
+});
+
+// node_modules/.pnpm/jws@4.0.1/node_modules/jws/lib/tostring.js
+var require_tostring = __commonJS({
+  "node_modules/.pnpm/jws@4.0.1/node_modules/jws/lib/tostring.js"(exports, module) {
+    var Buffer2 = __require("buffer").Buffer;
+    module.exports = function toString(obj) {
+      if (typeof obj === "string")
+        return obj;
+      if (typeof obj === "number" || Buffer2.isBuffer(obj))
+        return obj.toString();
+      return JSON.stringify(obj);
+    };
+  }
+});
+
+// node_modules/.pnpm/jws@4.0.1/node_modules/jws/lib/sign-stream.js
+var require_sign_stream = __commonJS({
+  "node_modules/.pnpm/jws@4.0.1/node_modules/jws/lib/sign-stream.js"(exports, module) {
+    var Buffer2 = require_safe_buffer().Buffer;
+    var DataStream = require_data_stream();
+    var jwa = require_jwa();
+    var Stream = __require("stream");
+    var toString = require_tostring();
+    var util2 = __require("util");
+    function base64url(string, encoding) {
+      return Buffer2.from(string, encoding).toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+    }
+    function jwsSecuredInput(header, payload, encoding) {
+      encoding = encoding || "utf8";
+      var encodedHeader = base64url(toString(header), "binary");
+      var encodedPayload = base64url(toString(payload), encoding);
+      return util2.format("%s.%s", encodedHeader, encodedPayload);
+    }
+    function jwsSign(opts) {
+      var header = opts.header;
+      var payload = opts.payload;
+      var secretOrKey = opts.secret || opts.privateKey;
+      var encoding = opts.encoding;
+      var algo = jwa(header.alg);
+      var securedInput = jwsSecuredInput(header, payload, encoding);
+      var signature = algo.sign(securedInput, secretOrKey);
+      return util2.format("%s.%s", securedInput, signature);
+    }
+    function SignStream(opts) {
+      var secret = opts.secret;
+      secret = secret == null ? opts.privateKey : secret;
+      secret = secret == null ? opts.key : secret;
+      if (/^hs/i.test(opts.header.alg) === true && secret == null) {
+        throw new TypeError("secret must be a string or buffer or a KeyObject");
+      }
+      var secretStream = new DataStream(secret);
+      this.readable = true;
+      this.header = opts.header;
+      this.encoding = opts.encoding;
+      this.secret = this.privateKey = this.key = secretStream;
+      this.payload = new DataStream(opts.payload);
+      this.secret.once("close", function() {
+        if (!this.payload.writable && this.readable)
+          this.sign();
+      }.bind(this));
+      this.payload.once("close", function() {
+        if (!this.secret.writable && this.readable)
+          this.sign();
+      }.bind(this));
+    }
+    util2.inherits(SignStream, Stream);
+    SignStream.prototype.sign = function sign() {
+      try {
+        var signature = jwsSign({
+          header: this.header,
+          payload: this.payload.buffer,
+          secret: this.secret.buffer,
+          encoding: this.encoding
+        });
+        this.emit("done", signature);
+        this.emit("data", signature);
+        this.emit("end");
+        this.readable = false;
+        return signature;
+      } catch (e) {
+        this.readable = false;
+        this.emit("error", e);
+        this.emit("close");
+      }
+    };
+    SignStream.sign = jwsSign;
+    module.exports = SignStream;
+  }
+});
+
+// node_modules/.pnpm/jws@4.0.1/node_modules/jws/lib/verify-stream.js
+var require_verify_stream = __commonJS({
+  "node_modules/.pnpm/jws@4.0.1/node_modules/jws/lib/verify-stream.js"(exports, module) {
+    var Buffer2 = require_safe_buffer().Buffer;
+    var DataStream = require_data_stream();
+    var jwa = require_jwa();
+    var Stream = __require("stream");
+    var toString = require_tostring();
+    var util2 = __require("util");
+    var JWS_REGEX = /^[a-zA-Z0-9\-_]+?\.[a-zA-Z0-9\-_]+?\.([a-zA-Z0-9\-_]+)?$/;
+    function isObject(thing) {
+      return Object.prototype.toString.call(thing) === "[object Object]";
+    }
+    function safeJsonParse(thing) {
+      if (isObject(thing))
+        return thing;
+      try {
+        return JSON.parse(thing);
+      } catch (e) {
+        return void 0;
+      }
+    }
+    function headerFromJWS(jwsSig) {
+      var encodedHeader = jwsSig.split(".", 1)[0];
+      return safeJsonParse(Buffer2.from(encodedHeader, "base64").toString("binary"));
+    }
+    function securedInputFromJWS(jwsSig) {
+      return jwsSig.split(".", 2).join(".");
+    }
+    function signatureFromJWS(jwsSig) {
+      return jwsSig.split(".")[2];
+    }
+    function payloadFromJWS(jwsSig, encoding) {
+      encoding = encoding || "utf8";
+      var payload = jwsSig.split(".")[1];
+      return Buffer2.from(payload, "base64").toString(encoding);
+    }
+    function isValidJws(string) {
+      return JWS_REGEX.test(string) && !!headerFromJWS(string);
+    }
+    function jwsVerify(jwsSig, algorithm, secretOrKey) {
+      if (!algorithm) {
+        var err = new Error("Missing algorithm parameter for jws.verify");
+        err.code = "MISSING_ALGORITHM";
+        throw err;
+      }
+      jwsSig = toString(jwsSig);
+      var signature = signatureFromJWS(jwsSig);
+      var securedInput = securedInputFromJWS(jwsSig);
+      var algo = jwa(algorithm);
+      return algo.verify(securedInput, signature, secretOrKey);
+    }
+    function jwsDecode(jwsSig, opts) {
+      opts = opts || {};
+      jwsSig = toString(jwsSig);
+      if (!isValidJws(jwsSig))
+        return null;
+      var header = headerFromJWS(jwsSig);
+      if (!header)
+        return null;
+      var payload = payloadFromJWS(jwsSig);
+      if (header.typ === "JWT" || opts.json)
+        payload = JSON.parse(payload, opts.encoding);
+      return {
+        header,
+        payload,
+        signature: signatureFromJWS(jwsSig)
+      };
+    }
+    function VerifyStream(opts) {
+      opts = opts || {};
+      var secretOrKey = opts.secret;
+      secretOrKey = secretOrKey == null ? opts.publicKey : secretOrKey;
+      secretOrKey = secretOrKey == null ? opts.key : secretOrKey;
+      if (/^hs/i.test(opts.algorithm) === true && secretOrKey == null) {
+        throw new TypeError("secret must be a string or buffer or a KeyObject");
+      }
+      var secretStream = new DataStream(secretOrKey);
+      this.readable = true;
+      this.algorithm = opts.algorithm;
+      this.encoding = opts.encoding;
+      this.secret = this.publicKey = this.key = secretStream;
+      this.signature = new DataStream(opts.signature);
+      this.secret.once("close", function() {
+        if (!this.signature.writable && this.readable)
+          this.verify();
+      }.bind(this));
+      this.signature.once("close", function() {
+        if (!this.secret.writable && this.readable)
+          this.verify();
+      }.bind(this));
+    }
+    util2.inherits(VerifyStream, Stream);
+    VerifyStream.prototype.verify = function verify() {
+      try {
+        var valid = jwsVerify(this.signature.buffer, this.algorithm, this.key.buffer);
+        var obj = jwsDecode(this.signature.buffer, this.encoding);
+        this.emit("done", valid, obj);
+        this.emit("data", valid);
+        this.emit("end");
+        this.readable = false;
+        return valid;
+      } catch (e) {
+        this.readable = false;
+        this.emit("error", e);
+        this.emit("close");
+      }
+    };
+    VerifyStream.decode = jwsDecode;
+    VerifyStream.isValid = isValidJws;
+    VerifyStream.verify = jwsVerify;
+    module.exports = VerifyStream;
+  }
+});
+
+// node_modules/.pnpm/jws@4.0.1/node_modules/jws/index.js
+var require_jws = __commonJS({
+  "node_modules/.pnpm/jws@4.0.1/node_modules/jws/index.js"(exports) {
+    var SignStream = require_sign_stream();
+    var VerifyStream = require_verify_stream();
+    var ALGORITHMS = [
+      "HS256",
+      "HS384",
+      "HS512",
+      "RS256",
+      "RS384",
+      "RS512",
+      "PS256",
+      "PS384",
+      "PS512",
+      "ES256",
+      "ES384",
+      "ES512"
+    ];
+    exports.ALGORITHMS = ALGORITHMS;
+    exports.sign = SignStream.sign;
+    exports.verify = VerifyStream.verify;
+    exports.decode = VerifyStream.decode;
+    exports.isValid = VerifyStream.isValid;
+    exports.createSign = function createSign(opts) {
+      return new SignStream(opts);
+    };
+    exports.createVerify = function createVerify(opts) {
+      return new VerifyStream(opts);
+    };
+  }
+});
+
+// node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/decode.js
+var require_decode = __commonJS({
+  "node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/decode.js"(exports, module) {
+    var jws = require_jws();
+    module.exports = function(jwt3, options) {
+      options = options || {};
+      var decoded = jws.decode(jwt3, options);
+      if (!decoded) {
+        return null;
+      }
+      var payload = decoded.payload;
+      if (typeof payload === "string") {
+        try {
+          var obj = JSON.parse(payload);
+          if (obj !== null && typeof obj === "object") {
+            payload = obj;
+          }
+        } catch (e) {
+        }
+      }
+      if (options.complete === true) {
+        return {
+          header: decoded.header,
+          payload,
+          signature: decoded.signature
+        };
+      }
+      return payload;
+    };
+  }
+});
+
+// node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/lib/JsonWebTokenError.js
+var require_JsonWebTokenError = __commonJS({
+  "node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/lib/JsonWebTokenError.js"(exports, module) {
+    var JsonWebTokenError = function(message, error) {
+      Error.call(this, message);
+      if (Error.captureStackTrace) {
+        Error.captureStackTrace(this, this.constructor);
+      }
+      this.name = "JsonWebTokenError";
+      this.message = message;
+      if (error) this.inner = error;
+    };
+    JsonWebTokenError.prototype = Object.create(Error.prototype);
+    JsonWebTokenError.prototype.constructor = JsonWebTokenError;
+    module.exports = JsonWebTokenError;
+  }
+});
+
+// node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/lib/NotBeforeError.js
+var require_NotBeforeError = __commonJS({
+  "node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/lib/NotBeforeError.js"(exports, module) {
+    var JsonWebTokenError = require_JsonWebTokenError();
+    var NotBeforeError = function(message, date2) {
+      JsonWebTokenError.call(this, message);
+      this.name = "NotBeforeError";
+      this.date = date2;
+    };
+    NotBeforeError.prototype = Object.create(JsonWebTokenError.prototype);
+    NotBeforeError.prototype.constructor = NotBeforeError;
+    module.exports = NotBeforeError;
+  }
+});
+
+// node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/lib/TokenExpiredError.js
+var require_TokenExpiredError = __commonJS({
+  "node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/lib/TokenExpiredError.js"(exports, module) {
+    var JsonWebTokenError = require_JsonWebTokenError();
+    var TokenExpiredError = function(message, expiredAt) {
+      JsonWebTokenError.call(this, message);
+      this.name = "TokenExpiredError";
+      this.expiredAt = expiredAt;
+    };
+    TokenExpiredError.prototype = Object.create(JsonWebTokenError.prototype);
+    TokenExpiredError.prototype.constructor = TokenExpiredError;
+    module.exports = TokenExpiredError;
+  }
+});
+
+// node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/lib/timespan.js
+var require_timespan = __commonJS({
+  "node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/lib/timespan.js"(exports, module) {
+    var ms = require_ms();
+    module.exports = function(time2, iat) {
+      var timestamp2 = iat || Math.floor(Date.now() / 1e3);
+      if (typeof time2 === "string") {
+        var milliseconds = ms(time2);
+        if (typeof milliseconds === "undefined") {
+          return;
+        }
+        return Math.floor(timestamp2 + milliseconds / 1e3);
+      } else if (typeof time2 === "number") {
+        return timestamp2 + time2;
+      } else {
+        return;
+      }
+    };
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/internal/constants.js
+var require_constants2 = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/internal/constants.js"(exports, module) {
+    "use strict";
+    var SEMVER_SPEC_VERSION = "2.0.0";
+    var MAX_LENGTH = 256;
+    var MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER || /* istanbul ignore next */
+    9007199254740991;
+    var MAX_SAFE_COMPONENT_LENGTH = 16;
+    var MAX_SAFE_BUILD_LENGTH = MAX_LENGTH - 6;
+    var RELEASE_TYPES = [
+      "major",
+      "premajor",
+      "minor",
+      "preminor",
+      "patch",
+      "prepatch",
+      "prerelease"
+    ];
+    module.exports = {
+      MAX_LENGTH,
+      MAX_SAFE_COMPONENT_LENGTH,
+      MAX_SAFE_BUILD_LENGTH,
+      MAX_SAFE_INTEGER,
+      RELEASE_TYPES,
+      SEMVER_SPEC_VERSION,
+      FLAG_INCLUDE_PRERELEASE: 1,
+      FLAG_LOOSE: 2
+    };
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/internal/debug.js
+var require_debug = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/internal/debug.js"(exports, module) {
+    "use strict";
+    var debug = typeof process === "object" && process.env && process.env.NODE_DEBUG && /\bsemver\b/i.test(process.env.NODE_DEBUG) ? (...args) => console.error("SEMVER", ...args) : () => {
+    };
+    module.exports = debug;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/internal/re.js
+var require_re = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/internal/re.js"(exports, module) {
+    "use strict";
+    var {
+      MAX_SAFE_COMPONENT_LENGTH,
+      MAX_SAFE_BUILD_LENGTH,
+      MAX_LENGTH
+    } = require_constants2();
+    var debug = require_debug();
+    exports = module.exports = {};
+    var re = exports.re = [];
+    var safeRe = exports.safeRe = [];
+    var src = exports.src = [];
+    var safeSrc = exports.safeSrc = [];
+    var t = exports.t = {};
+    var R = 0;
+    var LETTERDASHNUMBER = "[a-zA-Z0-9-]";
+    var safeRegexReplacements = [
+      ["\\s", 1],
+      ["\\d", MAX_LENGTH],
+      [LETTERDASHNUMBER, MAX_SAFE_BUILD_LENGTH]
+    ];
+    var makeSafeRegex = (value) => {
+      for (const [token, max] of safeRegexReplacements) {
+        value = value.split(`${token}*`).join(`${token}{0,${max}}`).split(`${token}+`).join(`${token}{1,${max}}`);
+      }
+      return value;
+    };
+    var createToken = (name, value, isGlobal) => {
+      const safe = makeSafeRegex(value);
+      const index = R++;
+      debug(name, index, value);
+      t[name] = index;
+      src[index] = value;
+      safeSrc[index] = safe;
+      re[index] = new RegExp(value, isGlobal ? "g" : void 0);
+      safeRe[index] = new RegExp(safe, isGlobal ? "g" : void 0);
+    };
+    createToken("NUMERICIDENTIFIER", "0|[1-9]\\d*");
+    createToken("NUMERICIDENTIFIERLOOSE", "\\d+");
+    createToken("NONNUMERICIDENTIFIER", `\\d*[a-zA-Z-]${LETTERDASHNUMBER}*`);
+    createToken("MAINVERSION", `(${src[t.NUMERICIDENTIFIER]})\\.(${src[t.NUMERICIDENTIFIER]})\\.(${src[t.NUMERICIDENTIFIER]})`);
+    createToken("MAINVERSIONLOOSE", `(${src[t.NUMERICIDENTIFIERLOOSE]})\\.(${src[t.NUMERICIDENTIFIERLOOSE]})\\.(${src[t.NUMERICIDENTIFIERLOOSE]})`);
+    createToken("PRERELEASEIDENTIFIER", `(?:${src[t.NONNUMERICIDENTIFIER]}|${src[t.NUMERICIDENTIFIER]})`);
+    createToken("PRERELEASEIDENTIFIERLOOSE", `(?:${src[t.NONNUMERICIDENTIFIER]}|${src[t.NUMERICIDENTIFIERLOOSE]})`);
+    createToken("PRERELEASE", `(?:-(${src[t.PRERELEASEIDENTIFIER]}(?:\\.${src[t.PRERELEASEIDENTIFIER]})*))`);
+    createToken("PRERELEASELOOSE", `(?:-?(${src[t.PRERELEASEIDENTIFIERLOOSE]}(?:\\.${src[t.PRERELEASEIDENTIFIERLOOSE]})*))`);
+    createToken("BUILDIDENTIFIER", `${LETTERDASHNUMBER}+`);
+    createToken("BUILD", `(?:\\+(${src[t.BUILDIDENTIFIER]}(?:\\.${src[t.BUILDIDENTIFIER]})*))`);
+    createToken("FULLPLAIN", `v?${src[t.MAINVERSION]}${src[t.PRERELEASE]}?${src[t.BUILD]}?`);
+    createToken("FULL", `^${src[t.FULLPLAIN]}$`);
+    createToken("LOOSEPLAIN", `[v=\\s]*${src[t.MAINVERSIONLOOSE]}${src[t.PRERELEASELOOSE]}?${src[t.BUILD]}?`);
+    createToken("LOOSE", `^${src[t.LOOSEPLAIN]}$`);
+    createToken("GTLT", "((?:<|>)?=?)");
+    createToken("XRANGEIDENTIFIERLOOSE", `${src[t.NUMERICIDENTIFIERLOOSE]}|x|X|\\*`);
+    createToken("XRANGEIDENTIFIER", `${src[t.NUMERICIDENTIFIER]}|x|X|\\*`);
+    createToken("XRANGEPLAIN", `[v=\\s]*(${src[t.XRANGEIDENTIFIER]})(?:\\.(${src[t.XRANGEIDENTIFIER]})(?:\\.(${src[t.XRANGEIDENTIFIER]})(?:${src[t.PRERELEASE]})?${src[t.BUILD]}?)?)?`);
+    createToken("XRANGEPLAINLOOSE", `[v=\\s]*(${src[t.XRANGEIDENTIFIERLOOSE]})(?:\\.(${src[t.XRANGEIDENTIFIERLOOSE]})(?:\\.(${src[t.XRANGEIDENTIFIERLOOSE]})(?:${src[t.PRERELEASELOOSE]})?${src[t.BUILD]}?)?)?`);
+    createToken("XRANGE", `^${src[t.GTLT]}\\s*${src[t.XRANGEPLAIN]}$`);
+    createToken("XRANGELOOSE", `^${src[t.GTLT]}\\s*${src[t.XRANGEPLAINLOOSE]}$`);
+    createToken("COERCEPLAIN", `${"(^|[^\\d])(\\d{1,"}${MAX_SAFE_COMPONENT_LENGTH}})(?:\\.(\\d{1,${MAX_SAFE_COMPONENT_LENGTH}}))?(?:\\.(\\d{1,${MAX_SAFE_COMPONENT_LENGTH}}))?`);
+    createToken("COERCE", `${src[t.COERCEPLAIN]}(?:$|[^\\d])`);
+    createToken("COERCEFULL", src[t.COERCEPLAIN] + `(?:${src[t.PRERELEASE]})?(?:${src[t.BUILD]})?(?:$|[^\\d])`);
+    createToken("COERCERTL", src[t.COERCE], true);
+    createToken("COERCERTLFULL", src[t.COERCEFULL], true);
+    createToken("LONETILDE", "(?:~>?)");
+    createToken("TILDETRIM", `(\\s*)${src[t.LONETILDE]}\\s+`, true);
+    exports.tildeTrimReplace = "$1~";
+    createToken("TILDE", `^${src[t.LONETILDE]}${src[t.XRANGEPLAIN]}$`);
+    createToken("TILDELOOSE", `^${src[t.LONETILDE]}${src[t.XRANGEPLAINLOOSE]}$`);
+    createToken("LONECARET", "(?:\\^)");
+    createToken("CARETTRIM", `(\\s*)${src[t.LONECARET]}\\s+`, true);
+    exports.caretTrimReplace = "$1^";
+    createToken("CARET", `^${src[t.LONECARET]}${src[t.XRANGEPLAIN]}$`);
+    createToken("CARETLOOSE", `^${src[t.LONECARET]}${src[t.XRANGEPLAINLOOSE]}$`);
+    createToken("COMPARATORLOOSE", `^${src[t.GTLT]}\\s*(${src[t.LOOSEPLAIN]})$|^$`);
+    createToken("COMPARATOR", `^${src[t.GTLT]}\\s*(${src[t.FULLPLAIN]})$|^$`);
+    createToken("COMPARATORTRIM", `(\\s*)${src[t.GTLT]}\\s*(${src[t.LOOSEPLAIN]}|${src[t.XRANGEPLAIN]})`, true);
+    exports.comparatorTrimReplace = "$1$2$3";
+    createToken("HYPHENRANGE", `^\\s*(${src[t.XRANGEPLAIN]})\\s+-\\s+(${src[t.XRANGEPLAIN]})\\s*$`);
+    createToken("HYPHENRANGELOOSE", `^\\s*(${src[t.XRANGEPLAINLOOSE]})\\s+-\\s+(${src[t.XRANGEPLAINLOOSE]})\\s*$`);
+    createToken("STAR", "(<|>)?=?\\s*\\*");
+    createToken("GTE0", "^\\s*>=\\s*0\\.0\\.0\\s*$");
+    createToken("GTE0PRE", "^\\s*>=\\s*0\\.0\\.0-0\\s*$");
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/internal/parse-options.js
+var require_parse_options = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/internal/parse-options.js"(exports, module) {
+    "use strict";
+    var looseOption = Object.freeze({ loose: true });
+    var emptyOpts = Object.freeze({});
+    var parseOptions = (options) => {
+      if (!options) {
+        return emptyOpts;
+      }
+      if (typeof options !== "object") {
+        return looseOption;
+      }
+      return options;
+    };
+    module.exports = parseOptions;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/internal/identifiers.js
+var require_identifiers = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/internal/identifiers.js"(exports, module) {
+    "use strict";
+    var numeric2 = /^[0-9]+$/;
+    var compareIdentifiers = (a, b) => {
+      if (typeof a === "number" && typeof b === "number") {
+        return a === b ? 0 : a < b ? -1 : 1;
+      }
+      const anum = numeric2.test(a);
+      const bnum = numeric2.test(b);
+      if (anum && bnum) {
+        a = +a;
+        b = +b;
+      }
+      return a === b ? 0 : anum && !bnum ? -1 : bnum && !anum ? 1 : a < b ? -1 : 1;
+    };
+    var rcompareIdentifiers = (a, b) => compareIdentifiers(b, a);
+    module.exports = {
+      compareIdentifiers,
+      rcompareIdentifiers
+    };
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/classes/semver.js
+var require_semver = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/classes/semver.js"(exports, module) {
+    "use strict";
+    var debug = require_debug();
+    var { MAX_LENGTH, MAX_SAFE_INTEGER } = require_constants2();
+    var { safeRe: re, t } = require_re();
+    var parseOptions = require_parse_options();
+    var { compareIdentifiers } = require_identifiers();
+    var isPrereleaseIdentifier = (prerelease, identifier) => {
+      const identifiers = identifier.split(".");
+      if (identifiers.length > prerelease.length) {
+        return false;
+      }
+      for (let i = 0; i < identifiers.length; i++) {
+        if (compareIdentifiers(prerelease[i], identifiers[i]) !== 0) {
+          return false;
+        }
+      }
+      return true;
+    };
+    var SemVer = class _SemVer {
+      constructor(version2, options) {
+        options = parseOptions(options);
+        if (version2 instanceof _SemVer) {
+          if (version2.loose === !!options.loose && version2.includePrerelease === !!options.includePrerelease) {
+            return version2;
+          } else {
+            version2 = version2.version;
+          }
+        } else if (typeof version2 !== "string") {
+          throw new TypeError(`Invalid version. Must be a string. Got type "${typeof version2}".`);
+        }
+        if (version2.length > MAX_LENGTH) {
+          throw new TypeError(
+            `version is longer than ${MAX_LENGTH} characters`
+          );
+        }
+        debug("SemVer", version2, options);
+        this.options = options;
+        this.loose = !!options.loose;
+        this.includePrerelease = !!options.includePrerelease;
+        const m = version2.trim().match(options.loose ? re[t.LOOSE] : re[t.FULL]);
+        if (!m) {
+          throw new TypeError(`Invalid Version: ${version2}`);
+        }
+        this.raw = version2;
+        this.major = +m[1];
+        this.minor = +m[2];
+        this.patch = +m[3];
+        if (this.major > MAX_SAFE_INTEGER || this.major < 0) {
+          throw new TypeError("Invalid major version");
+        }
+        if (this.minor > MAX_SAFE_INTEGER || this.minor < 0) {
+          throw new TypeError("Invalid minor version");
+        }
+        if (this.patch > MAX_SAFE_INTEGER || this.patch < 0) {
+          throw new TypeError("Invalid patch version");
+        }
+        if (!m[4]) {
+          this.prerelease = [];
+        } else {
+          this.prerelease = m[4].split(".").map((id) => {
+            if (/^[0-9]+$/.test(id)) {
+              const num = +id;
+              if (num >= 0 && num < MAX_SAFE_INTEGER) {
+                return num;
+              }
+            }
+            return id;
+          });
+        }
+        this.build = m[5] ? m[5].split(".") : [];
+        this.format();
+      }
+      format() {
+        this.version = `${this.major}.${this.minor}.${this.patch}`;
+        if (this.prerelease.length) {
+          this.version += `-${this.prerelease.join(".")}`;
+        }
+        return this.version;
+      }
+      toString() {
+        return this.version;
+      }
+      compare(other) {
+        debug("SemVer.compare", this.version, this.options, other);
+        if (!(other instanceof _SemVer)) {
+          if (typeof other === "string" && other === this.version) {
+            return 0;
+          }
+          other = new _SemVer(other, this.options);
+        }
+        if (other.version === this.version) {
+          return 0;
+        }
+        return this.compareMain(other) || this.comparePre(other);
+      }
+      compareMain(other) {
+        if (!(other instanceof _SemVer)) {
+          other = new _SemVer(other, this.options);
+        }
+        if (this.major < other.major) {
+          return -1;
+        }
+        if (this.major > other.major) {
+          return 1;
+        }
+        if (this.minor < other.minor) {
+          return -1;
+        }
+        if (this.minor > other.minor) {
+          return 1;
+        }
+        if (this.patch < other.patch) {
+          return -1;
+        }
+        if (this.patch > other.patch) {
+          return 1;
+        }
+        return 0;
+      }
+      comparePre(other) {
+        if (!(other instanceof _SemVer)) {
+          other = new _SemVer(other, this.options);
+        }
+        if (this.prerelease.length && !other.prerelease.length) {
+          return -1;
+        } else if (!this.prerelease.length && other.prerelease.length) {
+          return 1;
+        } else if (!this.prerelease.length && !other.prerelease.length) {
+          return 0;
+        }
+        let i = 0;
+        do {
+          const a = this.prerelease[i];
+          const b = other.prerelease[i];
+          debug("prerelease compare", i, a, b);
+          if (a === void 0 && b === void 0) {
+            return 0;
+          } else if (b === void 0) {
+            return 1;
+          } else if (a === void 0) {
+            return -1;
+          } else if (a === b) {
+            continue;
+          } else {
+            return compareIdentifiers(a, b);
+          }
+        } while (++i);
+      }
+      compareBuild(other) {
+        if (!(other instanceof _SemVer)) {
+          other = new _SemVer(other, this.options);
+        }
+        let i = 0;
+        do {
+          const a = this.build[i];
+          const b = other.build[i];
+          debug("build compare", i, a, b);
+          if (a === void 0 && b === void 0) {
+            return 0;
+          } else if (b === void 0) {
+            return 1;
+          } else if (a === void 0) {
+            return -1;
+          } else if (a === b) {
+            continue;
+          } else {
+            return compareIdentifiers(a, b);
+          }
+        } while (++i);
+      }
+      // preminor will bump the version up to the next minor release, and immediately
+      // down to pre-release. premajor and prepatch work the same way.
+      inc(release, identifier, identifierBase) {
+        if (release.startsWith("pre")) {
+          if (!identifier && identifierBase === false) {
+            throw new Error("invalid increment argument: identifier is empty");
+          }
+          if (identifier) {
+            const match = `-${identifier}`.match(this.options.loose ? re[t.PRERELEASELOOSE] : re[t.PRERELEASE]);
+            if (!match || match[1] !== identifier) {
+              throw new Error(`invalid identifier: ${identifier}`);
+            }
+          }
+        }
+        switch (release) {
+          case "premajor":
+            this.prerelease.length = 0;
+            this.patch = 0;
+            this.minor = 0;
+            this.major++;
+            this.inc("pre", identifier, identifierBase);
+            break;
+          case "preminor":
+            this.prerelease.length = 0;
+            this.patch = 0;
+            this.minor++;
+            this.inc("pre", identifier, identifierBase);
+            break;
+          case "prepatch":
+            this.prerelease.length = 0;
+            this.inc("patch", identifier, identifierBase);
+            this.inc("pre", identifier, identifierBase);
+            break;
+          // If the input is a non-prerelease version, this acts the same as
+          // prepatch.
+          case "prerelease":
+            if (this.prerelease.length === 0) {
+              this.inc("patch", identifier, identifierBase);
+            }
+            this.inc("pre", identifier, identifierBase);
+            break;
+          case "release":
+            if (this.prerelease.length === 0) {
+              throw new Error(`version ${this.raw} is not a prerelease`);
+            }
+            this.prerelease.length = 0;
+            break;
+          case "major":
+            if (this.minor !== 0 || this.patch !== 0 || this.prerelease.length === 0) {
+              this.major++;
+            }
+            this.minor = 0;
+            this.patch = 0;
+            this.prerelease = [];
+            break;
+          case "minor":
+            if (this.patch !== 0 || this.prerelease.length === 0) {
+              this.minor++;
+            }
+            this.patch = 0;
+            this.prerelease = [];
+            break;
+          case "patch":
+            if (this.prerelease.length === 0) {
+              this.patch++;
+            }
+            this.prerelease = [];
+            break;
+          // This probably shouldn't be used publicly.
+          // 1.0.0 'pre' would become 1.0.0-0 which is the wrong direction.
+          case "pre": {
+            const base = Number(identifierBase) ? 1 : 0;
+            if (this.prerelease.length === 0) {
+              this.prerelease = [base];
+            } else {
+              let i = this.prerelease.length;
+              while (--i >= 0) {
+                if (typeof this.prerelease[i] === "number") {
+                  this.prerelease[i]++;
+                  i = -2;
+                }
+              }
+              if (i === -1) {
+                if (identifier === this.prerelease.join(".") && identifierBase === false) {
+                  throw new Error("invalid increment argument: identifier already exists");
+                }
+                this.prerelease.push(base);
+              }
+            }
+            if (identifier) {
+              let prerelease = [identifier, base];
+              if (identifierBase === false) {
+                prerelease = [identifier];
+              }
+              if (isPrereleaseIdentifier(this.prerelease, identifier)) {
+                const prereleaseBase = this.prerelease[identifier.split(".").length];
+                if (isNaN(prereleaseBase)) {
+                  this.prerelease = prerelease;
+                }
+              } else {
+                this.prerelease = prerelease;
+              }
+            }
+            break;
+          }
+          default:
+            throw new Error(`invalid increment argument: ${release}`);
+        }
+        this.raw = this.format();
+        if (this.build.length) {
+          this.raw += `+${this.build.join(".")}`;
+        }
+        return this;
+      }
+    };
+    module.exports = SemVer;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/parse.js
+var require_parse2 = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/parse.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var parse = (version2, options, throwErrors = false) => {
+      if (version2 instanceof SemVer) {
+        return version2;
+      }
+      try {
+        return new SemVer(version2, options);
+      } catch (er) {
+        if (!throwErrors) {
+          return null;
+        }
+        throw er;
+      }
+    };
+    module.exports = parse;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/valid.js
+var require_valid = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/valid.js"(exports, module) {
+    "use strict";
+    var parse = require_parse2();
+    var valid = (version2, options) => {
+      const v = parse(version2, options);
+      return v ? v.version : null;
+    };
+    module.exports = valid;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/clean.js
+var require_clean = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/clean.js"(exports, module) {
+    "use strict";
+    var parse = require_parse2();
+    var clean = (version2, options) => {
+      const s = parse(version2.trim().replace(/^[=v]+/, ""), options);
+      return s ? s.version : null;
+    };
+    module.exports = clean;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/inc.js
+var require_inc = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/inc.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var inc = (version2, release, options, identifier, identifierBase) => {
+      if (typeof options === "string") {
+        identifierBase = identifier;
+        identifier = options;
+        options = void 0;
+      }
+      try {
+        return new SemVer(
+          version2 instanceof SemVer ? version2.version : version2,
+          options
+        ).inc(release, identifier, identifierBase).version;
+      } catch (er) {
+        return null;
+      }
+    };
+    module.exports = inc;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/diff.js
+var require_diff = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/diff.js"(exports, module) {
+    "use strict";
+    var parse = require_parse2();
+    var diff = (version1, version2) => {
+      const v1 = parse(version1, null, true);
+      const v2 = parse(version2, null, true);
+      const comparison = v1.compare(v2);
+      if (comparison === 0) {
+        return null;
+      }
+      const v1Higher = comparison > 0;
+      const highVersion = v1Higher ? v1 : v2;
+      const lowVersion = v1Higher ? v2 : v1;
+      const highHasPre = !!highVersion.prerelease.length;
+      const lowHasPre = !!lowVersion.prerelease.length;
+      if (lowHasPre && !highHasPre) {
+        if (!lowVersion.patch && !lowVersion.minor) {
+          return "major";
+        }
+        if (lowVersion.compareMain(highVersion) === 0) {
+          if (lowVersion.minor && !lowVersion.patch) {
+            return "minor";
+          }
+          return "patch";
+        }
+      }
+      const prefix = highHasPre ? "pre" : "";
+      if (v1.major !== v2.major) {
+        return prefix + "major";
+      }
+      if (v1.minor !== v2.minor) {
+        return prefix + "minor";
+      }
+      if (v1.patch !== v2.patch) {
+        return prefix + "patch";
+      }
+      return "prerelease";
+    };
+    module.exports = diff;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/major.js
+var require_major = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/major.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var major = (a, loose) => new SemVer(a, loose).major;
+    module.exports = major;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/minor.js
+var require_minor = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/minor.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var minor = (a, loose) => new SemVer(a, loose).minor;
+    module.exports = minor;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/patch.js
+var require_patch = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/patch.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var patch = (a, loose) => new SemVer(a, loose).patch;
+    module.exports = patch;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/prerelease.js
+var require_prerelease = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/prerelease.js"(exports, module) {
+    "use strict";
+    var parse = require_parse2();
+    var prerelease = (version2, options) => {
+      const parsed = parse(version2, options);
+      return parsed && parsed.prerelease.length ? parsed.prerelease : null;
+    };
+    module.exports = prerelease;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/compare.js
+var require_compare = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/compare.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var compare2 = (a, b, loose) => new SemVer(a, loose).compare(new SemVer(b, loose));
+    module.exports = compare2;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/rcompare.js
+var require_rcompare = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/rcompare.js"(exports, module) {
+    "use strict";
+    var compare2 = require_compare();
+    var rcompare = (a, b, loose) => compare2(b, a, loose);
+    module.exports = rcompare;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/compare-loose.js
+var require_compare_loose = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/compare-loose.js"(exports, module) {
+    "use strict";
+    var compare2 = require_compare();
+    var compareLoose = (a, b) => compare2(a, b, true);
+    module.exports = compareLoose;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/compare-build.js
+var require_compare_build = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/compare-build.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var compareBuild = (a, b, loose) => {
+      const versionA = new SemVer(a, loose);
+      const versionB = new SemVer(b, loose);
+      return versionA.compare(versionB) || versionA.compareBuild(versionB);
+    };
+    module.exports = compareBuild;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/sort.js
+var require_sort = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/sort.js"(exports, module) {
+    "use strict";
+    var compareBuild = require_compare_build();
+    var sort = (list, loose) => list.sort((a, b) => compareBuild(a, b, loose));
+    module.exports = sort;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/rsort.js
+var require_rsort = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/rsort.js"(exports, module) {
+    "use strict";
+    var compareBuild = require_compare_build();
+    var rsort = (list, loose) => list.sort((a, b) => compareBuild(b, a, loose));
+    module.exports = rsort;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/gt.js
+var require_gt = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/gt.js"(exports, module) {
+    "use strict";
+    var compare2 = require_compare();
+    var gt2 = (a, b, loose) => compare2(a, b, loose) > 0;
+    module.exports = gt2;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/lt.js
+var require_lt = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/lt.js"(exports, module) {
+    "use strict";
+    var compare2 = require_compare();
+    var lt2 = (a, b, loose) => compare2(a, b, loose) < 0;
+    module.exports = lt2;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/eq.js
+var require_eq = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/eq.js"(exports, module) {
+    "use strict";
+    var compare2 = require_compare();
+    var eq2 = (a, b, loose) => compare2(a, b, loose) === 0;
+    module.exports = eq2;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/neq.js
+var require_neq = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/neq.js"(exports, module) {
+    "use strict";
+    var compare2 = require_compare();
+    var neq = (a, b, loose) => compare2(a, b, loose) !== 0;
+    module.exports = neq;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/gte.js
+var require_gte = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/gte.js"(exports, module) {
+    "use strict";
+    var compare2 = require_compare();
+    var gte2 = (a, b, loose) => compare2(a, b, loose) >= 0;
+    module.exports = gte2;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/lte.js
+var require_lte = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/lte.js"(exports, module) {
+    "use strict";
+    var compare2 = require_compare();
+    var lte2 = (a, b, loose) => compare2(a, b, loose) <= 0;
+    module.exports = lte2;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/cmp.js
+var require_cmp = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/cmp.js"(exports, module) {
+    "use strict";
+    var eq2 = require_eq();
+    var neq = require_neq();
+    var gt2 = require_gt();
+    var gte2 = require_gte();
+    var lt2 = require_lt();
+    var lte2 = require_lte();
+    var cmp = (a, op, b, loose) => {
+      switch (op) {
+        case "===":
+          if (typeof a === "object") {
+            a = a.version;
+          }
+          if (typeof b === "object") {
+            b = b.version;
+          }
+          return a === b;
+        case "!==":
+          if (typeof a === "object") {
+            a = a.version;
+          }
+          if (typeof b === "object") {
+            b = b.version;
+          }
+          return a !== b;
+        case "":
+        case "=":
+        case "==":
+          return eq2(a, b, loose);
+        case "!=":
+          return neq(a, b, loose);
+        case ">":
+          return gt2(a, b, loose);
+        case ">=":
+          return gte2(a, b, loose);
+        case "<":
+          return lt2(a, b, loose);
+        case "<=":
+          return lte2(a, b, loose);
+        default:
+          throw new TypeError(`Invalid operator: ${op}`);
+      }
+    };
+    module.exports = cmp;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/coerce.js
+var require_coerce = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/coerce.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var parse = require_parse2();
+    var { safeRe: re, t } = require_re();
+    var coerce2 = (version2, options) => {
+      if (version2 instanceof SemVer) {
+        return version2;
+      }
+      if (typeof version2 === "number") {
+        version2 = String(version2);
+      }
+      if (typeof version2 !== "string") {
+        return null;
+      }
+      options = options || {};
+      let match = null;
+      if (!options.rtl) {
+        match = version2.match(options.includePrerelease ? re[t.COERCEFULL] : re[t.COERCE]);
+      } else {
+        const coerceRtlRegex = options.includePrerelease ? re[t.COERCERTLFULL] : re[t.COERCERTL];
+        let next;
+        while ((next = coerceRtlRegex.exec(version2)) && (!match || match.index + match[0].length !== version2.length)) {
+          if (!match || next.index + next[0].length !== match.index + match[0].length) {
+            match = next;
+          }
+          coerceRtlRegex.lastIndex = next.index + next[1].length + next[2].length;
+        }
+        coerceRtlRegex.lastIndex = -1;
+      }
+      if (match === null) {
+        return null;
+      }
+      const major = match[2];
+      const minor = match[3] || "0";
+      const patch = match[4] || "0";
+      const prerelease = options.includePrerelease && match[5] ? `-${match[5]}` : "";
+      const build = options.includePrerelease && match[6] ? `+${match[6]}` : "";
+      return parse(`${major}.${minor}.${patch}${prerelease}${build}`, options);
+    };
+    module.exports = coerce2;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/truncate.js
+var require_truncate = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/truncate.js"(exports, module) {
+    "use strict";
+    var parse = require_parse2();
+    var constants = require_constants2();
+    var SemVer = require_semver();
+    var truncate = (version2, truncation, options) => {
+      if (!constants.RELEASE_TYPES.includes(truncation)) {
+        return null;
+      }
+      const clonedVersion = cloneInputVersion(version2, options);
+      return clonedVersion && doTruncation(clonedVersion, truncation);
+    };
+    var cloneInputVersion = (version2, options) => {
+      const versionStringToParse = version2 instanceof SemVer ? version2.version : version2;
+      return parse(versionStringToParse, options);
+    };
+    var doTruncation = (version2, truncation) => {
+      if (isPrerelease(truncation)) {
+        return version2.version;
+      }
+      version2.prerelease = [];
+      switch (truncation) {
+        case "major":
+          version2.minor = 0;
+          version2.patch = 0;
+          break;
+        case "minor":
+          version2.patch = 0;
+          break;
+      }
+      return version2.format();
+    };
+    var isPrerelease = (type) => {
+      return type.startsWith("pre");
+    };
+    module.exports = truncate;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/internal/lrucache.js
+var require_lrucache = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/internal/lrucache.js"(exports, module) {
+    "use strict";
+    var LRUCache = class {
+      constructor() {
+        this.max = 1e3;
+        this.map = /* @__PURE__ */ new Map();
+      }
+      get(key) {
+        const value = this.map.get(key);
+        if (value === void 0) {
+          return void 0;
+        } else {
+          this.map.delete(key);
+          this.map.set(key, value);
+          return value;
+        }
+      }
+      delete(key) {
+        return this.map.delete(key);
+      }
+      set(key, value) {
+        const deleted = this.delete(key);
+        if (!deleted && value !== void 0) {
+          if (this.map.size >= this.max) {
+            const firstKey = this.map.keys().next().value;
+            this.delete(firstKey);
+          }
+          this.map.set(key, value);
+        }
+        return this;
+      }
+    };
+    module.exports = LRUCache;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/classes/range.js
+var require_range2 = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/classes/range.js"(exports, module) {
+    "use strict";
+    var SPACE_CHARACTERS = /\s+/g;
+    var Range = class _Range {
+      constructor(range, options) {
+        options = parseOptions(options);
+        if (range instanceof _Range) {
+          if (range.loose === !!options.loose && range.includePrerelease === !!options.includePrerelease) {
+            return range;
+          } else {
+            return new _Range(range.raw, options);
+          }
+        }
+        if (range instanceof Comparator) {
+          this.raw = range.value;
+          this.set = [[range]];
+          this.formatted = void 0;
+          return this;
+        }
+        this.options = options;
+        this.loose = !!options.loose;
+        this.includePrerelease = !!options.includePrerelease;
+        this.raw = range.trim().replace(SPACE_CHARACTERS, " ");
+        this.set = this.raw.split("||").map((r) => this.parseRange(r.trim())).filter((c) => c.length);
+        if (!this.set.length) {
+          throw new TypeError(`Invalid SemVer Range: ${this.raw}`);
+        }
+        if (this.set.length > 1) {
+          const first = this.set[0];
+          this.set = this.set.filter((c) => !isNullSet(c[0]));
+          if (this.set.length === 0) {
+            this.set = [first];
+          } else if (this.set.length > 1) {
+            for (const c of this.set) {
+              if (c.length === 1 && isAny(c[0])) {
+                this.set = [c];
+                break;
+              }
+            }
+          }
+        }
+        this.formatted = void 0;
+      }
+      get range() {
+        if (this.formatted === void 0) {
+          this.formatted = "";
+          for (let i = 0; i < this.set.length; i++) {
+            if (i > 0) {
+              this.formatted += "||";
+            }
+            const comps = this.set[i];
+            for (let k = 0; k < comps.length; k++) {
+              if (k > 0) {
+                this.formatted += " ";
+              }
+              this.formatted += comps[k].toString().trim();
+            }
+          }
+        }
+        return this.formatted;
+      }
+      format() {
+        return this.range;
+      }
+      toString() {
+        return this.range;
+      }
+      parseRange(range) {
+        range = range.replace(BUILDSTRIPRE, "");
+        const memoOpts = (this.options.includePrerelease && FLAG_INCLUDE_PRERELEASE) | (this.options.loose && FLAG_LOOSE);
+        const memoKey = memoOpts + ":" + range;
+        const cached = cache.get(memoKey);
+        if (cached) {
+          return cached;
+        }
+        const loose = this.options.loose;
+        const hr = loose ? re[t.HYPHENRANGELOOSE] : re[t.HYPHENRANGE];
+        range = range.replace(hr, hyphenReplace(this.options.includePrerelease));
+        debug("hyphen replace", range);
+        range = range.replace(re[t.COMPARATORTRIM], comparatorTrimReplace);
+        debug("comparator trim", range);
+        range = range.replace(re[t.TILDETRIM], tildeTrimReplace);
+        debug("tilde trim", range);
+        range = range.replace(re[t.CARETTRIM], caretTrimReplace);
+        debug("caret trim", range);
+        let rangeList = range.split(" ").map((comp) => parseComparator(comp, this.options)).join(" ").split(/\s+/).map((comp) => replaceGTE0(comp, this.options));
+        if (loose) {
+          rangeList = rangeList.filter((comp) => {
+            debug("loose invalid filter", comp, this.options);
+            return !!comp.match(re[t.COMPARATORLOOSE]);
+          });
+        }
+        debug("range list", rangeList);
+        const rangeMap = /* @__PURE__ */ new Map();
+        const comparators = rangeList.map((comp) => new Comparator(comp, this.options));
+        for (const comp of comparators) {
+          if (isNullSet(comp)) {
+            return [comp];
+          }
+          rangeMap.set(comp.value, comp);
+        }
+        if (rangeMap.size > 1 && rangeMap.has("")) {
+          rangeMap.delete("");
+        }
+        const result = [...rangeMap.values()];
+        cache.set(memoKey, result);
+        return result;
+      }
+      intersects(range, options) {
+        if (!(range instanceof _Range)) {
+          throw new TypeError("a Range is required");
+        }
+        return this.set.some((thisComparators) => {
+          return isSatisfiable(thisComparators, options) && range.set.some((rangeComparators) => {
+            return isSatisfiable(rangeComparators, options) && thisComparators.every((thisComparator) => {
+              return rangeComparators.every((rangeComparator) => {
+                return thisComparator.intersects(rangeComparator, options);
+              });
+            });
+          });
+        });
+      }
+      // if ANY of the sets match ALL of its comparators, then pass
+      test(version2) {
+        if (!version2) {
+          return false;
+        }
+        if (typeof version2 === "string") {
+          try {
+            version2 = new SemVer(version2, this.options);
+          } catch (er) {
+            return false;
+          }
+        }
+        for (let i = 0; i < this.set.length; i++) {
+          if (testSet(this.set[i], version2, this.options)) {
+            return true;
+          }
+        }
+        return false;
+      }
+    };
+    module.exports = Range;
+    var LRU = require_lrucache();
+    var cache = new LRU();
+    var parseOptions = require_parse_options();
+    var Comparator = require_comparator();
+    var debug = require_debug();
+    var SemVer = require_semver();
+    var {
+      safeRe: re,
+      src,
+      t,
+      comparatorTrimReplace,
+      tildeTrimReplace,
+      caretTrimReplace
+    } = require_re();
+    var { FLAG_INCLUDE_PRERELEASE, FLAG_LOOSE } = require_constants2();
+    var BUILDSTRIPRE = new RegExp(src[t.BUILD], "g");
+    var isNullSet = (c) => c.value === "<0.0.0-0";
+    var isAny = (c) => c.value === "";
+    var isSatisfiable = (comparators, options) => {
+      let result = true;
+      const remainingComparators = comparators.slice();
+      let testComparator = remainingComparators.pop();
+      while (result && remainingComparators.length) {
+        result = remainingComparators.every((otherComparator) => {
+          return testComparator.intersects(otherComparator, options);
+        });
+        testComparator = remainingComparators.pop();
+      }
+      return result;
+    };
+    var parseComparator = (comp, options) => {
+      comp = comp.replace(re[t.BUILD], "");
+      debug("comp", comp, options);
+      comp = replaceCarets(comp, options);
+      debug("caret", comp);
+      comp = replaceTildes(comp, options);
+      debug("tildes", comp);
+      comp = replaceXRanges(comp, options);
+      debug("xrange", comp);
+      comp = replaceStars(comp, options);
+      debug("stars", comp);
+      return comp;
+    };
+    var isX = (id) => !id || id.toLowerCase() === "x" || id === "*";
+    var invalidXRangeOrder = (M, m, p) => isX(M) && !isX(m) || isX(m) && p && !isX(p);
+    var replaceTildes = (comp, options) => {
+      return comp.trim().split(/\s+/).map((c) => replaceTilde(c, options)).join(" ");
+    };
+    var replaceTilde = (comp, options) => {
+      const r = options.loose ? re[t.TILDELOOSE] : re[t.TILDE];
+      return comp.replace(r, (_, M, m, p, pr) => {
+        debug("tilde", comp, _, M, m, p, pr);
+        let ret;
+        if (isX(M)) {
+          ret = "";
+        } else if (isX(m)) {
+          ret = `>=${M}.0.0 <${+M + 1}.0.0-0`;
+        } else if (isX(p)) {
+          ret = `>=${M}.${m}.0 <${M}.${+m + 1}.0-0`;
+        } else if (pr) {
+          debug("replaceTilde pr", pr);
+          ret = `>=${M}.${m}.${p}-${pr} <${M}.${+m + 1}.0-0`;
+        } else {
+          ret = `>=${M}.${m}.${p} <${M}.${+m + 1}.0-0`;
+        }
+        debug("tilde return", ret);
+        return ret;
+      });
+    };
+    var replaceCarets = (comp, options) => {
+      return comp.trim().split(/\s+/).map((c) => replaceCaret(c, options)).join(" ");
+    };
+    var replaceCaret = (comp, options) => {
+      debug("caret", comp, options);
+      const r = options.loose ? re[t.CARETLOOSE] : re[t.CARET];
+      const z = options.includePrerelease ? "-0" : "";
+      return comp.replace(r, (_, M, m, p, pr) => {
+        debug("caret", comp, _, M, m, p, pr);
+        let ret;
+        if (isX(M)) {
+          ret = "";
+        } else if (isX(m)) {
+          ret = `>=${M}.0.0${z} <${+M + 1}.0.0-0`;
+        } else if (isX(p)) {
+          if (M === "0") {
+            ret = `>=${M}.${m}.0${z} <${M}.${+m + 1}.0-0`;
+          } else {
+            ret = `>=${M}.${m}.0${z} <${+M + 1}.0.0-0`;
+          }
+        } else if (pr) {
+          debug("replaceCaret pr", pr);
+          if (M === "0") {
+            if (m === "0") {
+              ret = `>=${M}.${m}.${p}-${pr} <${M}.${m}.${+p + 1}-0`;
+            } else {
+              ret = `>=${M}.${m}.${p}-${pr} <${M}.${+m + 1}.0-0`;
+            }
+          } else {
+            ret = `>=${M}.${m}.${p}-${pr} <${+M + 1}.0.0-0`;
+          }
+        } else {
+          debug("no pr");
+          if (M === "0") {
+            if (m === "0") {
+              ret = `>=${M}.${m}.${p} <${M}.${m}.${+p + 1}-0`;
+            } else {
+              ret = `>=${M}.${m}.${p} <${M}.${+m + 1}.0-0`;
+            }
+          } else {
+            ret = `>=${M}.${m}.${p} <${+M + 1}.0.0-0`;
+          }
+        }
+        debug("caret return", ret);
+        return ret;
+      });
+    };
+    var replaceXRanges = (comp, options) => {
+      debug("replaceXRanges", comp, options);
+      return comp.split(/\s+/).map((c) => replaceXRange(c, options)).join(" ");
+    };
+    var replaceXRange = (comp, options) => {
+      comp = comp.trim();
+      const r = options.loose ? re[t.XRANGELOOSE] : re[t.XRANGE];
+      return comp.replace(r, (ret, gtlt, M, m, p, pr) => {
+        debug("xRange", comp, ret, gtlt, M, m, p, pr);
+        if (invalidXRangeOrder(M, m, p)) {
+          return comp;
+        }
+        const xM = isX(M);
+        const xm = xM || isX(m);
+        const xp = xm || isX(p);
+        const anyX = xp;
+        if (gtlt === "=" && anyX) {
+          gtlt = "";
+        }
+        pr = options.includePrerelease ? "-0" : "";
+        if (xM) {
+          if (gtlt === ">" || gtlt === "<") {
+            ret = "<0.0.0-0";
+          } else {
+            ret = "*";
+          }
+        } else if (gtlt && anyX) {
+          if (xm) {
+            m = 0;
+          }
+          p = 0;
+          if (gtlt === ">") {
+            gtlt = ">=";
+            if (xm) {
+              M = +M + 1;
+              m = 0;
+              p = 0;
+            } else {
+              m = +m + 1;
+              p = 0;
+            }
+          } else if (gtlt === "<=") {
+            gtlt = "<";
+            if (xm) {
+              M = +M + 1;
+            } else {
+              m = +m + 1;
+            }
+          }
+          if (gtlt === "<") {
+            pr = "-0";
+          }
+          ret = `${gtlt + M}.${m}.${p}${pr}`;
+        } else if (xm) {
+          ret = `>=${M}.0.0${pr} <${+M + 1}.0.0-0`;
+        } else if (xp) {
+          ret = `>=${M}.${m}.0${pr} <${M}.${+m + 1}.0-0`;
+        }
+        debug("xRange return", ret);
+        return ret;
+      });
+    };
+    var replaceStars = (comp, options) => {
+      debug("replaceStars", comp, options);
+      return comp.trim().replace(re[t.STAR], "");
+    };
+    var replaceGTE0 = (comp, options) => {
+      debug("replaceGTE0", comp, options);
+      return comp.trim().replace(re[options.includePrerelease ? t.GTE0PRE : t.GTE0], "");
+    };
+    var hyphenReplace = (incPr) => ($0, from, fM, fm, fp, fpr, fb, to, tM, tm, tp, tpr) => {
+      if (isX(fM)) {
+        from = "";
+      } else if (isX(fm)) {
+        from = `>=${fM}.0.0${incPr ? "-0" : ""}`;
+      } else if (isX(fp)) {
+        from = `>=${fM}.${fm}.0${incPr ? "-0" : ""}`;
+      } else if (fpr) {
+        from = `>=${from}`;
+      } else {
+        from = `>=${from}${incPr ? "-0" : ""}`;
+      }
+      if (isX(tM)) {
+        to = "";
+      } else if (isX(tm)) {
+        to = `<${+tM + 1}.0.0-0`;
+      } else if (isX(tp)) {
+        to = `<${tM}.${+tm + 1}.0-0`;
+      } else if (tpr) {
+        to = `<=${tM}.${tm}.${tp}-${tpr}`;
+      } else if (incPr) {
+        to = `<${tM}.${tm}.${+tp + 1}-0`;
+      } else {
+        to = `<=${to}`;
+      }
+      return `${from} ${to}`.trim();
+    };
+    var testSet = (set, version2, options) => {
+      for (let i = 0; i < set.length; i++) {
+        if (!set[i].test(version2)) {
+          return false;
+        }
+      }
+      if (version2.prerelease.length && !options.includePrerelease) {
+        for (let i = 0; i < set.length; i++) {
+          debug(set[i].semver);
+          if (set[i].semver === Comparator.ANY) {
+            continue;
+          }
+          if (set[i].semver.prerelease.length > 0) {
+            const allowed = set[i].semver;
+            if (allowed.major === version2.major && allowed.minor === version2.minor && allowed.patch === version2.patch) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+      return true;
+    };
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/classes/comparator.js
+var require_comparator = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/classes/comparator.js"(exports, module) {
+    "use strict";
+    var ANY = /* @__PURE__ */ Symbol("SemVer ANY");
+    var Comparator = class _Comparator {
+      static get ANY() {
+        return ANY;
+      }
+      constructor(comp, options) {
+        options = parseOptions(options);
+        if (comp instanceof _Comparator) {
+          if (comp.loose === !!options.loose) {
+            return comp;
+          } else {
+            comp = comp.value;
+          }
+        }
+        comp = comp.trim().split(/\s+/).join(" ");
+        debug("comparator", comp, options);
+        this.options = options;
+        this.loose = !!options.loose;
+        this.parse(comp);
+        if (this.semver === ANY) {
+          this.value = "";
+        } else {
+          this.value = this.operator + this.semver.version;
+        }
+        debug("comp", this);
+      }
+      parse(comp) {
+        const r = this.options.loose ? re[t.COMPARATORLOOSE] : re[t.COMPARATOR];
+        const m = comp.match(r);
+        if (!m) {
+          throw new TypeError(`Invalid comparator: ${comp}`);
+        }
+        this.operator = m[1] !== void 0 ? m[1] : "";
+        if (this.operator === "=") {
+          this.operator = "";
+        }
+        if (!m[2]) {
+          this.semver = ANY;
+        } else {
+          this.semver = new SemVer(m[2], this.options.loose);
+        }
+      }
+      toString() {
+        return this.value;
+      }
+      test(version2) {
+        debug("Comparator.test", version2, this.options.loose);
+        if (this.semver === ANY || version2 === ANY) {
+          return true;
+        }
+        if (typeof version2 === "string") {
+          try {
+            version2 = new SemVer(version2, this.options);
+          } catch (er) {
+            return false;
+          }
+        }
+        return cmp(version2, this.operator, this.semver, this.options);
+      }
+      intersects(comp, options) {
+        if (!(comp instanceof _Comparator)) {
+          throw new TypeError("a Comparator is required");
+        }
+        if (this.operator === "") {
+          if (this.value === "") {
+            return true;
+          }
+          return new Range(comp.value, options).test(this.value);
+        } else if (comp.operator === "") {
+          if (comp.value === "") {
+            return true;
+          }
+          return new Range(this.value, options).test(comp.semver);
+        }
+        options = parseOptions(options);
+        if (options.includePrerelease && (this.value === "<0.0.0-0" || comp.value === "<0.0.0-0")) {
+          return false;
+        }
+        if (!options.includePrerelease && (this.value.startsWith("<0.0.0") || comp.value.startsWith("<0.0.0"))) {
+          return false;
+        }
+        if (this.operator.startsWith(">") && comp.operator.startsWith(">")) {
+          return true;
+        }
+        if (this.operator.startsWith("<") && comp.operator.startsWith("<")) {
+          return true;
+        }
+        if (this.semver.version === comp.semver.version && this.operator.includes("=") && comp.operator.includes("=")) {
+          return true;
+        }
+        if (cmp(this.semver, "<", comp.semver, options) && this.operator.startsWith(">") && comp.operator.startsWith("<")) {
+          return true;
+        }
+        if (cmp(this.semver, ">", comp.semver, options) && this.operator.startsWith("<") && comp.operator.startsWith(">")) {
+          return true;
+        }
+        return false;
+      }
+    };
+    module.exports = Comparator;
+    var parseOptions = require_parse_options();
+    var { safeRe: re, t } = require_re();
+    var cmp = require_cmp();
+    var debug = require_debug();
+    var SemVer = require_semver();
+    var Range = require_range2();
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/satisfies.js
+var require_satisfies = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/functions/satisfies.js"(exports, module) {
+    "use strict";
+    var Range = require_range2();
+    var satisfies = (version2, range, options) => {
+      try {
+        range = new Range(range, options);
+      } catch (er) {
+        return false;
+      }
+      return range.test(version2);
+    };
+    module.exports = satisfies;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/ranges/to-comparators.js
+var require_to_comparators = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/ranges/to-comparators.js"(exports, module) {
+    "use strict";
+    var Range = require_range2();
+    var toComparators = (range, options) => new Range(range, options).set.map((comp) => comp.map((c) => c.value).join(" ").trim().split(" "));
+    module.exports = toComparators;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/ranges/max-satisfying.js
+var require_max_satisfying = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/ranges/max-satisfying.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var Range = require_range2();
+    var maxSatisfying = (versions, range, options) => {
+      let max = null;
+      let maxSV = null;
+      let rangeObj = null;
+      try {
+        rangeObj = new Range(range, options);
+      } catch (er) {
+        return null;
+      }
+      versions.forEach((v) => {
+        if (rangeObj.test(v)) {
+          if (!max || maxSV.compare(v) === -1) {
+            max = v;
+            maxSV = new SemVer(max, options);
+          }
+        }
+      });
+      return max;
+    };
+    module.exports = maxSatisfying;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/ranges/min-satisfying.js
+var require_min_satisfying = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/ranges/min-satisfying.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var Range = require_range2();
+    var minSatisfying = (versions, range, options) => {
+      let min = null;
+      let minSV = null;
+      let rangeObj = null;
+      try {
+        rangeObj = new Range(range, options);
+      } catch (er) {
+        return null;
+      }
+      versions.forEach((v) => {
+        if (rangeObj.test(v)) {
+          if (!min || minSV.compare(v) === 1) {
+            min = v;
+            minSV = new SemVer(min, options);
+          }
+        }
+      });
+      return min;
+    };
+    module.exports = minSatisfying;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/ranges/min-version.js
+var require_min_version = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/ranges/min-version.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var Range = require_range2();
+    var gt2 = require_gt();
+    var minVersion = (range, loose) => {
+      range = new Range(range, loose);
+      let minver = new SemVer("0.0.0");
+      if (range.test(minver)) {
+        return minver;
+      }
+      minver = new SemVer("0.0.0-0");
+      if (range.test(minver)) {
+        return minver;
+      }
+      minver = null;
+      for (let i = 0; i < range.set.length; ++i) {
+        const comparators = range.set[i];
+        let setMin = null;
+        comparators.forEach((comparator) => {
+          const compver = new SemVer(comparator.semver.version);
+          switch (comparator.operator) {
+            case ">":
+              if (compver.prerelease.length === 0) {
+                compver.patch++;
+              } else {
+                compver.prerelease.push(0);
+              }
+              compver.raw = compver.format();
+            /* fallthrough */
+            case "":
+            case ">=":
+              if (!setMin || gt2(compver, setMin)) {
+                setMin = compver;
+              }
+              break;
+            case "<":
+            case "<=":
+              break;
+            /* istanbul ignore next */
+            default:
+              throw new Error(`Unexpected operation: ${comparator.operator}`);
+          }
+        });
+        if (setMin && (!minver || gt2(minver, setMin))) {
+          minver = setMin;
+        }
+      }
+      if (minver && range.test(minver)) {
+        return minver;
+      }
+      return null;
+    };
+    module.exports = minVersion;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/ranges/valid.js
+var require_valid2 = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/ranges/valid.js"(exports, module) {
+    "use strict";
+    var Range = require_range2();
+    var validRange = (range, options) => {
+      try {
+        return new Range(range, options).range || "*";
+      } catch (er) {
+        return null;
+      }
+    };
+    module.exports = validRange;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/ranges/outside.js
+var require_outside = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/ranges/outside.js"(exports, module) {
+    "use strict";
+    var SemVer = require_semver();
+    var Comparator = require_comparator();
+    var { ANY } = Comparator;
+    var Range = require_range2();
+    var satisfies = require_satisfies();
+    var gt2 = require_gt();
+    var lt2 = require_lt();
+    var lte2 = require_lte();
+    var gte2 = require_gte();
+    var outside = (version2, range, hilo, options) => {
+      version2 = new SemVer(version2, options);
+      range = new Range(range, options);
+      let gtfn, ltefn, ltfn, comp, ecomp;
+      switch (hilo) {
+        case ">":
+          gtfn = gt2;
+          ltefn = lte2;
+          ltfn = lt2;
+          comp = ">";
+          ecomp = ">=";
+          break;
+        case "<":
+          gtfn = lt2;
+          ltefn = gte2;
+          ltfn = gt2;
+          comp = "<";
+          ecomp = "<=";
+          break;
+        default:
+          throw new TypeError('Must provide a hilo val of "<" or ">"');
+      }
+      if (satisfies(version2, range, options)) {
+        return false;
+      }
+      for (let i = 0; i < range.set.length; ++i) {
+        const comparators = range.set[i];
+        let high = null;
+        let low = null;
+        comparators.forEach((comparator) => {
+          if (comparator.semver === ANY) {
+            comparator = new Comparator(">=0.0.0");
+          }
+          high = high || comparator;
+          low = low || comparator;
+          if (gtfn(comparator.semver, high.semver, options)) {
+            high = comparator;
+          } else if (ltfn(comparator.semver, low.semver, options)) {
+            low = comparator;
+          }
+        });
+        if (high.operator === comp || high.operator === ecomp) {
+          return false;
+        }
+        if ((!low.operator || low.operator === comp) && ltefn(version2, low.semver)) {
+          return false;
+        } else if (low.operator === ecomp && ltfn(version2, low.semver)) {
+          return false;
+        }
+      }
+      return true;
+    };
+    module.exports = outside;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/ranges/gtr.js
+var require_gtr = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/ranges/gtr.js"(exports, module) {
+    "use strict";
+    var outside = require_outside();
+    var gtr = (version2, range, options) => outside(version2, range, ">", options);
+    module.exports = gtr;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/ranges/ltr.js
+var require_ltr = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/ranges/ltr.js"(exports, module) {
+    "use strict";
+    var outside = require_outside();
+    var ltr = (version2, range, options) => outside(version2, range, "<", options);
+    module.exports = ltr;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/ranges/intersects.js
+var require_intersects = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/ranges/intersects.js"(exports, module) {
+    "use strict";
+    var Range = require_range2();
+    var intersects = (r1, r2, options) => {
+      r1 = new Range(r1, options);
+      r2 = new Range(r2, options);
+      return r1.intersects(r2, options);
+    };
+    module.exports = intersects;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/ranges/simplify.js
+var require_simplify = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/ranges/simplify.js"(exports, module) {
+    "use strict";
+    var satisfies = require_satisfies();
+    var compare2 = require_compare();
+    module.exports = (versions, range, options) => {
+      const set = [];
+      let first = null;
+      let prev = null;
+      const v = versions.sort((a, b) => compare2(a, b, options));
+      for (const version2 of v) {
+        const included = satisfies(version2, range, options);
+        if (included) {
+          prev = version2;
+          if (!first) {
+            first = version2;
+          }
+        } else {
+          if (prev) {
+            set.push([first, prev]);
+          }
+          prev = null;
+          first = null;
+        }
+      }
+      if (first) {
+        set.push([first, null]);
+      }
+      const ranges = [];
+      for (const [min, max] of set) {
+        if (min === max) {
+          ranges.push(min);
+        } else if (!max && min === v[0]) {
+          ranges.push("*");
+        } else if (!max) {
+          ranges.push(`>=${min}`);
+        } else if (min === v[0]) {
+          ranges.push(`<=${max}`);
+        } else {
+          ranges.push(`${min} - ${max}`);
+        }
+      }
+      const simplified = ranges.join(" || ");
+      const original = typeof range.raw === "string" ? range.raw : String(range);
+      return simplified.length < original.length ? simplified : range;
+    };
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/ranges/subset.js
+var require_subset = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/ranges/subset.js"(exports, module) {
+    "use strict";
+    var Range = require_range2();
+    var Comparator = require_comparator();
+    var { ANY } = Comparator;
+    var satisfies = require_satisfies();
+    var compare2 = require_compare();
+    var subset = (sub, dom, options = {}) => {
+      if (sub === dom) {
+        return true;
+      }
+      sub = new Range(sub, options);
+      dom = new Range(dom, options);
+      let sawNonNull = false;
+      OUTER: for (const simpleSub of sub.set) {
+        for (const simpleDom of dom.set) {
+          const isSub = simpleSubset(simpleSub, simpleDom, options);
+          sawNonNull = sawNonNull || isSub !== null;
+          if (isSub) {
+            continue OUTER;
+          }
+        }
+        if (sawNonNull) {
+          return false;
+        }
+      }
+      return true;
+    };
+    var minimumVersionWithPreRelease = [new Comparator(">=0.0.0-0")];
+    var minimumVersion = [new Comparator(">=0.0.0")];
+    var simpleSubset = (sub, dom, options) => {
+      if (sub === dom) {
+        return true;
+      }
+      if (sub.length === 1 && sub[0].semver === ANY) {
+        if (dom.length === 1 && dom[0].semver === ANY) {
+          return true;
+        } else if (options.includePrerelease) {
+          sub = minimumVersionWithPreRelease;
+        } else {
+          sub = minimumVersion;
+        }
+      }
+      if (dom.length === 1 && dom[0].semver === ANY) {
+        if (options.includePrerelease) {
+          return true;
+        } else {
+          dom = minimumVersion;
+        }
+      }
+      const eqSet = /* @__PURE__ */ new Set();
+      let gt2, lt2;
+      for (const c of sub) {
+        if (c.operator === ">" || c.operator === ">=") {
+          gt2 = higherGT(gt2, c, options);
+        } else if (c.operator === "<" || c.operator === "<=") {
+          lt2 = lowerLT(lt2, c, options);
+        } else {
+          eqSet.add(c.semver);
+        }
+      }
+      if (eqSet.size > 1) {
+        return null;
+      }
+      let gtltComp;
+      if (gt2 && lt2) {
+        gtltComp = compare2(gt2.semver, lt2.semver, options);
+        if (gtltComp > 0) {
+          return null;
+        } else if (gtltComp === 0 && (gt2.operator !== ">=" || lt2.operator !== "<=")) {
+          return null;
+        }
+      }
+      for (const eq2 of eqSet) {
+        if (gt2 && !satisfies(eq2, String(gt2), options)) {
+          return null;
+        }
+        if (lt2 && !satisfies(eq2, String(lt2), options)) {
+          return null;
+        }
+        for (const c of dom) {
+          if (!satisfies(eq2, String(c), options)) {
+            return false;
+          }
+        }
+        return true;
+      }
+      let higher, lower;
+      let hasDomLT, hasDomGT;
+      let needDomLTPre = lt2 && !options.includePrerelease && lt2.semver.prerelease.length ? lt2.semver : false;
+      let needDomGTPre = gt2 && !options.includePrerelease && gt2.semver.prerelease.length ? gt2.semver : false;
+      if (needDomLTPre && needDomLTPre.prerelease.length === 1 && lt2.operator === "<" && needDomLTPre.prerelease[0] === 0) {
+        needDomLTPre = false;
+      }
+      for (const c of dom) {
+        hasDomGT = hasDomGT || c.operator === ">" || c.operator === ">=";
+        hasDomLT = hasDomLT || c.operator === "<" || c.operator === "<=";
+        if (gt2) {
+          if (needDomGTPre) {
+            if (c.semver.prerelease && c.semver.prerelease.length && c.semver.major === needDomGTPre.major && c.semver.minor === needDomGTPre.minor && c.semver.patch === needDomGTPre.patch) {
+              needDomGTPre = false;
+            }
+          }
+          if (c.operator === ">" || c.operator === ">=") {
+            higher = higherGT(gt2, c, options);
+            if (higher === c && higher !== gt2) {
+              return false;
+            }
+          } else if (gt2.operator === ">=" && !c.test(gt2.semver)) {
+            return false;
+          }
+        }
+        if (lt2) {
+          if (needDomLTPre) {
+            if (c.semver.prerelease && c.semver.prerelease.length && c.semver.major === needDomLTPre.major && c.semver.minor === needDomLTPre.minor && c.semver.patch === needDomLTPre.patch) {
+              needDomLTPre = false;
+            }
+          }
+          if (c.operator === "<" || c.operator === "<=") {
+            lower = lowerLT(lt2, c, options);
+            if (lower === c && lower !== lt2) {
+              return false;
+            }
+          } else if (lt2.operator === "<=" && !c.test(lt2.semver)) {
+            return false;
+          }
+        }
+        if (!c.operator && (lt2 || gt2) && gtltComp !== 0) {
+          return false;
+        }
+      }
+      if (gt2 && hasDomLT && !lt2 && gtltComp !== 0) {
+        return false;
+      }
+      if (lt2 && hasDomGT && !gt2 && gtltComp !== 0) {
+        return false;
+      }
+      if (needDomGTPre || needDomLTPre) {
+        return false;
+      }
+      return true;
+    };
+    var higherGT = (a, b, options) => {
+      if (!a) {
+        return b;
+      }
+      const comp = compare2(a.semver, b.semver, options);
+      return comp > 0 ? a : comp < 0 ? b : b.operator === ">" && a.operator === ">=" ? b : a;
+    };
+    var lowerLT = (a, b, options) => {
+      if (!a) {
+        return b;
+      }
+      const comp = compare2(a.semver, b.semver, options);
+      return comp < 0 ? a : comp > 0 ? b : b.operator === "<" && a.operator === "<=" ? b : a;
+    };
+    module.exports = subset;
+  }
+});
+
+// node_modules/.pnpm/semver@7.8.4/node_modules/semver/index.js
+var require_semver2 = __commonJS({
+  "node_modules/.pnpm/semver@7.8.4/node_modules/semver/index.js"(exports, module) {
+    "use strict";
+    var internalRe = require_re();
+    var constants = require_constants2();
+    var SemVer = require_semver();
+    var identifiers = require_identifiers();
+    var parse = require_parse2();
+    var valid = require_valid();
+    var clean = require_clean();
+    var inc = require_inc();
+    var diff = require_diff();
+    var major = require_major();
+    var minor = require_minor();
+    var patch = require_patch();
+    var prerelease = require_prerelease();
+    var compare2 = require_compare();
+    var rcompare = require_rcompare();
+    var compareLoose = require_compare_loose();
+    var compareBuild = require_compare_build();
+    var sort = require_sort();
+    var rsort = require_rsort();
+    var gt2 = require_gt();
+    var lt2 = require_lt();
+    var eq2 = require_eq();
+    var neq = require_neq();
+    var gte2 = require_gte();
+    var lte2 = require_lte();
+    var cmp = require_cmp();
+    var coerce2 = require_coerce();
+    var truncate = require_truncate();
+    var Comparator = require_comparator();
+    var Range = require_range2();
+    var satisfies = require_satisfies();
+    var toComparators = require_to_comparators();
+    var maxSatisfying = require_max_satisfying();
+    var minSatisfying = require_min_satisfying();
+    var minVersion = require_min_version();
+    var validRange = require_valid2();
+    var outside = require_outside();
+    var gtr = require_gtr();
+    var ltr = require_ltr();
+    var intersects = require_intersects();
+    var simplifyRange = require_simplify();
+    var subset = require_subset();
+    module.exports = {
+      parse,
+      valid,
+      clean,
+      inc,
+      diff,
+      major,
+      minor,
+      patch,
+      prerelease,
+      compare: compare2,
+      rcompare,
+      compareLoose,
+      compareBuild,
+      sort,
+      rsort,
+      gt: gt2,
+      lt: lt2,
+      eq: eq2,
+      neq,
+      gte: gte2,
+      lte: lte2,
+      cmp,
+      coerce: coerce2,
+      truncate,
+      Comparator,
+      Range,
+      satisfies,
+      toComparators,
+      maxSatisfying,
+      minSatisfying,
+      minVersion,
+      validRange,
+      outside,
+      gtr,
+      ltr,
+      intersects,
+      simplifyRange,
+      subset,
+      SemVer,
+      re: internalRe.re,
+      src: internalRe.src,
+      tokens: internalRe.t,
+      SEMVER_SPEC_VERSION: constants.SEMVER_SPEC_VERSION,
+      RELEASE_TYPES: constants.RELEASE_TYPES,
+      compareIdentifiers: identifiers.compareIdentifiers,
+      rcompareIdentifiers: identifiers.rcompareIdentifiers
+    };
+  }
+});
+
+// node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/lib/asymmetricKeyDetailsSupported.js
+var require_asymmetricKeyDetailsSupported = __commonJS({
+  "node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/lib/asymmetricKeyDetailsSupported.js"(exports, module) {
+    var semver = require_semver2();
+    module.exports = semver.satisfies(process.version, ">=15.7.0");
+  }
+});
+
+// node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/lib/rsaPssKeyDetailsSupported.js
+var require_rsaPssKeyDetailsSupported = __commonJS({
+  "node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/lib/rsaPssKeyDetailsSupported.js"(exports, module) {
+    var semver = require_semver2();
+    module.exports = semver.satisfies(process.version, ">=16.9.0");
+  }
+});
+
+// node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/lib/validateAsymmetricKey.js
+var require_validateAsymmetricKey = __commonJS({
+  "node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/lib/validateAsymmetricKey.js"(exports, module) {
+    var ASYMMETRIC_KEY_DETAILS_SUPPORTED = require_asymmetricKeyDetailsSupported();
+    var RSA_PSS_KEY_DETAILS_SUPPORTED = require_rsaPssKeyDetailsSupported();
+    var allowedAlgorithmsForKeys = {
+      "ec": ["ES256", "ES384", "ES512"],
+      "rsa": ["RS256", "PS256", "RS384", "PS384", "RS512", "PS512"],
+      "rsa-pss": ["PS256", "PS384", "PS512"]
+    };
+    var allowedCurves = {
+      ES256: "prime256v1",
+      ES384: "secp384r1",
+      ES512: "secp521r1"
+    };
+    module.exports = function(algorithm, key) {
+      if (!algorithm || !key) return;
+      const keyType = key.asymmetricKeyType;
+      if (!keyType) return;
+      const allowedAlgorithms = allowedAlgorithmsForKeys[keyType];
+      if (!allowedAlgorithms) {
+        throw new Error(`Unknown key type "${keyType}".`);
+      }
+      if (!allowedAlgorithms.includes(algorithm)) {
+        throw new Error(`"alg" parameter for "${keyType}" key type must be one of: ${allowedAlgorithms.join(", ")}.`);
+      }
+      if (ASYMMETRIC_KEY_DETAILS_SUPPORTED) {
+        switch (keyType) {
+          case "ec":
+            const keyCurve = key.asymmetricKeyDetails.namedCurve;
+            const allowedCurve = allowedCurves[algorithm];
+            if (keyCurve !== allowedCurve) {
+              throw new Error(`"alg" parameter "${algorithm}" requires curve "${allowedCurve}".`);
+            }
+            break;
+          case "rsa-pss":
+            if (RSA_PSS_KEY_DETAILS_SUPPORTED) {
+              const length = parseInt(algorithm.slice(-3), 10);
+              const { hashAlgorithm, mgf1HashAlgorithm, saltLength } = key.asymmetricKeyDetails;
+              if (hashAlgorithm !== `sha${length}` || mgf1HashAlgorithm !== hashAlgorithm) {
+                throw new Error(`Invalid key for this operation, its RSA-PSS parameters do not meet the requirements of "alg" ${algorithm}.`);
+              }
+              if (saltLength !== void 0 && saltLength > length >> 3) {
+                throw new Error(`Invalid key for this operation, its RSA-PSS parameter saltLength does not meet the requirements of "alg" ${algorithm}.`);
+              }
+            }
+            break;
+        }
+      }
+    };
+  }
+});
+
+// node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/lib/psSupported.js
+var require_psSupported = __commonJS({
+  "node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/lib/psSupported.js"(exports, module) {
+    var semver = require_semver2();
+    module.exports = semver.satisfies(process.version, "^6.12.0 || >=8.0.0");
+  }
+});
+
+// node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/verify.js
+var require_verify = __commonJS({
+  "node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/verify.js"(exports, module) {
+    var JsonWebTokenError = require_JsonWebTokenError();
+    var NotBeforeError = require_NotBeforeError();
+    var TokenExpiredError = require_TokenExpiredError();
+    var decode = require_decode();
+    var timespan = require_timespan();
+    var validateAsymmetricKey = require_validateAsymmetricKey();
+    var PS_SUPPORTED = require_psSupported();
+    var jws = require_jws();
+    var { KeyObject, createSecretKey, createPublicKey } = __require("crypto");
+    var PUB_KEY_ALGS = ["RS256", "RS384", "RS512"];
+    var EC_KEY_ALGS = ["ES256", "ES384", "ES512"];
+    var RSA_KEY_ALGS = ["RS256", "RS384", "RS512"];
+    var HS_ALGS = ["HS256", "HS384", "HS512"];
+    if (PS_SUPPORTED) {
+      PUB_KEY_ALGS.splice(PUB_KEY_ALGS.length, 0, "PS256", "PS384", "PS512");
+      RSA_KEY_ALGS.splice(RSA_KEY_ALGS.length, 0, "PS256", "PS384", "PS512");
+    }
+    module.exports = function(jwtString, secretOrPublicKey, options, callback) {
+      if (typeof options === "function" && !callback) {
+        callback = options;
+        options = {};
+      }
+      if (!options) {
+        options = {};
+      }
+      options = Object.assign({}, options);
+      let done;
+      if (callback) {
+        done = callback;
+      } else {
+        done = function(err, data) {
+          if (err) throw err;
+          return data;
+        };
+      }
+      if (options.clockTimestamp && typeof options.clockTimestamp !== "number") {
+        return done(new JsonWebTokenError("clockTimestamp must be a number"));
+      }
+      if (options.nonce !== void 0 && (typeof options.nonce !== "string" || options.nonce.trim() === "")) {
+        return done(new JsonWebTokenError("nonce must be a non-empty string"));
+      }
+      if (options.allowInvalidAsymmetricKeyTypes !== void 0 && typeof options.allowInvalidAsymmetricKeyTypes !== "boolean") {
+        return done(new JsonWebTokenError("allowInvalidAsymmetricKeyTypes must be a boolean"));
+      }
+      const clockTimestamp = options.clockTimestamp || Math.floor(Date.now() / 1e3);
+      if (!jwtString) {
+        return done(new JsonWebTokenError("jwt must be provided"));
+      }
+      if (typeof jwtString !== "string") {
+        return done(new JsonWebTokenError("jwt must be a string"));
+      }
+      const parts = jwtString.split(".");
+      if (parts.length !== 3) {
+        return done(new JsonWebTokenError("jwt malformed"));
+      }
+      let decodedToken;
+      try {
+        decodedToken = decode(jwtString, { complete: true });
+      } catch (err) {
+        return done(err);
+      }
+      if (!decodedToken) {
+        return done(new JsonWebTokenError("invalid token"));
+      }
+      const header = decodedToken.header;
+      let getSecret;
+      if (typeof secretOrPublicKey === "function") {
+        if (!callback) {
+          return done(new JsonWebTokenError("verify must be called asynchronous if secret or public key is provided as a callback"));
+        }
+        getSecret = secretOrPublicKey;
+      } else {
+        getSecret = function(header2, secretCallback) {
+          return secretCallback(null, secretOrPublicKey);
+        };
+      }
+      return getSecret(header, function(err, secretOrPublicKey2) {
+        if (err) {
+          return done(new JsonWebTokenError("error in secret or public key callback: " + err.message));
+        }
+        const hasSignature = parts[2].trim() !== "";
+        if (!hasSignature && secretOrPublicKey2) {
+          return done(new JsonWebTokenError("jwt signature is required"));
+        }
+        if (hasSignature && !secretOrPublicKey2) {
+          return done(new JsonWebTokenError("secret or public key must be provided"));
+        }
+        if (!hasSignature && !options.algorithms) {
+          return done(new JsonWebTokenError('please specify "none" in "algorithms" to verify unsigned tokens'));
+        }
+        if (secretOrPublicKey2 != null && !(secretOrPublicKey2 instanceof KeyObject)) {
+          try {
+            secretOrPublicKey2 = createPublicKey(secretOrPublicKey2);
+          } catch (_) {
+            try {
+              secretOrPublicKey2 = createSecretKey(typeof secretOrPublicKey2 === "string" ? Buffer.from(secretOrPublicKey2) : secretOrPublicKey2);
+            } catch (_2) {
+              return done(new JsonWebTokenError("secretOrPublicKey is not valid key material"));
+            }
+          }
+        }
+        if (!options.algorithms) {
+          if (secretOrPublicKey2.type === "secret") {
+            options.algorithms = HS_ALGS;
+          } else if (["rsa", "rsa-pss"].includes(secretOrPublicKey2.asymmetricKeyType)) {
+            options.algorithms = RSA_KEY_ALGS;
+          } else if (secretOrPublicKey2.asymmetricKeyType === "ec") {
+            options.algorithms = EC_KEY_ALGS;
+          } else {
+            options.algorithms = PUB_KEY_ALGS;
+          }
+        }
+        if (options.algorithms.indexOf(decodedToken.header.alg) === -1) {
+          return done(new JsonWebTokenError("invalid algorithm"));
+        }
+        if (header.alg.startsWith("HS") && secretOrPublicKey2.type !== "secret") {
+          return done(new JsonWebTokenError(`secretOrPublicKey must be a symmetric key when using ${header.alg}`));
+        } else if (/^(?:RS|PS|ES)/.test(header.alg) && secretOrPublicKey2.type !== "public") {
+          return done(new JsonWebTokenError(`secretOrPublicKey must be an asymmetric key when using ${header.alg}`));
+        }
+        if (!options.allowInvalidAsymmetricKeyTypes) {
+          try {
+            validateAsymmetricKey(header.alg, secretOrPublicKey2);
+          } catch (e) {
+            return done(e);
+          }
+        }
+        let valid;
+        try {
+          valid = jws.verify(jwtString, decodedToken.header.alg, secretOrPublicKey2);
+        } catch (e) {
+          return done(e);
+        }
+        if (!valid) {
+          return done(new JsonWebTokenError("invalid signature"));
+        }
+        const payload = decodedToken.payload;
+        if (typeof payload.nbf !== "undefined" && !options.ignoreNotBefore) {
+          if (typeof payload.nbf !== "number") {
+            return done(new JsonWebTokenError("invalid nbf value"));
+          }
+          if (payload.nbf > clockTimestamp + (options.clockTolerance || 0)) {
+            return done(new NotBeforeError("jwt not active", new Date(payload.nbf * 1e3)));
+          }
+        }
+        if (typeof payload.exp !== "undefined" && !options.ignoreExpiration) {
+          if (typeof payload.exp !== "number") {
+            return done(new JsonWebTokenError("invalid exp value"));
+          }
+          if (clockTimestamp >= payload.exp + (options.clockTolerance || 0)) {
+            return done(new TokenExpiredError("jwt expired", new Date(payload.exp * 1e3)));
+          }
+        }
+        if (options.audience) {
+          const audiences = Array.isArray(options.audience) ? options.audience : [options.audience];
+          const target = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
+          const match = target.some(function(targetAudience) {
+            return audiences.some(function(audience) {
+              return audience instanceof RegExp ? audience.test(targetAudience) : audience === targetAudience;
+            });
+          });
+          if (!match) {
+            return done(new JsonWebTokenError("jwt audience invalid. expected: " + audiences.join(" or ")));
+          }
+        }
+        if (options.issuer) {
+          const invalid_issuer = typeof options.issuer === "string" && payload.iss !== options.issuer || Array.isArray(options.issuer) && options.issuer.indexOf(payload.iss) === -1;
+          if (invalid_issuer) {
+            return done(new JsonWebTokenError("jwt issuer invalid. expected: " + options.issuer));
+          }
+        }
+        if (options.subject) {
+          if (payload.sub !== options.subject) {
+            return done(new JsonWebTokenError("jwt subject invalid. expected: " + options.subject));
+          }
+        }
+        if (options.jwtid) {
+          if (payload.jti !== options.jwtid) {
+            return done(new JsonWebTokenError("jwt jwtid invalid. expected: " + options.jwtid));
+          }
+        }
+        if (options.nonce) {
+          if (payload.nonce !== options.nonce) {
+            return done(new JsonWebTokenError("jwt nonce invalid. expected: " + options.nonce));
+          }
+        }
+        if (options.maxAge) {
+          if (typeof payload.iat !== "number") {
+            return done(new JsonWebTokenError("iat required when maxAge is specified"));
+          }
+          const maxAgeTimestamp = timespan(options.maxAge, payload.iat);
+          if (typeof maxAgeTimestamp === "undefined") {
+            return done(new JsonWebTokenError('"maxAge" should be a number of seconds or string representing a timespan eg: "1d", "20h", 60'));
+          }
+          if (clockTimestamp >= maxAgeTimestamp + (options.clockTolerance || 0)) {
+            return done(new TokenExpiredError("maxAge exceeded", new Date(maxAgeTimestamp * 1e3)));
+          }
+        }
+        if (options.complete === true) {
+          const signature = decodedToken.signature;
+          return done(null, {
+            header,
+            payload,
+            signature
+          });
+        }
+        return done(null, payload);
+      });
+    };
+  }
+});
+
+// node_modules/.pnpm/lodash.includes@4.3.0/node_modules/lodash.includes/index.js
+var require_lodash = __commonJS({
+  "node_modules/.pnpm/lodash.includes@4.3.0/node_modules/lodash.includes/index.js"(exports, module) {
+    var INFINITY = 1 / 0;
+    var MAX_SAFE_INTEGER = 9007199254740991;
+    var MAX_INTEGER = 17976931348623157e292;
+    var NAN = 0 / 0;
+    var argsTag = "[object Arguments]";
+    var funcTag = "[object Function]";
+    var genTag = "[object GeneratorFunction]";
+    var stringTag = "[object String]";
+    var symbolTag = "[object Symbol]";
+    var reTrim = /^\s+|\s+$/g;
+    var reIsBadHex = /^[-+]0x[0-9a-f]+$/i;
+    var reIsBinary = /^0b[01]+$/i;
+    var reIsOctal = /^0o[0-7]+$/i;
+    var reIsUint = /^(?:0|[1-9]\d*)$/;
+    var freeParseInt = parseInt;
+    function arrayMap(array, iteratee) {
+      var index = -1, length = array ? array.length : 0, result = Array(length);
+      while (++index < length) {
+        result[index] = iteratee(array[index], index, array);
+      }
+      return result;
+    }
+    function baseFindIndex(array, predicate, fromIndex, fromRight) {
+      var length = array.length, index = fromIndex + (fromRight ? 1 : -1);
+      while (fromRight ? index-- : ++index < length) {
+        if (predicate(array[index], index, array)) {
+          return index;
+        }
+      }
+      return -1;
+    }
+    function baseIndexOf(array, value, fromIndex) {
+      if (value !== value) {
+        return baseFindIndex(array, baseIsNaN, fromIndex);
+      }
+      var index = fromIndex - 1, length = array.length;
+      while (++index < length) {
+        if (array[index] === value) {
+          return index;
+        }
+      }
+      return -1;
+    }
+    function baseIsNaN(value) {
+      return value !== value;
+    }
+    function baseTimes(n, iteratee) {
+      var index = -1, result = Array(n);
+      while (++index < n) {
+        result[index] = iteratee(index);
+      }
+      return result;
+    }
+    function baseValues(object, props) {
+      return arrayMap(props, function(key) {
+        return object[key];
+      });
+    }
+    function overArg(func, transform) {
+      return function(arg) {
+        return func(transform(arg));
+      };
+    }
+    var objectProto = Object.prototype;
+    var hasOwnProperty = objectProto.hasOwnProperty;
+    var objectToString = objectProto.toString;
+    var propertyIsEnumerable = objectProto.propertyIsEnumerable;
+    var nativeKeys = overArg(Object.keys, Object);
+    var nativeMax = Math.max;
+    function arrayLikeKeys(value, inherited) {
+      var result = isArray(value) || isArguments(value) ? baseTimes(value.length, String) : [];
+      var length = result.length, skipIndexes = !!length;
+      for (var key in value) {
+        if ((inherited || hasOwnProperty.call(value, key)) && !(skipIndexes && (key == "length" || isIndex(key, length)))) {
+          result.push(key);
+        }
+      }
+      return result;
+    }
+    function baseKeys(object) {
+      if (!isPrototype(object)) {
+        return nativeKeys(object);
+      }
+      var result = [];
+      for (var key in Object(object)) {
+        if (hasOwnProperty.call(object, key) && key != "constructor") {
+          result.push(key);
+        }
+      }
+      return result;
+    }
+    function isIndex(value, length) {
+      length = length == null ? MAX_SAFE_INTEGER : length;
+      return !!length && (typeof value == "number" || reIsUint.test(value)) && (value > -1 && value % 1 == 0 && value < length);
+    }
+    function isPrototype(value) {
+      var Ctor = value && value.constructor, proto = typeof Ctor == "function" && Ctor.prototype || objectProto;
+      return value === proto;
+    }
+    function includes(collection, value, fromIndex, guard) {
+      collection = isArrayLike(collection) ? collection : values(collection);
+      fromIndex = fromIndex && !guard ? toInteger(fromIndex) : 0;
+      var length = collection.length;
+      if (fromIndex < 0) {
+        fromIndex = nativeMax(length + fromIndex, 0);
+      }
+      return isString(collection) ? fromIndex <= length && collection.indexOf(value, fromIndex) > -1 : !!length && baseIndexOf(collection, value, fromIndex) > -1;
+    }
+    function isArguments(value) {
+      return isArrayLikeObject(value) && hasOwnProperty.call(value, "callee") && (!propertyIsEnumerable.call(value, "callee") || objectToString.call(value) == argsTag);
+    }
+    var isArray = Array.isArray;
+    function isArrayLike(value) {
+      return value != null && isLength(value.length) && !isFunction(value);
+    }
+    function isArrayLikeObject(value) {
+      return isObjectLike(value) && isArrayLike(value);
+    }
+    function isFunction(value) {
+      var tag = isObject(value) ? objectToString.call(value) : "";
+      return tag == funcTag || tag == genTag;
+    }
+    function isLength(value) {
+      return typeof value == "number" && value > -1 && value % 1 == 0 && value <= MAX_SAFE_INTEGER;
+    }
+    function isObject(value) {
+      var type = typeof value;
+      return !!value && (type == "object" || type == "function");
+    }
+    function isObjectLike(value) {
+      return !!value && typeof value == "object";
+    }
+    function isString(value) {
+      return typeof value == "string" || !isArray(value) && isObjectLike(value) && objectToString.call(value) == stringTag;
+    }
+    function isSymbol(value) {
+      return typeof value == "symbol" || isObjectLike(value) && objectToString.call(value) == symbolTag;
+    }
+    function toFinite(value) {
+      if (!value) {
+        return value === 0 ? value : 0;
+      }
+      value = toNumber(value);
+      if (value === INFINITY || value === -INFINITY) {
+        var sign = value < 0 ? -1 : 1;
+        return sign * MAX_INTEGER;
+      }
+      return value === value ? value : 0;
+    }
+    function toInteger(value) {
+      var result = toFinite(value), remainder = result % 1;
+      return result === result ? remainder ? result - remainder : result : 0;
+    }
+    function toNumber(value) {
+      if (typeof value == "number") {
+        return value;
+      }
+      if (isSymbol(value)) {
+        return NAN;
+      }
+      if (isObject(value)) {
+        var other = typeof value.valueOf == "function" ? value.valueOf() : value;
+        value = isObject(other) ? other + "" : other;
+      }
+      if (typeof value != "string") {
+        return value === 0 ? value : +value;
+      }
+      value = value.replace(reTrim, "");
+      var isBinary = reIsBinary.test(value);
+      return isBinary || reIsOctal.test(value) ? freeParseInt(value.slice(2), isBinary ? 2 : 8) : reIsBadHex.test(value) ? NAN : +value;
+    }
+    function keys(object) {
+      return isArrayLike(object) ? arrayLikeKeys(object) : baseKeys(object);
+    }
+    function values(object) {
+      return object ? baseValues(object, keys(object)) : [];
+    }
+    module.exports = includes;
+  }
+});
+
+// node_modules/.pnpm/lodash.isboolean@3.0.3/node_modules/lodash.isboolean/index.js
+var require_lodash2 = __commonJS({
+  "node_modules/.pnpm/lodash.isboolean@3.0.3/node_modules/lodash.isboolean/index.js"(exports, module) {
+    var boolTag = "[object Boolean]";
+    var objectProto = Object.prototype;
+    var objectToString = objectProto.toString;
+    function isBoolean(value) {
+      return value === true || value === false || isObjectLike(value) && objectToString.call(value) == boolTag;
+    }
+    function isObjectLike(value) {
+      return !!value && typeof value == "object";
+    }
+    module.exports = isBoolean;
+  }
+});
+
+// node_modules/.pnpm/lodash.isinteger@4.0.4/node_modules/lodash.isinteger/index.js
+var require_lodash3 = __commonJS({
+  "node_modules/.pnpm/lodash.isinteger@4.0.4/node_modules/lodash.isinteger/index.js"(exports, module) {
+    var INFINITY = 1 / 0;
+    var MAX_INTEGER = 17976931348623157e292;
+    var NAN = 0 / 0;
+    var symbolTag = "[object Symbol]";
+    var reTrim = /^\s+|\s+$/g;
+    var reIsBadHex = /^[-+]0x[0-9a-f]+$/i;
+    var reIsBinary = /^0b[01]+$/i;
+    var reIsOctal = /^0o[0-7]+$/i;
+    var freeParseInt = parseInt;
+    var objectProto = Object.prototype;
+    var objectToString = objectProto.toString;
+    function isInteger(value) {
+      return typeof value == "number" && value == toInteger(value);
+    }
+    function isObject(value) {
+      var type = typeof value;
+      return !!value && (type == "object" || type == "function");
+    }
+    function isObjectLike(value) {
+      return !!value && typeof value == "object";
+    }
+    function isSymbol(value) {
+      return typeof value == "symbol" || isObjectLike(value) && objectToString.call(value) == symbolTag;
+    }
+    function toFinite(value) {
+      if (!value) {
+        return value === 0 ? value : 0;
+      }
+      value = toNumber(value);
+      if (value === INFINITY || value === -INFINITY) {
+        var sign = value < 0 ? -1 : 1;
+        return sign * MAX_INTEGER;
+      }
+      return value === value ? value : 0;
+    }
+    function toInteger(value) {
+      var result = toFinite(value), remainder = result % 1;
+      return result === result ? remainder ? result - remainder : result : 0;
+    }
+    function toNumber(value) {
+      if (typeof value == "number") {
+        return value;
+      }
+      if (isSymbol(value)) {
+        return NAN;
+      }
+      if (isObject(value)) {
+        var other = typeof value.valueOf == "function" ? value.valueOf() : value;
+        value = isObject(other) ? other + "" : other;
+      }
+      if (typeof value != "string") {
+        return value === 0 ? value : +value;
+      }
+      value = value.replace(reTrim, "");
+      var isBinary = reIsBinary.test(value);
+      return isBinary || reIsOctal.test(value) ? freeParseInt(value.slice(2), isBinary ? 2 : 8) : reIsBadHex.test(value) ? NAN : +value;
+    }
+    module.exports = isInteger;
+  }
+});
+
+// node_modules/.pnpm/lodash.isnumber@3.0.3/node_modules/lodash.isnumber/index.js
+var require_lodash4 = __commonJS({
+  "node_modules/.pnpm/lodash.isnumber@3.0.3/node_modules/lodash.isnumber/index.js"(exports, module) {
+    var numberTag = "[object Number]";
+    var objectProto = Object.prototype;
+    var objectToString = objectProto.toString;
+    function isObjectLike(value) {
+      return !!value && typeof value == "object";
+    }
+    function isNumber(value) {
+      return typeof value == "number" || isObjectLike(value) && objectToString.call(value) == numberTag;
+    }
+    module.exports = isNumber;
+  }
+});
+
+// node_modules/.pnpm/lodash.isplainobject@4.0.6/node_modules/lodash.isplainobject/index.js
+var require_lodash5 = __commonJS({
+  "node_modules/.pnpm/lodash.isplainobject@4.0.6/node_modules/lodash.isplainobject/index.js"(exports, module) {
+    var objectTag = "[object Object]";
+    function isHostObject(value) {
+      var result = false;
+      if (value != null && typeof value.toString != "function") {
+        try {
+          result = !!(value + "");
+        } catch (e) {
+        }
+      }
+      return result;
+    }
+    function overArg(func, transform) {
+      return function(arg) {
+        return func(transform(arg));
+      };
+    }
+    var funcProto = Function.prototype;
+    var objectProto = Object.prototype;
+    var funcToString = funcProto.toString;
+    var hasOwnProperty = objectProto.hasOwnProperty;
+    var objectCtorString = funcToString.call(Object);
+    var objectToString = objectProto.toString;
+    var getPrototype = overArg(Object.getPrototypeOf, Object);
+    function isObjectLike(value) {
+      return !!value && typeof value == "object";
+    }
+    function isPlainObject(value) {
+      if (!isObjectLike(value) || objectToString.call(value) != objectTag || isHostObject(value)) {
+        return false;
+      }
+      var proto = getPrototype(value);
+      if (proto === null) {
+        return true;
+      }
+      var Ctor = hasOwnProperty.call(proto, "constructor") && proto.constructor;
+      return typeof Ctor == "function" && Ctor instanceof Ctor && funcToString.call(Ctor) == objectCtorString;
+    }
+    module.exports = isPlainObject;
+  }
+});
+
+// node_modules/.pnpm/lodash.isstring@4.0.1/node_modules/lodash.isstring/index.js
+var require_lodash6 = __commonJS({
+  "node_modules/.pnpm/lodash.isstring@4.0.1/node_modules/lodash.isstring/index.js"(exports, module) {
+    var stringTag = "[object String]";
+    var objectProto = Object.prototype;
+    var objectToString = objectProto.toString;
+    var isArray = Array.isArray;
+    function isObjectLike(value) {
+      return !!value && typeof value == "object";
+    }
+    function isString(value) {
+      return typeof value == "string" || !isArray(value) && isObjectLike(value) && objectToString.call(value) == stringTag;
+    }
+    module.exports = isString;
+  }
+});
+
+// node_modules/.pnpm/lodash.once@4.1.1/node_modules/lodash.once/index.js
+var require_lodash7 = __commonJS({
+  "node_modules/.pnpm/lodash.once@4.1.1/node_modules/lodash.once/index.js"(exports, module) {
+    var FUNC_ERROR_TEXT = "Expected a function";
+    var INFINITY = 1 / 0;
+    var MAX_INTEGER = 17976931348623157e292;
+    var NAN = 0 / 0;
+    var symbolTag = "[object Symbol]";
+    var reTrim = /^\s+|\s+$/g;
+    var reIsBadHex = /^[-+]0x[0-9a-f]+$/i;
+    var reIsBinary = /^0b[01]+$/i;
+    var reIsOctal = /^0o[0-7]+$/i;
+    var freeParseInt = parseInt;
+    var objectProto = Object.prototype;
+    var objectToString = objectProto.toString;
+    function before(n, func) {
+      var result;
+      if (typeof func != "function") {
+        throw new TypeError(FUNC_ERROR_TEXT);
+      }
+      n = toInteger(n);
+      return function() {
+        if (--n > 0) {
+          result = func.apply(this, arguments);
+        }
+        if (n <= 1) {
+          func = void 0;
+        }
+        return result;
+      };
+    }
+    function once(func) {
+      return before(2, func);
+    }
+    function isObject(value) {
+      var type = typeof value;
+      return !!value && (type == "object" || type == "function");
+    }
+    function isObjectLike(value) {
+      return !!value && typeof value == "object";
+    }
+    function isSymbol(value) {
+      return typeof value == "symbol" || isObjectLike(value) && objectToString.call(value) == symbolTag;
+    }
+    function toFinite(value) {
+      if (!value) {
+        return value === 0 ? value : 0;
+      }
+      value = toNumber(value);
+      if (value === INFINITY || value === -INFINITY) {
+        var sign = value < 0 ? -1 : 1;
+        return sign * MAX_INTEGER;
+      }
+      return value === value ? value : 0;
+    }
+    function toInteger(value) {
+      var result = toFinite(value), remainder = result % 1;
+      return result === result ? remainder ? result - remainder : result : 0;
+    }
+    function toNumber(value) {
+      if (typeof value == "number") {
+        return value;
+      }
+      if (isSymbol(value)) {
+        return NAN;
+      }
+      if (isObject(value)) {
+        var other = typeof value.valueOf == "function" ? value.valueOf() : value;
+        value = isObject(other) ? other + "" : other;
+      }
+      if (typeof value != "string") {
+        return value === 0 ? value : +value;
+      }
+      value = value.replace(reTrim, "");
+      var isBinary = reIsBinary.test(value);
+      return isBinary || reIsOctal.test(value) ? freeParseInt(value.slice(2), isBinary ? 2 : 8) : reIsBadHex.test(value) ? NAN : +value;
+    }
+    module.exports = once;
+  }
+});
+
+// node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/sign.js
+var require_sign2 = __commonJS({
+  "node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/sign.js"(exports, module) {
+    var timespan = require_timespan();
+    var PS_SUPPORTED = require_psSupported();
+    var validateAsymmetricKey = require_validateAsymmetricKey();
+    var jws = require_jws();
+    var includes = require_lodash();
+    var isBoolean = require_lodash2();
+    var isInteger = require_lodash3();
+    var isNumber = require_lodash4();
+    var isPlainObject = require_lodash5();
+    var isString = require_lodash6();
+    var once = require_lodash7();
+    var { KeyObject, createSecretKey, createPrivateKey } = __require("crypto");
+    var SUPPORTED_ALGS = ["RS256", "RS384", "RS512", "ES256", "ES384", "ES512", "HS256", "HS384", "HS512", "none"];
+    if (PS_SUPPORTED) {
+      SUPPORTED_ALGS.splice(3, 0, "PS256", "PS384", "PS512");
+    }
+    var sign_options_schema = {
+      expiresIn: { isValid: function(value) {
+        return isInteger(value) || isString(value) && value;
+      }, message: '"expiresIn" should be a number of seconds or string representing a timespan' },
+      notBefore: { isValid: function(value) {
+        return isInteger(value) || isString(value) && value;
+      }, message: '"notBefore" should be a number of seconds or string representing a timespan' },
+      audience: { isValid: function(value) {
+        return isString(value) || Array.isArray(value);
+      }, message: '"audience" must be a string or array' },
+      algorithm: { isValid: includes.bind(null, SUPPORTED_ALGS), message: '"algorithm" must be a valid string enum value' },
+      header: { isValid: isPlainObject, message: '"header" must be an object' },
+      encoding: { isValid: isString, message: '"encoding" must be a string' },
+      issuer: { isValid: isString, message: '"issuer" must be a string' },
+      subject: { isValid: isString, message: '"subject" must be a string' },
+      jwtid: { isValid: isString, message: '"jwtid" must be a string' },
+      noTimestamp: { isValid: isBoolean, message: '"noTimestamp" must be a boolean' },
+      keyid: { isValid: isString, message: '"keyid" must be a string' },
+      mutatePayload: { isValid: isBoolean, message: '"mutatePayload" must be a boolean' },
+      allowInsecureKeySizes: { isValid: isBoolean, message: '"allowInsecureKeySizes" must be a boolean' },
+      allowInvalidAsymmetricKeyTypes: { isValid: isBoolean, message: '"allowInvalidAsymmetricKeyTypes" must be a boolean' }
+    };
+    var registered_claims_schema = {
+      iat: { isValid: isNumber, message: '"iat" should be a number of seconds' },
+      exp: { isValid: isNumber, message: '"exp" should be a number of seconds' },
+      nbf: { isValid: isNumber, message: '"nbf" should be a number of seconds' }
+    };
+    function validate(schema, allowUnknown, object, parameterName) {
+      if (!isPlainObject(object)) {
+        throw new Error('Expected "' + parameterName + '" to be a plain object.');
+      }
+      Object.keys(object).forEach(function(key) {
+        const validator = schema[key];
+        if (!validator) {
+          if (!allowUnknown) {
+            throw new Error('"' + key + '" is not allowed in "' + parameterName + '"');
+          }
+          return;
+        }
+        if (!validator.isValid(object[key])) {
+          throw new Error(validator.message);
+        }
+      });
+    }
+    function validateOptions(options) {
+      return validate(sign_options_schema, false, options, "options");
+    }
+    function validatePayload(payload) {
+      return validate(registered_claims_schema, true, payload, "payload");
+    }
+    var options_to_payload = {
+      "audience": "aud",
+      "issuer": "iss",
+      "subject": "sub",
+      "jwtid": "jti"
+    };
+    var options_for_objects = [
+      "expiresIn",
+      "notBefore",
+      "noTimestamp",
+      "audience",
+      "issuer",
+      "subject",
+      "jwtid"
+    ];
+    module.exports = function(payload, secretOrPrivateKey, options, callback) {
+      if (typeof options === "function") {
+        callback = options;
+        options = {};
+      } else {
+        options = options || {};
+      }
+      const isObjectPayload = typeof payload === "object" && !Buffer.isBuffer(payload);
+      const header = Object.assign({
+        alg: options.algorithm || "HS256",
+        typ: isObjectPayload ? "JWT" : void 0,
+        kid: options.keyid
+      }, options.header);
+      function failure(err) {
+        if (callback) {
+          return callback(err);
+        }
+        throw err;
+      }
+      if (!secretOrPrivateKey && options.algorithm !== "none") {
+        return failure(new Error("secretOrPrivateKey must have a value"));
+      }
+      if (secretOrPrivateKey != null && !(secretOrPrivateKey instanceof KeyObject)) {
+        try {
+          secretOrPrivateKey = createPrivateKey(secretOrPrivateKey);
+        } catch (_) {
+          try {
+            secretOrPrivateKey = createSecretKey(typeof secretOrPrivateKey === "string" ? Buffer.from(secretOrPrivateKey) : secretOrPrivateKey);
+          } catch (_2) {
+            return failure(new Error("secretOrPrivateKey is not valid key material"));
+          }
+        }
+      }
+      if (header.alg.startsWith("HS") && secretOrPrivateKey.type !== "secret") {
+        return failure(new Error(`secretOrPrivateKey must be a symmetric key when using ${header.alg}`));
+      } else if (/^(?:RS|PS|ES)/.test(header.alg)) {
+        if (secretOrPrivateKey.type !== "private") {
+          return failure(new Error(`secretOrPrivateKey must be an asymmetric key when using ${header.alg}`));
+        }
+        if (!options.allowInsecureKeySizes && !header.alg.startsWith("ES") && secretOrPrivateKey.asymmetricKeyDetails !== void 0 && //KeyObject.asymmetricKeyDetails is supported in Node 15+
+        secretOrPrivateKey.asymmetricKeyDetails.modulusLength < 2048) {
+          return failure(new Error(`secretOrPrivateKey has a minimum key size of 2048 bits for ${header.alg}`));
+        }
+      }
+      if (typeof payload === "undefined") {
+        return failure(new Error("payload is required"));
+      } else if (isObjectPayload) {
+        try {
+          validatePayload(payload);
+        } catch (error) {
+          return failure(error);
+        }
+        if (!options.mutatePayload) {
+          payload = Object.assign({}, payload);
+        }
+      } else {
+        const invalid_options = options_for_objects.filter(function(opt) {
+          return typeof options[opt] !== "undefined";
+        });
+        if (invalid_options.length > 0) {
+          return failure(new Error("invalid " + invalid_options.join(",") + " option for " + typeof payload + " payload"));
+        }
+      }
+      if (typeof payload.exp !== "undefined" && typeof options.expiresIn !== "undefined") {
+        return failure(new Error('Bad "options.expiresIn" option the payload already has an "exp" property.'));
+      }
+      if (typeof payload.nbf !== "undefined" && typeof options.notBefore !== "undefined") {
+        return failure(new Error('Bad "options.notBefore" option the payload already has an "nbf" property.'));
+      }
+      try {
+        validateOptions(options);
+      } catch (error) {
+        return failure(error);
+      }
+      if (!options.allowInvalidAsymmetricKeyTypes) {
+        try {
+          validateAsymmetricKey(header.alg, secretOrPrivateKey);
+        } catch (error) {
+          return failure(error);
+        }
+      }
+      const timestamp2 = payload.iat || Math.floor(Date.now() / 1e3);
+      if (options.noTimestamp) {
+        delete payload.iat;
+      } else if (isObjectPayload) {
+        payload.iat = timestamp2;
+      }
+      if (typeof options.notBefore !== "undefined") {
+        try {
+          payload.nbf = timespan(options.notBefore, timestamp2);
+        } catch (err) {
+          return failure(err);
+        }
+        if (typeof payload.nbf === "undefined") {
+          return failure(new Error('"notBefore" should be a number of seconds or string representing a timespan eg: "1d", "20h", 60'));
+        }
+      }
+      if (typeof options.expiresIn !== "undefined" && typeof payload === "object") {
+        try {
+          payload.exp = timespan(options.expiresIn, timestamp2);
+        } catch (err) {
+          return failure(err);
+        }
+        if (typeof payload.exp === "undefined") {
+          return failure(new Error('"expiresIn" should be a number of seconds or string representing a timespan eg: "1d", "20h", 60'));
+        }
+      }
+      Object.keys(options_to_payload).forEach(function(key) {
+        const claim = options_to_payload[key];
+        if (typeof options[key] !== "undefined") {
+          if (typeof payload[claim] !== "undefined") {
+            return failure(new Error('Bad "options.' + key + '" option. The payload already has an "' + claim + '" property.'));
+          }
+          payload[claim] = options[key];
+        }
+      });
+      const encoding = options.encoding || "utf8";
+      if (typeof callback === "function") {
+        callback = callback && once(callback);
+        jws.createSign({
+          header,
+          privateKey: secretOrPrivateKey,
+          payload,
+          encoding
+        }).once("error", callback).once("done", function(signature) {
+          if (!options.allowInsecureKeySizes && /^(?:RS|PS)/.test(header.alg) && signature.length < 256) {
+            return callback(new Error(`secretOrPrivateKey has a minimum key size of 2048 bits for ${header.alg}`));
+          }
+          callback(null, signature);
+        });
+      } else {
+        let signature = jws.sign({ header, payload, secret: secretOrPrivateKey, encoding });
+        if (!options.allowInsecureKeySizes && /^(?:RS|PS)/.test(header.alg) && signature.length < 256) {
+          throw new Error(`secretOrPrivateKey has a minimum key size of 2048 bits for ${header.alg}`);
+        }
+        return signature;
+      }
+    };
+  }
+});
+
+// node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/index.js
+var require_jsonwebtoken = __commonJS({
+  "node_modules/.pnpm/jsonwebtoken@9.0.3/node_modules/jsonwebtoken/index.js"(exports, module) {
+    module.exports = {
+      decode: require_decode(),
+      verify: require_verify(),
+      sign: require_sign2(),
+      JsonWebTokenError: require_JsonWebTokenError(),
+      NotBeforeError: require_NotBeforeError(),
+      TokenExpiredError: require_TokenExpiredError()
+    };
+  }
+});
+
+// server/app.ts
+var import_express14 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 import path2 from "path";
-import { fileURLToPath } from "url";
+import { fileURLToPath as fileURLToPath2 } from "url";
 
-// artifacts/api-server/src/routes/index.ts
-var import_express12 = __toESM(require_express2(), 1);
+// server/routes/index.ts
+var import_express13 = __toESM(require_express2(), 1);
 
-// artifacts/api-server/src/routes/health.ts
+// server/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
+
+// node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/external.js
+var external_exports = {};
+__export(external_exports, {
+  BRAND: () => BRAND,
+  DIRTY: () => DIRTY,
+  EMPTY_PATH: () => EMPTY_PATH,
+  INVALID: () => INVALID,
+  NEVER: () => NEVER,
+  OK: () => OK,
+  ParseStatus: () => ParseStatus,
+  Schema: () => ZodType,
+  ZodAny: () => ZodAny,
+  ZodArray: () => ZodArray,
+  ZodBigInt: () => ZodBigInt,
+  ZodBoolean: () => ZodBoolean,
+  ZodBranded: () => ZodBranded,
+  ZodCatch: () => ZodCatch,
+  ZodDate: () => ZodDate,
+  ZodDefault: () => ZodDefault,
+  ZodDiscriminatedUnion: () => ZodDiscriminatedUnion,
+  ZodEffects: () => ZodEffects,
+  ZodEnum: () => ZodEnum,
+  ZodError: () => ZodError,
+  ZodFirstPartyTypeKind: () => ZodFirstPartyTypeKind,
+  ZodFunction: () => ZodFunction,
+  ZodIntersection: () => ZodIntersection,
+  ZodIssueCode: () => ZodIssueCode,
+  ZodLazy: () => ZodLazy,
+  ZodLiteral: () => ZodLiteral,
+  ZodMap: () => ZodMap,
+  ZodNaN: () => ZodNaN,
+  ZodNativeEnum: () => ZodNativeEnum,
+  ZodNever: () => ZodNever,
+  ZodNull: () => ZodNull,
+  ZodNullable: () => ZodNullable,
+  ZodNumber: () => ZodNumber,
+  ZodObject: () => ZodObject,
+  ZodOptional: () => ZodOptional,
+  ZodParsedType: () => ZodParsedType,
+  ZodPipeline: () => ZodPipeline,
+  ZodPromise: () => ZodPromise,
+  ZodReadonly: () => ZodReadonly,
+  ZodRecord: () => ZodRecord,
+  ZodSchema: () => ZodType,
+  ZodSet: () => ZodSet,
+  ZodString: () => ZodString,
+  ZodSymbol: () => ZodSymbol,
+  ZodTransformer: () => ZodEffects,
+  ZodTuple: () => ZodTuple,
+  ZodType: () => ZodType,
+  ZodUndefined: () => ZodUndefined,
+  ZodUnion: () => ZodUnion,
+  ZodUnknown: () => ZodUnknown,
+  ZodVoid: () => ZodVoid,
+  addIssueToContext: () => addIssueToContext,
+  any: () => anyType,
+  array: () => arrayType,
+  bigint: () => bigIntType,
+  boolean: () => booleanType,
+  coerce: () => coerce,
+  custom: () => custom,
+  date: () => dateType,
+  datetimeRegex: () => datetimeRegex,
+  defaultErrorMap: () => en_default,
+  discriminatedUnion: () => discriminatedUnionType,
+  effect: () => effectsType,
+  enum: () => enumType,
+  function: () => functionType,
+  getErrorMap: () => getErrorMap,
+  getParsedType: () => getParsedType,
+  instanceof: () => instanceOfType,
+  intersection: () => intersectionType,
+  isAborted: () => isAborted,
+  isAsync: () => isAsync,
+  isDirty: () => isDirty,
+  isValid: () => isValid,
+  late: () => late,
+  lazy: () => lazyType,
+  literal: () => literalType,
+  makeIssue: () => makeIssue,
+  map: () => mapType,
+  nan: () => nanType,
+  nativeEnum: () => nativeEnumType,
+  never: () => neverType,
+  null: () => nullType,
+  nullable: () => nullableType,
+  number: () => numberType,
+  object: () => objectType,
+  objectUtil: () => objectUtil,
+  oboolean: () => oboolean,
+  onumber: () => onumber,
+  optional: () => optionalType,
+  ostring: () => ostring,
+  pipeline: () => pipelineType,
+  preprocess: () => preprocessType,
+  promise: () => promiseType,
+  quotelessJson: () => quotelessJson,
+  record: () => recordType,
+  set: () => setType,
+  setErrorMap: () => setErrorMap,
+  strictObject: () => strictObjectType,
+  string: () => stringType,
+  symbol: () => symbolType,
+  transformer: () => effectsType,
+  tuple: () => tupleType,
+  undefined: () => undefinedType,
+  union: () => unionType,
+  unknown: () => unknownType,
+  util: () => util,
+  void: () => voidType
+});
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/util.js
 var util;
@@ -42826,6 +46684,10 @@ var ZodIssueCode = util.arrayToEnum([
   "not_multiple_of",
   "not_finite"
 ]);
+var quotelessJson = (obj) => {
+  const json2 = JSON.stringify(obj, null, 2);
+  return json2.replace(/"([^"]+)":/g, "$1:");
+};
 var ZodError = class _ZodError extends Error {
   get errors() {
     return this.issues;
@@ -43026,6 +46888,9 @@ var en_default = errorMap;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/errors.js
 var overrideErrorMap = en_default;
+function setErrorMap(map) {
+  overrideErrorMap = map;
+}
 function getErrorMap() {
   return overrideErrorMap;
 }
@@ -43056,6 +46921,7 @@ var makeIssue = (params) => {
     message: errorMessage
   };
 };
+var EMPTY_PATH = [];
 function addIssueToContext(ctx, issueData) {
   const overrideMap = getErrorMap();
   const issue = makeIssue({
@@ -43540,11 +47406,11 @@ function isValidIP(ip, version2) {
   }
   return false;
 }
-function isValidJWT(jwt, alg) {
-  if (!jwtRegex.test(jwt))
+function isValidJWT(jwt3, alg) {
+  if (!jwtRegex.test(jwt3))
     return false;
   try {
-    const [header] = jwt.split(".");
+    const [header] = jwt3.split(".");
     if (!header)
       return false;
     const base64 = header.replace(/-/g, "+").replace(/_/g, "/").padEnd(header.length + (4 - header.length % 4) % 4, "=");
@@ -46381,6 +50247,7 @@ ZodNaN.create = (params) => {
     ...processCreateParams(params)
   });
 };
+var BRAND = /* @__PURE__ */ Symbol("zod_brand");
 var ZodBranded = class extends ZodType {
   _parse(input) {
     const { ctx } = this._processInputParams(input);
@@ -46472,6 +50339,33 @@ ZodReadonly.create = (type, params) => {
     ...processCreateParams(params)
   });
 };
+function cleanParams(params, data) {
+  const p = typeof params === "function" ? params(data) : typeof params === "string" ? { message: params } : params;
+  const p2 = typeof p === "string" ? { message: p } : p;
+  return p2;
+}
+function custom(check, _params = {}, fatal) {
+  if (check)
+    return ZodAny.create().superRefine((data, ctx) => {
+      const r = check(data);
+      if (r instanceof Promise) {
+        return r.then((r2) => {
+          if (!r2) {
+            const params = cleanParams(_params, data);
+            const _fatal = params.fatal ?? fatal ?? true;
+            ctx.addIssue({ code: "custom", ...params, fatal: _fatal });
+          }
+        });
+      }
+      if (!r) {
+        const params = cleanParams(_params, data);
+        const _fatal = params.fatal ?? fatal ?? true;
+        ctx.addIssue({ code: "custom", ...params, fatal: _fatal });
+      }
+      return;
+    });
+  return ZodAny.create();
+}
 var late = {
   object: ZodObject.lazycreate
 };
@@ -46514,6 +50408,9 @@ var ZodFirstPartyTypeKind;
   ZodFirstPartyTypeKind2["ZodPipeline"] = "ZodPipeline";
   ZodFirstPartyTypeKind2["ZodReadonly"] = "ZodReadonly";
 })(ZodFirstPartyTypeKind || (ZodFirstPartyTypeKind = {}));
+var instanceOfType = (cls, params = {
+  message: `Input not instance of ${cls.name}`
+}) => custom((data) => data instanceof cls, params);
 var stringType = ZodString.create;
 var numberType = ZodNumber.create;
 var nanType = ZodNaN.create;
@@ -46548,13 +50445,23 @@ var optionalType = ZodOptional.create;
 var nullableType = ZodNullable.create;
 var preprocessType = ZodEffects.createWithPreprocess;
 var pipelineType = ZodPipeline.create;
+var ostring = () => stringType().optional();
+var onumber = () => numberType().optional();
+var oboolean = () => booleanType().optional();
+var coerce = {
+  string: ((arg) => ZodString.create({ ...arg, coerce: true })),
+  number: ((arg) => ZodNumber.create({ ...arg, coerce: true })),
+  boolean: ((arg) => ZodBoolean.create({
+    ...arg,
+    coerce: true
+  })),
+  bigint: ((arg) => ZodBigInt.create({ ...arg, coerce: true })),
+  date: ((arg) => ZodDate.create({ ...arg, coerce: true }))
+};
+var NEVER = INVALID;
 
-// lib/api-zod/src/generated/api.ts
-var HealthCheckResponse = objectType({
-  status: stringType()
-});
-
-// artifacts/api-server/src/routes/health.ts
+// server/routes/health.ts
+var HealthCheckResponse = external_exports.object({ status: external_exports.string() });
 var router = (0, import_express.Router)();
 router.get("/healthz", (_req, res) => {
   const data = HealthCheckResponse.parse({ status: "ok" });
@@ -46562,10 +50469,10 @@ router.get("/healthz", (_req, res) => {
 });
 var health_default = router;
 
-// artifacts/api-server/src/routes/auth.ts
+// server/routes/auth.ts
 var import_express2 = __toESM(require_express2(), 1);
-init_src();
-init_src();
+init_db2();
+init_db2();
 
 // node_modules/.pnpm/bcryptjs@3.0.3/node_modules/bcryptjs/index.js
 import nodeCrypto from "crypto";
@@ -48290,123 +52197,62 @@ var bcryptjs_default = {
   decodeBase64
 };
 
-// artifacts/api-server/src/routes/auth.ts
-import crypto2 from "node:crypto";
+// server/routes/auth.ts
+var import_jsonwebtoken = __toESM(require_jsonwebtoken(), 1);
+import crypto2 from "crypto";
 var router2 = (0, import_express2.Router)();
-var ADMIN_SETUP_TOKEN = process.env.ADMIN_SETUP_TOKEN || "5849466548400404084435113616";
-var SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1e3;
-function generateId() {
-  return crypto2.randomUUID();
-}
-function generateToken() {
-  return crypto2.randomBytes(48).toString("hex");
-}
+var JWT_SECRET = process.env.JWT_SECRET || "ge-energy-jwt-secret-change-in-production";
+var SESSION_DURATION_DAYS = 30;
 function generateReferralCode(phone) {
   return phone.slice(-4).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
 }
-function generateAvatarUrl() {
-  const gender = Math.random() > 0.5 ? "men" : "women";
-  const n = Math.floor(Math.random() * 100);
-  return `https://randomuser.me/api/portraits/${gender}/${n}.jpg`;
+function issueToken(userId) {
+  return import_jsonwebtoken.default.sign({ userId }, JWT_SECRET, { expiresIn: `${SESSION_DURATION_DAYS}d` });
 }
-async function createSession(userId) {
-  const token = generateToken();
-  const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
-  await db.insert(userSessions).values({
-    id: generateId(),
-    userId,
-    token,
-    expiresAt
-  });
-  return token;
-}
-router2.post("/auth/admin-setup", async (req, res) => {
-  const { token, phone, password } = req.body;
-  if (!token || token !== ADMIN_SETUP_TOKEN) {
-    return res.status(403).json({ error: "Forbidden" });
-  }
-  if (!phone || !password) {
-    return res.status(400).json({ error: "phone and password required" });
-  }
-  try {
-    const passwordHash = await bcryptjs_default.hash(password, 12);
-    const [existing] = await db.select({ id: profiles.id, userId: profiles.userId }).from(profiles).where(eq(profiles.phone, phone)).limit(1);
-    let userId;
-    if (existing) {
-      userId = existing.userId;
-      await db.update(profiles).set({ passwordHash }).where(eq(profiles.userId, userId));
-      const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, userId)).limit(1);
-      if (!role) {
-        await db.insert(userRoles).values({ id: generateId(), userId, role: "admin" });
-      } else if (role.role !== "admin") {
-        await db.update(userRoles).set({ role: "admin" }).where(eq(userRoles.userId, userId));
-      }
-    } else {
-      userId = generateId();
-      await db.insert(profiles).values({
-        id: generateId(),
-        userId,
-        phone,
-        fullName: "Administrator",
-        countryCode: "+0",
-        referralCode: "ADMIN001",
-        passwordHash,
-        avatarUrl: generateAvatarUrl()
-      });
-      await db.insert(userRoles).values({ id: generateId(), userId, role: "admin" });
-    }
-    const accessToken = await createSession(userId);
-    return res.json({ ok: true, userId, session: { access_token: accessToken } });
-  } catch (err) {
-    req.log.error(err);
-    return res.status(500).json({ error: "Admin setup failed" });
-  }
-});
 router2.post("/auth/signup", async (req, res) => {
   const { phone, password, inviteCode, countryCode } = req.body;
-  if (!phone || !password) {
-    return res.status(400).json({ error: "phone and password are required" });
+  if (!phone || !password || !inviteCode) {
+    return res.status(400).json({ error: "phone, password and inviteCode are required" });
   }
   try {
-    let referredByUserId = null;
-    if (inviteCode?.trim()) {
-      const [referrerRow] = await db.select({ userId: profiles.userId }).from(profiles).where(ilike(profiles.referralCode, inviteCode.trim())).limit(1);
-      if (!referrerRow) {
-        return res.status(400).json({ error: "Invalid invitation code" });
-      }
-      referredByUserId = referrerRow.userId;
+    const [referrer] = await db.select().from(profiles).where(eq(profiles.referralCode, inviteCode.trim().toUpperCase())).limit(1);
+    if (!referrer) {
+      return res.status(400).json({ error: "Invalid invitation code" });
     }
-    const [existingUser] = await db.select({ userId: profiles.userId }).from(profiles).where(eq(profiles.phone, phone)).limit(1);
-    if (existingUser) {
+    const [existing] = await db.select().from(profiles).where(eq(profiles.phone, phone)).limit(1);
+    if (existing) {
       return res.status(409).json({ error: "This number is already registered" });
     }
     const passwordHash = await bcryptjs_default.hash(password, 12);
-    const userId = generateId();
+    const userId = crypto2.randomUUID();
     const referralCode = generateReferralCode(phone);
     await db.insert(profiles).values({
-      id: generateId(),
       userId,
       phone,
       countryCode: countryCode || "+509",
       referralCode,
-      ...referredByUserId ? { referredBy: referredByUserId } : {},
+      referredBy: referrer.id,
       passwordHash,
-      avatarUrl: generateAvatarUrl()
+      balance: "0",
+      depositBalance: "0",
+      earningsBalance: "0",
+      referralBalance: "0",
+      giftPoints: 0,
+      spinsBalance: 0,
+      vipLevel: 0
     });
-    await db.insert(userRoles).values({
-      id: generateId(),
+    const token = issueToken(userId);
+    const expiresAt = /* @__PURE__ */ new Date();
+    expiresAt.setDate(expiresAt.getDate() + SESSION_DURATION_DAYS);
+    await db.insert(userSessions).values({
       userId,
-      role: "user"
+      token,
+      expiresAt
     });
-    const accessToken = await createSession(userId);
     return res.json({
       ok: true,
-      session: {
-        access_token: accessToken,
-        refresh_token: "",
-        expires_in: SESSION_DURATION_MS / 1e3,
-        expires_at: Math.floor((Date.now() + SESSION_DURATION_MS) / 1e3)
-      },
+      token,
+      session: { access_token: token },
       user: { id: userId }
     });
   } catch (err) {
@@ -48416,12 +52262,11 @@ router2.post("/auth/signup", async (req, res) => {
 });
 router2.post("/auth/login", async (req, res) => {
   const { phone, email, password } = req.body;
-  const identifier = phone || email;
-  if (!identifier || !password) {
-    return res.status(400).json({ error: "phone and password are required" });
+  if (!phone && !email || !password) {
+    return res.status(400).json({ error: "phone or email, and password are required" });
   }
   try {
-    const [profile] = await db.select().from(profiles).where(eq(profiles.phone, identifier)).limit(1);
+    const [profile] = await db.select().from(profiles).where(email ? eq(profiles.email, email.trim().toLowerCase()) : eq(profiles.phone, phone)).limit(1);
     if (!profile || !profile.passwordHash) {
       return res.status(401).json({ error: "Incorrect number or password" });
     }
@@ -48430,62 +52275,45 @@ router2.post("/auth/login", async (req, res) => {
       return res.status(401).json({ error: "Incorrect number or password" });
     }
     if (profile.isSuspended) {
-      const [roleRow] = await db.select().from(userRoles).where(eq(userRoles.userId, profile.userId)).limit(1);
-      const isPrivileged = roleRow?.role === "admin" || roleRow?.role === "moderator";
-      if (!isPrivileged) {
-        return res.status(403).json({ error: "Account suspended" });
-      }
+      return res.status(403).json({ error: "Account is suspended" });
     }
-    const accessToken = await createSession(profile.userId);
+    const token = issueToken(profile.userId);
+    const expiresAt = /* @__PURE__ */ new Date();
+    expiresAt.setDate(expiresAt.getDate() + SESSION_DURATION_DAYS);
+    await db.insert(userSessions).values({
+      userId: profile.userId,
+      token,
+      expiresAt
+    });
+    const [roleRow] = await db.select().from(userRoles).where(eq(userRoles.userId, profile.userId)).limit(1);
+    const isAdmin3 = roleRow?.role === "admin" || roleRow?.role === "moderator";
     return res.json({
       ok: true,
-      session: {
-        access_token: accessToken,
-        refresh_token: "",
-        expires_in: SESSION_DURATION_MS / 1e3,
-        token_type: "Bearer"
-      },
-      user: { id: profile.userId }
+      token,
+      isAdmin: isAdmin3,
+      session: { access_token: token },
+      user: { id: profile.userId, role: roleRow?.role ?? "user" },
+      profile: {
+        userId: profile.userId,
+        phone: profile.phone,
+        fullName: profile.fullName,
+        full_name: profile.fullName
+      }
     });
   } catch (err) {
     req.log.error(err);
     return res.status(500).json({ error: "Login failed" });
   }
 });
-router2.post("/auth/change-password", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "").trim();
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const { oldPassword, newPassword } = req.body;
-  if (!oldPassword || !newPassword) {
-    return res.status(400).json({ error: "oldPassword and newPassword required" });
-  }
-  if (newPassword.length < 6) {
-    return res.status(400).json({ error: "New password must be at least 6 characters" });
-  }
-  try {
-    const [session] = await db.select().from(userSessions).where(and(eq(userSessions.token, token), gt(userSessions.expiresAt, /* @__PURE__ */ new Date()))).limit(1);
-    if (!session) return res.status(401).json({ error: "Unauthorized" });
-    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, session.userId)).limit(1);
-    if (!profile || !profile.passwordHash) return res.status(404).json({ error: "User not found" });
-    const valid = await bcryptjs_default.compare(oldPassword, profile.passwordHash);
-    if (!valid) return res.status(400).json({ error: "Current password is incorrect" });
-    const newHash = await bcryptjs_default.hash(newPassword, 12);
-    await db.update(profiles).set({ passwordHash: newHash }).where(eq(profiles.userId, session.userId));
-    return res.json({ ok: true });
-  } catch (err) {
-    req.log.error(err);
-    return res.status(500).json({ error: "Failed to change password" });
-  }
-});
 router2.post("/auth/logout", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "").trim();
+  const token = req.headers.authorization?.replace("Bearer ", "");
   if (token) {
     await db.delete(userSessions).where(eq(userSessions.token, token));
   }
   return res.json({ ok: true });
 });
 router2.get("/auth/me", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "").trim();
+  const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   try {
     const [session] = await db.select().from(userSessions).where(and(eq(userSessions.token, token), gt(userSessions.expiresAt, /* @__PURE__ */ new Date()))).limit(1);
@@ -48499,12 +52327,90 @@ router2.get("/auth/me", async (req, res) => {
     return res.status(500).json({ error: "Failed" });
   }
 });
+router2.post("/auth/change-password", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const [session] = await db.select().from(userSessions).where(and(eq(userSessions.token, token), gt(userSessions.expiresAt, /* @__PURE__ */ new Date()))).limit(1);
+  if (!session) return res.status(401).json({ error: "Unauthorized" });
+  const [profile] = await db.select().from(profiles).where(eq(profiles.userId, session.userId)).limit(1);
+  if (!profile) return res.status(404).json({ error: "Profile not found" });
+  const { oldPassword, newPassword } = req.body;
+  if (!oldPassword || !newPassword) return res.status(400).json({ error: "oldPassword and newPassword required" });
+  const valid = await bcryptjs_default.compare(oldPassword, profile.passwordHash);
+  if (!valid) return res.status(401).json({ error: "Current password is incorrect" });
+  const newHash = await bcryptjs_default.hash(newPassword, 12);
+  await db.update(profiles).set({ passwordHash: newHash }).where(eq(profiles.userId, session.userId));
+  return res.json({ ok: true });
+});
+router2.post("/auth/admin-setup", async (req, res) => {
+  const ADMIN_SETUP_TOKEN = process.env.ADMIN_SETUP_TOKEN || "5849466548400404084435113616";
+  const { token, phone, password } = req.body;
+  if (!token || token !== ADMIN_SETUP_TOKEN) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+  if (!phone || !password) {
+    return res.status(400).json({ error: "phone and password required" });
+  }
+  try {
+    const [existing] = await db.select().from(profiles).where(eq(profiles.phone, phone)).limit(1);
+    if (existing) {
+      const [existingRole] = await db.select().from(userRoles).where(eq(userRoles.userId, existing.userId)).limit(1);
+      if (!existingRole) {
+        await db.insert(userRoles).values({ userId: existing.userId, role: "admin" });
+      } else {
+        await db.update(userRoles).set({ role: "admin" }).where(eq(userRoles.userId, existing.userId));
+      }
+      return res.json({ ok: true, userId: existing.userId, message: "Existing user promoted to admin" });
+    }
+    const passwordHash = await bcryptjs_default.hash(password, 12);
+    const userId = crypto2.randomUUID();
+    await db.insert(profiles).values({
+      userId,
+      phone,
+      fullName: "Administrator",
+      countryCode: "+0",
+      referralCode: "ADMIN001",
+      passwordHash,
+      balance: "0",
+      depositBalance: "0",
+      earningsBalance: "0",
+      referralBalance: "0",
+      giftPoints: 0,
+      spinsBalance: 0,
+      vipLevel: 0
+    });
+    await db.insert(userRoles).values({ userId, role: "admin" });
+    return res.json({ ok: true, userId });
+  } catch (err) {
+    req.log.error(err);
+    return res.status(500).json({ error: "Admin setup failed" });
+  }
+});
 var auth_default = router2;
 
-// artifacts/api-server/src/routes/profiles.ts
+// server/routes/profiles.ts
 var import_express3 = __toESM(require_express2(), 1);
-init_src();
-init_src();
+init_db2();
+init_db2();
+
+// server/utils/toSnake.ts
+function toSnakeCase2(str) {
+  return str.replace(/[A-Z]/g, (l) => `_${l.toLowerCase()}`);
+}
+function toSnake(obj) {
+  if (Array.isArray(obj)) return obj.map(toSnake);
+  if (obj && typeof obj === "object" && !(obj instanceof Date)) {
+    return Object.fromEntries(
+      Object.entries(obj).map(([k, v]) => [
+        toSnakeCase2(k),
+        toSnake(v)
+      ])
+    );
+  }
+  return obj;
+}
+
+// server/routes/profiles.ts
 var router3 = (0, import_express3.Router)();
 async function getProfileFromToken(token) {
   const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
@@ -48518,7 +52424,7 @@ router3.get("/profiles/me", async (req, res) => {
   const profile = await getProfileFromToken(token);
   if (!profile) return res.status(401).json({ error: "Unauthorized" });
   const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, profile.userId)).limit(1);
-  return res.json({ ...profile, role: role?.role ?? "user" });
+  return res.json(toSnake({ ...profile, role: role?.role ?? "user" }));
 });
 router3.patch("/profiles/me", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -48529,22 +52435,12 @@ router3.patch("/profiles/me", async (req, res) => {
   const updates = {};
   for (const key of allowed) {
     if (req.body[key] !== void 0) updates[key] = req.body[key];
+    if (req.body[key.replace(/[A-Z]/g, (l) => `_${l.toLowerCase()}`)] !== void 0)
+      updates[key] = req.body[key.replace(/[A-Z]/g, (l) => `_${l.toLowerCase()}`)];
   }
   updates.updatedAt = /* @__PURE__ */ new Date();
   const [updated] = await db.update(profiles).set(updates).where(eq(profiles.userId, me.userId)).returning();
-  return res.json(updated);
-});
-router3.get("/profiles/batch", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken(token);
-  if (!me) return res.status(401).json({ error: "Unauthorized" });
-  const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, me.userId)).limit(1);
-  if (role?.role !== "admin" && role?.role !== "moderator") return res.status(403).json({ error: "Forbidden" });
-  const userIds = (req.query.userIds || "").split(",").filter(Boolean);
-  if (userIds.length === 0) return res.json([]);
-  const result = await db.select().from(profiles).where(inArray(profiles.userId, userIds));
-  return res.json(result);
+  return res.json(toSnake(updated));
 });
 router3.get("/profiles/:userId", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -48555,7 +52451,7 @@ router3.get("/profiles/:userId", async (req, res) => {
   if (role?.role !== "admin" && role?.role !== "moderator") return res.status(403).json({ error: "Forbidden" });
   const [profile] = await db.select().from(profiles).where(eq(profiles.userId, req.params.userId)).limit(1);
   if (!profile) return res.status(404).json({ error: "Not found" });
-  return res.json(profile);
+  return res.json(toSnake(profile));
 });
 router3.get("/profiles", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -48565,7 +52461,7 @@ router3.get("/profiles", async (req, res) => {
   const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, me.userId)).limit(1);
   if (role?.role !== "admin" && role?.role !== "moderator") return res.status(403).json({ error: "Forbidden" });
   const all = await db.select().from(profiles);
-  return res.json(all);
+  return res.json(toSnake(all));
 });
 router3.patch("/profiles/:userId/suspend", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -48576,7 +52472,7 @@ router3.patch("/profiles/:userId/suspend", async (req, res) => {
   if (role?.role !== "admin") return res.status(403).json({ error: "Forbidden" });
   const { isSuspended } = req.body;
   const [updated] = await db.update(profiles).set({ isSuspended }).where(eq(profiles.userId, req.params.userId)).returning();
-  return res.json(updated);
+  return res.json(toSnake(updated));
 });
 router3.get("/team/my", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -48584,81 +52480,16 @@ router3.get("/team/my", async (req, res) => {
   const me = await getProfileFromToken(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
   const teamMembers = await db.select().from(profiles).where(eq(profiles.referredBy, me.id));
-  return res.json(teamMembers);
-});
-router3.get("/profiles/team/direct", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken(token);
-  if (!me) return res.status(401).json({ error: "Unauthorized" });
-  const directMembers = await db.select().from(profiles).where(eq(profiles.referredBy, me.id));
-  return res.json(directMembers);
-});
-router3.get("/team", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken(token);
-  if (!me) return res.status(401).json({ error: "Unauthorized" });
-  const bRaw = await db.select().from(profiles).where(eq(profiles.referredBy, me.id));
-  const bIds = bRaw.map((m) => m.id);
-  let cRaw = [];
-  if (bIds.length > 0) {
-    cRaw = await db.select().from(profiles).where(inArray(profiles.referredBy, bIds));
-  }
-  const cIds = cRaw.map((m) => m.id);
-  let dRaw = [];
-  if (cIds.length > 0) {
-    dRaw = await db.select().from(profiles).where(inArray(profiles.referredBy, cIds));
-  }
-  const allUserIds = [...bRaw, ...cRaw, ...dRaw].map((m) => m.userId).filter(Boolean);
-  let bonusMap = /* @__PURE__ */ new Map();
-  if (allUserIds.length > 0) {
-    const userProds = await db.select({ userId: userProducts.userId, price: products.price }).from(userProducts).leftJoin(products, eq(userProducts.productId, products.id)).where(inArray(userProducts.userId, allUserIds));
-    const bUserIds = new Set(bRaw.map((m) => m.userId));
-    const cUserIds = new Set(cRaw.map((m) => m.userId));
-    const dUserIds = new Set(dRaw.map((m) => m.userId));
-    for (const up of userProds) {
-      const price = Number(up.price) || 0;
-      const rate = bUserIds.has(up.userId) ? 0.1 : cUserIds.has(up.userId) ? 0.05 : dUserIds.has(up.userId) ? 0.01 : 0;
-      bonusMap.set(up.userId, (bonusMap.get(up.userId) || 0) + price * rate);
-    }
-  }
-  const investedSet = new Set(allUserIds.filter((id) => bonusMap.has(id)));
-  const enrich = (members) => members.map((m) => ({
-    id: m.id,
-    user_id: m.userId,
-    full_name: m.fullName,
-    phone: m.phone,
-    country_code: m.countryCode,
-    balance: m.balance,
-    created_at: m.createdAt,
-    is_suspended: m.isSuspended,
-    hasInvested: investedSet.has(m.userId),
-    bonusEarned: bonusMap.get(m.userId) || 0
-  }));
-  return res.json({
-    referralCode: me.referralCode,
-    levelB: enrich(bRaw),
-    levelC: enrich(cRaw),
-    levelD: enrich(dRaw)
-  });
+  return res.json(toSnake(teamMembers));
 });
 var profiles_default = router3;
 
-// artifacts/api-server/src/routes/products.ts
+// server/routes/products.ts
 var import_express4 = __toESM(require_express2(), 1);
-init_src();
-init_src();
+init_db2();
+init_db2();
 import crypto3 from "crypto";
 var router4 = (0, import_express4.Router)();
-function normalizeToCamelCase(obj) {
-  const result = {};
-  for (const [key, value] of Object.entries(obj)) {
-    const camel = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
-    result[camel] = value;
-  }
-  return result;
-}
 async function getProfileFromToken2(token) {
   const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
   if (!session || session.expiresAt < /* @__PURE__ */ new Date()) return null;
@@ -48666,27 +52497,24 @@ async function getProfileFromToken2(token) {
   return profile ?? null;
 }
 router4.get("/products", async (req, res) => {
-  const { seriesId, featured, active } = req.query;
+  const { seriesId, series_id, featured, active } = req.query;
+  const sid = seriesId ?? series_id;
   try {
     const all = await db.select().from(products);
     let filtered = all;
     if (active !== void 0) filtered = filtered.filter((p) => p.isActive === (active === "true"));
-    if (featured !== void 0) filtered = filtered.filter((p) => featured === "true" ? p.isFeatured === true || p.isNew === true : p.isFeatured === false);
-    if (seriesId) filtered = filtered.filter((p) => p.seriesId === seriesId);
-    return res.json(filtered.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+    if (featured !== void 0) filtered = filtered.filter((p) => p.isFeatured === (featured === "true"));
+    if (sid) filtered = filtered.filter((p) => p.seriesId === sid);
+    return res.json(toSnake(filtered.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
   } catch (err) {
     console.error("Products DB error:", err?.message, err?.cause?.message, err?.cause?.code);
     return res.status(500).json({ error: "DB error", detail: err?.message, cause: err?.cause?.message });
   }
 });
-router4.get("/products/series", async (req, res) => {
-  const all = await db.select().from(productSeries);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
-});
 router4.get("/products/:id", async (req, res) => {
   const [product] = await db.select().from(products).where(eq(products.id, req.params.id)).limit(1);
   if (!product) return res.status(404).json({ error: "Not found" });
-  return res.json(product);
+  return res.json(toSnake(product));
 });
 router4.post("/products", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -48695,7 +52523,7 @@ router4.post("/products", async (req, res) => {
   if (!me) return res.status(401).json({ error: "Unauthorized" });
   const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, me.userId)).limit(1);
   if (role?.role !== "admin") return res.status(403).json({ error: "Forbidden" });
-  const [product] = await db.insert(products).values({ id: crypto3.randomUUID(), ...normalizeToCamelCase(req.body) }).returning();
+  const [product] = await db.insert(products).values({ id: crypto3.randomUUID(), ...req.body }).returning();
   return res.json(product);
 });
 router4.patch("/products/:id", async (req, res) => {
@@ -48705,7 +52533,7 @@ router4.patch("/products/:id", async (req, res) => {
   if (!me) return res.status(401).json({ error: "Unauthorized" });
   const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, me.userId)).limit(1);
   if (role?.role !== "admin") return res.status(403).json({ error: "Forbidden" });
-  const [product] = await db.update(products).set({ ...normalizeToCamelCase(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(products.id, req.params.id)).returning();
+  const [product] = await db.update(products).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(products.id, req.params.id)).returning();
   return res.json(product);
 });
 router4.delete("/products/:id", async (req, res) => {
@@ -48720,22 +52548,44 @@ router4.delete("/products/:id", async (req, res) => {
 });
 router4.get("/product-series", async (req, res) => {
   const all = await db.select().from(productSeries);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
-router4.get("/products/series", async (req, res) => {
-  const all = await db.select().from(productSeries);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+router4.post("/product-series", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken2(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, me.userId)).limit(1);
+  if (role?.role !== "admin") return res.status(403).json({ error: "Forbidden" });
+  const [series] = await db.insert(productSeries).values({ id: crypto3.randomUUID(), ...req.body }).returning();
+  return res.json(series);
 });
-router4.get("/vip-conditions", async (req, res) => {
-  const all = await db.select().from(vipConditions);
-  return res.json(all.sort((a, b) => (a.level ?? 0) - (b.level ?? 0)));
+router4.patch("/product-series/:id", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken2(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, me.userId)).limit(1);
+  if (role?.role !== "admin") return res.status(403).json({ error: "Forbidden" });
+  const [series] = await db.update(productSeries).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(productSeries.id, req.params.id)).returning();
+  return res.json(series);
+});
+router4.delete("/product-series/:id", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken2(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, me.userId)).limit(1);
+  if (role?.role !== "admin") return res.status(403).json({ error: "Forbidden" });
+  await db.delete(productSeries).where(eq(productSeries.id, req.params.id));
+  return res.json({ ok: true });
 });
 router4.get("/user-products/my", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken2(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
-  const { pool: pool2 } = await Promise.resolve().then(() => (init_src(), src_exports));
+  const { pool: pool2 } = await Promise.resolve().then(() => (init_db2(), db_exports));
   const { rows } = await pool2.query(`
     SELECT
       up.id, up.user_id, up.product_id, up.is_active,
@@ -48752,6 +52602,91 @@ router4.get("/user-products/my", async (req, res) => {
     ORDER BY up.purchased_at DESC
   `, [me.userId]);
   return res.json(rows);
+});
+router4.post("/products/purchase", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken2(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const productId = req.body.productId ?? req.body.product_id;
+  if (!productId) return res.status(400).json({ error: "productId required" });
+  const [product] = await db.select().from(products).where(eq(products.id, productId)).limit(1);
+  if (!product || !product.isActive) return res.status(400).json({ error: "Product not available" });
+  const price = Number(product.price ?? 0);
+  const balance = Number(me.balance ?? 0);
+  if (balance < price) return res.status(400).json({ error: "Insufficient balance" });
+  const cycles = product.cycles ?? 30;
+  const expiresAt = new Date(Date.now() + cycles * 24 * 60 * 60 * 1e3);
+  const [userProduct] = await db.insert(userProducts).values({
+    id: crypto3.randomUUID(),
+    userId: me.userId,
+    productId: product.id,
+    expiresAt
+  }).returning();
+  await db.update(profiles).set({
+    balance: String(balance - price),
+    depositBalance: String(Math.max(0, Number(me.depositBalance ?? 0) - price)),
+    updatedAt: /* @__PURE__ */ new Date()
+  }).where(eq(profiles.userId, me.userId));
+  if (price > 0) {
+    try {
+      const RATES = [
+        { level: "L1", rate: 0.1 },
+        { level: "L2", rate: 0.05 },
+        { level: "L3", rate: 0.01 }
+      ];
+      let currentProfileId = me.referredBy ?? null;
+      for (const { level, rate } of RATES) {
+        if (!currentProfileId) break;
+        const [referrer] = await db.select().from(profiles).where(eq(profiles.id, currentProfileId)).limit(1);
+        if (!referrer) break;
+        const commission = Math.round(price * rate * 100) / 100;
+        await db.update(profiles).set({
+          balance: String(Number(referrer.balance ?? 0) + commission),
+          referralBalance: String(Number(referrer.referralBalance ?? 0) + commission),
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq(profiles.userId, referrer.userId));
+        await db.insert(referralCommissions).values({
+          id: crypto3.randomUUID(),
+          beneficiaryId: referrer.id,
+          buyerId: me.id,
+          productPrice: String(price),
+          commissionAmount: String(commission),
+          commissionRate: String(rate),
+          level
+        });
+        currentProfileId = referrer.referredBy ?? null;
+      }
+    } catch (commErr) {
+      console.error("[referral] Commission crediting error:", commErr);
+    }
+  }
+  return res.json(toSnake(userProduct));
+});
+router4.post("/products/collect", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken2(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const upId = req.body.userProductId ?? req.body.user_product_id;
+  if (!upId) return res.status(400).json({ error: "userProductId required" });
+  const [up] = await db.select().from(userProducts).where(
+    and(eq(userProducts.id, upId), eq(userProducts.userId, me.userId))
+  ).limit(1);
+  if (!up) return res.status(404).json({ error: "Not found" });
+  const [product] = await db.select().from(products).where(eq(products.id, up.productId)).limit(1);
+  const dailyRev = Number(product?.dailyRevenue ?? 0);
+  const newCollected = Number(up.totalCollected ?? 0) + dailyRev;
+  await db.update(userProducts).set({
+    lastCollectedAt: /* @__PURE__ */ new Date(),
+    totalCollected: String(newCollected)
+  }).where(eq(userProducts.id, up.id));
+  await db.update(profiles).set({
+    balance: String(Number(me.balance ?? 0) + dailyRev),
+    earningsBalance: String(Number(me.earningsBalance ?? 0) + dailyRev),
+    updatedAt: /* @__PURE__ */ new Date()
+  }).where(eq(profiles.userId, me.userId));
+  return res.json({ collected: dailyRev });
 });
 router4.post("/user-products/buy/:productId", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -48778,7 +52713,6 @@ router4.post("/user-products/buy/:productId", async (req, res) => {
   }).where(eq(profiles.userId, me.userId));
   if (price > 0) {
     try {
-      const { pool: dbPool } = await Promise.resolve().then(() => (init_src(), src_exports));
       const RATES = [
         { level: "L1", rate: 0.1 },
         { level: "L2", rate: 0.05 },
@@ -48787,28 +52721,30 @@ router4.post("/user-products/buy/:productId", async (req, res) => {
       let currentProfileId = me.referredBy ?? null;
       for (const { level, rate } of RATES) {
         if (!currentProfileId) break;
-        const { rows: refRows } = await dbPool.query(
-          `SELECT id, user_id, referred_by, balance, referral_balance FROM profiles WHERE id = $1 LIMIT 1`,
-          [currentProfileId]
-        );
-        if (!refRows.length) break;
-        const referrer = refRows[0];
+        const [referrer] = await db.select().from(profiles).where(eq(profiles.id, currentProfileId)).limit(1);
+        if (!referrer) break;
         const commission = Math.round(price * rate * 100) / 100;
-        await dbPool.query(
-          `UPDATE profiles SET balance = balance + $1, referral_balance = referral_balance + $1, updated_at = now() WHERE user_id = $2`,
-          [commission, referrer.user_id]
-        );
-        await dbPool.query(
-          `INSERT INTO referral_commissions (id, beneficiary_id, buyer_id, product_price, commission_amount, commission_rate, level, created_at) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, now())`,
-          [referrer.id, me.id, price, commission, rate, level]
-        );
-        currentProfileId = referrer.referred_by ?? null;
+        await db.update(profiles).set({
+          balance: String(Number(referrer.balance ?? 0) + commission),
+          referralBalance: String(Number(referrer.referralBalance ?? 0) + commission),
+          updatedAt: /* @__PURE__ */ new Date()
+        }).where(eq(profiles.userId, referrer.userId));
+        await db.insert(referralCommissions).values({
+          id: crypto3.randomUUID(),
+          beneficiaryId: referrer.id,
+          buyerId: me.id,
+          productPrice: String(price),
+          commissionAmount: String(commission),
+          commissionRate: String(rate),
+          level
+        });
+        currentProfileId = referrer.referredBy ?? null;
       }
     } catch (commErr) {
       console.error("[referral] Commission crediting error:", commErr);
     }
   }
-  return res.json(userProduct);
+  return res.json(toSnake(userProduct));
 });
 router4.post("/user-products/:id/collect", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -48833,148 +52769,14 @@ router4.post("/user-products/:id/collect", async (req, res) => {
   }).where(eq(profiles.userId, me.userId));
   return res.json({ collected: dailyRev });
 });
-router4.post("/products/purchase", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken2(token);
-  if (!me) return res.status(401).json({ error: "Unauthorized" });
-  const { productId } = req.body;
-  if (!productId) return res.status(400).json({ error: "productId requis" });
-  const [product] = await db.select().from(products).where(eq(products.id, productId)).limit(1);
-  if (!product || !product.isActive) return res.status(400).json({ error: "Produit non disponible" });
-  const price = Number(product.price ?? 0);
-  const balance = Number(me.balance ?? 0);
-  if (balance < price) return res.status(400).json({ error: "Solde insuffisant" });
-  const cycles = product.cycles ?? 30;
-  const expiresAt = new Date(Date.now() + cycles * 24 * 60 * 60 * 1e3);
-  const [userProduct] = await db.insert(userProducts).values({
-    id: crypto3.randomUUID(),
-    userId: me.userId,
-    productId: product.id,
-    expiresAt
-  }).returning();
-  await db.update(profiles).set({
-    balance: String(balance - price),
-    depositBalance: String(Math.max(0, Number(me.depositBalance ?? 0) - price)),
-    updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq(profiles.userId, me.userId));
-  if (price > 0) {
-    try {
-      const { pool: dbPool } = await Promise.resolve().then(() => (init_src(), src_exports));
-      const RATES = [
-        { level: "L1", rate: 0.1 },
-        { level: "L2", rate: 0.05 },
-        { level: "L3", rate: 0.01 }
-      ];
-      let currentProfileId = me.referredBy ?? null;
-      for (const { level, rate } of RATES) {
-        if (!currentProfileId) break;
-        const { rows: refRows } = await dbPool.query(
-          `SELECT id, user_id, referred_by, balance, referral_balance FROM profiles WHERE id = $1 LIMIT 1`,
-          [currentProfileId]
-        );
-        if (!refRows.length) break;
-        const referrer = refRows[0];
-        const commission = Math.round(price * rate * 100) / 100;
-        await dbPool.query(
-          `UPDATE profiles SET balance = balance + $1, referral_balance = referral_balance + $1, updated_at = now() WHERE user_id = $2`,
-          [commission, referrer.user_id]
-        );
-        await dbPool.query(
-          `INSERT INTO referral_commissions (id, beneficiary_id, buyer_id, product_price, commission_amount, commission_rate, level, created_at) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, now())`,
-          [referrer.id, me.id, price, commission, rate, level]
-        );
-        currentProfileId = referrer.referred_by ?? null;
-      }
-    } catch (commErr) {
-      console.error("[referral] Commission crediting error:", commErr);
-    }
-  }
-  return res.json(userProduct);
-});
-router4.get("/products/user-products/my", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken2(token);
-  if (!me) return res.status(401).json({ error: "Unauthorized" });
-  const { pool: pool2 } = await Promise.resolve().then(() => (init_src(), src_exports));
-  const { rows } = await pool2.query(`
-    SELECT
-      up.id, up.user_id, up.product_id, up.is_active,
-      up.purchased_at, up.expires_at, up.last_collected_at, up.total_collected,
-      json_build_object(
-        'name', p.name, 'price', p.price, 'daily_revenue', p.daily_revenue,
-        'total_revenue', p.total_revenue, 'cycles', p.cycles,
-        'description', p.description, 'image_url', p.image_url,
-        'series_id', p.series_id, 'gain_type', p.gain_type
-      ) as products
-    FROM user_products up
-    JOIN products p ON p.id = up.product_id
-    WHERE up.user_id = $1
-    ORDER BY up.purchased_at DESC
-  `, [me.userId]);
-  return res.json(rows);
-});
-router4.post("/products/user-products/collect", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken2(token);
-  if (!me) return res.status(401).json({ error: "Unauthorized" });
-  const { userProductId } = req.body;
-  if (!userProductId) return res.status(400).json({ error: "userProductId requis" });
-  const [up] = await db.select().from(userProducts).where(
-    and(eq(userProducts.id, userProductId), eq(userProducts.userId, me.userId))
-  ).limit(1);
-  if (!up) return res.status(404).json({ error: "Produit introuvable" });
-  const [product] = await db.select().from(products).where(eq(products.id, up.productId)).limit(1);
-  const dailyRev = Number(product?.dailyRevenue ?? 0);
-  const newCollected = Number(up.totalCollected ?? 0) + dailyRev;
-  await db.update(userProducts).set({
-    lastCollectedAt: /* @__PURE__ */ new Date(),
-    totalCollected: String(newCollected)
-  }).where(eq(userProducts.id, up.id));
-  await db.update(profiles).set({
-    balance: String(Number(me.balance ?? 0) + dailyRev),
-    earningsBalance: String(Number(me.earningsBalance ?? 0) + dailyRev),
-    updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq(profiles.userId, me.userId));
-  return res.json({ collected: dailyRev, amount: dailyRev });
-});
-router4.get("/products/user-products/active-by-users", async (req, res) => {
-  const { userIds } = req.query;
-  if (!userIds) return res.json([]);
-  const ids = userIds.split(",").filter(Boolean);
-  if (!ids.length) return res.json([]);
-  const { pool: pool2 } = await Promise.resolve().then(() => (init_src(), src_exports));
-  const { rows } = await pool2.query(
-    `SELECT up.user_id as "userId", up.id
-     FROM user_products up
-     WHERE up.user_id = ANY($1::text[])
-     AND up.is_active = true`,
-    [ids]
-  );
-  return res.json(rows);
-});
 var products_default = router4;
 
-// artifacts/api-server/src/routes/payments.ts
+// server/routes/payments.ts
 var import_express5 = __toESM(require_express2(), 1);
-init_src();
-init_src();
+init_db2();
+init_db2();
 import crypto4 from "crypto";
 var router5 = (0, import_express5.Router)();
-function toSnake(obj) {
-  if (Array.isArray(obj)) return obj.map(toSnake);
-  if (obj !== null && typeof obj === "object" && !(obj instanceof Date)) {
-    const out = {};
-    for (const [k, v] of Object.entries(obj)) {
-      const snake = k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
-      out[snake] = toSnake(v);
-    }
-    return out;
-  }
-  return obj;
-}
 async function getProfileFromToken3(token) {
   const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
   if (!session || session.expiresAt < /* @__PURE__ */ new Date()) return null;
@@ -48985,103 +52787,45 @@ async function isAdmin(userId) {
   const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, userId)).limit(1);
   return role?.role === "admin";
 }
-async function atomicApproveRecharge(rechargeId, adminNote) {
-  const [updated] = await db.update(recharges).set({ status: "approved", adminNote: adminNote ?? null, updatedAt: /* @__PURE__ */ new Date() }).where(and(eq(recharges.id, rechargeId), eq(recharges.status, "pending"))).returning({ id: recharges.id, userId: recharges.userId, amount: recharges.amount });
-  if (!updated) return null;
-  await db.update(profiles).set({
-    balance: sql`${profiles.balance} + ${Number(updated.amount)}`,
-    depositBalance: sql`${profiles.depositBalance} + ${Number(updated.amount)}`,
-    updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq(profiles.userId, updated.userId));
-  return updated;
-}
-async function atomicRejectWithdrawal(withdrawalId, adminNote) {
-  const [withdrawal] = await db.select({ id: withdrawals.id, status: withdrawals.status, userId: withdrawals.userId, amount: withdrawals.amount }).from(withdrawals).where(eq(withdrawals.id, withdrawalId)).limit(1);
-  if (!withdrawal) return null;
-  if (withdrawal.status !== "pending" && withdrawal.status !== "processing") return null;
-  const [updated] = await db.update(withdrawals).set({ status: "rejected", adminNote: adminNote ?? null, updatedAt: /* @__PURE__ */ new Date() }).where(and(
-    eq(withdrawals.id, withdrawalId),
-    sql`${withdrawals.status} IN ('pending', 'processing')`
-  )).returning({ id: withdrawals.id });
-  if (!updated) return null;
-  const amount = Number(withdrawal.amount);
-  await db.update(profiles).set({
-    balance: sql`${profiles.balance} + ${amount}`,
-    earningsBalance: sql`${profiles.earningsBalance} + ${amount}`,
-    updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq(profiles.userId, withdrawal.userId));
-  return updated;
-}
 router5.get("/countries", async (req, res) => {
   const all = await db.select().from(countries).where(eq(countries.isActive, true));
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 router5.get("/payment-methods", async (req, res) => {
   const all = await db.select().from(paymentMethods).where(eq(paymentMethods.isActive, true));
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 router5.get("/withdrawal-methods", async (req, res) => {
   const all = await db.select().from(withdrawalMethods).where(eq(withdrawalMethods.isActive, true));
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 router5.post("/recharges", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
-  let me;
-  try {
-    me = await getProfileFromToken3(token);
-  } catch (dbErr) {
-    console.error("[recharges] DB error in getProfileFromToken:", dbErr?.message);
-    return res.status(503).json({ error: "Database unavailable. Please check server configuration." });
-  }
-  if (!me) return res.status(401).json({ error: "Session expired. Please login again." });
-  const body = req.body;
-  const amount = body.amount;
-  const phone = body.phone ?? body.phone ?? "";
-  const countryCode = body.countryCode ?? body.country_code ?? "";
-  const paymentMethod = body.paymentMethod ?? body.payment_method ?? null;
-  const transactionRef = body.transactionRef ?? body.transaction_ref ?? null;
-  const proofImageUrl = body.proofImageUrl ?? body.proof_image_url ?? null;
-  if (!amount) return res.status(400).json({ error: "Amount is required" });
-  try {
-    const insertValues = {
-      id: crypto4.randomUUID(),
-      userId: me.userId,
-      amount: String(amount),
-      status: "pending"
-    };
-    if (phone) insertValues.phone = phone;
-    if (countryCode) insertValues.countryCode = countryCode;
-    if (paymentMethod) insertValues.paymentMethod = paymentMethod;
-    if (transactionRef) insertValues.transactionRef = transactionRef;
-    if (proofImageUrl) insertValues.proofImageUrl = proofImageUrl;
-    const [recharge] = await db.insert(recharges).values(insertValues).returning();
-    return res.json(recharge);
-  } catch (err) {
-    console.error("[recharges] DB insert error:", err?.message, err?.code);
-    const detail = err?.message || "Unknown database error";
-    return res.status(500).json({ error: `Failed to create deposit: ${detail}` });
-  }
+  const me = await getProfileFromToken3(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { amount, phone, countryCode, paymentMethod, transactionRef, proofImageUrl } = req.body;
+  if (!amount || !phone) return res.status(400).json({ error: "Amount and phone required" });
+  const [recharge] = await db.insert(recharges).values({
+    id: crypto4.randomUUID(),
+    userId: me.userId,
+    amount: String(amount),
+    phone,
+    countryCode,
+    paymentMethod,
+    transactionRef,
+    proofImageUrl,
+    status: "pending"
+  }).returning();
+  return res.json(toSnake(recharge));
 });
 router5.get("/recharges/my", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken3(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
-  const statusFilter = req.query.status;
-  let myRecharges = await db.select().from(recharges).where(eq(recharges.userId, me.userId));
-  if (statusFilter) myRecharges = myRecharges.filter((r) => r.status === statusFilter);
-  return res.json(myRecharges.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-});
-router5.get("/payments/recharges/my", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken3(token);
-  if (!me) return res.status(401).json({ error: "Unauthorized" });
-  const statusFilter = req.query.status;
-  let myRecharges = await db.select().from(recharges).where(eq(recharges.userId, me.userId));
-  if (statusFilter) myRecharges = myRecharges.filter((r) => r.status === statusFilter);
-  return res.json(myRecharges.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+  const myRecharges = await db.select().from(recharges).where(eq(recharges.userId, me.userId));
+  return res.json(toSnake(myRecharges.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
 });
 router5.get("/recharges", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -49097,12 +52841,20 @@ router5.patch("/recharges/:id/approve", async (req, res) => {
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken3(token);
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
-  const updated = await atomicApproveRecharge(req.params.id, req.body.adminNote);
-  if (!updated) {
-    const [current] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
-    return current ? res.status(409).json({ error: "Already processed", status: current.status }) : res.status(404).json({ error: "Not found" });
+  const [recharge] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
+  if (!recharge) return res.status(404).json({ error: "Not found" });
+  if (recharge.status !== "pending") return res.status(400).json({ error: "Already processed" });
+  const [profile] = await db.select().from(profiles).where(eq(profiles.userId, recharge.userId)).limit(1);
+  if (profile) {
+    const amount = Number(recharge.amount);
+    await db.update(profiles).set({
+      balance: String(Number(profile.balance ?? 0) + amount),
+      depositBalance: String(Number(profile.depositBalance ?? 0) + amount),
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq(profiles.userId, recharge.userId));
   }
-  return res.json(updated);
+  const [updated] = await db.update(recharges).set({ status: "approved", adminNote: req.body.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq(recharges.id, req.params.id)).returning();
+  return res.json(toSnake(updated));
 });
 router5.patch("/recharges/:id/reject", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -49110,26 +52862,7 @@ router5.patch("/recharges/:id/reject", async (req, res) => {
   const me = await getProfileFromToken3(token);
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
   const [updated] = await db.update(recharges).set({ status: "rejected", adminNote: req.body.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq(recharges.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router5.patch("/recharges/:id/status", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken3(token);
-  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
-  const { status, adminNote } = req.body;
-  if (status === "approved") {
-    const updated2 = await atomicApproveRecharge(req.params.id, adminNote);
-    if (!updated2) {
-      const [current] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
-      return current ? res.status(409).json({ error: "Already processed", status: current.status }) : res.status(404).json({ error: "Not found" });
-    }
-    return res.json(updated2);
-  }
-  const [recharge] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
-  if (!recharge) return res.status(404).json({ error: "Not found" });
-  const [updated] = await db.update(recharges).set({ status, adminNote: adminNote ?? null, updatedAt: /* @__PURE__ */ new Date() }).where(eq(recharges.id, req.params.id)).returning();
-  return res.json(updated);
+  return res.json(toSnake(updated));
 });
 router5.get("/wallets/my", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -49137,7 +52870,7 @@ router5.get("/wallets/my", async (req, res) => {
   const me = await getProfileFromToken3(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
   const wallets = await db.select().from(userWallets).where(eq(userWallets.userId, me.userId));
-  return res.json(wallets);
+  return res.json(toSnake(wallets));
 });
 router5.post("/wallets", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -49155,9 +52888,9 @@ router5.post("/wallets", async (req, res) => {
     holderName,
     label
   }).returning();
-  return res.json(wallet);
+  return res.json(toSnake(wallet));
 });
-async function handleWithdrawalSubmit(req, res) {
+router5.post("/withdrawals", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken3(token);
@@ -49181,30 +52914,20 @@ async function handleWithdrawalSubmit(req, res) {
     status: "pending"
   }).returning();
   await db.update(profiles).set({
-    balance: sql`${profiles.balance} - ${totalAmount}`,
-    earningsBalance: sql`GREATEST(${profiles.earningsBalance} - ${totalAmount}, 0)`,
+    balance: String(Number(me.balance ?? 0) - totalAmount),
+    earningsBalance: String(Math.max(0, Number(me.earningsBalance ?? 0) - totalAmount)),
     updatedAt: /* @__PURE__ */ new Date()
   }).where(eq(profiles.userId, me.userId));
-  return res.json(withdrawal);
-}
-async function handleWithdrawalsMyGet(req, res) {
+  return res.json(toSnake(withdrawal));
+});
+router5.get("/withdrawals/my", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken3(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
   const myWithdrawals = await db.select().from(withdrawals).where(eq(withdrawals.userId, me.userId));
-  const sorted = myWithdrawals.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  if (req.query.since === "today") {
-    const start = /* @__PURE__ */ new Date();
-    start.setHours(0, 0, 0, 0);
-    return res.json(sorted.filter((w) => new Date(w.createdAt).getTime() >= start.getTime()));
-  }
-  return res.json(sorted);
-}
-router5.post("/withdrawals", handleWithdrawalSubmit);
-router5.post("/payments/withdrawals", handleWithdrawalSubmit);
-router5.get("/withdrawals/my", handleWithdrawalsMyGet);
-router5.get("/payments/withdrawals/my", handleWithdrawalsMyGet);
+  return res.json(toSnake(myWithdrawals.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
+});
 router5.get("/withdrawals", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
@@ -49219,161 +52942,52 @@ router5.patch("/withdrawals/:id/approve", async (req, res) => {
   const me = await getProfileFromToken3(token);
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
   const [updated] = await db.update(withdrawals).set({ status: "approved", adminNote: req.body.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
-  return res.json(updated);
+  return res.json(toSnake(updated));
 });
 router5.patch("/withdrawals/:id/reject", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken3(token);
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
-  const updated = await atomicRejectWithdrawal(req.params.id, req.body.adminNote);
-  if (!updated) {
-    const [current] = await db.select().from(withdrawals).where(eq(withdrawals.id, req.params.id)).limit(1);
-    return current ? res.status(409).json({ error: "Already processed", status: current.status }) : res.status(404).json({ error: "Not found" });
-  }
-  return res.json(updated);
-});
-router5.post("/withdrawals/:id/process", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken3(token);
-  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
-  const [updated] = await db.update(withdrawals).set({ status: "processing", updatedAt: /* @__PURE__ */ new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
-  if (!updated) return res.status(404).json({ error: "Not found" });
-  return res.json(updated);
-});
-router5.patch("/withdrawals/:id/status", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken3(token);
-  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
-  const { status, adminNote } = req.body;
   const [withdrawal] = await db.select().from(withdrawals).where(eq(withdrawals.id, req.params.id)).limit(1);
-  if (!withdrawal) return res.status(404).json({ error: "Not found" });
-  if (status === "rejected") {
-    const updated2 = await atomicRejectWithdrawal(req.params.id, adminNote);
-    if (!updated2) {
-      return res.status(409).json({ error: "Already processed", status: withdrawal.status });
+  if (withdrawal && withdrawal.status === "pending") {
+    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, withdrawal.userId)).limit(1);
+    if (profile) {
+      await db.update(profiles).set({
+        balance: String(Number(profile.balance ?? 0) + Number(withdrawal.amount)),
+        earningsBalance: String(Number(profile.earningsBalance ?? 0) + Number(withdrawal.amount)),
+        updatedAt: /* @__PURE__ */ new Date()
+      }).where(eq(profiles.userId, withdrawal.userId));
     }
-    return res.json(updated2);
   }
-  const [updated] = await db.update(withdrawals).set({ status, adminNote: adminNote ?? null, updatedAt: /* @__PURE__ */ new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router5.patch("/withdrawals/:id/proof", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken3(token);
-  if (!me) return res.status(401).json({ error: "Unauthorized" });
-  const { processing_fee_proof_url } = req.body;
-  const [updated] = await db.update(withdrawals).set({ processingFeeProofUrl: processing_fee_proof_url, updatedAt: /* @__PURE__ */ new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router5.get("/payments/recharges", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken3(token);
-  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
-  const all = await db.select().from(recharges);
-  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-});
-router5.patch("/payments/recharges/:id/status", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken3(token);
-  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
-  const { status, adminNote } = req.body;
-  if (status === "approved") {
-    const updated2 = await atomicApproveRecharge(req.params.id, adminNote);
-    if (!updated2) {
-      const [current] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
-      return current ? res.status(409).json({ error: "Already processed", status: current.status }) : res.status(404).json({ error: "Not found" });
-    }
-    return res.json(updated2);
-  }
-  const [recharge] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
-  if (!recharge) return res.status(404).json({ error: "Not found" });
-  const [updated] = await db.update(recharges).set({ status, adminNote: adminNote ?? null, updatedAt: /* @__PURE__ */ new Date() }).where(eq(recharges.id, req.params.id)).returning();
-  return res.json(updated);
+  const [updated] = await db.update(withdrawals).set({ status: "rejected", adminNote: req.body.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
+  return res.json(toSnake(updated));
 });
 router5.get("/payments/withdrawals", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken3(token);
-  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
-  const all = await db.select().from(withdrawals);
-  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const myWithdrawals = await db.select().from(withdrawals).where(eq(withdrawals.userId, me.userId));
+  return res.json(toSnake(myWithdrawals.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
 });
-router5.patch("/payments/withdrawals/:id/status", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken3(token);
-  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
-  const { status, adminNote } = req.body;
-  const [withdrawal] = await db.select().from(withdrawals).where(eq(withdrawals.id, req.params.id)).limit(1);
-  if (!withdrawal) return res.status(404).json({ error: "Not found" });
-  if (status === "rejected") {
-    const updated2 = await atomicRejectWithdrawal(req.params.id, adminNote);
-    if (!updated2) {
-      return res.status(409).json({ error: "Already processed", status: withdrawal.status });
-    }
-    return res.json(updated2);
-  }
-  const [updated] = await db.update(withdrawals).set({ status, adminNote: adminNote ?? null, updatedAt: /* @__PURE__ */ new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router5.get("/payments/fee-payments", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken3(token);
-  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
-  const all = await db.select().from(withdrawalFeePayments);
-  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-});
-router5.patch("/payments/fee-payments/:id/status", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken3(token);
-  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
-  const { status, adminNote } = req.body;
-  const [updated] = await db.update(withdrawalFeePayments).set({ status, adminNote: adminNote ?? null, updatedAt: /* @__PURE__ */ new Date() }).where(eq(withdrawalFeePayments.id, req.params.id)).returning();
-  if (!updated) return res.status(404).json({ error: "Not found" });
-  return res.json(updated);
-});
-router5.get("/user-wallets/my", async (req, res) => {
+router5.patch("/payments/withdrawals/:id/proof", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken3(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
-  const wallets = await db.select().from(userWallets).where(eq(userWallets.userId, me.userId));
-  return res.json(wallets);
-});
-router5.get("/user-wallets/batch", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken3(token);
-  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
-  const ids = (req.query.ids || "").split(",").filter(Boolean);
-  if (ids.length === 0) return res.json([]);
-  const result = await db.select().from(userWallets).where(inArray(userWallets.id, ids));
-  return res.json(result);
+  const { proofUrl } = req.body;
+  const [updated] = await db.update(withdrawals).set({ processingFeeProofUrl: proofUrl }).where(and(eq(withdrawals.id, req.params.id), eq(withdrawals.userId, me.userId))).returning();
+  return res.json(toSnake(updated));
 });
 var payments_default = router5;
 
-// artifacts/api-server/src/routes/settings.ts
+// server/routes/settings.ts
 var import_express6 = __toESM(require_express2(), 1);
-init_src();
-init_src();
+init_db2();
+init_db2();
 import crypto5 from "crypto";
 var router6 = (0, import_express6.Router)();
-function normalizeToCamelCase2(obj) {
-  const result = {};
-  for (const [key, value] of Object.entries(obj)) {
-    const camel = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
-    result[camel] = value;
-  }
-  return result;
-}
 async function getProfileFromToken4(token) {
   const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
   if (!session || session.expiresAt < /* @__PURE__ */ new Date()) return null;
@@ -49407,27 +53021,19 @@ router6.put("/site-settings/:key", async (req, res) => {
     return res.json(created);
   }
 });
-router6.get("/popups", async (req, res) => {
-  const all = await db.select().from(popupMessages);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
-});
-router6.patch("/popups/:id", async (req, res) => {
-  const [updated] = await db.update(popupMessages).set({ ...normalizeToCamelCase2(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(popupMessages.id, req.params.id)).returning();
-  if (!updated) return res.status(404).json({ error: "Not found" });
-  return res.json(updated);
-});
 router6.get("/popup-messages", async (req, res) => {
-  const { triggerKey } = req.query;
+  const { triggerKey, trigger_key } = req.query;
+  const key = triggerKey || trigger_key;
   const all = await db.select().from(popupMessages).where(eq(popupMessages.isActive, true));
-  if (triggerKey) return res.json(all.filter((p) => p.triggerKey === triggerKey));
-  return res.json(all);
+  const filtered = key ? all.filter((p) => p.triggerKey === key) : all;
+  return res.json(toSnake(filtered));
 });
 router6.post("/popup-messages", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken4(token);
   if (!me || !await isAdmin2(me.userId)) return res.status(403).json({ error: "Forbidden" });
-  const [popup] = await db.insert(popupMessages).values({ id: crypto5.randomUUID(), ...normalizeToCamelCase2(req.body) }).returning();
+  const [popup] = await db.insert(popupMessages).values({ id: crypto5.randomUUID(), ...req.body }).returning();
   return res.json(popup);
 });
 router6.patch("/popup-messages/:id", async (req, res) => {
@@ -49435,7 +53041,7 @@ router6.patch("/popup-messages/:id", async (req, res) => {
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken4(token);
   if (!me || !await isAdmin2(me.userId)) return res.status(403).json({ error: "Forbidden" });
-  const [updated] = await db.update(popupMessages).set({ ...normalizeToCamelCase2(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(popupMessages.id, req.params.id)).returning();
+  const [updated] = await db.update(popupMessages).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(popupMessages.id, req.params.id)).returning();
   return res.json(updated);
 });
 router6.delete("/popup-messages/:id", async (req, res) => {
@@ -49448,35 +53054,82 @@ router6.delete("/popup-messages/:id", async (req, res) => {
 });
 router6.get("/faq", async (req, res) => {
   const all = await db.select().from(faqItems).where(eq(faqItems.isActive, true));
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
+});
+router6.get("/faq-items", async (req, res) => {
+  const all = await db.select().from(faqItems).where(eq(faqItems.isActive, true));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 router6.get("/social-links", async (req, res) => {
   const all = await db.select().from(socialLinks).where(eq(socialLinks.isActive, true));
-  return res.json(all);
+  return res.json(toSnake(all));
 });
 router6.get("/documents", async (req, res) => {
   const all = await db.select().from(officialDocuments).where(eq(officialDocuments.isActive, true));
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 router6.get("/banners", async (req, res) => {
   const all = await db.select().from(banners).where(eq(banners.isActive, true));
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
+});
+router6.post("/banners", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken4(token);
+  if (!me || !await isAdmin2(me.userId)) return res.status(403).json({ error: "Forbidden" });
+  const [banner] = await db.insert(banners).values({ id: crypto5.randomUUID(), ...req.body }).returning();
+  return res.json(banner);
+});
+router6.patch("/banners/:id", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken4(token);
+  if (!me || !await isAdmin2(me.userId)) return res.status(403).json({ error: "Forbidden" });
+  const [updated] = await db.update(banners).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(banners.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router6.delete("/banners/:id", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken4(token);
+  if (!me || !await isAdmin2(me.userId)) return res.status(403).json({ error: "Forbidden" });
+  await db.delete(banners).where(eq(banners.id, req.params.id));
+  return res.json({ ok: true });
 });
 router6.get("/info-items", async (req, res) => {
   const all = await db.select().from(infoItems).where(eq(infoItems.isActive, true));
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
-router6.get("/info-items/:id", async (req, res) => {
-  const [item] = await db.select().from(infoItems).where(eq(infoItems.id, req.params.id)).limit(1);
-  if (!item) return res.status(404).json({ error: "Not found" });
+router6.post("/info-items", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken4(token);
+  if (!me || !await isAdmin2(me.userId)) return res.status(403).json({ error: "Forbidden" });
+  const [item] = await db.insert(infoItems).values({ id: crypto5.randomUUID(), ...req.body }).returning();
   return res.json(item);
+});
+router6.patch("/info-items/:id", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken4(token);
+  if (!me || !await isAdmin2(me.userId)) return res.status(403).json({ error: "Forbidden" });
+  const [updated] = await db.update(infoItems).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(infoItems.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router6.delete("/info-items/:id", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken4(token);
+  if (!me || !await isAdmin2(me.userId)) return res.status(403).json({ error: "Forbidden" });
+  await db.delete(infoItems).where(eq(infoItems.id, req.params.id));
+  return res.json({ ok: true });
 });
 var settings_default = router6;
 
-// artifacts/api-server/src/routes/content.ts
+// server/routes/content.ts
 var import_express7 = __toESM(require_express2(), 1);
-init_src();
-init_src();
+init_db2();
+init_db2();
 import crypto6 from "crypto";
 var router7 = (0, import_express7.Router)();
 async function getProfileFromToken5(token) {
@@ -49495,20 +53148,20 @@ router7.post("/gift-codes/redeem", async (req, res) => {
   const [giftCode] = await db.select().from(giftCodes).where(eq(giftCodes.code, code.trim().toUpperCase())).limit(1);
   if (!giftCode || !giftCode.isActive) return res.status(400).json({ error: "Invalid code" });
   if (giftCode.expiresAt && giftCode.expiresAt < /* @__PURE__ */ new Date()) return res.status(400).json({ error: "Code expired" });
-  if (giftCode.usedCount >= giftCode.maxUses) return res.status(400).json({ error: "Code already used" });
+  if ((giftCode.usedCount ?? 0) >= (giftCode.maxUses ?? 9999)) return res.status(400).json({ error: "Code already used" });
   const alreadyUsed = await db.select().from(giftCodeUses).where(
     and(eq(giftCodeUses.codeId, giftCode.id), eq(giftCodeUses.userId, me.userId))
   ).limit(1);
   if (alreadyUsed.length > 0) return res.status(400).json({ error: "Code already used by you" });
   const points = giftCode.pointsValue ?? 0;
   await db.insert(giftCodeUses).values({ id: crypto6.randomUUID(), codeId: giftCode.id, userId: me.userId, pointsAwarded: points });
-  await db.update(giftCodes).set({ usedCount: giftCode.usedCount + 1 }).where(eq(giftCodes.id, giftCode.id));
+  await db.update(giftCodes).set({ usedCount: (giftCode.usedCount ?? 0) + 1 }).where(eq(giftCodes.id, giftCode.id));
   await db.update(profiles).set({ giftPoints: (me.giftPoints ?? 0) + points, updatedAt: /* @__PURE__ */ new Date() }).where(eq(profiles.userId, me.userId));
   return res.json({ ok: true, pointsAwarded: points });
 });
 router7.get("/gift-rewards", async (req, res) => {
   const all = await db.select().from(giftRewards).where(eq(giftRewards.isActive, true));
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 router7.post("/gift-rewards/:id/redeem", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -49532,7 +53185,7 @@ router7.post("/gift-rewards/:id/redeem", async (req, res) => {
     balance: String(Number(me.balance ?? 0) + Number(reward.moneyValue)),
     updatedAt: /* @__PURE__ */ new Date()
   }).where(eq(profiles.userId, me.userId));
-  return res.json(exchange);
+  return res.json(toSnake(exchange));
 });
 router7.get("/point-exchanges/my", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -49540,11 +53193,11 @@ router7.get("/point-exchanges/my", async (req, res) => {
   const me = await getProfileFromToken5(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
   const exchanges = await db.select().from(pointExchanges).where(eq(pointExchanges.userId, me.userId));
-  return res.json(exchanges.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+  return res.json(toSnake(exchanges.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
 });
 router7.get("/wheel-prizes", async (req, res) => {
   const all = await db.select().from(wheelPrizes).where(eq(wheelPrizes.isActive, true));
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
 });
 router7.post("/wheel/spin", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -49579,13 +53232,21 @@ router7.post("/wheel/spin", async (req, res) => {
     balance: selected.prizeType === "cash" ? String(Number(me.balance ?? 0) + Number(selected.value ?? 0)) : String(me.balance ?? 0),
     updatedAt: /* @__PURE__ */ new Date()
   }).where(eq(profiles.userId, me.userId));
-  return res.json(spin);
+  return res.json(toSnake(spin));
+});
+router7.get("/wheel/my-spins", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken5(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const spins = await db.select().from(wheelSpins).where(eq(wheelSpins.userId, me.userId));
+  return res.json(toSnake(spins.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
 });
 router7.get("/wheel/recent-winners", async (req, res) => {
   const limit = Math.min(Number(req.query.limit ?? 10), 50);
   const spins = await db.select().from(wheelSpins);
   const winners = spins.filter((s) => s.status === "completed" && Number(s.prizeValue) > 0).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, limit);
-  return res.json(winners);
+  return res.json(toSnake(winners));
 });
 router7.get("/chat/my", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -49593,7 +53254,7 @@ router7.get("/chat/my", async (req, res) => {
   const me = await getProfileFromToken5(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
   const messages = await db.select().from(chatMessages).where(eq(chatMessages.userId, me.userId));
-  return res.json(messages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+  return res.json(toSnake(messages.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())));
 });
 router7.post("/chat/send", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -49609,59 +53270,1076 @@ router7.post("/chat/send", async (req, res) => {
     sender: "user",
     isAi: false
   }).returning();
-  const aiReply = await db.insert(chatMessages).values({
+  const [aiReply] = await db.insert(chatMessages).values({
     id: crypto6.randomUUID(),
     userId: me.userId,
     message: "Thank you for your message! Our support team will respond shortly.",
     sender: "sarah",
     isAi: true
   }).returning();
-  return res.json({ message: msg, reply: aiReply[0] });
-});
-router7.post("/chat/send-system", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken5(token);
-  if (!me) return res.status(401).json({ error: "Unauthorized" });
-  const { message, sender } = req.body;
-  if (!message) return res.status(400).json({ error: "Message required" });
-  const [msg] = await db.insert(chatMessages).values({
-    id: crypto6.randomUUID(),
-    userId: me.userId,
-    message,
-    sender: sender ?? "system",
-    isAi: true
-  }).returning();
-  return res.json(msg);
-});
-router7.get("/wheel/prizes", async (req, res) => {
-  const all = await db.select().from(wheelPrizes).where(eq(wheelPrizes.isActive, true));
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
-});
-router7.get("/wheel/my-spins", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken5(token);
-  if (!me) return res.status(401).json({ error: "Unauthorized" });
-  const limit = Math.min(Number(req.query.limit ?? 20), 100);
-  const spins = await db.select().from(wheelSpins).where(eq(wheelSpins.userId, me.userId));
-  return res.json(spins.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, limit));
+  return res.json({ message: toSnake(msg), reply: toSnake(aiReply) });
 });
 var content_default = router7;
 
-// artifacts/api-server/src/routes/db.ts
+// server/routes/admin.ts
 var import_express8 = __toESM(require_express2(), 1);
-init_src();
-init_src();
+init_db2();
+init_db2();
+import crypto7 from "crypto";
+var router8 = (0, import_express8.Router)();
+function normalizeToCamelCase(obj) {
+  if (Array.isArray(obj)) return obj.map(normalizeToCamelCase);
+  if (obj !== null && typeof obj === "object" && !(obj instanceof Date)) {
+    const result = {};
+    for (const [key, value] of Object.entries(obj)) {
+      const camel = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+      result[camel] = normalizeToCamelCase(value);
+    }
+    return result;
+  }
+  return obj;
+}
+router8.use((req, _res, next) => {
+  if (["POST", "PATCH", "PUT"].includes(req.method) && req.body && typeof req.body === "object") {
+    req.body = normalizeToCamelCase(req.body);
+  }
+  next();
+});
+function toSnake2(obj) {
+  if (Array.isArray(obj)) return obj.map(toSnake2);
+  if (obj !== null && typeof obj === "object" && !(obj instanceof Date)) {
+    const out = {};
+    for (const [k, v] of Object.entries(obj)) {
+      const snake = k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+      out[snake] = toSnake2(v);
+    }
+    return out;
+  }
+  return obj;
+}
+async function getProfileFromToken6(token) {
+  const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
+  if (!session || session.expiresAt < /* @__PURE__ */ new Date()) return null;
+  const [profile] = await db.select().from(profiles).where(eq(profiles.userId, session.userId)).limit(1);
+  return profile ?? null;
+}
+async function getRole(userId) {
+  const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, userId)).limit(1);
+  return role?.role ?? null;
+}
+async function requireAdmin(req, res) {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) {
+    res.status(401).json({ error: "Unauthorized" });
+    return null;
+  }
+  const me = await getProfileFromToken6(token);
+  if (!me) {
+    res.status(401).json({ error: "Unauthorized" });
+    return null;
+  }
+  const role = await getRole(me.userId);
+  if (role !== "admin" && role !== "moderator") {
+    res.status(403).json({ error: "Forbidden" });
+    return null;
+  }
+  return { me, role };
+}
+router8.get("/admin/me", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken6(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const role = await getRole(me.userId);
+  if (!role || role !== "admin" && role !== "moderator") return res.status(403).json({ error: "Forbidden" });
+  const perms = await db.select().from(adminPermissions).where(eq(adminPermissions.userId, me.userId));
+  return res.json({ ...me, role, permissions: perms.map((p) => p.permission) });
+});
+router8.get("/admin/check", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken6(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const role = await getRole(me.userId);
+  if (!role || role !== "admin" && role !== "moderator") return res.status(403).json({ error: "Forbidden" });
+  const perms = await db.select().from(adminPermissions).where(eq(adminPermissions.userId, me.userId));
+  return res.json({
+    isAdmin: role === "admin",
+    isModerator: role === "moderator",
+    userId: me.userId,
+    profileId: me.id,
+    permissions: perms.map((p) => p.permission)
+  });
+});
+router8.get("/admin/all-data", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  try {
+    const [
+      profilesAll,
+      rechargesAll,
+      withdrawalsAll,
+      seriesAll,
+      productsAll,
+      paymentMethodsAll,
+      socialLinksAll,
+      siteSettingsAll,
+      popupsAll,
+      logsAll,
+      countriesAll,
+      vipAll,
+      bannersAll,
+      withdrawalMethodsAll,
+      apiConfigsAll,
+      paymentLogsAll
+    ] = await Promise.all([
+      db.select().from(profiles),
+      db.select().from(recharges),
+      db.select().from(withdrawals),
+      db.select().from(productSeries),
+      db.select().from(products),
+      db.select().from(paymentMethods),
+      db.select().from(socialLinks),
+      db.select().from(siteSettings),
+      db.select().from(popupMessages),
+      db.select().from(adminLogs),
+      db.select().from(countries),
+      db.select().from(vipConditions),
+      db.select().from(banners),
+      db.select().from(withdrawalMethods),
+      db.select().from(paymentApiConfigs),
+      db.select().from(paymentLogs)
+    ]);
+    const byDate = (a, b) => new Date(b.createdAt ?? b.created_at ?? 0).getTime() - new Date(a.createdAt ?? a.created_at ?? 0).getTime();
+    return res.json({
+      profiles: toSnake2(profilesAll.sort(byDate)),
+      recharges: toSnake2(rechargesAll.sort(byDate)),
+      withdrawals: toSnake2(withdrawalsAll.sort(byDate)),
+      series: toSnake2(seriesAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      products: toSnake2(productsAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      paymentMethods: toSnake2(paymentMethodsAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      socialLinks: toSnake2(socialLinksAll),
+      siteSettings: toSnake2(siteSettingsAll),
+      popups: toSnake2(popupsAll),
+      adminLogs: toSnake2(logsAll.sort(byDate).slice(0, 100)),
+      countries: toSnake2(countriesAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      vipConditions: toSnake2(vipAll.sort((a, b) => (a.level ?? 0) - (b.level ?? 0))),
+      banners: toSnake2(bannersAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      withdrawalMethods: toSnake2(withdrawalMethodsAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      apiConfigs: toSnake2(apiConfigsAll),
+      paymentLogs: toSnake2(paymentLogsAll.sort(byDate).slice(0, 200))
+    });
+  } catch (err) {
+    console.error("[admin/all-data] DB error:", err?.message ?? err);
+    return res.status(500).json({ error: err?.message ?? "Database error loading admin data" });
+  }
+});
+router8.get("/admin/recharges", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(recharges);
+  const sorted = all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const profileIds = [...new Set(sorted.map((r) => r.userId))];
+  const profs = profileIds.length > 0 ? await db.select().from(profiles).where(inArray(profiles.userId, profileIds)) : [];
+  const profMap = Object.fromEntries(profs.map((p) => [p.userId, toSnake2(p)]));
+  return res.json(sorted.map((r) => ({ ...toSnake2(r), profile: profMap[r.userId] ?? null })));
+});
+router8.patch("/admin/users/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { id } = req.params;
+  const { fullName, balance, depositBalance, earningsBalance, referralBalance, vipLevel, giftPoints, isSuspended } = req.body;
+  const updates = { updatedAt: /* @__PURE__ */ new Date() };
+  if (fullName !== void 0) updates.fullName = fullName;
+  if (balance !== void 0) updates.balance = String(balance);
+  if (depositBalance !== void 0) updates.depositBalance = String(depositBalance);
+  if (earningsBalance !== void 0) updates.earningsBalance = String(earningsBalance);
+  if (referralBalance !== void 0) updates.referralBalance = String(referralBalance);
+  if (vipLevel !== void 0) updates.vipLevel = Number(vipLevel);
+  if (giftPoints !== void 0) updates.giftPoints = Number(giftPoints);
+  if (isSuspended !== void 0) updates.isSuspended = isSuspended;
+  const [updated] = await db.update(profiles).set(updates).where(eq(profiles.id, id)).returning();
+  if (!updated) return res.status(404).json({ error: "User not found" });
+  return res.json(toSnake2(updated));
+});
+router8.delete("/admin/users/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  if (auth.role !== "admin") return res.status(403).json({ error: "Forbidden" });
+  const { id } = req.params;
+  const [target] = await db.select().from(profiles).where(eq(profiles.id, id)).limit(1);
+  if (!target) return res.status(404).json({ error: "User not found" });
+  const uid = target.userId;
+  await db.delete(userProducts).where(eq(userProducts.userId, uid));
+  await db.delete(chatMessages).where(eq(chatMessages.userId, uid));
+  await db.delete(withdrawals).where(eq(withdrawals.userId, uid));
+  await db.delete(recharges).where(eq(recharges.userId, uid));
+  await db.delete(wheelSpins).where(eq(wheelSpins.userId, uid));
+  await db.delete(pointExchanges).where(eq(pointExchanges.userId, uid));
+  await db.delete(profiles).where(eq(profiles.id, id));
+  return res.json({ ok: true });
+});
+router8.get("/admin/users/:id/detail", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { id } = req.params;
+  const [target] = await db.select().from(profiles).where(eq(profiles.id, id)).limit(1);
+  if (!target) return res.status(404).json({ error: "User not found" });
+  const { pool: pool2 } = await Promise.resolve().then(() => (init_db2(), db_exports));
+  const upRes = await pool2.query(`
+    SELECT up.*, json_build_object('name', p.name, 'price', p.price, 'daily_revenue', p.daily_revenue, 'cycles', p.cycles) as products
+    FROM user_products up JOIN products p ON p.id = up.product_id
+    WHERE up.user_id = $1
+  `, [target.userId]);
+  const teamB = await db.select().from(profiles).where(eq(profiles.referredBy, target.id));
+  const result = {
+    products: upRes.rows,
+    teamB: toSnake2(teamB),
+    teamC: [],
+    teamD: []
+  };
+  if (teamB.length > 0) {
+    result.teamC = toSnake2(await db.select().from(profiles).where(inArray(profiles.referredBy, teamB.map((m) => m.id))));
+    if (result.teamC.length > 0) {
+      result.teamD = toSnake2(await db.select().from(profiles).where(inArray(profiles.referredBy, result.teamC.map((m) => m.id))));
+    }
+  }
+  return res.json(result);
+});
+router8.post("/admin/logs", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken6(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { action, target_type, target_id, targetType, targetId, details } = req.body;
+  await db.insert(adminLogs).values({ id: crypto7.randomUUID(), adminId: me.userId, action, targetType: targetType ?? target_type, targetId: targetId ?? target_id, details: details ?? {} });
+  return res.json({ ok: true });
+});
+router8.get("/admin/logs", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const logs = await db.select().from(adminLogs);
+  return res.json(logs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 50));
+});
+router8.get("/admin/profiles", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { page = "0", pageSize = "50" } = req.query;
+  const from = Number(page) * Number(pageSize);
+  const all = await db.select().from(profiles);
+  const sorted = all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return res.json(sorted.slice(from, from + Number(pageSize)));
+});
+router8.patch("/admin/profiles/:userId", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { userId } = req.params;
+  const updates = { ...req.body, updatedAt: /* @__PURE__ */ new Date() };
+  const [updated] = await db.update(profiles).set(updates).where(eq(profiles.userId, userId)).returning();
+  return res.json(updated);
+});
+router8.delete("/admin/profiles/:userId", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  if (auth.role !== "admin") return res.status(403).json({ error: "Forbidden" });
+  const { userId } = req.params;
+  await db.delete(userProducts).where(eq(userProducts.userId, userId));
+  await db.delete(chatMessages).where(eq(chatMessages.userId, userId));
+  await db.delete(withdrawals).where(eq(withdrawals.userId, userId));
+  await db.delete(recharges).where(eq(recharges.userId, userId));
+  await db.delete(wheelSpins).where(eq(wheelSpins.userId, userId));
+  await db.delete(pointExchanges).where(eq(pointExchanges.userId, userId));
+  await db.delete(profiles).where(eq(profiles.userId, userId));
+  return res.json({ ok: true });
+});
+router8.get("/admin/profiles/:userId/details", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { pool: pool2 } = await Promise.resolve().then(() => (init_db2(), db_exports));
+  const upRes = await pool2.query(`
+    SELECT up.*, json_build_object('name', p.name, 'price', p.price, 'daily_revenue', p.daily_revenue, 'cycles', p.cycles) as products
+    FROM user_products up JOIN products p ON p.id = up.product_id
+    WHERE up.user_id = $1
+  `, [req.params.userId]);
+  const l1 = await db.select().from(profiles).where(eq(profiles.referredBy, req.params.userId));
+  const result = { up: upRes.rows, l1, l2: [], l3: [] };
+  if (l1.length > 0) {
+    const l1Ids = l1.map((m) => m.userId);
+    result.l2 = await db.select().from(profiles).where(inArray(profiles.referredBy, l1Ids));
+    if (result.l2.length > 0) {
+      const l2Ids = result.l2.map((m) => m.userId);
+      result.l3 = await db.select().from(profiles).where(inArray(profiles.referredBy, l2Ids));
+    }
+  }
+  return res.json(result);
+});
+router8.delete("/admin/user-products/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(userProducts).where(eq(userProducts.id, req.params.id));
+  return res.json({ ok: true });
+});
+router8.post("/admin/user-products", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [up] = await db.insert(userProducts).values({ id: crypto7.randomUUID(), ...req.body, isActive: true }).returning();
+  return res.json(up);
+});
+router8.get("/admin/user-products/count", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { product_id } = req.query;
+  const all = await db.select().from(userProducts).where(eq(userProducts.productId, product_id));
+  return res.json({ count: all.length });
+});
+router8.patch("/admin/recharges/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { status, adminNote } = req.body;
+  const [recharge] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
+  if (!recharge) return res.status(404).json({ error: "Not found" });
+  if (status === "approved" && recharge.status === "pending") {
+    const [profile] = await db.select().from(profiles).where(eq(profiles.userId, recharge.userId)).limit(1);
+    if (profile) {
+      const amount = Number(recharge.amount);
+      const pointSettingRows = await db.select().from(siteSettings).where(eq(siteSettings.key, "recharge_points_per_dollar")).limit(1);
+      const ptsRate = Number(pointSettingRows[0]?.value ?? 0);
+      const ptsAwarded = Math.floor(amount * ptsRate);
+      await db.update(profiles).set({
+        balance: String(Number(profile.balance ?? 0) + amount),
+        depositBalance: String(Number(profile.depositBalance ?? 0) + amount),
+        giftPoints: (profile.giftPoints ?? 0) + ptsAwarded,
+        updatedAt: /* @__PURE__ */ new Date()
+      }).where(eq(profiles.userId, recharge.userId));
+    }
+  }
+  const [updated] = await db.update(recharges).set({ status, adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq(recharges.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router8.get("/admin/withdrawals", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(withdrawals);
+  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+});
+router8.patch("/admin/withdrawals/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { status, adminNote } = req.body;
+  const [updated] = await db.update(withdrawals).set({ status, adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router8.get("/admin/withdrawal-fee-payments", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(withdrawalFeePayments);
+  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+});
+router8.patch("/admin/withdrawal-fee-payments/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(withdrawalFeePayments).set({ ...req.body, updatedAt: /* @__PURE__ */ new Date() }).where(eq(withdrawalFeePayments.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router8.get("/admin/product-series", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(productSeries);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router8.post("/admin/product-series", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [s] = await db.insert(productSeries).values({ id: crypto7.randomUUID(), ...req.body }).returning();
+  return res.json(s);
+});
+router8.patch("/admin/product-series/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(productSeries).set(req.body).where(eq(productSeries.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router8.delete("/admin/product-series/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(products).where(eq(products.seriesId, req.params.id));
+  await db.delete(productSeries).where(eq(productSeries.id, req.params.id));
+  return res.json({ ok: true });
+});
+router8.get("/admin/products", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(products);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router8.post("/admin/products", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [p] = await db.insert(products).values({ id: crypto7.randomUUID(), ...req.body }).returning();
+  return res.json(p);
+});
+router8.patch("/admin/products/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(products).set(req.body).where(eq(products.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router8.delete("/admin/products/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(products).where(eq(products.id, req.params.id));
+  return res.json({ ok: true });
+});
+router8.get("/admin/payment-methods", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(paymentMethods);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router8.post("/admin/payment-methods", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [m] = await db.insert(paymentMethods).values({ id: crypto7.randomUUID(), ...req.body }).returning();
+  return res.json(m);
+});
+router8.patch("/admin/payment-methods/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(paymentMethods).set(req.body).where(eq(paymentMethods.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router8.delete("/admin/payment-methods/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(paymentMethods).where(eq(paymentMethods.id, req.params.id));
+  return res.json({ ok: true });
+});
+router8.get("/admin/social-links", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(socialLinks);
+  return res.json(all);
+});
+router8.patch("/admin/social-links/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(socialLinks).set(req.body).where(eq(socialLinks.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router8.get("/admin/banners", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(banners);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router8.post("/admin/banners", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [b] = await db.insert(banners).values({ id: crypto7.randomUUID(), ...req.body }).returning();
+  return res.json(b);
+});
+router8.patch("/admin/banners/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(banners).set(req.body).where(eq(banners.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router8.delete("/admin/banners/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(banners).where(eq(banners.id, req.params.id));
+  return res.json({ ok: true });
+});
+router8.get("/admin/countries", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(countries);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router8.post("/admin/countries", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [c] = await db.insert(countries).values({ id: crypto7.randomUUID(), ...req.body }).returning();
+  return res.json(c);
+});
+router8.patch("/admin/countries/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(countries).set(req.body).where(eq(countries.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router8.delete("/admin/countries/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(countries).where(eq(countries.id, req.params.id));
+  return res.json({ ok: true });
+});
+router8.get("/admin/vip-conditions", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(vipConditions);
+  return res.json(all.sort((a, b) => (a.level ?? 0) - (b.level ?? 0)));
+});
+router8.patch("/admin/vip-conditions/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(vipConditions).set(req.body).where(eq(vipConditions.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router8.get("/admin/withdrawal-methods", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(withdrawalMethods);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router8.post("/admin/withdrawal-methods", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [m] = await db.insert(withdrawalMethods).values({ id: crypto7.randomUUID(), ...req.body }).returning();
+  return res.json(m);
+});
+router8.patch("/admin/withdrawal-methods/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(withdrawalMethods).set(req.body).where(eq(withdrawalMethods.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router8.delete("/admin/withdrawal-methods/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(withdrawalMethods).where(eq(withdrawalMethods.id, req.params.id));
+  return res.json({ ok: true });
+});
+router8.get("/admin/payment-api-configs", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(paymentApiConfigs);
+  return res.json(toSnake2(all));
+});
+router8.post("/admin/payment-api-configs", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [c] = await db.insert(paymentApiConfigs).values({ id: crypto7.randomUUID(), ...req.body }).returning();
+  return res.json(toSnake2(c));
+});
+router8.patch("/admin/payment-api-configs/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(paymentApiConfigs).set(req.body).where(eq(paymentApiConfigs.id, req.params.id)).returning();
+  return res.json(toSnake2(updated));
+});
+router8.delete("/admin/payment-api-configs/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(paymentApiConfigs).where(eq(paymentApiConfigs.id, req.params.id));
+  return res.json({ ok: true });
+});
+router8.get("/admin/payment-logs", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(paymentLogs);
+  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 100));
+});
+router8.get("/admin/gift-codes", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(giftCodes);
+  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+});
+router8.post("/admin/gift-codes", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [c] = await db.insert(giftCodes).values({ id: crypto7.randomUUID(), ...req.body }).returning();
+  return res.json(c);
+});
+router8.patch("/admin/gift-codes/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(giftCodes).set(req.body).where(eq(giftCodes.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router8.delete("/admin/gift-codes/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(giftCodes).where(eq(giftCodes.id, req.params.id));
+  return res.json({ ok: true });
+});
+router8.get("/admin/gift-rewards", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(giftRewards);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router8.post("/admin/gift-rewards", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [r] = await db.insert(giftRewards).values({ id: crypto7.randomUUID(), ...req.body }).returning();
+  return res.json(r);
+});
+router8.patch("/admin/gift-rewards/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(giftRewards).set(req.body).where(eq(giftRewards.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router8.delete("/admin/gift-rewards/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(giftRewards).where(eq(giftRewards.id, req.params.id));
+  return res.json({ ok: true });
+});
+router8.get("/admin/faq-items", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(faqItems);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router8.post("/admin/faq-items", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [item] = await db.insert(faqItems).values({ id: crypto7.randomUUID(), ...req.body }).returning();
+  return res.json(item);
+});
+router8.patch("/admin/faq-items/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(faqItems).set(req.body).where(eq(faqItems.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router8.delete("/admin/faq-items/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(faqItems).where(eq(faqItems.id, req.params.id));
+  return res.json({ ok: true });
+});
+router8.get("/admin/info-items", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(infoItems);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router8.post("/admin/info-items", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [item] = await db.insert(infoItems).values({ id: crypto7.randomUUID(), ...req.body }).returning();
+  return res.json(item);
+});
+router8.patch("/admin/info-items/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(infoItems).set(req.body).where(eq(infoItems.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router8.delete("/admin/info-items/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(infoItems).where(eq(infoItems.id, req.params.id));
+  return res.json({ ok: true });
+});
+router8.get("/admin/official-documents", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(officialDocuments);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router8.post("/admin/official-documents", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [doc] = await db.insert(officialDocuments).values({ id: crypto7.randomUUID(), ...req.body }).returning();
+  return res.json(doc);
+});
+router8.patch("/admin/official-documents/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(officialDocuments).set(req.body).where(eq(officialDocuments.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router8.delete("/admin/official-documents/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(officialDocuments).where(eq(officialDocuments.id, req.params.id));
+  return res.json({ ok: true });
+});
+router8.get("/admin/wheel-prizes", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(wheelPrizes);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router8.post("/admin/wheel-prizes", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [prize] = await db.insert(wheelPrizes).values({ id: crypto7.randomUUID(), ...req.body }).returning();
+  return res.json(prize);
+});
+router8.patch("/admin/wheel-prizes/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(wheelPrizes).set(req.body).where(eq(wheelPrizes.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router8.delete("/admin/wheel-prizes/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(wheelPrizes).where(eq(wheelPrizes.id, req.params.id));
+  return res.json({ ok: true });
+});
+router8.get("/admin/wheel-spins", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(wheelSpins);
+  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 100));
+});
+router8.patch("/admin/wheel-spins/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { status, vip_level, user_id } = req.body;
+  const [updated] = await db.update(wheelSpins).set({ status }).where(eq(wheelSpins.id, req.params.id)).returning();
+  if (status === "approved" && vip_level !== void 0 && user_id) {
+    await db.update(profiles).set({ vipLevel: vip_level }).where(eq(profiles.userId, user_id));
+    await db.insert(vipHistory).values({ id: crypto7.randomUUID(), userId: user_id, newLevel: vip_level, reason: "wheel_spin" }).catch(() => {
+    });
+  }
+  return res.json(updated);
+});
+router8.delete("/admin/wheel-spins", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(wheelSpins);
+  return res.json({ ok: true });
+});
+router8.post("/admin/permissions", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { userId, permissions, grantedBy } = req.body;
+  const rows = permissions.map((p) => ({ id: crypto7.randomUUID(), userId, permission: p, grantedBy }));
+  await db.insert(adminPermissions).values(rows);
+  return res.json({ ok: true });
+});
+router8.delete("/admin/permissions/:userId", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { permission } = req.query;
+  if (permission) {
+    await db.delete(adminPermissions).where(and(eq(adminPermissions.userId, req.params.userId), eq(adminPermissions.permission, permission)));
+  } else {
+    await db.delete(adminPermissions).where(eq(adminPermissions.userId, req.params.userId));
+  }
+  return res.json({ ok: true });
+});
+router8.post("/admin/profiles/by-ids", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { ids } = req.body;
+  if (!ids || !Array.isArray(ids) || ids.length === 0) return res.json([]);
+  const result = await db.select().from(profiles).where(inArray(profiles.userId, ids));
+  return res.json(result);
+});
+router8.post("/admin/wallets/by-ids", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { ids } = req.body;
+  if (!ids || !Array.isArray(ids) || ids.length === 0) return res.json([]);
+  const result = await db.select().from(userWallets).where(inArray(userWallets.id, ids));
+  return res.json(result);
+});
+router8.get("/user/history", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken6(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { pool: pool2 } = await Promise.resolve().then(() => (init_db2(), db_exports));
+  const [depositsRes, withdrawalsRes, purchasesRes, exchangesRes, commissionsRes] = await Promise.all([
+    db.select().from(recharges).where(eq(recharges.userId, me.userId)),
+    db.select().from(withdrawals).where(eq(withdrawals.userId, me.userId)),
+    pool2.query(`
+      SELECT up.id, up.purchased_at, up.total_collected,
+        json_build_object('name', p.name, 'price', p.price, 'daily_revenue', p.daily_revenue, 'cycles', p.cycles) as products
+      FROM user_products up JOIN products p ON p.id = up.product_id
+      WHERE up.user_id = $1 ORDER BY up.purchased_at DESC
+    `, [me.userId]),
+    db.select().from(pointExchanges).where(eq(pointExchanges.userId, me.userId)),
+    db.select().from(referralCommissions).where(eq(referralCommissions.beneficiaryId, me.userId))
+  ]);
+  return res.json({
+    deposits: depositsRes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    withdrawals: withdrawalsRes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    purchases: purchasesRes.rows,
+    exchanges: exchangesRes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    commissions: commissionsRes.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+  });
+});
+router8.get("/user/team", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken6(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const l1 = await db.select().from(profiles).where(eq(profiles.referredBy, me.id));
+  const l2 = l1.length > 0 ? await db.select().from(profiles).where(inArray(profiles.referredBy, l1.map((p) => p.id))) : [];
+  const l3 = l2.length > 0 ? await db.select().from(profiles).where(inArray(profiles.referredBy, l2.map((p) => p.id))) : [];
+  const allUserIds = [...l1, ...l2, ...l3].map((p) => p.userId).filter(Boolean);
+  let investedUserIds = /* @__PURE__ */ new Set();
+  if (allUserIds.length > 0) {
+    const prods = await db.select().from(userProducts).where(inArray(userProducts.userId, allUserIds));
+    investedUserIds = new Set(prods.map((p) => p.userId));
+  }
+  const enrich = (members) => members.map((m) => ({
+    ...m,
+    hasInvested: investedUserIds.has(m.userId),
+    bonusEarned: 0
+  }));
+  return res.json({
+    l1: enrich(l1),
+    l2: enrich(l2),
+    l3: enrich(l3),
+    referralCode: me.referralCode
+  });
+});
+router8.get("/vip-conditions", async (req, res) => {
+  const all = await db.select().from(vipConditions);
+  return res.json(all.sort((a, b) => (a.level ?? 0) - (b.level ?? 0)));
+});
+router8.get("/user/vip-progress", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken6(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const [conditions, userProductRows, settingRow, teamMembers] = await Promise.all([
+    db.select().from(vipConditions),
+    db.select().from(userProducts).where(and(eq(userProducts.userId, me.userId), eq(userProducts.isActive, true))),
+    db.select().from(siteSettings).where(eq(siteSettings.key, "vip_conditions_enabled")).limit(1),
+    db.select().from(profiles).where(eq(profiles.referredBy, me.id))
+  ]);
+  const sorted = conditions.sort((a, b) => (a.level ?? 0) - (b.level ?? 0));
+  const vipConditionsEnabled = settingRow[0]?.value !== "false";
+  const upList = userProductRows;
+  const totalPurchases = upList.length;
+  const uniqueProducts = new Set(upList.map((up) => up.productId)).size;
+  const personalInvestment = Number(me.depositBalance ?? 0);
+  const teamInvestment = teamMembers.reduce((s, m) => s + Number(m.depositBalance ?? 0), 0);
+  const teamUserIds = teamMembers.map((m) => m.userId);
+  let activeMembers = 0;
+  if (teamUserIds.length > 0) {
+    const teamProds = await db.select().from(userProducts).where(inArray(userProducts.userId, teamUserIds));
+    activeMembers = new Set(teamProds.map((tp) => tp.userId)).size;
+  }
+  return res.json({
+    conditions: sorted,
+    vipConditionsEnabled,
+    totalPurchases,
+    uniqueProducts,
+    personalInvestment,
+    teamInvestment,
+    activeMembers,
+    currentVipLevel: me.vipLevel ?? 0
+  });
+});
+router8.get("/admin/referral-tree/:profileId", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const l1 = await db.select().from(profiles).where(eq(profiles.referredBy, req.params.profileId));
+  const l2 = l1.length > 0 ? await db.select().from(profiles).where(inArray(profiles.referredBy, l1.map((p) => p.id))) : [];
+  const l3 = l2.length > 0 ? await db.select().from(profiles).where(inArray(profiles.referredBy, l2.map((p) => p.id))) : [];
+  return res.json({ l1, l2, l3 });
+});
+router8.patch("/admin/site-settings", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  try {
+    const { key, value, category } = req.body;
+    if (!key) return res.status(400).json({ error: "key required" });
+    const existing = await db.select().from(siteSettings).where(eq(siteSettings.key, key)).limit(1);
+    if (existing.length > 0) {
+      await db.update(siteSettings).set({ value, updatedAt: /* @__PURE__ */ new Date() }).where(eq(siteSettings.key, key));
+    } else {
+      await db.insert(siteSettings).values({ id: crypto7.randomUUID(), key, value, category: category ?? "general" });
+    }
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("[admin/site-settings PATCH] error:", err?.message ?? err);
+    return res.status(500).json({ error: err?.message ?? "Failed to save setting" });
+  }
+});
+router8.get("/admin/popup-messages", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { key } = req.query;
+  if (key) {
+    const [row] = await db.select().from(popupMessages).where(eq(popupMessages.triggerKey, key)).limit(1);
+    return res.json(row ?? null);
+  }
+  const all = await db.select().from(popupMessages);
+  return res.json(all);
+});
+router8.patch("/admin/popup-messages/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { title, message, buttonConfirm, buttonCancel, tabs, isActive } = req.body;
+  const updates = {};
+  if (title !== void 0) updates.title = title;
+  if (message !== void 0) updates.message = message;
+  if (buttonConfirm !== void 0) updates.buttonConfirm = buttonConfirm;
+  if (buttonCancel !== void 0) updates.buttonCancel = buttonCancel;
+  if (tabs !== void 0) updates.tabs = tabs;
+  if (isActive !== void 0) updates.isActive = isActive;
+  await db.update(popupMessages).set(updates).where(eq(popupMessages.id, req.params.id));
+  return res.json({ ok: true });
+});
+router8.get("/admin/sub-admins", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const roles = await db.select().from(userRoles).where(eq(userRoles.role, "moderator"));
+  if (roles.length === 0) return res.json([]);
+  const userIds = roles.map((r) => r.userId);
+  const [profs, perms] = await Promise.all([
+    db.select().from(profiles).where(inArray(profiles.userId, userIds)),
+    db.select().from(adminPermissions).where(inArray(adminPermissions.userId, userIds))
+  ]);
+  const result = userIds.map((uid) => {
+    const prof = profs.find((p) => p.userId === uid);
+    const userPerms = perms.filter((p) => p.userId === uid).map((p) => p.permission);
+    return { user_id: uid, phone: prof?.phone ?? null, full_name: prof?.fullName ?? null, permissions: userPerms };
+  });
+  return res.json(result);
+});
+router8.post("/admin/sub-admins", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { userId, permissions, grantedBy } = req.body;
+  await db.insert(userRoles).values({ id: crypto7.randomUUID(), userId, role: "moderator" });
+  const rows = permissions.map((p) => ({ id: crypto7.randomUUID(), userId, permission: p, grantedBy }));
+  if (rows.length > 0) await db.insert(adminPermissions).values(rows);
+  return res.json({ ok: true });
+});
+router8.delete("/admin/sub-admins/:userId", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(adminPermissions).where(eq(adminPermissions.userId, req.params.userId));
+  await db.delete(userRoles).where(and(eq(userRoles.userId, req.params.userId), eq(userRoles.role, "moderator")));
+  return res.json({ ok: true });
+});
+router8.patch("/admin/sub-admins/:userId/permissions", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { permission, hasIt, grantedBy } = req.body;
+  if (hasIt) {
+    await db.delete(adminPermissions).where(and(eq(adminPermissions.userId, req.params.userId), eq(adminPermissions.permission, permission)));
+  } else {
+    await db.insert(adminPermissions).values({ id: crypto7.randomUUID(), userId: req.params.userId, permission, grantedBy });
+  }
+  return res.json({ ok: true });
+});
+router8.get("/admin/search-user", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { phone } = req.query;
+  if (!phone) return res.status(400).json({ error: "phone required" });
+  const [prof] = await db.select().from(profiles).where(eq(profiles.phone, phone)).limit(1);
+  if (!prof) return res.json({ error: "not_found" });
+  const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, prof.userId)).limit(1);
+  if (role?.role === "admin") return res.json({ error: "already_admin" });
+  if (role?.role === "moderator") return res.json({ error: "already_moderator" });
+  return res.json({ user_id: prof.userId, phone: prof.phone, full_name: prof.fullName });
+});
+router8.get("/admin/user-team/:profileId", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const l1 = await db.select().from(profiles).where(eq(profiles.referredBy, req.params.profileId));
+  const l2 = l1.length > 0 ? await db.select().from(profiles).where(inArray(profiles.referredBy, l1.map((p) => p.id))) : [];
+  const l3 = l2.length > 0 ? await db.select().from(profiles).where(inArray(profiles.referredBy, l2.map((p) => p.id))) : [];
+  return res.json({ l1, l2, l3 });
+});
+router8.get("/admin/profiles-by-ids", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { ids } = req.query;
+  if (!ids) return res.json([]);
+  const idList = ids.split(",").filter(Boolean);
+  if (idList.length === 0) return res.json([]);
+  const result = await db.select().from(profiles).where(inArray(profiles.userId, idList));
+  return res.json(result);
+});
+router8.delete("/admin/wheel-spins/all", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(wheelSpins);
+  return res.json({ ok: true });
+});
+router8.get("/admin/chat-conversations", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const msgs = await db.select().from(chatMessages);
+  const sorted = msgs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const userMap = {};
+  sorted.forEach((m) => {
+    if (!userMap[m.userId]) userMap[m.userId] = [];
+    userMap[m.userId].push(m);
+  });
+  const userIds = Object.keys(userMap);
+  if (userIds.length === 0) return res.json([]);
+  const profs = await db.select().from(profiles).where(inArray(profiles.userId, userIds));
+  const profMap = {};
+  profs.forEach((p) => {
+    profMap[p.userId] = p;
+  });
+  const convos = userIds.map((uid) => {
+    const userMsgs = userMap[uid];
+    const lastMsg = userMsgs[0];
+    const prof = profMap[uid];
+    return {
+      user_id: uid,
+      full_name: prof?.fullName ?? "User",
+      phone: prof?.phone ?? "",
+      last_message: lastMsg.message,
+      last_time: lastMsg.createdAt,
+      unread_count: userMsgs.filter((m) => m.sender === "user").length
+    };
+  }).sort((a, b) => new Date(b.last_time).getTime() - new Date(a.last_time).getTime());
+  return res.json(convos);
+});
+router8.get("/admin/chat-messages/:userId", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const msgs = await db.select().from(chatMessages).where(eq(chatMessages.userId, req.params.userId));
+  return res.json(msgs.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+});
+router8.post("/admin/chat-reply", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { userId, message } = req.body;
+  const id = crypto7.randomUUID();
+  await db.insert(chatMessages).values({ id, userId, sender: "support", message, isAi: false });
+  const [inserted] = await db.select().from(chatMessages).where(eq(chatMessages.id, id)).limit(1);
+  return res.json(inserted);
+});
+router8.patch("/admin/users/:profileId", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { referralCode, referredBy } = req.body;
+  const updates = {};
+  if (referralCode !== void 0) updates.referralCode = referralCode;
+  if (referredBy !== void 0) updates.referredBy = referredBy;
+  await db.update(profiles).set(updates).where(eq(profiles.id, req.params.profileId));
+  return res.json({ ok: true });
+});
+var admin_default = router8;
 
-// artifacts/api-server/src/middlewares/requireAuth.ts
-init_src();
+// server/routes/db.ts
+var import_express9 = __toESM(require_express2(), 1);
+init_db2();
+init_db2();
+
+// server/middlewares/requireAuth.ts
+var import_jsonwebtoken2 = __toESM(require_jsonwebtoken(), 1);
+init_db2();
+init_db2();
+var JWT_SECRET2 = process.env.JWT_SECRET || "ge-energy-jwt-secret-change-in-production";
 async function resolveUser(token) {
   try {
-    const [session] = await db.select().from(userSessions).where(and(eq(userSessions.token, token), gt(userSessions.expiresAt, /* @__PURE__ */ new Date()))).limit(1);
-    if (!session) return null;
-    const [roleRow] = await db.select().from(userRoles).where(eq(userRoles.userId, session.userId)).limit(1);
-    return { userId: session.userId, role: roleRow?.role ?? "user" };
+    const payload = import_jsonwebtoken2.default.verify(token, JWT_SECRET2);
+    if (!payload?.userId) return null;
+    const [roleRow] = await db.select().from(userRoles).where(eq(userRoles.userId, payload.userId)).limit(1);
+    return { userId: payload.userId, role: roleRow?.role ?? "user" };
   } catch {
     return null;
   }
@@ -49682,8 +54360,8 @@ async function requireAuth(req, res, next) {
   return next();
 }
 
-// artifacts/api-server/src/routes/db.ts
-var router8 = (0, import_express8.Router)();
+// server/routes/db.ts
+var router9 = (0, import_express9.Router)();
 var TABLE_ALLOWLIST = {
   profiles: "profiles",
   banners: "banners",
@@ -49833,7 +54511,7 @@ var CAMEL_TO_SNAKE = {
   minPersonalInvestment: "min_personal_investment",
   color: "color"
 };
-function toSnake2(col) {
+function toSnake3(col) {
   return CAMEL_TO_SNAKE[col] ?? col;
 }
 var PUBLIC_READ_TABLES = /* @__PURE__ */ new Set([
@@ -49926,7 +54604,7 @@ function buildWhereClause(filters, params) {
   for (const f of filters) {
     const [type, col, ...rest] = f.split(":");
     const val = rest.join(":");
-    const colName = toSnake2(col);
+    const colName = toSnake3(col);
     if (!/^[a-z_][a-z0-9_]*$/.test(colName)) continue;
     if (type === "in") {
       const vals = val.split(",");
@@ -49946,7 +54624,7 @@ function buildWhereClause(filters, params) {
   }
   return conditions;
 }
-router8.get("/db", attachUser, async (req, res) => {
+router9.get("/db", attachUser, async (req, res) => {
   try {
     const { table, select, filter, order, limit, count } = req.query;
     const tableName = TABLE_ALLOWLIST[String(table)];
@@ -49976,7 +54654,7 @@ router8.get("/db", attachUser, async (req, res) => {
     if (conditions.length) sql2 += ` WHERE ${conditions.join(" AND ")}`;
     if (order) {
       const [col, dir] = String(order).split(":");
-      const colName = toSnake2(col);
+      const colName = toSnake3(col);
       if (/^[a-z_][a-z0-9_]*$/.test(colName)) {
         sql2 += ` ORDER BY "${colName}" ${dir === "desc" ? "DESC" : "ASC"}`;
       }
@@ -49992,7 +54670,7 @@ router8.get("/db", attachUser, async (req, res) => {
     return res.status(500).json({ error: "Query failed" });
   }
 });
-router8.post("/db", requireAuth, async (req, res) => {
+router9.post("/db", requireAuth, async (req, res) => {
   try {
     const { table, upsert } = req.query;
     const tableName = TABLE_ALLOWLIST[String(table)];
@@ -50008,10 +54686,10 @@ router8.post("/db", requireAuth, async (req, res) => {
         return res.status(403).json({ error: "Cannot write data for another user" });
       }
       if (!isAdmin3) {
-        const protectedAttempt = Object.keys(row).map((k) => toSnake2(k)).find((c) => PROTECTED_WRITE_COLUMNS.has(c));
+        const protectedAttempt = Object.keys(row).map((k) => toSnake3(k)).find((c) => PROTECTED_WRITE_COLUMNS.has(c));
         if (protectedAttempt) return res.status(403).json({ error: `Column '${protectedAttempt}' is read-only` });
       }
-      const cols = Object.keys(row).map((k) => toSnake2(k)).filter((c) => /^[a-z_][a-z0-9_]*$/.test(c));
+      const cols = Object.keys(row).map((k) => toSnake3(k)).filter((c) => /^[a-z_][a-z0-9_]*$/.test(c));
       const origKeys = Object.keys(row);
       const vals = origKeys.map((k) => row[k]);
       if (!cols.length) continue;
@@ -50032,7 +54710,7 @@ router8.post("/db", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "Insert failed" });
   }
 });
-router8.patch("/db", requireAuth, async (req, res) => {
+router9.patch("/db", requireAuth, async (req, res) => {
   try {
     const { table, filter } = req.query;
     const tableName = TABLE_ALLOWLIST[String(table)];
@@ -50043,10 +54721,10 @@ router8.patch("/db", requireAuth, async (req, res) => {
     }
     const updates = req.body;
     if (!isAdmin3) {
-      const protectedAttempt = Object.keys(updates).map((k) => toSnake2(k)).find((c) => PROTECTED_WRITE_COLUMNS.has(c));
+      const protectedAttempt = Object.keys(updates).map((k) => toSnake3(k)).find((c) => PROTECTED_WRITE_COLUMNS.has(c));
       if (protectedAttempt) return res.status(403).json({ error: `Column '${protectedAttempt}' is read-only` });
     }
-    const setCols = Object.keys(updates).map((k) => toSnake2(k)).filter((c) => /^[a-z_][a-z0-9_]*$/.test(c));
+    const setCols = Object.keys(updates).map((k) => toSnake3(k)).filter((c) => /^[a-z_][a-z0-9_]*$/.test(c));
     const origKeys = Object.keys(updates);
     const setVals = origKeys.map((k) => updates[k]);
     if (!setCols.length) return res.status(400).json({ error: "No updates" });
@@ -50056,7 +54734,7 @@ router8.patch("/db", requireAuth, async (req, res) => {
     if (!isAdmin3) {
       const hasUserFilter = filters.some((f) => {
         const [, col, ...rest] = f.split(":");
-        return toSnake2(col) === "user_id" && rest.join(":") === req.authUser?.userId;
+        return toSnake3(col) === "user_id" && rest.join(":") === req.authUser?.userId;
       });
       if (!hasUserFilter) {
         return res.status(403).json({ error: "Must filter by your own user_id" });
@@ -50072,7 +54750,7 @@ router8.patch("/db", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "Update failed" });
   }
 });
-router8.delete("/db", requireAuth, async (req, res) => {
+router9.delete("/db", requireAuth, async (req, res) => {
   try {
     const { table, filter } = req.query;
     const tableName = TABLE_ALLOWLIST[String(table)];
@@ -50088,7 +54766,7 @@ router8.delete("/db", requireAuth, async (req, res) => {
     if (!isAdmin3) {
       const hasUserFilter = filters.some((f) => {
         const [, col, ...rest] = f.split(":");
-        return toSnake2(col) === "user_id" && rest.join(":") === req.authUser?.userId;
+        return toSnake3(col) === "user_id" && rest.join(":") === req.authUser?.userId;
       });
       if (!hasUserFilter) {
         return res.status(403).json({ error: "Must filter by your own user_id" });
@@ -50102,7 +54780,7 @@ router8.delete("/db", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "Delete failed" });
   }
 });
-router8.post("/rpc/:fn", async (req, res) => {
+router9.post("/rpc/:fn", async (req, res) => {
   const { fn } = req.params;
   const args = req.body ?? {};
   try {
@@ -50159,7 +54837,7 @@ router8.post("/rpc/:fn", async (req, res) => {
     return res.status(500).json({ error: "RPC failed" });
   }
 });
-router8.post("/functions/:fn", async (req, res) => {
+router9.post("/functions/:fn", async (req, res) => {
   const { fn } = req.params;
   const body = req.body ?? {};
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -50301,13 +54979,14 @@ router8.post("/functions/:fn", async (req, res) => {
   }
   return res.status(404).json({ error: "Unknown function" });
 });
-var db_default = router8;
+var db_default = router9;
 
-// artifacts/api-server/src/routes/nowpayments.ts
-var import_express9 = __toESM(require_express2(), 1);
-init_src();
-import crypto7 from "crypto";
-var router9 = (0, import_express9.Router)();
+// server/routes/nowpayments.ts
+var import_express10 = __toESM(require_express2(), 1);
+init_db2();
+init_db2();
+import crypto8 from "crypto";
+var router10 = (0, import_express10.Router)();
 var NP_API = "https://api.nowpayments.io/v1";
 function getApiKey() {
   return process.env["NOWPAYMENTS_API_KEY"] ?? "";
@@ -50320,24 +54999,6 @@ function getPayoutEmail() {
 }
 function getPayoutPassword() {
   return process.env["NOWPAYMENTS_PASSWORD"] ?? "";
-}
-async function requireAdmin(req, res) {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) {
-    res.status(401).json({ error: "Unauthorized" });
-    return null;
-  }
-  const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
-  if (!session || session.expiresAt < /* @__PURE__ */ new Date()) {
-    res.status(401).json({ error: "Session expired" });
-    return null;
-  }
-  const [role] = await db.select({ role: userRoles.role }).from(userRoles).where(eq(userRoles.userId, session.userId)).limit(1);
-  if (role?.role !== "admin" && role?.role !== "moderator") {
-    res.status(403).json({ error: "Forbidden" });
-    return null;
-  }
-  return { userId: session.userId };
 }
 function getWebhookUrl(path3) {
   const base = process.env["NOWPAYMENTS_WEBHOOK_URL"];
@@ -50358,7 +55019,7 @@ function sortObjectKeys(obj) {
 }
 function verifyNpSignature(secret, body, sig) {
   const sorted = sortObjectKeys(body);
-  const expected = crypto7.createHmac("sha512", secret).update(JSON.stringify(sorted)).digest("hex");
+  const expected = crypto8.createHmac("sha512", secret).update(JSON.stringify(sorted)).digest("hex");
   return expected === sig;
 }
 var FALLBACK_CURRENCIES = [
@@ -50375,78 +55036,33 @@ var FALLBACK_CURRENCIES = [
 ];
 var currenciesCache = null;
 async function approveRechargeByPaymentId(paymentId) {
-  const [recharge] = await db.select({ id: recharges.id, userId: recharges.userId, amount: recharges.amount, status: recharges.status }).from(recharges).where(eq(recharges.transactionRef, paymentId)).limit(1);
-  if (!recharge) {
-    console.warn(`[NP] approveRecharge: no recharge found for paymentId=${paymentId}`);
-    return false;
-  }
-  if (recharge.status !== "pending") {
-    console.log(`[NP] approveRecharge: already ${recharge.status} for paymentId=${paymentId} \u2014 skipping`);
-    return false;
-  }
+  const [recharge] = await db.select().from(recharges).where(and(eq(recharges.transactionRef, paymentId), eq(recharges.status, "pending"))).limit(1);
+  if (!recharge) return;
   const amount = Number(recharge.amount);
-  const [updated] = await db.update(recharges).set({ status: "approved", updatedAt: /* @__PURE__ */ new Date() }).where(and(eq(recharges.id, recharge.id), eq(recharges.status, "pending"))).returning({ id: recharges.id });
-  if (!updated) {
-    console.warn(`[NP] approveRecharge: concurrent update blocked for rechargeId=${recharge.id} \u2014 no double credit`);
-    return false;
-  }
+  const [profile] = await db.select().from(profiles).where(eq(profiles.userId, recharge.userId)).limit(1);
+  if (!profile) return;
+  const newBalance = Number(profile.balance ?? 0) + amount;
+  const newDeposit = Number(profile.depositBalance ?? 0) + amount;
   await db.update(profiles).set({
-    balance: sql`${profiles.balance} + ${amount}`,
-    depositBalance: sql`${profiles.depositBalance} + ${amount}`,
+    balance: String(newBalance),
+    depositBalance: String(newDeposit),
     updatedAt: /* @__PURE__ */ new Date()
   }).where(eq(profiles.userId, recharge.userId));
-  console.log(`[NP] \u2705 Recharge approved: ${recharge.id} \u2014 +${amount} USD \u2192 user ${recharge.userId}`);
-  return true;
+  await db.update(recharges).set({
+    status: "approved",
+    updatedAt: /* @__PURE__ */ new Date()
+  }).where(eq(recharges.id, recharge.id));
+  console.log(`[NP] Recharge approved: ${recharge.id} \u2014 ${amount} USDT \u2192 user ${recharge.userId}`);
 }
 async function approveWithdrawalByExternalId(externalId) {
-  const [withdrawal] = await db.select({ id: withdrawals.id, status: withdrawals.status }).from(withdrawals).where(eq(withdrawals.id, externalId)).limit(1);
-  if (!withdrawal) {
-    console.warn(`[NP] approveWithdrawal: not found externalId=${externalId}`);
-    return false;
-  }
-  if (withdrawal.status === "approved") {
-    console.log(`[NP] approveWithdrawal: already approved externalId=${externalId} \u2014 skipping`);
-    return false;
-  }
-  const [updated] = await db.update(withdrawals).set({
+  const [withdrawal] = await db.select().from(withdrawals).where(eq(withdrawals.id, externalId)).limit(1);
+  if (!withdrawal || withdrawal.status === "approved") return;
+  await db.update(withdrawals).set({
     status: "approved",
     adminNote: "\u2705 Auto-approved via NowPayments payout IPN",
     updatedAt: /* @__PURE__ */ new Date()
-  }).where(and(eq(withdrawals.id, externalId), eq(withdrawals.status, "processing"))).returning({ id: withdrawals.id });
-  if (!updated) {
-    console.warn(`[NP] approveWithdrawal: status not 'processing' for externalId=${externalId} \u2014 skipped`);
-    return false;
-  }
-  console.log(`[NP] \u2705 Withdrawal auto-approved: ${externalId}`);
-  return true;
-}
-async function rejectWithdrawalByExternalId(externalId, reason) {
-  const [withdrawal] = await db.select({ id: withdrawals.id, status: withdrawals.status, userId: withdrawals.userId, amount: withdrawals.amount }).from(withdrawals).where(eq(withdrawals.id, externalId)).limit(1);
-  if (!withdrawal) {
-    console.warn(`[NP] rejectWithdrawal: not found externalId=${externalId}`);
-    return false;
-  }
-  if (withdrawal.status !== "processing") {
-    console.log(`[NP] rejectWithdrawal: status is '${withdrawal.status}' (not processing) \u2014 skipping`);
-    return false;
-  }
-  const [updated] = await db.update(withdrawals).set({
-    status: "rejected",
-    adminNote: `\u274C NowPayments payout ${reason} \u2014 balance refunded automatically`,
-    updatedAt: /* @__PURE__ */ new Date()
-  }).where(and(eq(withdrawals.id, externalId), eq(withdrawals.status, "processing"))).returning({ id: withdrawals.id });
-  if (!updated) {
-    console.warn(`[NP] rejectWithdrawal: concurrent update blocked for externalId=${externalId}`);
-    return false;
-  }
-  const amount = Number(withdrawal.amount);
-  await db.update(profiles).set({
-    balance: sql`${profiles.balance} + ${amount}`,
-    earningsBalance: sql`${profiles.earningsBalance} + ${amount}`,
-    updatedAt: /* @__PURE__ */ new Date()
-  }).where(eq(profiles.userId, withdrawal.userId));
-  console.log(`[NP] \u274C Withdrawal rejected + ${amount} refunded to user ${withdrawal.userId} \u2014 externalId=${externalId}`);
-  return true;
+  }).where(eq(withdrawals.id, externalId));
+  console.log(`[NP] Withdrawal auto-approved: ${externalId}`);
 }
 async function getPayoutToken() {
   const email = getPayoutEmail();
@@ -50467,7 +55083,7 @@ async function getPayoutToken() {
   if (!data.token) throw new Error("NowPayments auth: no token returned");
   return data.token;
 }
-router9.get("/nowpayments/ping", async (_req, res) => {
+router10.get("/nowpayments/ping", async (_req, res) => {
   const apiKey = getApiKey();
   if (!apiKey) return res.json({ ok: false, reason: "NOWPAYMENTS_API_KEY not set" });
   try {
@@ -50478,53 +55094,7 @@ router9.get("/nowpayments/ping", async (_req, res) => {
     return res.json({ ok: false, reason: String(err) });
   }
 });
-router9.get("/nowpayments/diagnostic", async (_req, res) => {
-  const webhookBase = process.env["NOWPAYMENTS_WEBHOOK_URL"];
-  const devDomain = process.env["REPLIT_DEV_DOMAIN"];
-  const webhookDeposit = webhookBase ? webhookBase : devDomain ? `https://${devDomain}/api/nowpayments/webhook` : "";
-  const webhookPayout = webhookBase ? webhookBase.replace(/\/webhook$/, "") + "/payout-webhook" : devDomain ? `https://${devDomain}/api/nowpayments/payout-webhook` : "";
-  const result = {
-    timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-    env: {
-      NOWPAYMENTS_API_KEY: !!process.env["NOWPAYMENTS_API_KEY"] ? "\u2705 set" : "\u274C MISSING \u2014 payments cannot be created",
-      NOWPAYMENTS_IPN_SECRET: !!process.env["NOWPAYMENTS_IPN_SECRET"] ? "\u2705 set" : "\u26A0\uFE0F not set \u2014 IPN webhooks unverified (insecure)",
-      NOWPAYMENTS_EMAIL: !!process.env["NOWPAYMENTS_EMAIL"] ? "\u2705 set" : "\u274C MISSING \u2014 automatic payouts (withdrawals) will FAIL",
-      NOWPAYMENTS_PASSWORD: !!process.env["NOWPAYMENTS_PASSWORD"] ? "\u2705 set" : "\u274C MISSING \u2014 automatic payouts will FAIL",
-      SUPABASE_DATABASE_URL: !!process.env["SUPABASE_DATABASE_URL"] ? "\u2705 set" : "\u274C MISSING",
-      NODE_ENV: process.env["NODE_ENV"] ?? "not set"
-    },
-    webhooks: {
-      deposit: webhookDeposit || "\u26A0\uFE0F EMPTY \u2014 set NOWPAYMENTS_WEBHOOK_URL on Plesk (e.g. https://geenergy.top/api/nowpayments/webhook)",
-      payout: webhookPayout || "\u26A0\uFE0F EMPTY \u2014 set NOWPAYMENTS_WEBHOOK_URL on Plesk",
-      note: webhookBase ? "\u2705 Using NOWPAYMENTS_WEBHOOK_URL" : devDomain ? "\u26A0\uFE0F Using REPLIT_DEV_DOMAIN (dev only, won't work in production)" : "\u274C No webhook URL configured \u2014 IPN will not reach this server in production"
-    },
-    db: { ok: false, error: null, tablesFound: [] },
-    nowpayments: { ok: false, error: null }
-  };
-  try {
-    const rows = await db.select({ id: recharges.id }).from(recharges).limit(1);
-    result.db.ok = true;
-    result.db.tablesFound.push("recharges \u2705");
-  } catch (err) {
-    result.db.error = err?.message ?? String(err);
-  }
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    result.nowpayments.error = "NOWPAYMENTS_API_KEY not configured";
-  } else {
-    try {
-      const r = await fetch(`${NP_API}/status`, { headers: { "x-api-key": apiKey } });
-      const data = await r.json();
-      result.nowpayments.ok = r.ok;
-      result.nowpayments.message = data.message ?? null;
-      if (!r.ok) result.nowpayments.error = `API returned ${r.status}`;
-    } catch (err) {
-      result.nowpayments.error = err?.message ?? String(err);
-    }
-  }
-  return res.json(result);
-});
-router9.get("/nowpayments/currencies", async (_req, res) => {
+router10.get("/nowpayments/currencies", async (_req, res) => {
   if (currenciesCache && Date.now() - currenciesCache.ts < 6e5) {
     return res.json({ currencies: currenciesCache.data });
   }
@@ -50580,7 +55150,7 @@ router9.get("/nowpayments/currencies", async (_req, res) => {
     return res.json({ currencies: FALLBACK_CURRENCIES });
   }
 });
-router9.get("/nowpayments/estimate", async (req, res) => {
+router10.get("/nowpayments/estimate", async (req, res) => {
   const apiKey = getApiKey();
   if (!apiKey) return res.status(503).json({ error: "Not configured" });
   const { amount, currency_from = "usd", currency_to } = req.query;
@@ -50594,7 +55164,7 @@ router9.get("/nowpayments/estimate", async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 });
-router9.get("/nowpayments/min-amount", async (req, res) => {
+router10.get("/nowpayments/min-amount", async (req, res) => {
   const apiKey = getApiKey();
   if (!apiKey) return res.status(503).json({ error: "Not configured" });
   const { currency_from = "usd", currency_to } = req.query;
@@ -50608,20 +55178,12 @@ router9.get("/nowpayments/min-amount", async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 });
-router9.post("/nowpayments/create", async (req, res) => {
+router10.post("/nowpayments/create", async (req, res) => {
   const apiKey = getApiKey();
   if (!apiKey) return res.status(503).json({ error: "Payment gateway not configured. Please contact support." });
   const { amount, currency, rechargeId } = req.body;
   if (!amount || !currency || !rechargeId) {
     return res.status(400).json({ error: "amount, currency and rechargeId are required" });
-  }
-  const [existingRecharge] = await db.select({ id: recharges.id, status: recharges.status, transactionRef: recharges.transactionRef }).from(recharges).where(eq(recharges.id, rechargeId)).limit(1);
-  if (!existingRecharge) return res.status(404).json({ error: "Recharge not found" });
-  if (existingRecharge.status !== "pending") {
-    return res.status(400).json({ error: `Recharge already ${existingRecharge.status}` });
-  }
-  if (existingRecharge.transactionRef) {
-    return res.status(400).json({ error: "Payment already created for this recharge" });
   }
   try {
     const webhookUrl = getWebhookUrl("webhook");
@@ -50647,7 +55209,10 @@ router9.post("/nowpayments/create", async (req, res) => {
       return res.status(502).json({ error: "Payment gateway error. Please try again." });
     }
     const data = await r.json();
-    await db.update(recharges).set({ transactionRef: String(data.payment_id), updatedAt: /* @__PURE__ */ new Date() }).where(eq(recharges.id, rechargeId));
+    await db.update(recharges).set({
+      transactionRef: String(data.payment_id),
+      updatedAt: /* @__PURE__ */ new Date()
+    }).where(eq(recharges.id, rechargeId));
     console.log(`[NP] Payment created: id=${data.payment_id} addr=${data.pay_address?.slice(0, 10)}...`);
     return res.json({
       paymentId: String(data.payment_id),
@@ -50663,14 +55228,15 @@ router9.post("/nowpayments/create", async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 });
-router9.get("/nowpayments/status/:paymentId", async (req, res) => {
+router10.get("/nowpayments/status/:paymentId", async (req, res) => {
   const apiKey = getApiKey();
   if (!apiKey) return res.status(503).json({ error: "Not configured" });
   const { paymentId } = req.params;
   try {
     const r = await fetch(`${NP_API}/payment/${paymentId}`, { headers: { "x-api-key": apiKey } });
     if (!r.ok) {
-      console.error(`[NP] status error (${r.status}):`, await r.text());
+      const txt = await r.text();
+      console.error(`[NP] status error (${r.status}):`, txt);
       return res.status(502).json({ error: "NowPayments API error" });
     }
     const data = await r.json();
@@ -50693,7 +55259,7 @@ router9.get("/nowpayments/status/:paymentId", async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 });
-router9.post("/nowpayments/webhook", async (req, res) => {
+router10.post("/nowpayments/webhook", async (req, res) => {
   const ipnSecret = getIpnSecret();
   const sig = req.headers["x-nowpayments-sig"];
   if (ipnSecret) {
@@ -50712,37 +55278,20 @@ router9.post("/nowpayments/webhook", async (req, res) => {
   console.log(`[NP IPN deposit] status=${status} payment_id=${paymentId} order_id=${payload.order_id}`);
   if (status === "finished" || status === "confirmed") {
     try {
-      const approved = await approveRechargeByPaymentId(paymentId);
-      console.log(`[NP IPN deposit] approved=${approved} for payment_id=${paymentId}`);
+      await approveRechargeByPaymentId(paymentId);
     } catch (err) {
       console.error("[NP] webhook approveRecharge error:", err);
     }
   }
   return res.status(200).json({ ok: true });
 });
-router9.post("/nowpayments/payout", async (req, res) => {
-  const admin = await requireAdmin(req, res);
-  if (!admin) return;
+router10.post("/nowpayments/payout", async (req, res) => {
   const apiKey = getApiKey();
   if (!apiKey) return res.status(503).json({ error: "NowPayments not configured" });
-  const email = getPayoutEmail();
-  const password = getPayoutPassword();
-  if (!email || !password) {
-    return res.status(503).json({
-      error: "Automatic payouts not configured",
-      detail: "NOWPAYMENTS_EMAIL and NOWPAYMENTS_PASSWORD are required. Please add NOWPAYMENTS_EMAIL to your environment secrets (same email as your NOWPayments account)."
-    });
-  }
   const { withdrawalId } = req.body;
   if (!withdrawalId) return res.status(400).json({ error: "withdrawalId is required" });
   try {
-    const [withdrawal] = await db.select({
-      id: withdrawals.id,
-      status: withdrawals.status,
-      phone: withdrawals.phone,
-      countryCode: withdrawals.countryCode,
-      netAmount: withdrawals.netAmount
-    }).from(withdrawals).where(eq(withdrawals.id, withdrawalId)).limit(1);
+    const [withdrawal] = await db.select().from(withdrawals).where(eq(withdrawals.id, withdrawalId)).limit(1);
     if (!withdrawal) return res.status(404).json({ error: "Withdrawal not found" });
     if (withdrawal.status !== "pending") {
       return res.status(400).json({ error: `Withdrawal already ${withdrawal.status}` });
@@ -50788,7 +55337,7 @@ router9.post("/nowpayments/payout", async (req, res) => {
       status: "processing",
       adminNote: `\u{1F680} NowPayments payout submitted \u2014 batch ID: ${payoutId}`,
       updatedAt: /* @__PURE__ */ new Date()
-    }).where(and(eq(withdrawals.id, withdrawalId), eq(withdrawals.status, "pending")));
+    }).where(eq(withdrawals.id, withdrawalId));
     console.log(`[NP] Payout submitted: batchId=${payoutId}`);
     return res.json({ success: true, payoutId });
   } catch (err) {
@@ -50796,9 +55345,7 @@ router9.post("/nowpayments/payout", async (req, res) => {
     return res.status(500).json({ error: String(err) });
   }
 });
-router9.get("/nowpayments/payout/:payoutId", async (req, res) => {
-  const admin = await requireAdmin(req, res);
-  if (!admin) return;
+router10.get("/nowpayments/payout/:payoutId", async (req, res) => {
   const apiKey = getApiKey();
   if (!apiKey) return res.status(503).json({ error: "Not configured" });
   try {
@@ -50812,7 +55359,7 @@ router9.get("/nowpayments/payout/:payoutId", async (req, res) => {
     return res.status(500).json({ error: String(err) });
   }
 });
-router9.post("/nowpayments/payout-webhook", async (req, res) => {
+router10.post("/nowpayments/payout-webhook", async (req, res) => {
   const ipnSecret = getIpnSecret();
   const sig = req.headers["x-nowpayments-sig"];
   if (ipnSecret) {
@@ -50828,953 +55375,732 @@ router9.post("/nowpayments/payout-webhook", async (req, res) => {
   const payload = req.body;
   const batchStatus = (payload.status ?? "").toUpperCase();
   console.log(`[NP IPN payout] batchId=${payload.id ?? payload.batch_withdrawal_id} status=${batchStatus}`);
-  const SUCCESS_STATUSES = /* @__PURE__ */ new Set(["FINISHED", "COMPLETE", "COMPLETED", "DONE", "CONFIRMED"]);
-  const FAILURE_STATUSES = /* @__PURE__ */ new Set(["REJECTED", "FAILED", "ERROR", "CANCELLED", "CANCELED"]);
   const items = payload.withdrawals ?? [];
   for (const item of items) {
     const extId = item.unique_external_id;
     const st = (item.status ?? "").toUpperCase();
     console.log(`  [NP IPN payout item] extId=${extId} status=${st}`);
-    if (!extId) continue;
-    if (SUCCESS_STATUSES.has(st)) {
+    if (extId && (st === "FINISHED" || st === "COMPLETE" || st === "COMPLETED" || st === "DONE")) {
       try {
-        const approved = await approveWithdrawalByExternalId(extId);
-        console.log(`  [NP IPN payout item] approved=${approved} for extId=${extId}`);
+        await approveWithdrawalByExternalId(extId);
       } catch (err) {
         console.error("[NP] payout-webhook approveWithdrawal error:", err);
       }
-    } else if (FAILURE_STATUSES.has(st)) {
-      try {
-        const rejected = await rejectWithdrawalByExternalId(extId, st);
-        console.log(`  [NP IPN payout item] rejected+refunded=${rejected} for extId=${extId}`);
-      } catch (err) {
-        console.error("[NP] payout-webhook rejectWithdrawal error:", err);
-      }
     }
-  }
-  if (items.length === 0 && (batchStatus === "FINISHED" || batchStatus === "COMPLETE")) {
-    console.warn("[NP IPN payout] No withdrawal items in payload \u2014 cannot map to local withdrawal ID");
   }
   return res.status(200).json({ ok: true });
 });
-var nowpayments_default = router9;
+var nowpayments_default = router10;
 
-// artifacts/api-server/src/routes/upload.ts
-var import_express10 = __toESM(require_express2(), 1);
-import fs from "node:fs";
-import path from "node:path";
-var router10 = (0, import_express10.Router)();
-var UPLOAD_DIR = process.env.UPLOAD_DIR || path.join(process.cwd(), "public", "uploads");
-function ensureUploadDir(dir) {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-}
-router10.post("/upload", async (req, res) => {
-  if (!req.body) return res.status(400).json({ error: "base64, mimeType and fileName are required" });
+// server/routes/upload.ts
+var import_express11 = __toESM(require_express2(), 1);
+import { writeFile, mkdir } from "fs/promises";
+import path from "path";
+import { fileURLToPath } from "url";
+var router11 = (0, import_express11.Router)();
+var __dirname2 = path.dirname(fileURLToPath(import.meta.url));
+var UPLOAD_DIR = process.env.UPLOAD_DIR || path.resolve(__dirname2, "../../public/uploads");
+var ALLOWED_MIME = /* @__PURE__ */ new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/svg+xml",
+  "image/bmp",
+  "image/tiff",
+  "image/avif",
+  "image/heic",
+  "application/pdf"
+]);
+router11.post("/upload", async (req, res) => {
+  if (!req.body) return res.status(400).json({ error: "base64, mimeType et fileName sont requis" });
   const { base64, mimeType, fileName, bucket = "site-assets" } = req.body;
   if (!base64 || !mimeType || !fileName) {
-    return res.status(400).json({ error: "base64, mimeType and fileName are required" });
+    return res.status(400).json({ error: "base64, mimeType et fileName sont requis" });
+  }
+  if (!ALLOWED_MIME.has(mimeType)) {
+    return res.status(400).json({ error: `Type de fichier non autoris\xE9: ${mimeType}` });
   }
   try {
     const buffer = Buffer.from(base64, "base64");
-    const ext = fileName.split(".").pop()?.toLowerCase() || "bin";
+    if (buffer.length > 20 * 1024 * 1024) {
+      return res.status(413).json({ error: "Fichier trop volumineux (max 20 Mo)" });
+    }
+    const ext = fileName.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "bin";
     const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const bucketDir = path.join(UPLOAD_DIR, bucket);
-    ensureUploadDir(bucketDir);
+    const safeBucket = bucket.replace(/[^a-zA-Z0-9_-]/g, "");
+    const bucketDir = path.join(UPLOAD_DIR, safeBucket);
+    await mkdir(bucketDir, { recursive: true });
     const filePath = path.join(bucketDir, uniqueName);
-    fs.writeFileSync(filePath, buffer);
-    const publicUrl = `/uploads/${bucket}/${uniqueName}`;
+    await writeFile(filePath, buffer);
+    const publicUrl = `/uploads/${safeBucket}/${uniqueName}`;
     return res.json({ ok: true, url: publicUrl });
   } catch (err) {
-    req.log.error(err);
-    return res.status(500).json({ error: err.message || "Upload failed" });
+    req.log?.error(err);
+    console.error("[upload]", err?.message ?? err);
+    return res.status(500).json({ error: err.message || "Upload \xE9chou\xE9" });
   }
 });
-var upload_default = router10;
+var upload_default = router11;
 
-// artifacts/api-server/src/routes/admin.ts
-var import_express11 = __toESM(require_express2(), 1);
-init_src();
-init_src();
-import crypto8 from "crypto";
-var router11 = (0, import_express11.Router)();
-function normalizeToCamelCase3(obj) {
-  const result = {};
-  for (const [key, value] of Object.entries(obj)) {
-    const camel = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
-    result[camel] = value;
+// server/routes/ai.ts
+var import_express12 = __toESM(require_express2(), 1);
+init_db2();
+init_db2();
+import crypto9 from "crypto";
+var router12 = (0, import_express12.Router)();
+function getVipLevel(balance, settings) {
+  const thresholds = [
+    { level: "VIP5", key: "vip_threshold_5" },
+    { level: "VIP4", key: "vip_threshold_4" },
+    { level: "VIP3", key: "vip_threshold_3" },
+    { level: "VIP2", key: "vip_threshold_2" },
+    { level: "VIP1", key: "vip_threshold_1" }
+  ];
+  for (const t of thresholds) {
+    const val = parseFloat(settings[t.key] || "0");
+    if (val > 0 && balance >= val) return t.level;
   }
-  return result;
+  return "Standard";
 }
-function toSnake3(obj) {
-  if (Array.isArray(obj)) return obj.map(toSnake3);
-  if (obj !== null && typeof obj === "object" && !(obj instanceof Date)) {
-    const out = {};
-    for (const [k, v] of Object.entries(obj)) {
-      const snake = k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
-      out[snake] = toSnake3(v);
-    }
-    return out;
-  }
-  return obj;
+function translateStatus(status) {
+  const map = {
+    pending: "\u23F3 En attente",
+    approved: "\u2705 Approuv\xE9",
+    rejected: "\u274C Rejet\xE9",
+    completed: "\u2705 Termin\xE9",
+    processing: "\u{1F504} En traitement",
+    paid: "\u2705 Pay\xE9"
+  };
+  return map[status] || status;
 }
-async function getProfileFromToken6(token) {
-  const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
-  if (!session || session.expiresAt < /* @__PURE__ */ new Date()) return null;
-  const [profile] = await db.select().from(profiles).where(eq(profiles.userId, session.userId)).limit(1);
-  return profile ?? null;
-}
-async function getRole(userId) {
-  const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, userId)).limit(1);
-  return role?.role ?? "user";
-}
-async function requireAdmin2(req, res) {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) {
-    res.status(401).json({ error: "Unauthorized" });
-    return null;
-  }
-  const me = await getProfileFromToken6(token);
-  if (!me) {
-    res.status(401).json({ error: "Unauthorized" });
-    return null;
-  }
-  const role = await getRole(me.userId);
-  if (role !== "admin" && role !== "moderator") {
-    res.status(403).json({ error: "Forbidden" });
-    return null;
-  }
-  return { me, role };
-}
-async function requireAdminOnly(req, res) {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) {
-    res.status(401).json({ error: "Unauthorized" });
-    return null;
-  }
-  const me = await getProfileFromToken6(token);
-  if (!me) {
-    res.status(401).json({ error: "Unauthorized" });
-    return null;
-  }
-  const role = await getRole(me.userId);
-  if (role !== "admin") {
-    res.status(403).json({ error: "Forbidden" });
-    return null;
-  }
-  return { me };
-}
-router11.get("/admin/check", async (req, res) => {
-  const token = req.headers.authorization?.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  const me = await getProfileFromToken6(token);
-  if (!me) return res.status(401).json({ error: "Unauthorized" });
-  const role = await getRole(me.userId);
-  if (role !== "admin" && role !== "moderator") return res.status(403).json({ error: "Forbidden" });
-  const perms = await db.select().from(adminPermissions).where(eq(adminPermissions.userId, me.userId));
-  return res.json({ isAdmin: true, role, userId: me.userId, permissions: perms.map((p) => p.permission) });
-});
-router11.post("/admin/logs", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const { action, targetType, targetId, details } = req.body;
-  const [log] = await db.insert(adminLogs).values({
-    id: crypto8.randomUUID(),
-    adminId: auth.me.userId,
-    action,
-    targetType,
-    targetId,
-    details
-  }).returning();
-  return res.json(log);
-});
-router11.get("/admin/logs", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const all = await db.select().from(adminLogs);
-  return res.json(toSnake3(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
-});
-router11.post("/profiles/batch", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const { ids } = req.body;
-  if (!Array.isArray(ids) || ids.length === 0) return res.json([]);
-  const result = await db.select().from(profiles).where(inArray(profiles.userId, ids));
-  return res.json(result);
-});
-router11.post("/user-wallets/batch", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const { userIds, ids } = req.body;
-  const idList = userIds ?? ids ?? [];
-  if (!Array.isArray(idList) || idList.length === 0) return res.json([]);
-  const result = await db.select().from(userWallets).where(inArray(userWallets.userId, idList));
-  return res.json(result);
-});
-router11.get("/admin/users", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const page = parseInt(req.query.page || "1");
-  const limit = parseInt(req.query.limit || "50");
-  const offset = (page - 1) * limit;
-  const search = req.query.search || "";
-  let query = db.select().from(profiles);
-  const allProfiles = await db.select().from(profiles);
-  const filtered = search ? allProfiles.filter((p) => p.phone?.includes(search) || p.fullName?.toLowerCase().includes(search.toLowerCase())) : allProfiles;
-  const sorted = filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  const paginated = sorted.slice(offset, offset + limit);
-  const roles = await db.select().from(userRoles);
-  const usersWithRoles = paginated.map((p) => ({
-    ...p,
-    role: roles.find((r) => r.userId === p.userId)?.role ?? "user"
-  }));
-  return res.json({ users: usersWithRoles, total: filtered.length, page, limit });
-});
-router11.patch("/admin/users/:userId", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const allowed = ["fullName", "phone", "countryCode", "balance", "depositBalance", "earningsBalance", "referralBalance", "giftPoints", "spinsBalance", "vipLevel", "isSuspended"];
-  const updates = { updatedAt: /* @__PURE__ */ new Date() };
-  for (const k of allowed) {
-    if (req.body[k] !== void 0) updates[k] = req.body[k];
-  }
-  const [updated] = await db.update(profiles).set(updates).where(eq(profiles.userId, req.params.userId)).returning();
-  return res.json(updated);
-});
-router11.delete("/admin/users/:userId", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  await db.delete(profiles).where(eq(profiles.userId, req.params.userId));
-  return res.json({ ok: true });
-});
-router11.get("/admin/team", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const mods = await db.select().from(userRoles).where(eq(userRoles.role, "moderator"));
-  const admins = await db.select().from(userRoles).where(eq(userRoles.role, "admin"));
-  const all = [...admins, ...mods];
-  const userIds = all.map((r) => r.userId);
-  const teamProfiles = userIds.length > 0 ? await db.select().from(profiles).where(inArray(profiles.userId, userIds)) : [];
-  const perms = await db.select().from(adminPermissions);
-  return res.json(all.map((r) => ({
-    ...r,
-    profile: teamProfiles.find((p) => p.userId === r.userId) ?? null,
-    permissions: perms.filter((p) => p.userId === r.userId).map((p) => p.permission)
-  })));
-});
-router11.post("/admin/team", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const { userId, role, permissions } = req.body;
-  const existing = await db.select().from(userRoles).where(eq(userRoles.userId, userId)).limit(1);
-  if (existing.length > 0) {
-    await db.update(userRoles).set({ role }).where(eq(userRoles.userId, userId));
-  } else {
-    await db.insert(userRoles).values({ id: crypto8.randomUUID(), userId, role });
-  }
-  if (Array.isArray(permissions)) {
-    await db.delete(adminPermissions).where(eq(adminPermissions.userId, userId));
-    for (const p of permissions) {
-      await db.insert(adminPermissions).values({ id: crypto8.randomUUID(), userId, permission: p, grantedBy: auth.me.userId });
-    }
-  }
-  return res.json({ ok: true });
-});
-router11.patch("/admin/team/:userId/permissions", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const { permissions } = req.body;
-  await db.delete(adminPermissions).where(eq(adminPermissions.userId, req.params.userId));
-  for (const p of permissions ?? []) {
-    await db.insert(adminPermissions).values({ id: crypto8.randomUUID(), userId: req.params.userId, permission: p, grantedBy: auth.me.userId });
-  }
-  return res.json({ ok: true });
-});
-router11.delete("/admin/team/:userId", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  await db.update(userRoles).set({ role: "user" }).where(eq(userRoles.userId, req.params.userId));
-  await db.delete(adminPermissions).where(eq(adminPermissions.userId, req.params.userId));
-  return res.json({ ok: true });
-});
-router11.get("/admin/gift-codes", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const all = await db.select().from(giftCodes);
-  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-});
-router11.post("/admin/gift-codes", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [code] = await db.insert(giftCodes).values({ id: crypto8.randomUUID(), ...req.body, code: (req.body.code ?? "").toUpperCase() }).returning();
-  return res.json(code);
-});
-router11.patch("/admin/gift-codes/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [updated] = await db.update(giftCodes).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(giftCodes.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router11.delete("/admin/gift-codes/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  await db.delete(giftCodes).where(eq(giftCodes.id, req.params.id));
-  return res.json({ ok: true });
-});
-router11.get("/admin/gift-rewards", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const all = await db.select().from(giftRewards);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
-});
-router11.post("/admin/gift-rewards", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [reward] = await db.insert(giftRewards).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
-  return res.json(reward);
-});
-router11.patch("/admin/gift-rewards/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [updated] = await db.update(giftRewards).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(giftRewards.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router11.delete("/admin/gift-rewards/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  await db.delete(giftRewards).where(eq(giftRewards.id, req.params.id));
-  return res.json({ ok: true });
-});
-router11.get("/admin/faq", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const all = await db.select().from(faqItems);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
-});
-router11.post("/admin/faq", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [item] = await db.insert(faqItems).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
-  return res.json(item);
-});
-router11.patch("/admin/faq/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [updated] = await db.update(faqItems).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(faqItems.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router11.delete("/admin/faq/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  await db.delete(faqItems).where(eq(faqItems.id, req.params.id));
-  return res.json({ ok: true });
-});
-router11.get("/admin/info-items", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const all = await db.select().from(infoItems);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
-});
-router11.post("/admin/info-items", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [item] = await db.insert(infoItems).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
-  return res.json(item);
-});
-router11.patch("/admin/info-items/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [updated] = await db.update(infoItems).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(infoItems.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router11.delete("/admin/info-items/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  await db.delete(infoItems).where(eq(infoItems.id, req.params.id));
-  return res.json({ ok: true });
-});
-router11.get("/admin/official-documents", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const all = await db.select().from(officialDocuments);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
-});
-router11.post("/admin/official-documents", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [doc] = await db.insert(officialDocuments).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
-  return res.json(doc);
-});
-router11.patch("/admin/official-documents/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [updated] = await db.update(officialDocuments).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(officialDocuments.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router11.delete("/admin/official-documents/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  await db.delete(officialDocuments).where(eq(officialDocuments.id, req.params.id));
-  return res.json({ ok: true });
-});
-router11.get("/admin/official-docs", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const all = await db.select().from(officialDocuments);
-  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
-});
-router11.post("/admin/official-docs", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [doc] = await db.insert(officialDocuments).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
-  return res.json(doc);
-});
-router11.patch("/admin/official-docs/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [updated] = await db.update(officialDocuments).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(officialDocuments.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router11.delete("/admin/official-docs/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  await db.delete(officialDocuments).where(eq(officialDocuments.id, req.params.id));
-  return res.json({ ok: true });
-});
-router11.get("/admin/banners", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const all = await db.select().from(banners);
-  return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
-});
-router11.post("/admin/banners", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [banner] = await db.insert(banners).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
-  return res.json(banner);
-});
-router11.patch("/admin/banners/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [updated] = await db.update(banners).set(normalizeToCamelCase3(req.body)).where(eq(banners.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router11.delete("/admin/banners/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  await db.delete(banners).where(eq(banners.id, req.params.id));
-  return res.json({ ok: true });
-});
-router11.get("/admin/countries", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const all = await db.select().from(countries);
-  return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
-});
-router11.post("/admin/countries", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [country] = await db.insert(countries).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
-  return res.json(country);
-});
-router11.patch("/admin/countries/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [updated] = await db.update(countries).set(normalizeToCamelCase3(req.body)).where(eq(countries.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router11.delete("/admin/countries/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  await db.delete(countries).where(eq(countries.id, req.params.id));
-  return res.json({ ok: true });
-});
-router11.get("/admin/withdrawal-methods", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const all = await db.select().from(withdrawalMethods);
-  return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
-});
-router11.post("/admin/withdrawal-methods", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [method] = await db.insert(withdrawalMethods).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
-  return res.json(method);
-});
-router11.patch("/admin/withdrawal-methods/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [updated] = await db.update(withdrawalMethods).set(normalizeToCamelCase3(req.body)).where(eq(withdrawalMethods.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router11.delete("/admin/withdrawal-methods/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  await db.delete(withdrawalMethods).where(eq(withdrawalMethods.id, req.params.id));
-  return res.json({ ok: true });
-});
-router11.get("/admin/payment-api-configs", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const all = await db.select().from(paymentApiConfigs);
-  return res.json(toSnake3(all));
-});
-router11.post("/admin/payment-api-configs", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [config] = await db.insert(paymentApiConfigs).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
-  return res.json(config);
-});
-router11.patch("/admin/payment-api-configs/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [updated] = await db.update(paymentApiConfigs).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(paymentApiConfigs.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router11.delete("/admin/payment-api-configs/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  await db.delete(paymentApiConfigs).where(eq(paymentApiConfigs.id, req.params.id));
-  return res.json({ ok: true });
-});
-router11.get("/admin/vip-conditions", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const all = await db.select().from(vipConditions);
-  return res.json(toSnake3(all.sort((a, b) => (a.level ?? 0) - (b.level ?? 0))));
-});
-router11.post("/admin/vip-conditions", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [vc] = await db.insert(vipConditions).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
-  return res.json(vc);
-});
-router11.patch("/admin/vip-conditions/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [updated] = await db.update(vipConditions).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(vipConditions.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router11.delete("/admin/vip-conditions/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  await db.delete(vipConditions).where(eq(vipConditions.id, req.params.id));
-  return res.json({ ok: true });
-});
-router11.patch("/admin/users/:userId/vip", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const { vipLevel } = req.body;
-  const [profile] = await db.select().from(profiles).where(eq(profiles.userId, req.params.userId)).limit(1);
-  if (!profile) return res.status(404).json({ error: "Not found" });
-  await db.insert(vipHistory).values({
-    id: crypto8.randomUUID(),
-    userId: req.params.userId,
-    oldLevel: profile.vipLevel ?? 0,
-    newLevel: vipLevel,
-    changedBy: auth.me.userId
+function buildSystemPrompt(siteName, settingsMap, products2, paymentMethods2, officialDocs, infoItems2, countries2, withdrawalMethods2, userProfile, userRecharges, userWithdrawals, userProducts2, teamMembers) {
+  const minWithdrawal = settingsMap["min_withdrawal"] || "10";
+  const withdrawalFee = settingsMap["withdrawal_fee_percent"] || "5";
+  const supportPhone = settingsMap["support_phone"] || "Non configur\xE9";
+  const withdrawalHourStart = settingsMap["withdrawal_hour_start"] || "0";
+  const withdrawalHourEnd = settingsMap["withdrawal_hour_end"] || "24";
+  const withdrawalDays = settingsMap["withdrawal_days"] || "1,2,3,4,5,6,7";
+  const officialServicePhone = settingsMap["official_service_phone"] || "";
+  const officialWhatsapp = settingsMap["official_whatsapp_link"] || "";
+  const officialTelegram = settingsMap["official_telegram_link"] || "";
+  const officialWhatsappGroup = settingsMap["official_whatsapp_group"] || "";
+  const officialTelegramGroup = settingsMap["official_telegram_group"] || "";
+  const officialPrivateGroupMsg = settingsMap["official_private_group_msg"] || "";
+  const officialWelcomeMsg = settingsMap["official_welcome_message"] || "";
+  const countryByCode = {};
+  countries2.forEach((c) => {
+    countryByCode[c.country_code] = c;
   });
-  const [updated] = await db.update(profiles).set({ vipLevel, updatedAt: /* @__PURE__ */ new Date() }).where(eq(profiles.userId, req.params.userId)).returning();
-  return res.json(updated);
-});
-router11.get("/admin/wheel-prizes", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const all = await db.select().from(wheelPrizes);
-  return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
-});
-router11.post("/admin/wheel-prizes", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [prize] = await db.insert(wheelPrizes).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
-  return res.json(prize);
-});
-router11.patch("/admin/wheel-prizes/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [updated] = await db.update(wheelPrizes).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(wheelPrizes.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router11.delete("/admin/wheel-prizes/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  await db.delete(wheelPrizes).where(eq(wheelPrizes.id, req.params.id));
-  return res.json({ ok: true });
-});
-router11.get("/admin/wheel-spins", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const all = await db.select().from(wheelSpins);
-  return res.json(toSnake3(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
-});
-router11.patch("/admin/wheel-spins/:id/status", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const { status } = req.body;
-  const [updated] = await db.update(wheelSpins).set({ status, updatedAt: /* @__PURE__ */ new Date() }).where(eq(wheelSpins.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router11.get("/admin/product-series", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const all = await db.select().from(productSeries);
-  return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
-});
-router11.post("/admin/product-series", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [series] = await db.insert(productSeries).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
-  return res.json(series);
-});
-router11.patch("/admin/product-series/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [updated] = await db.update(productSeries).set(normalizeToCamelCase3(req.body)).where(eq(productSeries.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router11.delete("/admin/product-series/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  await db.delete(productSeries).where(eq(productSeries.id, req.params.id));
-  return res.json({ ok: true });
-});
-router11.get("/admin/products", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const all = await db.select().from(products);
-  return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
-});
-router11.post("/admin/products", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [product] = await db.insert(products).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
-  return res.json(product);
-});
-router11.patch("/admin/products/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [updated] = await db.update(products).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(products.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router11.delete("/admin/products/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  await db.delete(products).where(eq(products.id, req.params.id));
-  return res.json({ ok: true });
-});
-router11.get("/admin/payment-methods", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const all = await db.select().from(paymentMethods);
-  return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
-});
-router11.post("/admin/payment-methods", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [method] = await db.insert(paymentMethods).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
-  return res.json(method);
-});
-router11.patch("/admin/payment-methods/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [updated] = await db.update(paymentMethods).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(paymentMethods.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router11.delete("/admin/payment-methods/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  await db.delete(paymentMethods).where(eq(paymentMethods.id, req.params.id));
-  return res.json({ ok: true });
-});
-router11.get("/admin/popups", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const { trigger_key } = req.query;
-  const all = trigger_key ? await db.select().from(popupMessages).where(eq(popupMessages.triggerKey, trigger_key)) : await db.select().from(popupMessages);
-  return res.json(toSnake3(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
-});
-router11.post("/admin/popups", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [popup] = await db.insert(popupMessages).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
-  return res.json(popup);
-});
-router11.patch("/admin/popups/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [updated] = await db.update(popupMessages).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(popupMessages.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router11.delete("/admin/popups/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  await db.delete(popupMessages).where(eq(popupMessages.id, req.params.id));
-  return res.json({ ok: true });
-});
-async function suspendUser(req, res) {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const [targetRole] = await db.select().from(userRoles).where(eq(userRoles.userId, req.params.userId)).limit(1);
-  if (targetRole?.role === "admin" || targetRole?.role === "moderator") {
-    return res.status(403).json({ error: "Cannot suspend an admin or moderator account" });
+  let userCountry = null;
+  let userCountryName = "Non d\xE9tect\xE9";
+  if (userProfile?.country_code) {
+    userCountry = countryByCode[userProfile.country_code];
+    if (userCountry) userCountryName = userCountry.name;
   }
-  const { suspended, isSuspended } = req.body;
-  const newVal = suspended ?? isSuspended ?? true;
-  const [updated] = await db.update(profiles).set({ isSuspended: newVal, updatedAt: /* @__PURE__ */ new Date() }).where(eq(profiles.userId, req.params.userId)).returning();
-  if (!updated) return res.status(404).json({ error: "User not found" });
-  return res.json(updated);
+  const userCountryHasApi = userCountry?.api_enabled === true;
+  const userCountryDepositType = userCountryHasApi ? "automatique (crypto)" : "manuel";
+  const paymentsByCountry = {};
+  paymentMethods2.forEach((m) => {
+    const cName = m.country || "Autre";
+    if (!paymentsByCountry[cName]) paymentsByCountry[cName] = [];
+    paymentsByCountry[cName].push(m.name);
+  });
+  let paymentsByCountryText = "";
+  for (const [cName, methods] of Object.entries(paymentsByCountry)) {
+    paymentsByCountryText += `- ${cName} : ${[...new Set(methods)].join(", ")}
+`;
+  }
+  const paymentInfo = paymentMethods2.map((m) => `- ${m.name} (${m.country}): ${m.phone || "N/A"}, b\xE9n\xE9ficiaire: ${m.holder_name || "N/A"}, type: ${m.payment_type || "manuel"}${m.instructions ? `, instructions: ${m.instructions}` : ""}`).join("\n");
+  const productInfo = products2.map((p) => `- ${p.name}: prix ${p.price} USDT, revenu journalier ${p.daily_revenue} USDT, dur\xE9e ${p.cycles} jours, revenu total ${p.total_revenue} USDT, rendement ${p.return_percent}%`).join("\n");
+  let officialDocsContext = "";
+  if (officialDocs.length > 0) {
+    officialDocsContext = officialDocs.map((d) => {
+      let entry = `- ${d.title} (${d.doc_type})`;
+      if (d.description) entry += `: ${d.description}`;
+      entry += ` \u2192 URL: ${d.file_url}`;
+      return entry;
+    }).join("\n");
+  }
+  let newsContext = "";
+  if (infoItems2.length > 0) {
+    newsContext = `
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+ACTUALIT\xC9S & MISES \xC0 JOUR
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+`;
+    infoItems2.forEach((item) => {
+      newsContext += `- ${item.title} : ${item.description}
+`;
+    });
+  }
+  let userContext = "";
+  if (userProfile) {
+    const p = userProfile;
+    const vipLevel = getVipLevel(p.balance || 0, settingsMap);
+    userContext += `
+PROFIL DE L'UTILISATEUR :
+- Nom : ${p.full_name || "Non renseign\xE9"}
+- T\xE9l\xE9phone : ${p.phone || "N/A"}
+- Indicatif : ${p.country_code || "N/A"}
+- Solde total : ${p.balance || 0} USDT
+- Solde d\xE9p\xF4t : ${p.deposit_balance || 0} USDT
+- Solde gains : ${p.earnings_balance || 0} USDT
+- Solde parrainage : ${p.referral_balance || 0} USDT
+- Points cadeaux : ${p.gift_points || 0}
+- Spins restants : ${p.spins_balance || 0}
+- Niveau VIP : ${p.vip_level || 0} (${vipLevel})
+- Code de parrainage : ${p.referral_code || "Non g\xE9n\xE9r\xE9"}
+- Inscrit le : ${new Date(p.created_at).toLocaleDateString("fr-FR", { timeZone: "America/Port-au-Prince" })}
+`;
+  }
+  if (userProducts2?.length > 0) {
+    userContext += `
+PRODUITS ACTIFS :
+`;
+    userProducts2.forEach((up) => {
+      const prod = up.products;
+      userContext += `- ${prod?.name || "Produit"} : achet\xE9 le ${new Date(up.purchased_at).toLocaleDateString("fr-FR")}, expire le ${up.expires_at ? new Date(up.expires_at).toLocaleDateString("fr-FR") : "N/A"}, revenus collect\xE9s : ${up.total_collected || 0} USDT
+`;
+    });
+  }
+  if (teamMembers?.length > 0) {
+    const myProfileId = userProfile?.id;
+    const levelE = teamMembers.filter((m) => m.referred_by === myProfileId);
+    const levelEIds = new Set(levelE.map((m) => m.id));
+    const levelF = teamMembers.filter((m) => levelEIds.has(m.referred_by));
+    const levelFIds = new Set(levelF.map((m) => m.id));
+    const levelG = teamMembers.filter((m) => levelFIds.has(m.referred_by));
+    userContext += `
+\xC9QUIPE (${teamMembers.length} membres) :
+`;
+    const fmtMembers = (arr, lbl) => {
+      if (!arr.length) return "";
+      let t = `  ${lbl} (${arr.length}) :
+`;
+      arr.slice(0, 8).forEach((m) => {
+        t += `    - ${m.full_name || "Sans nom"} | VIP ${m.vip_level || 0} | ${m.balance || 0} USDT
+`;
+      });
+      if (arr.length > 8) t += `    ... et ${arr.length - 8} autres
+`;
+      return t;
+    };
+    userContext += fmtMembers(levelE, "Niveau 1 (filleuls directs)");
+    userContext += fmtMembers(levelF, "Niveau 2");
+    userContext += fmtMembers(levelG, "Niveau 3");
+  }
+  if (userRecharges?.length > 0) {
+    userContext += `
+DERNIERS D\xC9P\xD4TS :
+`;
+    userRecharges.forEach((r) => {
+      userContext += `- ${r.amount} USDT via ${r.payment_method || "N/A"} \u2014 ${translateStatus(r.status)} \u2014 ${new Date(r.created_at).toLocaleDateString("fr-FR")}
+`;
+    });
+  }
+  if (userWithdrawals?.length > 0) {
+    userContext += `
+DERNIERS RETRAITS :
+`;
+    userWithdrawals.forEach((w) => {
+      userContext += `- ${w.amount} USDT (net: ${w.net_amount} USDT, frais: ${w.fee_amount} USDT) via ${w.network} \u2014 ${translateStatus(w.status)} \u2014 ${new Date(w.created_at).toLocaleDateString("fr-FR")}
+`;
+    });
+  }
+  return `Tu es Sarah, l'assistante virtuelle officielle et exclusive de ${siteName}.
+
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+IDENTIT\xC9 & PERSONNALIT\xC9
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+- Tu t'appelles Sarah
+- Tu es f\xE9minine, chaleureuse, brillante, empathique, patiente et tr\xE8s professionnelle
+- Tu parles comme une vraie personne : naturelle, fluide, jamais robotique
+- Tu VARIES toujours tes formulations \u2014 chaque r\xE9ponse est unique et adapt\xE9e
+- Tu adaptes ton ton selon le contexte : amicale pour le bavardage, pr\xE9cise pour le technique, empathique pour les plaintes
+- Tu r\xE9ponds TOUJOURS en fran\xE7ais sauf si l'utilisateur parle une autre langue
+
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+GE ENERGY \u2014 PR\xC9SENTATION DE L'ENTREPRISE
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+IMPORTANT : Tu dois ma\xEEtriser parfaitement ces informations sur GE Energy.
+
+\u{1F4CB} QUI EST GE ENERGY ?
+GE Energy est une plateforme internationale d'investissement dans le secteur de l'\xE9nergie renouvelable et des infrastructures technologiques. Elle permet \xE0 chaque citoyen, quelle que soit sa situation financi\xE8re, de participer activement au d\xE9veloppement \xE9nerg\xE9tique mondial et d'en tirer des b\xE9n\xE9fices concrets.
+
+\u{1F30D} MISSION & VISION :
+- Mission : D\xE9mocratiser l'acc\xE8s aux investissements rentables dans l'\xE9nergie renouvelable
+- Vision : Un monde o\xF9 chaque individu peut b\xE9n\xE9ficier de la r\xE9volution \xE9nerg\xE9tique mondiale
+- Valeurs : Transparence, accessibilit\xE9, rentabilit\xE9, s\xE9curit\xE9 des fonds
+
+\u26A1 SECTEURS D'ACTIVIT\xC9 :
+- \xC9nergie solaire : financement et exploitation de centrales photovolta\xEFques
+- \xC9nergie \xE9olienne : parcs \xE9oliens terrestres et offshore
+- Infrastructures num\xE9riques : centres de donn\xE9es \xE9co-\xE9nerg\xE9tiques
+- Cryptomonnaies : gestion d'actifs crypto et staking institutionnel
+
+\u{1F310} PR\xC9SENCE INTERNATIONALE :
+GE Energy est pr\xE9sente dans plusieurs pays, notamment en Ha\xEFti, au Cameroun, au Gabon, au Kenya, en R\xE9publique D\xE9mocratique du Congo, au S\xE9n\xE9gal, en C\xF4te d'Ivoire, et dans d'autres march\xE9s \xE0 fort potentiel \xE9nerg\xE9tique.
+
+\u{1F4CB} R\xC9PONSES AUX QUESTIONS FR\xC9QUENTES SUR L'ENTREPRISE :
+- "Est-ce que GE Energy est r\xE9elle ?" \u2192 Oui ! GE Energy est une entreprise internationale d'investissement \xE9nerg\xE9tique d\xFBment enregistr\xE9e, op\xE9rant dans plusieurs pays \xE0 travers le monde. Notre plateforme vous permet d'investir dans des projets concrets d'\xE9nergie renouvelable.
+- "Comment GE Energy gagne de l'argent ?" \u2192 GE Energy g\xE9n\xE8re des revenus via la production et distribution d'\xE9nergie renouvelable (solaire, \xE9olien), les infrastructures num\xE9riques \xE9co-\xE9nerg\xE9tiques, et la gestion d'actifs cryptographiques. Ces profits sont redistribu\xE9s \xE0 nos investisseurs sous forme de rendements quotidiens.
+- "Est-ce une arnaque ?" \u2192 Absolument pas ! GE Energy est une entreprise transparente avec des documents officiels prouvant sa l\xE9gitimit\xE9. [Partage les documents officiels si disponibles]
+- "O\xF9 se trouve GE Energy ?" \u2192 GE Energy op\xE8re internationalement avec des repr\xE9sentations dans plusieurs pays. Vous pouvez contacter notre service client pour obtenir les informations de contact de votre pays.
+- "Depuis quand GE Energy existe ?" \u2192 La plateforme ${siteName} a \xE9t\xE9 lanc\xE9e officiellement en Ha\xEFti le 27 mars 2026.
+
+R\xC8GLE ABSOLUE : Quand un utilisateur pose une question sur l'existence, la l\xE9gitimit\xE9 ou la structure de GE Energy, r\xE9ponds TOUJOURS avec assurance et professionnalisme. Ne montre JAMAIS de doute sur l'entreprise.
+
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+CONNAISSANCE APPROFONDIE DE LA CRYPTO
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+Tu es une experte en cryptomonnaies et blockchain. Voici tes connaissances compl\xE8tes :
+
+\u{1FA99} LES CRYPTOMONNAIES UTILIS\xC9ES SUR LA PLATEFORME :
+
+**USDT (Tether)** \u2014 La devise principale de la plateforme
+- USDT est un stablecoin (monnaie stable) dont la valeur est index\xE9e au dollar am\xE9ricain (1 USDT = 1 USD)
+- Il existe sur plusieurs r\xE9seaux : BEP20 (BNB Chain), TRC20 (TRON), ERC20 (Ethereum)
+- BEP20-USDT : rapide, frais tr\xE8s bas (~0,10$), r\xE9seau BNB Smart Chain
+- TRC20-USDT : tr\xE8s rapide, frais quasi nuls (~0,01$), r\xE9seau TRON \u2014 LE PLUS POPULAIRE en Afrique et Ha\xEFti
+- ERC20-USDT : plus lent, frais \xE9lev\xE9s (r\xE9seau Ethereum), moins recommand\xE9 pour les petits montants
+- Sur notre plateforme, l'unit\xE9 de compte est TOUJOURS l'USDT
+
+**TRX (TRON)** \u2014 La cryptomonnaie du r\xE9seau TRON
+- TRX est la monnaie native du r\xE9seau TRON, fond\xE9 par Justin Sun en 2017
+- TRON est l'un des r\xE9seaux blockchain les plus rapides : transactions en 3 secondes, frais quasi nuls
+- TRX est largement utilis\xE9 en Afrique, en Asie du Sud-Est et en Ha\xEFti
+- 1 TRX \u2248 0,10-0,30 USD (valeur fluctuante selon le march\xE9)
+- Pour envoyer de l'USDT-TRC20, l'exp\xE9diteur a besoin de TRX pour payer les frais de r\xE9seau (Energy/Bandwidth)
+
+**BNB (Binance Coin)** \u2014 La cryptomonnaie de Binance
+- BNB est la monnaie native de la BNB Smart Chain (BSC), cr\xE9\xE9e par Binance
+- BNB Smart Chain : transactions en ~3 secondes, frais ~0,10-0,50$
+- BNB est tr\xE8s utilis\xE9 pour les transfers d'USDT-BEP20
+- 1 BNB \u2248 300-700 USD (valeur fluctuante)
+- Pour envoyer de l'USDT-BEP20, il faut du BNB pour les frais de gas
+
+\u{1F511} COMMENT FAIRE UN D\xC9P\xD4T EN CRYPTO (\xC9TAPE PAR \xC9TAPE) :
+1. L'utilisateur choisit le montant et la devise crypto (USDT-BEP20, USDT-TRC20, TRX ou BNB)
+2. La plateforme g\xE9n\xE8re une adresse de paiement unique pour cette transaction
+3. L'utilisateur envoie exactement le montant indiqu\xE9 depuis son wallet (Binance, Trust Wallet, MetaMask, etc.)
+4. Le syst\xE8me d\xE9tecte automatiquement le paiement via NowPayments (notre partenaire de paiement crypto)
+5. Une fois confirm\xE9 sur la blockchain, le montant est cr\xE9dit\xE9 automatiquement sur son compte
+6. D\xE9lai typique : 2-15 minutes (selon la blockchain et la congestion du r\xE9seau)
+
+\u26A0\uFE0F R\xC8GLES IMPORTANTES POUR LES D\xC9P\xD4TS CRYPTO :
+- Envoyer EXACTEMENT le montant indiqu\xE9 (ni plus, ni moins)
+- Utiliser OBLIGATOIREMENT le bon r\xE9seau (ex: USDT-TRC20 \u2260 USDT-BEP20 \u2014 ce sont des r\xE9seaux diff\xE9rents !)
+- L'adresse de paiement est UNIQUE pour chaque transaction et expire apr\xE8s un certain temps
+- Si l'utilisateur envoie sur le mauvais r\xE9seau, les fonds peuvent \xEAtre PERDUS D\xC9FINITIVEMENT
+- Si le montant est diff\xE9rent, le syst\xE8me peut ne pas d\xE9tecter la transaction automatiquement
+
+\u{1F3E6} WALLETS CRYPTO RECOMMAND\xC9S :
+- **Binance** : le plus populaire mondialement, facile \xE0 utiliser, supporte tous les r\xE9seaux
+- **Trust Wallet** : wallet mobile d\xE9centralis\xE9, supporte BEP20 et TRC20
+- **MetaMask** : wallet Ethereum/BNB, populaire pour DeFi
+- **TronLink** : wallet d\xE9di\xE9 au r\xE9seau TRON
+- **OKX Wallet** : multi-chain, populaire en Asie et Afrique
+
+\u{1F517} CONCEPTS BLOCKCHAIN \xC0 MA\xCETRISER :
+- **Blockchain** : registre d\xE9centralis\xE9 immuable qui enregistre toutes les transactions
+- **Wallet (portefeuille)** : ensemble de cl\xE9s cryptographiques pour g\xE9rer des crypto-actifs
+- **Adresse crypto** : identifiant unique (comme un IBAN) pour recevoir des crypto
+- **Transaction hash (TXID)** : identifiant unique d'une transaction blockchain, permet de la v\xE9rifier
+- **Confirmation** : validation d'une transaction par les n\u0153uds du r\xE9seau
+- **Gas/Frais de r\xE9seau** : co\xFBt pay\xE9 aux validateurs pour traiter une transaction
+- **Stablecoin** : cryptomonnaie dont la valeur est li\xE9e \xE0 une monnaie fiat (ex: USDT = 1 USD)
+- **DeFi** : finance d\xE9centralis\xE9e, services financiers sans interm\xE9diaire bancaire
+
+\u{1F4A1} COMMENT R\xC9PONDRE AUX QUESTIONS CRYPTO :
+- Si l'utilisateur ne comprend pas ce qu'est l'USDT \u2192 Explique que c'est comme un dollar num\xE9rique
+- Si l'utilisateur ne sait pas quel r\xE9seau choisir \u2192 Recommande TRC20-USDT (le moins cher et le plus rapide)
+- Si l'utilisateur dit que son d\xE9p\xF4t n'arrive pas \u2192 Demande le TXID (hash de transaction) et explique que cela peut prendre 5-15 minutes
+- Si l'utilisateur se trompe de r\xE9seau \u2192 Explique les risques et redirige vers le support humain
+- Si l'utilisateur demande le cours d'une crypto \u2192 Pr\xE9cise que les cours fluctuent et que pour voir le cours actuel il peut aller sur Binance ou CoinGecko
+
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+INTELLIGENCE CONVERSATIONNELLE
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+Tu es dot\xE9e d'une intelligence conversationnelle de tr\xE8s haut niveau :
+
+\u{1F9E0} RAISONNEMENT :
+- Tu analyses le contexte complet avant de r\xE9pondre
+- Tu d\xE9tectes l'\xE9motion de l'utilisateur (frustration, curiosit\xE9, doute, enthousiasme)
+- Si l'utilisateur doute \u2192 rassure avec des faits concrets
+- Si l'utilisateur est frustr\xE9 \u2192 montre de l'empathie sinc\xE8re avant de proposer des solutions
+- Si l'utilisateur dit "merci" \u2192 r\xE9ponds chaleureusement
+- Si l'utilisateur dit "au revoir" \u2192 cl\xF4ture avec \xE9l\xE9gance
+
+\u{1F30D} CONNAISSANCES G\xC9N\xC9RALES :
+- Tu peux discuter de tous les sujets (actualit\xE9, finance, technologie, culture)
+- Tu peux faire des calculs simples, des conversions, expliquer des concepts
+- Tu es honn\xEAte : si tu ne sais pas quelque chose, tu le dis clairement
+- Apr\xE8s 1-2 \xE9changes hors sujet, tu ram\xE8nes subtilement vers ${siteName}
+
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+FONCTIONNEMENT DES GAINS
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+
+\u{1F4CC} PRODUITS \xC0 GAINS QUOTIDIENS :
+- Les gains deviennent collectables exactement 24 HEURES apr\xE8s l'achat
+- Apr\xE8s chaque collecte, il faut attendre encore 24 HEURES
+- L'utilisateur doit cliquer sur "Collecter" dans "Mes Produits"
+- Exemple : "Achat \xE0 14h \u2192 premiers gains collectables demain \xE0 14h"
+
+\u{1F4CC} PRODUITS \xC0 GAINS BLOQU\xC9S :
+- Les gains sont verrouill\xE9s pendant toute la dur\xE9e du cycle
+- \xC0 la fin du cycle, l'utilisateur collecte la TOTALIT\xC9 en une fois
+- Exemple : "Cycle 90 jours \u2192 gains disponibles uniquement apr\xE8s 90 jours"
+
+\u{1F4CC} R\xC8GLES :
+- Les gains ne sont JAMAIS automatiques \u2014 collecte manuelle obligatoire
+- Si l'utilisateur ne peut pas collecter \u2192 v\xE9rifier si 24h se sont \xE9coul\xE9es
+
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+FONCTIONNEMENT DES D\xC9P\xD4TS
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+
+\u{1F4B3} D\xC9P\xD4T CRYPTO AUTOMATIQUE (pays avec API crypto) :
+- L'utilisateur choisit le montant et la devise (USDT-BEP20, USDT-TRC20, TRX, BNB)
+- Notre syst\xE8me g\xE9n\xE8re une adresse unique via NowPayments
+- L'utilisateur envoie depuis son wallet
+- Cr\xE9dit automatique apr\xE8s confirmation blockchain (2-15 minutes)
+
+\u{1F4CB} D\xC9P\xD4T MANUEL (pays sans API) :
+- L'utilisateur effectue un transfert Mobile Money vers le num\xE9ro indiqu\xE9
+- Il DOIT envoyer une preuve de paiement
+- Un administrateur valide et cr\xE9dite manuellement (d\xE9lai : jusqu'\xE0 24h)
+
+PAYS ET TYPE DE D\xC9P\xD4T :
+${countries2.map((c) => `- ${c.name} (${c.country_code}) ${c.flag_emoji || ""} : d\xE9p\xF4t ${c.api_enabled ? "CRYPTO AUTOMATIQUE" : "MANUEL"}`).join("\n")}
+
+Pays de l'utilisateur : ${userCountryName} \u2014 Type : ${userCountryDepositType}
+
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+FONCTIONNEMENT DES RETRAITS
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+- Traitement automatique apr\xE8s validation
+- Frais : ${withdrawalFee}% pr\xE9lev\xE9s sur le montant
+- Montant minimum : ${minWithdrawal} USDT
+- Horaires : ${withdrawalHourStart}h00 \xE0 ${withdrawalHourEnd}h00, jours : ${withdrawalDays}
+- L'utilisateur DOIT renseigner correctement son num\xE9ro et op\xE9rateur
+- En cas d'erreur de num\xE9ro, le retrait peut \xE9chouer et le montant est recr\xE9dit\xE9 automatiquement
+
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+DONN\xC9ES DU SITE EN TEMPS R\xC9EL
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+Nom de la plateforme : ${siteName}
+Retrait minimum : ${minWithdrawal} USDT
+Frais de retrait : ${withdrawalFee}%
+Support humain : ${supportPhone}
+
+SEUILS VIP :
+- VIP1 : ${settingsMap["vip_threshold_1"] || "N/A"} USDT
+- VIP2 : ${settingsMap["vip_threshold_2"] || "N/A"} USDT
+- VIP3 : ${settingsMap["vip_threshold_3"] || "N/A"} USDT
+- VIP4 : ${settingsMap["vip_threshold_4"] || "N/A"} USDT
+- VIP5 : ${settingsMap["vip_threshold_5"] || "N/A"} USDT
+
+PRODUITS DISPONIBLES :
+${productInfo || "Aucun produit actif pour le moment"}
+
+MOYENS DE PAIEMENT ACTIFS :
+${paymentInfo || "Aucun moyen de paiement configur\xE9"}
+
+M\xC9THODES DE PAIEMENT PAR PAYS :
+${paymentsByCountryText || "Aucune m\xE9thode configur\xE9e"}
+${userContext}${newsContext}
+
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+COMP\xC9TENCES SUR LE COMPTE
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+Quand l'utilisateur demande :
+- "mon solde", "combien j'ai" \u2192 D\xE9taille : total, d\xE9p\xF4t, gains, parrainage
+- "mes produits", "mes investissements" \u2192 Liste ses produits actifs
+- "mon \xE9quipe", "mes filleuls" \u2192 Pr\xE9sente les niveaux 1, 2, 3
+- "mon niveau VIP" \u2192 Explique son niveau et conditions pour le prochain
+- "mon code de parrainage" \u2192 Donne le code et explique son utilisation
+- "quoi de neuf", "actualit\xE9s" \u2192 Partage les mises \xE0 jour de la plateforme
+
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+DOCUMENTS OFFICIELS
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+${officialDocsContext ? `DOCUMENTS DISPONIBLES (partager quand pertinent) :
+${officialDocsContext}
+
+Quand quelqu'un demande des preuves ou des documents \u2192 ENVOIE les liens pertinents` : "Aucun document officiel disponible pour le moment. Si un utilisateur demande des preuves, redirige vers le service humain."}
+
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+INFORMATIONS OFFICIELLES
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+Utilise UNIQUEMENT ces contacts quand l'utilisateur demande le service client, WhatsApp, Telegram :
+- Service client : ${officialServicePhone || "Non renseign\xE9"}
+- WhatsApp : ${officialWhatsapp || "Non renseign\xE9"}
+- Telegram : ${officialTelegram || "Non renseign\xE9"}
+- Groupe WhatsApp : ${officialWhatsappGroup || "Non renseign\xE9"}
+- Groupe Telegram : ${officialTelegramGroup || "Non renseign\xE9"}
+${officialPrivateGroupMsg ? `- Message groupe priv\xE9 : ${officialPrivateGroupMsg}` : ""}
+${officialWelcomeMsg ? `- Message de bienvenue : ${officialWelcomeMsg}` : ""}
+
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+ANALYSE D'IMAGES
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+Si une image est envoy\xE9e :
+- Re\xE7u de paiement \u2192 "Merci pour votre preuve. Nos services v\xE9rifient votre transaction et cr\xE9diteront votre compte sous peu."
+- Capture d'erreur \u2192 Identifie le probl\xE8me et propose des solutions
+- Screenshot de transaction crypto \u2192 V\xE9rifie les infos (montant, r\xE9seau, adresse)
+- Autre image \u2192 D\xE9cris ce que tu vois et r\xE9ponds contextuellement
+Lis toujours attentivement le texte visible (montants, noms, num\xE9ros, TXID).
+
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+GESTION DES PLAINTES
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+- \xC9coute avec empathie
+- Pr\xE9sente tes excuses sinc\xE8rement
+- Explique la situation clairement
+- Propose une solution concr\xE8te
+- Si tu ne peux pas r\xE9soudre \u2192 "Pour une assistance personnalis\xE9e, contactez notre service humain au ${supportPhone}"
+
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+R\xC8GLES STRICTES
+\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550
+1. R\xE9ponds en fran\xE7ais par d\xE9faut (change si l'utilisateur parle autre chose)
+2. R\xE9ponses concises (3-8 phrases) sauf si on demande des d\xE9tails
+3. Maximum 3 emojis par message
+4. Int\xE8gre les infos NATURELLEMENT \u2014 ne r\xE9cite jamais comme une liste
+5. Ne divulgue JAMAIS d'informations sensibles
+6. Ne modifie JAMAIS les donn\xE9es \u2014 tu es en LECTURE SEULE
+7. Varie TOUJOURS tes formulations \u2014 jamais de r\xE9ponse identique
+8. Utilise le pr\xE9nom de l'utilisateur si disponible
+9. En cas de doute \u2192 propose le contact humain au ${supportPhone}
+10. Tous les liens doivent commencer par http ou https`;
 }
-router11.post("/admin/users/:userId/suspend", suspendUser);
-router11.patch("/admin/users/:userId/suspend", suspendUser);
-router11.get("/admin/user-products", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const { userId } = req.query;
-  const rows = userId ? await db.select().from(userProducts).where(eq(userProducts.userId, userId)) : await db.select().from(userProducts);
-  const productIds = [...new Set(rows.map((r) => r.productId).filter(Boolean))];
-  const prodRows = productIds.length > 0 ? await db.select().from(products).where(inArray(products.id, productIds)) : [];
-  const prodMap = {};
-  for (const p of prodRows) prodMap[p.id] = p;
-  const enriched = rows.map((r) => ({
-    ...r,
-    products: r.productId ? prodMap[r.productId] ?? null : null
-  })).sort((a, b) => new Date(b.purchasedAt).getTime() - new Date(a.purchasedAt).getTime());
-  return res.json(toSnake3(enriched));
-});
-router11.delete("/admin/user-products/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  await db.delete(userProducts).where(eq(userProducts.id, req.params.id));
-  return res.json({ ok: true });
-});
-router11.get("/admin/referral-commissions", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const all = await db.select().from(referralCommissions);
-  return res.json(toSnake3(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
-});
-router11.post("/admin/site-settings/batch", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const { settings } = req.body;
-  if (!Array.isArray(settings)) return res.status(400).json({ error: "settings array required" });
-  const results = [];
-  for (const s of settings) {
-    const existing = await db.select().from(siteSettings).where(eq(siteSettings.key, s.key)).limit(1);
-    if (existing.length > 0) {
-      const [updated] = await db.update(siteSettings).set({ value: s.value, updatedAt: /* @__PURE__ */ new Date() }).where(eq(siteSettings.key, s.key)).returning();
-      results.push(updated);
-    } else {
-      const [created] = await db.insert(siteSettings).values({ id: crypto8.randomUUID(), key: s.key, value: s.value, category: s.category ?? "general" }).returning();
-      results.push(created);
-    }
+router12.post("/chat", async (req, res) => {
+  const { message, history = [], userId, imageUrl } = req.body;
+  if (!message && !imageUrl) {
+    return res.status(400).json({ error: "message or imageUrl required" });
   }
-  return res.json(results);
-});
-router11.get("/admin/social-links", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const all = await db.select().from(socialLinks);
-  return res.json(toSnake3(all));
-});
-router11.post("/admin/social-links", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [link] = await db.insert(socialLinks).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
-  return res.json(link);
-});
-router11.patch("/admin/social-links/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [updated] = await db.update(socialLinks).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(socialLinks.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router11.delete("/admin/social-links/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  await db.delete(socialLinks).where(eq(socialLinks.id, req.params.id));
-  return res.json({ ok: true });
-});
-router11.get("/admin/api-configs", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const all = await db.select().from(paymentApiConfigs);
-  return res.json(toSnake3(all));
-});
-router11.post("/admin/api-configs", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [config] = await db.insert(paymentApiConfigs).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
-  return res.json(config);
-});
-router11.patch("/admin/api-configs/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  const [updated] = await db.update(paymentApiConfigs).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(paymentApiConfigs.id, req.params.id)).returning();
-  return res.json(updated);
-});
-router11.delete("/admin/api-configs/:id", async (req, res) => {
-  const auth = await requireAdminOnly(req, res);
-  if (!auth) return;
-  await db.delete(paymentApiConfigs).where(eq(paymentApiConfigs.id, req.params.id));
-  return res.json({ ok: true });
-});
-router11.get("/admin/chat", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const all = await db.select().from(chatMessages);
-  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-});
-router11.get("/admin/chat/conversations", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const msgs = await db.select().from(chatMessages).orderBy(desc(chatMessages.createdAt));
-  const userMap = {};
-  for (const m of msgs) {
-    if (!userMap[m.userId]) userMap[m.userId] = [];
-    userMap[m.userId].push(m);
-  }
-  const userIds = Object.keys(userMap);
-  const profileRows = userIds.length > 0 ? await db.select().from(profiles).where(inArray(profiles.userId, userIds)) : [];
-  const profileMap = {};
-  for (const p of profileRows) profileMap[p.userId] = p;
-  const convos = userIds.map((uid) => {
-    const userMsgs = userMap[uid];
-    const lastMsg = userMsgs[0];
-    const profile = profileMap[uid];
-    const unread = userMsgs.filter((m) => m.sender === "user").length;
-    return { user_id: uid, full_name: profile?.fullName || "User", phone: profile?.phone || "", last_message: lastMsg.message, last_time: lastMsg.createdAt, unread_count: unread };
-  }).sort((a, b) => new Date(b.last_time).getTime() - new Date(a.last_time).getTime());
-  return res.json(convos);
-});
-router11.get("/admin/chat/messages/:userId", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const msgs = await db.select().from(chatMessages).where(eq(chatMessages.userId, req.params.userId));
-  return res.json(msgs.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
-});
-router11.post("/admin/chat/reply", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const { user_id, message } = req.body;
-  if (!user_id || !message) return res.status(400).json({ error: "user_id and message required" });
-  const [msg] = await db.insert(chatMessages).values({
-    id: crypto8.randomUUID(),
-    userId: user_id,
-    message,
-    sender: "support",
-    isAi: false
-  }).returning();
-  return res.json(msg);
-});
-router11.get("/admin/chat/:userId", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const msgs = await db.select().from(chatMessages).where(eq(chatMessages.userId, req.params.userId));
-  return res.json(msgs.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
-});
-router11.post("/admin/chat/:userId/reply", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const { message } = req.body;
-  if (!message) return res.status(400).json({ error: "Message required" });
-  const [msg] = await db.insert(chatMessages).values({
-    id: crypto8.randomUUID(),
-    userId: req.params.userId,
-    message,
-    sender: "support",
-    isAi: false
-  }).returning();
-  return res.json(msg);
-});
-router11.get("/admin/payment-logs", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
-  const logs = await db.select().from(paymentLogs).orderBy(desc(paymentLogs.createdAt)).limit(200);
-  return res.json(toSnake3(logs));
-});
-router11.get("/admin/all-data", async (req, res) => {
-  const auth = await requireAdmin2(req, res);
-  if (!auth) return;
   try {
     const [
-      profilesAll,
-      rechargesAll,
-      withdrawalsAll,
-      seriesAll,
-      productsAll,
-      paymentMethodsAll,
-      socialLinksAll,
-      siteSettingsAll,
-      popupsAll,
-      logsAll,
-      countriesAll,
-      vipAll,
-      bannersAll,
-      withdrawalMethodsAll,
-      apiConfigsAll,
-      paymentLogsAll
+      settingsRows,
+      products2,
+      paymentMethods2,
+      officialDocs,
+      infoItems2,
+      countries2,
+      withdrawalMethods2
     ] = await Promise.all([
-      db.select().from(profiles),
-      db.select().from(recharges),
-      db.select().from(withdrawals),
-      db.select().from(productSeries),
-      db.select().from(products),
-      db.select().from(paymentMethods),
-      db.select().from(socialLinks),
       db.select().from(siteSettings),
-      db.select().from(popupMessages),
-      db.select().from(adminLogs),
-      db.select().from(countries),
-      db.select().from(vipConditions),
-      db.select().from(banners),
-      db.select().from(withdrawalMethods),
-      db.select().from(paymentApiConfigs),
-      db.select().from(paymentLogs)
+      db.select().from(products).where(eq(products.isActive, true)),
+      db.select().from(paymentMethods).where(eq(paymentMethods.isActive, true)),
+      db.select().from(officialDocuments).where(eq(officialDocuments.isActive, true)),
+      db.select().from(infoItems).where(eq(infoItems.isActive, true)),
+      db.select().from(countries).where(eq(countries.isActive, true)),
+      db.select().from(withdrawalMethods).where(eq(withdrawalMethods.isActive, true))
     ]);
-    const byDate = (a, b) => new Date(b.createdAt ?? b.created_at ?? 0).getTime() - new Date(a.createdAt ?? a.created_at ?? 0).getTime();
-    return res.json({
-      profiles: toSnake3(profilesAll.sort(byDate)),
-      recharges: toSnake3(rechargesAll.sort(byDate)),
-      withdrawals: toSnake3(withdrawalsAll.sort(byDate)),
-      series: toSnake3(seriesAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
-      products: toSnake3(productsAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
-      paymentMethods: toSnake3(paymentMethodsAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
-      socialLinks: toSnake3(socialLinksAll),
-      siteSettings: toSnake3(siteSettingsAll),
-      popups: toSnake3(popupsAll),
-      adminLogs: toSnake3(logsAll.sort(byDate).slice(0, 100)),
-      countries: toSnake3(countriesAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
-      vipConditions: toSnake3(vipAll.sort((a, b) => (a.level ?? 0) - (b.level ?? 0))),
-      banners: toSnake3(bannersAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
-      withdrawalMethods: toSnake3(withdrawalMethodsAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
-      apiConfigs: toSnake3(apiConfigsAll),
-      paymentLogs: toSnake3(paymentLogsAll.sort(byDate).slice(0, 200))
+    const settingsMap = {};
+    settingsRows.forEach((s) => {
+      settingsMap[s.key] = s.value ?? "";
     });
+    if (settingsMap["sarah_enabled"] !== "true") {
+      return res.json({ reply: "Le support automatique est actuellement d\xE9sactiv\xE9. Un agent humain vous r\xE9pondra bient\xF4t. \u{1F64F}" });
+    }
+    let userProfile = null;
+    let userRecharges = [];
+    let userWithdrawals = [];
+    let userProducts2 = [];
+    let teamMembers = [];
+    if (userId) {
+      const { pool: pool2 } = await Promise.resolve().then(() => (init_db2(), db_exports));
+      const [profileRows, rechargesRows, withdrawalsRows, userProductsRows] = await Promise.all([
+        db.select().from(profiles).where(eq(profiles.userId, userId)).limit(1),
+        db.select().from(recharges).where(eq(recharges.userId, userId)).orderBy(desc(recharges.createdAt)).limit(5),
+        db.select().from(withdrawals).where(eq(withdrawals.userId, userId)).orderBy(desc(withdrawals.createdAt)).limit(5),
+        pool2.query(`
+          SELECT up.id, up.user_id, up.product_id, up.is_active,
+            up.purchased_at, up.expires_at, up.last_collected_at, up.total_collected,
+            json_build_object('name', p.name, 'price', p.price, 'daily_revenue', p.daily_revenue,
+              'total_revenue', p.total_revenue, 'cycles', p.cycles) as products
+          FROM user_products up
+          JOIN products p ON p.id = up.product_id
+          WHERE up.user_id = $1 AND up.is_active = true
+        `, [userId])
+      ]);
+      userProfile = profileRows[0] ?? null;
+      userRecharges = rechargesRows;
+      userWithdrawals = withdrawalsRows;
+      userProducts2 = userProductsRows.rows;
+    }
+    const siteName = settingsMap["site_name"] || "GE Energy";
+    const systemPrompt = buildSystemPrompt(
+      siteName,
+      settingsMap,
+      products2,
+      paymentMethods2,
+      officialDocs,
+      infoItems2,
+      countries2,
+      withdrawalMethods2,
+      userProfile,
+      userRecharges,
+      userWithdrawals,
+      userProducts2,
+      teamMembers
+    );
+    const historyMessages = history.slice(-10).map((h) => ({
+      role: h.sender === "user" ? "user" : "assistant",
+      content: h.text
+    }));
+    let userMsg;
+    if (imageUrl) {
+      userMsg = {
+        role: "user",
+        content: [
+          { type: "text", text: message || "L'utilisateur a envoy\xE9 cette image. Analyse-la attentivement." },
+          { type: "image_url", image_url: { url: imageUrl } }
+        ]
+      };
+    } else {
+      userMsg = { role: "user", content: message };
+    }
+    const messagesPayload = [
+      { role: "system", content: systemPrompt },
+      ...historyMessages,
+      userMsg
+    ];
+    const aiProvider = settingsMap["sarah_ai_provider"] || "openai";
+    let reply = "";
+    if (aiProvider === "gemini") {
+      const apiKey = settingsMap["ai_gemini_key"] || process.env["GEMINI_API_KEY"] || "";
+      const model = settingsMap["ai_gemini_model"] || "gemini-2.0-flash-exp";
+      if (!apiKey) throw new Error("Cl\xE9 API Gemini non configur\xE9e");
+      const geminiContents = messagesPayload.map((m) => {
+        const role = m.role === "assistant" ? "model" : "user";
+        if (typeof m.content === "string") return { role, parts: [{ text: m.content }] };
+        const parts = m.content.map((c) => {
+          if (c.type === "text") return { text: c.text };
+          if (c.type === "image_url") return { text: `[Image: ${c.image_url.url}]` };
+          return { text: "" };
+        });
+        return { role, parts };
+      });
+      const gemRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ contents: geminiContents }) }
+      );
+      if (!gemRes.ok) throw new Error(`Gemini API error: ${gemRes.status}`);
+      const gemData = await gemRes.json();
+      reply = gemData.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    } else if (aiProvider === "anthropic") {
+      const apiKey = settingsMap["ai_anthropic_key"] || process.env["ANTHROPIC_API_KEY"] || "";
+      const model = settingsMap["ai_anthropic_model"] || "claude-sonnet-4-5";
+      if (!apiKey) throw new Error("Cl\xE9 API Anthropic non configur\xE9e");
+      const anthropicMessages = historyMessages.concat([userMsg]);
+      const antRes = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 1024,
+          system: systemPrompt,
+          messages: anthropicMessages
+        })
+      });
+      if (!antRes.ok) throw new Error(`Anthropic API error: ${antRes.status}`);
+      const antData = await antRes.json();
+      reply = antData.content?.[0]?.text || "";
+    } else {
+      let apiKey = "";
+      let endpoint = "https://api.openai.com/v1/chat/completions";
+      let model = "gpt-4o-mini";
+      if (aiProvider === "openai") {
+        apiKey = settingsMap["ai_openai_key"] || process.env["OPENAI_API_KEY"] || "";
+        model = settingsMap["ai_openai_model"] || "gpt-4o-mini";
+      } else if (aiProvider === "grok") {
+        apiKey = settingsMap["ai_grok_key"] || "";
+        endpoint = "https://api.x.ai/v1/chat/completions";
+        model = settingsMap["ai_grok_model"] || "grok-3-mini-beta";
+      } else if (aiProvider === "mistral") {
+        apiKey = settingsMap["ai_mistral_key"] || "";
+        endpoint = "https://api.mistral.ai/v1/chat/completions";
+        model = settingsMap["ai_mistral_model"] || "mistral-small-latest";
+      } else if (aiProvider === "custom") {
+        apiKey = settingsMap["ai_custom_key"] || "";
+        endpoint = settingsMap["ai_custom_endpoint"] || "";
+        model = settingsMap["ai_custom_model"] || "";
+      }
+      if (!apiKey) throw new Error(`Cl\xE9 API ${aiProvider} non configur\xE9e dans le panel admin`);
+      const aiRes = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model,
+          messages: messagesPayload,
+          max_tokens: 1024,
+          temperature: 0.7
+        })
+      });
+      if (!aiRes.ok) {
+        const errText = await aiRes.text();
+        console.error(`[AI] ${aiProvider} error ${aiRes.status}:`, errText);
+        throw new Error(`API ${aiProvider} error: ${aiRes.status}`);
+      }
+      const aiData = await aiRes.json();
+      reply = aiData.choices?.[0]?.message?.content || "";
+    }
+    if (!reply) reply = "Je suis d\xE9sol\xE9e, je n'ai pas pu traiter votre demande. Veuillez r\xE9essayer. \u{1F64F}\n\nEmma \u2013 Assistante virtuelle " + siteName;
+    let savedReplyId = null;
+    if (userId) {
+      try {
+        const [saved] = await db.insert(chatMessages).values({
+          id: crypto9.randomUUID(),
+          userId,
+          sender: "support",
+          message: reply,
+          isAi: true
+        }).returning();
+        savedReplyId = saved?.id ?? null;
+      } catch (e) {
+        console.error("[AI] Failed to save reply:", e);
+      }
+    }
+    return res.json({ reply, savedReplyId });
   } catch (err) {
-    console.error("[admin/all-data] DB error:", err?.message ?? err);
-    return res.status(500).json({ error: err?.message ?? "Database error loading admin data" });
+    console.error("[AI chat] Error:", err.message);
+    const fallback = `Une erreur est survenue. Un agent humain prendra le relais sous peu. Merci de votre patience \u{1F64F}
+
+Emma \u2013 Assistante virtuelle GE Energy`;
+    return res.json({ reply: fallback, savedReplyId: null });
   }
 });
-var admin_default = router11;
+var ai_default = router12;
 
-// artifacts/api-server/src/routes/index.ts
-var router12 = (0, import_express12.Router)();
-router12.use(health_default);
-router12.use(auth_default);
-router12.use(admin_default);
-router12.use(profiles_default);
-router12.use(products_default);
-router12.use(payments_default);
-router12.use(settings_default);
-router12.use(content_default);
-router12.use(db_default);
-router12.use(nowpayments_default);
-router12.use(upload_default);
-var routes_default = router12;
+// server/routes/index.ts
+var router13 = (0, import_express13.Router)();
+router13.use(health_default);
+router13.use(auth_default);
+router13.use(profiles_default);
+router13.use(products_default);
+router13.use(payments_default);
+router13.use(settings_default);
+router13.use(content_default);
+router13.use(admin_default);
+router13.use(db_default);
+router13.use(nowpayments_default);
+router13.use(upload_default);
+router13.use(ai_default);
+var routes_default = router13;
 
-// artifacts/api-server/src/lib/logger.ts
+// server/lib/logger.ts
 var import_pino = __toESM(require_pino(), 1);
 var isProduction = process.env.NODE_ENV === "production";
 var logger = (0, import_pino.default)({
@@ -51792,9 +56118,9 @@ var logger = (0, import_pino.default)({
   }
 });
 
-// artifacts/api-server/src/app.ts
-var __dirname2 = path2.dirname(fileURLToPath(import.meta.url));
-var app = (0, import_express13.default)();
+// server/app.ts
+var __dirname3 = path2.dirname(fileURLToPath2(import.meta.url));
+var app = (0, import_express14.default)();
 app.set("trust proxy", 1);
 app.use(
   (0, import_pino_http.default)({
@@ -51809,19 +56135,11 @@ app.use(
     }
   })
 );
-app.use((0, import_cors.default)({
-  origin: [
-    "https://geenergy.top",
-    "https://www.geenergy.top",
-    /\.replit\.app$/,
-    /\.replit\.dev$/,
-    "http://localhost:5000",
-    "http://localhost:5173"
-  ],
-  credentials: true
-}));
-app.use(import_express13.default.json({ limit: "50mb" }));
-app.use(import_express13.default.urlencoded({ extended: true, limit: "50mb" }));
+app.use((0, import_cors.default)());
+app.use(import_express14.default.json({ limit: "50mb" }));
+app.use(import_express14.default.urlencoded({ extended: true, limit: "50mb" }));
+var uploadsDir = process.env.UPLOAD_DIR || path2.resolve(process.cwd(), "public/uploads");
+app.use("/uploads", import_express14.default.static(uploadsDir));
 app.use("/api", routes_default);
 app.use((err, _req, res, next) => {
   if (res.headersSent) return next(err);
@@ -51829,19 +56147,17 @@ app.use((err, _req, res, next) => {
   const message = err.message || "Internal server error";
   return res.status(status).json({ error: message });
 });
-var uploadsDir = process.env.UPLOAD_DIR || path2.resolve(process.cwd(), "public", "uploads");
-app.use("/uploads", import_express13.default.static(uploadsDir));
 if (process.env.NODE_ENV === "production") {
   const frontendDist = process.env.FRONTEND_DIST || path2.resolve(process.cwd(), "dist/public");
-  app.use(import_express13.default.static(frontendDist));
+  app.use(import_express14.default.static(frontendDist));
   app.get("/{*path}", (_req, res) => {
     res.sendFile(path2.join(frontendDist, "index.html"));
   });
 }
 var app_default = app;
 
-// artifacts/api-server/src/index.ts
-var rawPort = process.env["API_PORT"] ?? process.env["PORT"] ?? "8080";
+// server/index.ts
+var rawPort = process.env["PORT"] ?? "3001";
 var port = Number(rawPort);
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
@@ -52142,5 +56458,8 @@ object-assign/index.js:
   (c) Sindre Sorhus
   @license MIT
   *)
+
+safe-buffer/index.js:
+  (*! safe-buffer. MIT License. Feross Aboukhadijeh <https://feross.org/opensource> *)
 */
 //# sourceMappingURL=index.mjs.map

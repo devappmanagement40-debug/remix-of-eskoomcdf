@@ -10,8 +10,13 @@ Build the app on Replit, commit `dist/` to git, push to GitHub. On Plesk: `git p
 
 **How to apply:** Before pushing to GitHub, always run `npm run build` at the repo root. This fills `dist/` with:
 - `dist/index.mjs` — bundled Express server (entry for Plesk, referenced by `app.js`)
-- `dist/index.cjs` — CJS shim (referenced by `ecosystem.config.cjs` for PM2)
+- `dist/index.cjs` — CJS shim for PM2/ecosystem.config.cjs
 - `dist/public/` — Vite-built React frontend (served as static by Express in production)
+
+## Source of truth (single codebase)
+- **Backend build entry**: `server/index.ts` (build.mjs was updated to point here, NOT artifacts/api-server/src/)
+- **Frontend build entry**: `client/` (vite.config.ts root)
+- `artifacts/api-server/src/` and `artifacts/eskom/src/` are separate dev workspaces — do NOT edit them for production; edit `server/` and `client/` only.
 
 ## .gitignore status
 `dist/` is tracked by git. Only `dist/**/*.map` (source maps) are excluded. Do NOT add `dist/` to .gitignore.
@@ -28,4 +33,4 @@ Build the app on Replit, commit `dist/` to git, push to GitHub. On Plesk: `git p
 - `NOWPAYMENTS_WEBHOOK_URL` (e.g. `https://geenergy.top/api/nowpayments/webhook`)
 
 ## DB connection logic
-`lib/db/src/index.ts` uses `SUPABASE_DATABASE_URL || DATABASE_URL`. Supabase requires SSL (`{ rejectUnauthorized: false }`), Replit Postgres does not.
+`server/db.ts` uses `SUPABASE_DATABASE_URL || DATABASE_URL`. Supabase requires SSL (`{ rejectUnauthorized: false }`).
