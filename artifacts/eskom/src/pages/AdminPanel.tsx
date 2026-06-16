@@ -1028,7 +1028,13 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
     setFormSeriesId(seriesId);
     if (p) {
       setEditingProduct(p);
-      setForm({ name: p.name, image_url: p.image_url || "", return_percent: String(p.return_percent || 0), total_revenue: String(p.total_revenue || 0), daily_revenue: String(p.daily_revenue || 0), cycles: String(p.cycles || 365), price: String(p.price || 0), is_new: p.is_new || false, max_purchases: p.max_purchases ? String(p.max_purchases) : "", description: (p as any).description || "" });
+      const imageUrl = (p as any).imageUrl ?? p.image_url ?? "";
+      const returnPercent = (p as any).returnPercent ?? p.return_percent ?? 0;
+      const totalRevenue = (p as any).totalRevenue ?? p.total_revenue ?? 0;
+      const dailyRevenue = (p as any).dailyRevenue ?? p.daily_revenue ?? 0;
+      const isNew = (p as any).isNew ?? p.is_new ?? false;
+      const maxPurchases = (p as any).maxPurchases ?? p.max_purchases;
+      setForm({ name: p.name, image_url: imageUrl, return_percent: String(returnPercent), total_revenue: String(totalRevenue), daily_revenue: String(dailyRevenue), cycles: String(p.cycles || 365), price: String(p.price || 0), is_new: isNew, max_purchases: maxPurchases ? String(maxPurchases) : "", description: (p as any).description || "" });
     } else {
       setEditingProduct(null);
       setForm({ name: "", image_url: "", return_percent: "", total_revenue: "", daily_revenue: "", cycles: "365", price: "", is_new: false, max_purchases: "", description: "" });
@@ -1065,7 +1071,7 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
     const token = getAuthToken();
     const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     if (editingProduct) await fetch(`/api/admin/products/${editingProduct.id}`, { method: "PATCH", headers: h, body: JSON.stringify(payload) });
-    else await fetch("/api/admin/products", { method: "POST", headers: h, body: JSON.stringify({ ...payload, sort_order: products.filter((p: Product) => p.series_id === formSeriesId).length }) });
+    else await fetch("/api/admin/products", { method: "POST", headers: h, body: JSON.stringify({ ...payload, sort_order: products.filter((p: Product) => ((p as any).seriesId ?? p.series_id) === formSeriesId).length }) });
     showSuccess(editingProduct ? "Product updated ✅" : "Product created ✅", "");
     setShowForm(false); reload();
   };
@@ -1183,7 +1189,7 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
       )}
 
       {series.map((s: Series) => {
-        const sp = products.filter((p: Product) => p.series_id === s.id);
+        const sp = products.filter((p: Product) => ((p as any).seriesId ?? p.series_id) === s.id);
         const isExpanded = expandedSeries === s.id;
         const cc = colorOptions.find(c => c.value === s.color)?.css || "bg-primary";
         return (
@@ -1196,27 +1202,32 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
                 {isExpanded ? <ChevronUp size={14} className="text-muted-foreground" /> : <ChevronDown size={14} className="text-muted-foreground" />}
               </button>
               <div className="flex gap-1.5">
-                <button onClick={() => { setEditingSeries(s); setSeriesName(s.name); setSeriesColor(s.color || "primary"); setSeriesConditions({ min_vip_level: String(s.min_vip_level || 0), min_personal_investment: String(s.min_personal_investment || 0), min_team_investment: String(s.min_team_investment || 0), min_active_members: String(s.min_active_members || 0) }); setShowSeriesForm(true); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
+                <button onClick={() => { setEditingSeries(s); setSeriesName(s.name); setSeriesColor((s as any).color || "primary"); setSeriesConditions({ min_vip_level: String((s as any).minVipLevel ?? s.min_vip_level ?? 0), min_personal_investment: String((s as any).minPersonalInvestment ?? s.min_personal_investment ?? 0), min_team_investment: String((s as any).minTeamInvestment ?? s.min_team_investment ?? 0), min_active_members: String((s as any).minActiveMembers ?? s.min_active_members ?? 0) }); setShowSeriesForm(true); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
                 <button onClick={async () => { const t = getAuthToken(); const h: HeadersInit = { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) }; await fetch(`/api/admin/product-series/${s.id}`, { method: "DELETE", headers: h }); showSuccess("Deleted", ""); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
               </div>
             </div>
             {isExpanded && (
               <div className="border-t border-secondary px-4 py-3 space-y-2">
                 {sp.length === 0 ? <p className="text-xs text-muted-foreground text-center py-3">No products</p> :
-                  sp.map((p: Product) => (
-                    <div key={p.id} className={`py-2.5 px-3 rounded-lg ${p.is_active ? "bg-secondary/50" : "bg-secondary/20 opacity-60"}`}>
+                  sp.map((p: Product) => {
+                    const pIsActive = (p as any).isActive ?? p.is_active ?? true;
+                    const pIsNew = (p as any).isNew ?? p.is_new ?? false;
+                    const pStockStatus = (p as any).stockStatus ?? p.stock_status ?? "available";
+                    const pReturnPercent = (p as any).returnPercent ?? p.return_percent;
+                    return (
+                    <div key={p.id} className={`py-2.5 px-3 rounded-lg ${pIsActive ? "bg-secondary/50" : "bg-secondary/20 opacity-60"}`}>
                       <div className="flex items-center justify-between">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="text-sm font-semibold text-foreground">{p.name}</span>
-                            {p.is_new && <span className="text-[9px] bg-success/20 text-success px-1.5 py-0.5 rounded-full font-bold">NEW</span>}
-                            {p.stock_status === "sold_out" && <span className="text-[9px] bg-warning/20 text-warning px-1.5 py-0.5 rounded-full font-bold">SOLD OUT</span>}
-                            {p.stock_status === "terminated" && <span className="text-[9px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full font-bold">ENDED</span>}
+                            {pIsNew && <span className="text-[9px] bg-success/20 text-success px-1.5 py-0.5 rounded-full font-bold">NEW</span>}
+                            {pStockStatus === "sold_out" && <span className="text-[9px] bg-warning/20 text-warning px-1.5 py-0.5 rounded-full font-bold">SOLD OUT</span>}
+                            {pStockStatus === "terminated" && <span className="text-[9px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full font-bold">ENDED</span>}
                           </div>
-                          <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} USDT • {p.return_percent}%</span>
+                          <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} USDT • {pReturnPercent}%</span>
                         </div>
                         <div className="flex gap-1.5">
-                          <button onClick={async () => { const t = getAuthToken(); const h: HeadersInit = { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) }; await fetch(`/api/admin/products/${p.id}`, { method: "PATCH", headers: h, body: JSON.stringify({ is_active: !p.is_active }) }); reload(); }} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{p.is_active ? "ON" : "OFF"}</button>
+                          <button onClick={async () => { const t = getAuthToken(); const h: HeadersInit = { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) }; await fetch(`/api/admin/products/${p.id}`, { method: "PATCH", headers: h, body: JSON.stringify({ is_active: !pIsActive }) }); reload(); }} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] ${pIsActive ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{pIsActive ? "ON" : "OFF"}</button>
                           <button onClick={() => openProductForm(s.id, p)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
                           <button onClick={async () => {
                             const t = getAuthToken();
@@ -1230,31 +1241,78 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
                       <div className="flex gap-1.5 mt-2">
                         <button
                           onClick={() => setStockStatus(p, "available")}
-                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "available" ? "bg-success/20 text-success border border-success/30" : "bg-secondary text-muted-foreground"}`}
+                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${pStockStatus === "available" ? "bg-success/20 text-success border border-success/30" : "bg-secondary text-muted-foreground"}`}
                         >
                           Available
                         </button>
                         <button
                           onClick={() => setStockStatus(p, "sold_out")}
-                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "sold_out" ? "bg-warning/20 text-warning border border-warning/30" : "bg-secondary text-muted-foreground"}`}
+                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${pStockStatus === "sold_out" ? "bg-warning/20 text-warning border border-warning/30" : "bg-secondary text-muted-foreground"}`}
                         >
                           Sold out
                         </button>
                         <button
                           onClick={() => setStockStatus(p, "terminated")}
-                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${p.stock_status === "terminated" ? "bg-destructive/20 text-destructive border border-destructive/30" : "bg-secondary text-muted-foreground"}`}
+                          className={`flex-1 py-1.5 rounded-lg text-[10px] font-semibold transition-colors ${pStockStatus === "terminated" ? "bg-destructive/20 text-destructive border border-destructive/30" : "bg-secondary text-muted-foreground"}`}
                         >
                           Ended
                         </button>
                       </div>
                     </div>
-                  ))}
+                  ); })}
                 <button onClick={() => openProductForm(s.id)} className="w-full bg-secondary text-foreground font-semibold py-2.5 rounded-xl text-xs flex items-center justify-center gap-2"><Plus size={14} /> Add a product</button>
               </div>
             )}
           </div>
         );
       })}
+
+      {(() => {
+        const unassigned = products.filter((p: Product) => !((p as any).seriesId ?? p.series_id));
+        if (unassigned.length === 0) return null;
+        return (
+          <div className="bg-card rounded-xl border border-secondary overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3">
+              <button onClick={() => setExpandedSeries(expandedSeries === "__unassigned__" ? null : "__unassigned__")} className="flex items-center gap-3 flex-1">
+                <div className="w-4 h-4 rounded-full bg-muted-foreground/40" />
+                <span className="text-sm font-bold text-foreground">Sans série</span>
+                <span className="text-xs text-muted-foreground">({unassigned.length})</span>
+                {expandedSeries === "__unassigned__" ? <ChevronUp size={14} className="text-muted-foreground" /> : <ChevronDown size={14} className="text-muted-foreground" />}
+              </button>
+            </div>
+            {expandedSeries === "__unassigned__" && (
+              <div className="border-t border-secondary px-4 py-3 space-y-2">
+                {unassigned.map((p: Product) => {
+                  const pIsActive = (p as any).isActive ?? p.is_active ?? true;
+                  const pIsNew = (p as any).isNew ?? p.is_new ?? false;
+                  const pStockStatus = (p as any).stockStatus ?? p.stock_status ?? "available";
+                  const pReturnPercent = (p as any).returnPercent ?? p.return_percent;
+                  return (
+                    <div key={p.id} className={`py-2.5 px-3 rounded-lg ${pIsActive ? "bg-secondary/50" : "bg-secondary/20 opacity-60"}`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-semibold text-foreground">{p.name}</span>
+                            {pIsNew && <span className="text-[9px] bg-success/20 text-success px-1.5 py-0.5 rounded-full font-bold">NEW</span>}
+                            {pStockStatus === "sold_out" && <span className="text-[9px] bg-warning/20 text-warning px-1.5 py-0.5 rounded-full font-bold">SOLD OUT</span>}
+                            {pStockStatus === "terminated" && <span className="text-[9px] bg-destructive/20 text-destructive px-1.5 py-0.5 rounded-full font-bold">ENDED</span>}
+                          </div>
+                          <span className="text-xs text-muted-foreground">{Number(p.price).toLocaleString()} USDT • {pReturnPercent ?? 0}%</span>
+                        </div>
+                        <div className="flex gap-1.5">
+                          <button onClick={async () => { const t = getAuthToken(); const h: HeadersInit = { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) }; await fetch(`/api/admin/products/${p.id}`, { method: "PATCH", headers: h, body: JSON.stringify({ is_active: !pIsActive }) }); reload(); }} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] ${pIsActive ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{pIsActive ? "ON" : "OFF"}</button>
+                          <button onClick={() => openProductForm("", p)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
+                          <button onClick={async () => { const t = getAuthToken(); const h: HeadersInit = { "Content-Type": "application/json", ...(t ? { Authorization: `Bearer ${t}` } : {}) }; await fetch(`/api/admin/products/${p.id}`, { method: "DELETE", headers: h }); reload(); }} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   );
 };

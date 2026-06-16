@@ -57,7 +57,7 @@ const Products = () => {
     const load = async () => {
       try {
         const [seriesRes, productsRes] = await Promise.all([
-          fetch("/api/products/series").then(r => r.ok ? r.json() : []),
+          fetch("/api/product-series").then(r => r.ok ? r.json() : []),
           fetch("/api/products?active=true").then(r => r.ok ? r.json() : []),
         ]);
         if (Array.isArray(seriesRes)) setSeries(seriesRes.map((s: any) => ({

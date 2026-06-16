@@ -6,6 +6,15 @@ import crypto from "crypto";
 
 const router = Router();
 
+function normalizeToCamelCase(obj: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const camel = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+    result[camel] = value;
+  }
+  return result;
+}
+
 async function getProfileFromToken(token: string) {
   const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
   if (!session || session.expiresAt < new Date()) return null;
@@ -42,7 +51,7 @@ router.post("/products", async (req, res) => {
   const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, me.userId)).limit(1);
   if (role?.role !== "admin") return res.status(403).json({ error: "Forbidden" });
 
-  const [product] = await db.insert(products).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  const [product] = await db.insert(products).values({ id: crypto.randomUUID(), ...normalizeToCamelCase(req.body) }).returning();
   return res.json(product);
 });
 
@@ -54,7 +63,7 @@ router.patch("/products/:id", async (req, res) => {
   const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, me.userId)).limit(1);
   if (role?.role !== "admin") return res.status(403).json({ error: "Forbidden" });
 
-  const [product] = await db.update(products).set({ ...req.body, updatedAt: new Date() }).where(eq(products.id, req.params.id)).returning();
+  const [product] = await db.update(products).set({ ...normalizeToCamelCase(req.body), updatedAt: new Date() }).where(eq(products.id, req.params.id)).returning();
   return res.json(product);
 });
 
