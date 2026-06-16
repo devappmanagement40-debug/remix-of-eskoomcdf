@@ -6,6 +6,15 @@ import crypto from "crypto";
 
 const router = Router();
 
+function normalizeToCamelCase(obj: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const camel = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+    result[camel] = value;
+  }
+  return result;
+}
+
 async function getProfileFromToken(token: string) {
   const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
   if (!session || session.expiresAt < new Date()) return null;
@@ -58,7 +67,7 @@ router.post("/popup-messages", async (req, res) => {
   const me = await getProfileFromToken(token);
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
 
-  const [popup] = await db.insert(popupMessages).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  const [popup] = await db.insert(popupMessages).values({ id: crypto.randomUUID(), ...normalizeToCamelCase(req.body) }).returning();
   return res.json(popup);
 });
 
@@ -68,7 +77,7 @@ router.patch("/popup-messages/:id", async (req, res) => {
   const me = await getProfileFromToken(token);
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
 
-  const [updated] = await db.update(popupMessages).set({ ...req.body, updatedAt: new Date() }).where(eq(popupMessages.id, req.params.id)).returning();
+  const [updated] = await db.update(popupMessages).set({ ...normalizeToCamelCase(req.body), updatedAt: new Date() }).where(eq(popupMessages.id, req.params.id)).returning();
   return res.json(updated);
 });
 
@@ -105,6 +114,12 @@ router.get("/banners", async (req, res) => {
 router.get("/info-items", async (req, res) => {
   const all = await db.select().from(infoItems).where(eq(infoItems.isActive, true));
   return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+
+router.get("/info-items/:id", async (req, res) => {
+  const [item] = await db.select().from(infoItems).where(eq(infoItems.id, req.params.id)).limit(1);
+  if (!item) return res.status(404).json({ error: "Not found" });
+  return res.json(item);
 });
 
 export default router;

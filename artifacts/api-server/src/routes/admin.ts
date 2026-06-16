@@ -16,6 +16,15 @@ import crypto from "crypto";
 
 const router = Router();
 
+function normalizeToCamelCase(obj: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const camel = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+    result[camel] = value;
+  }
+  return result;
+}
+
 async function getProfileFromToken(token: string) {
   const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
   if (!session || session.expiresAt < new Date()) return null;
@@ -218,7 +227,7 @@ router.post("/admin/gift-codes", async (req, res) => {
 router.patch("/admin/gift-codes/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(giftCodes).set({ ...req.body, updatedAt: new Date() }).where(eq(giftCodes.id, req.params.id)).returning();
+  const [updated] = await db.update(giftCodes).set({ ...normalizeToCamelCase(req.body), updatedAt: new Date() }).where(eq(giftCodes.id, req.params.id)).returning();
   return res.json(updated);
 });
 
@@ -240,14 +249,14 @@ router.get("/admin/gift-rewards", async (req, res) => {
 router.post("/admin/gift-rewards", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [reward] = await db.insert(giftRewards).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  const [reward] = await db.insert(giftRewards).values({ id: crypto.randomUUID(), ...normalizeToCamelCase(req.body) }).returning();
   return res.json(reward);
 });
 
 router.patch("/admin/gift-rewards/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(giftRewards).set({ ...req.body, updatedAt: new Date() }).where(eq(giftRewards.id, req.params.id)).returning();
+  const [updated] = await db.update(giftRewards).set({ ...normalizeToCamelCase(req.body), updatedAt: new Date() }).where(eq(giftRewards.id, req.params.id)).returning();
   return res.json(updated);
 });
 
@@ -269,14 +278,14 @@ router.get("/admin/faq", async (req, res) => {
 router.post("/admin/faq", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [item] = await db.insert(faqItems).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  const [item] = await db.insert(faqItems).values({ id: crypto.randomUUID(), ...normalizeToCamelCase(req.body) }).returning();
   return res.json(item);
 });
 
 router.patch("/admin/faq/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(faqItems).set({ ...req.body, updatedAt: new Date() }).where(eq(faqItems.id, req.params.id)).returning();
+  const [updated] = await db.update(faqItems).set({ ...normalizeToCamelCase(req.body), updatedAt: new Date() }).where(eq(faqItems.id, req.params.id)).returning();
   return res.json(updated);
 });
 
@@ -298,14 +307,14 @@ router.get("/admin/info-items", async (req, res) => {
 router.post("/admin/info-items", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [item] = await db.insert(infoItems).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  const [item] = await db.insert(infoItems).values({ id: crypto.randomUUID(), ...normalizeToCamelCase(req.body) }).returning();
   return res.json(item);
 });
 
 router.patch("/admin/info-items/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(infoItems).set({ ...req.body, updatedAt: new Date() }).where(eq(infoItems.id, req.params.id)).returning();
+  const [updated] = await db.update(infoItems).set({ ...normalizeToCamelCase(req.body), updatedAt: new Date() }).where(eq(infoItems.id, req.params.id)).returning();
   return res.json(updated);
 });
 
@@ -327,14 +336,14 @@ router.get("/admin/official-documents", async (req, res) => {
 router.post("/admin/official-documents", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [doc] = await db.insert(officialDocuments).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  const [doc] = await db.insert(officialDocuments).values({ id: crypto.randomUUID(), ...normalizeToCamelCase(req.body) }).returning();
   return res.json(doc);
 });
 
 router.patch("/admin/official-documents/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(officialDocuments).set({ ...req.body, updatedAt: new Date() }).where(eq(officialDocuments.id, req.params.id)).returning();
+  const [updated] = await db.update(officialDocuments).set({ ...normalizeToCamelCase(req.body), updatedAt: new Date() }).where(eq(officialDocuments.id, req.params.id)).returning();
   return res.json(updated);
 });
 
@@ -356,14 +365,14 @@ router.get("/admin/banners", async (req, res) => {
 router.post("/admin/banners", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [banner] = await db.insert(banners).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  const [banner] = await db.insert(banners).values({ id: crypto.randomUUID(), ...normalizeToCamelCase(req.body) }).returning();
   return res.json(banner);
 });
 
 router.patch("/admin/banners/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(banners).set(req.body).where(eq(banners.id, req.params.id)).returning();
+  const [updated] = await db.update(banners).set(normalizeToCamelCase(req.body)).where(eq(banners.id, req.params.id)).returning();
   return res.json(updated);
 });
 
@@ -385,14 +394,14 @@ router.get("/admin/countries", async (req, res) => {
 router.post("/admin/countries", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [country] = await db.insert(countries).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  const [country] = await db.insert(countries).values({ id: crypto.randomUUID(), ...normalizeToCamelCase(req.body) }).returning();
   return res.json(country);
 });
 
 router.patch("/admin/countries/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(countries).set(req.body).where(eq(countries.id, req.params.id)).returning();
+  const [updated] = await db.update(countries).set(normalizeToCamelCase(req.body)).where(eq(countries.id, req.params.id)).returning();
   return res.json(updated);
 });
 
@@ -414,14 +423,14 @@ router.get("/admin/withdrawal-methods", async (req, res) => {
 router.post("/admin/withdrawal-methods", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [method] = await db.insert(withdrawalMethods).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  const [method] = await db.insert(withdrawalMethods).values({ id: crypto.randomUUID(), ...normalizeToCamelCase(req.body) }).returning();
   return res.json(method);
 });
 
 router.patch("/admin/withdrawal-methods/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(withdrawalMethods).set(req.body).where(eq(withdrawalMethods.id, req.params.id)).returning();
+  const [updated] = await db.update(withdrawalMethods).set(normalizeToCamelCase(req.body)).where(eq(withdrawalMethods.id, req.params.id)).returning();
   return res.json(updated);
 });
 
@@ -443,14 +452,14 @@ router.get("/admin/payment-api-configs", async (req, res) => {
 router.post("/admin/payment-api-configs", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [config] = await db.insert(paymentApiConfigs).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  const [config] = await db.insert(paymentApiConfigs).values({ id: crypto.randomUUID(), ...normalizeToCamelCase(req.body) }).returning();
   return res.json(config);
 });
 
 router.patch("/admin/payment-api-configs/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(paymentApiConfigs).set({ ...req.body, updatedAt: new Date() }).where(eq(paymentApiConfigs.id, req.params.id)).returning();
+  const [updated] = await db.update(paymentApiConfigs).set({ ...normalizeToCamelCase(req.body), updatedAt: new Date() }).where(eq(paymentApiConfigs.id, req.params.id)).returning();
   return res.json(updated);
 });
 
@@ -472,14 +481,14 @@ router.get("/admin/vip-conditions", async (req, res) => {
 router.post("/admin/vip-conditions", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [vc] = await db.insert(vipConditions).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  const [vc] = await db.insert(vipConditions).values({ id: crypto.randomUUID(), ...normalizeToCamelCase(req.body) }).returning();
   return res.json(vc);
 });
 
 router.patch("/admin/vip-conditions/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(vipConditions).set({ ...req.body, updatedAt: new Date() }).where(eq(vipConditions.id, req.params.id)).returning();
+  const [updated] = await db.update(vipConditions).set({ ...normalizeToCamelCase(req.body), updatedAt: new Date() }).where(eq(vipConditions.id, req.params.id)).returning();
   return res.json(updated);
 });
 
@@ -519,14 +528,14 @@ router.get("/admin/wheel-prizes", async (req, res) => {
 router.post("/admin/wheel-prizes", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [prize] = await db.insert(wheelPrizes).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  const [prize] = await db.insert(wheelPrizes).values({ id: crypto.randomUUID(), ...normalizeToCamelCase(req.body) }).returning();
   return res.json(prize);
 });
 
 router.patch("/admin/wheel-prizes/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(wheelPrizes).set({ ...req.body, updatedAt: new Date() }).where(eq(wheelPrizes.id, req.params.id)).returning();
+  const [updated] = await db.update(wheelPrizes).set({ ...normalizeToCamelCase(req.body), updatedAt: new Date() }).where(eq(wheelPrizes.id, req.params.id)).returning();
   return res.json(updated);
 });
 
@@ -564,14 +573,14 @@ router.get("/admin/product-series", async (req, res) => {
 router.post("/admin/product-series", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [series] = await db.insert(productSeries).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  const [series] = await db.insert(productSeries).values({ id: crypto.randomUUID(), ...normalizeToCamelCase(req.body) }).returning();
   return res.json(series);
 });
 
 router.patch("/admin/product-series/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(productSeries).set(req.body).where(eq(productSeries.id, req.params.id)).returning();
+  const [updated] = await db.update(productSeries).set(normalizeToCamelCase(req.body)).where(eq(productSeries.id, req.params.id)).returning();
   return res.json(updated);
 });
 
@@ -593,14 +602,14 @@ router.get("/admin/products", async (req, res) => {
 router.post("/admin/products", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [product] = await db.insert(products).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  const [product] = await db.insert(products).values({ id: crypto.randomUUID(), ...normalizeToCamelCase(req.body) }).returning();
   return res.json(product);
 });
 
 router.patch("/admin/products/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(products).set({ ...req.body, updatedAt: new Date() }).where(eq(products.id, req.params.id)).returning();
+  const [updated] = await db.update(products).set({ ...normalizeToCamelCase(req.body), updatedAt: new Date() }).where(eq(products.id, req.params.id)).returning();
   return res.json(updated);
 });
 
@@ -622,14 +631,14 @@ router.get("/admin/payment-methods", async (req, res) => {
 router.post("/admin/payment-methods", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [method] = await db.insert(paymentMethods).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  const [method] = await db.insert(paymentMethods).values({ id: crypto.randomUUID(), ...normalizeToCamelCase(req.body) }).returning();
   return res.json(method);
 });
 
 router.patch("/admin/payment-methods/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(paymentMethods).set({ ...req.body, updatedAt: new Date() }).where(eq(paymentMethods.id, req.params.id)).returning();
+  const [updated] = await db.update(paymentMethods).set({ ...normalizeToCamelCase(req.body), updatedAt: new Date() }).where(eq(paymentMethods.id, req.params.id)).returning();
   return res.json(updated);
 });
 
@@ -654,14 +663,14 @@ router.get("/admin/popups", async (req, res) => {
 router.post("/admin/popups", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [popup] = await db.insert(popupMessages).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  const [popup] = await db.insert(popupMessages).values({ id: crypto.randomUUID(), ...normalizeToCamelCase(req.body) }).returning();
   return res.json(popup);
 });
 
 router.patch("/admin/popups/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(popupMessages).set({ ...req.body, updatedAt: new Date() }).where(eq(popupMessages.id, req.params.id)).returning();
+  const [updated] = await db.update(popupMessages).set({ ...normalizeToCamelCase(req.body), updatedAt: new Date() }).where(eq(popupMessages.id, req.params.id)).returning();
   return res.json(updated);
 });
 
@@ -733,14 +742,14 @@ router.get("/admin/social-links", async (req, res) => {
 router.post("/admin/social-links", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [link] = await db.insert(socialLinks).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  const [link] = await db.insert(socialLinks).values({ id: crypto.randomUUID(), ...normalizeToCamelCase(req.body) }).returning();
   return res.json(link);
 });
 
 router.patch("/admin/social-links/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(socialLinks).set({ ...req.body, updatedAt: new Date() }).where(eq(socialLinks.id, req.params.id)).returning();
+  const [updated] = await db.update(socialLinks).set({ ...normalizeToCamelCase(req.body), updatedAt: new Date() }).where(eq(socialLinks.id, req.params.id)).returning();
   return res.json(updated);
 });
 
@@ -762,14 +771,14 @@ router.get("/admin/api-configs", async (req, res) => {
 router.post("/admin/api-configs", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [config] = await db.insert(paymentApiConfigs).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  const [config] = await db.insert(paymentApiConfigs).values({ id: crypto.randomUUID(), ...normalizeToCamelCase(req.body) }).returning();
   return res.json(config);
 });
 
 router.patch("/admin/api-configs/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
-  const [updated] = await db.update(paymentApiConfigs).set({ ...req.body, updatedAt: new Date() }).where(eq(paymentApiConfigs.id, req.params.id)).returning();
+  const [updated] = await db.update(paymentApiConfigs).set({ ...normalizeToCamelCase(req.body), updatedAt: new Date() }).where(eq(paymentApiConfigs.id, req.params.id)).returning();
   return res.json(updated);
 });
 

@@ -2493,7 +2493,8 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
   const toggle = async (item: any) => {
     const token = getAuthToken();
     const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-    await fetch(`/api/admin/info-items/${item.id}`, { method: "PATCH", headers: h, body: JSON.stringify({ is_active: !item.is_active }) });
+    const currentActive = item.isActive ?? item.is_active ?? true;
+    await fetch(`/api/admin/info-items/${item.id}`, { method: "PATCH", headers: h, body: JSON.stringify({ is_active: !currentActive }) });
     load();
   };
 
@@ -2510,7 +2511,7 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
       const url = await uploadFile(file, "site-assets");
       const token = getAuthToken();
       const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-      await fetch(`/api/admin/info-items/${itemId}`, { method: "PATCH", headers: h, body: JSON.stringify({ image_url: url }) });
+      await fetch(`/api/admin/info-items/${itemId}`, { method: "PATCH", headers: h, body: JSON.stringify({ imageUrl: url }) });
       showSuccess("Image ajoutée ✅", "");
       load();
     } catch (err: any) {
@@ -2523,7 +2524,7 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
   const removeImage = async (itemId: string) => {
     const token = getAuthToken();
     const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-    await fetch(`/api/admin/info-items/${itemId}`, { method: "PATCH", headers: h, body: JSON.stringify({ image_url: null }) });
+    await fetch(`/api/admin/info-items/${itemId}`, { method: "PATCH", headers: h, body: JSON.stringify({ imageUrl: null }) });
     showSuccess("Image deleted", "");
     load();
   };
@@ -2544,35 +2545,39 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
       )}
 
       {items.length === 0 ? <p className="text-xs text-muted-foreground text-center py-6">No announcements</p> :
-        items.map((item: any) => (
-          <div key={item.id} className={`bg-card rounded-xl border border-secondary p-4 ${!item.is_active ? "opacity-50" : ""}`}>
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex gap-3 flex-1 min-w-0">
-                {item.image_url && (
-                  <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 relative group">
-                    <img src={item.image_url} alt="" className="w-full h-full object-cover" />
-                    <button onClick={() => removeImage(item.id)} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Trash2 size={14} className="text-white" />
-                    </button>
+        items.map((item: any) => {
+          const isActive = item.isActive ?? item.is_active ?? true;
+          const imageUrl = item.imageUrl ?? item.image_url ?? null;
+          return (
+            <div key={item.id} className={`bg-card rounded-xl border border-secondary p-4 ${!isActive ? "opacity-50" : ""}`}>
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex gap-3 flex-1 min-w-0">
+                  {imageUrl && (
+                    <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 relative group">
+                      <img src={imageUrl} alt="" className="w-full h-full object-cover" />
+                      <button onClick={() => removeImage(item.id)} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Trash2 size={14} className="text-white" />
+                      </button>
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
                   </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground">{item.title}</p>
-                  <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
+                </div>
+                <div className="flex gap-1.5 shrink-0">
+                  <label className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center cursor-pointer">
+                    <ImageIcon size={10} className="text-primary" />
+                    <input type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) uploadImage(item.id, e.target.files[0]); }} />
+                  </label>
+                  <button onClick={() => toggle(item)} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${isActive ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{isActive ? "ON" : "OFF"}</button>
+                  <button onClick={() => openForm(item)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
+                  <button onClick={() => remove(item.id)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
                 </div>
               </div>
-              <div className="flex gap-1.5 shrink-0">
-                <label className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center cursor-pointer">
-                  <ImageIcon size={10} className="text-primary" />
-                  <input type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) uploadImage(item.id, e.target.files[0]); }} />
-                </label>
-                <button onClick={() => toggle(item)} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${item.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{item.is_active ? "ON" : "OFF"}</button>
-                <button onClick={() => openForm(item)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
-                <button onClick={() => remove(item.id)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
-              </div>
             </div>
-          </div>
-        ))
+          );
+        })
       }
       {uploading && <p className="text-xs text-center text-muted-foreground animate-pulse">Uploading...</p>}
     </div>
