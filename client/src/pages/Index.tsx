@@ -95,12 +95,12 @@ const Index = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const [showService, setShowService] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [showPromo, setShowPromo] = useState(false);
   const [banners, setBanners] = useState<BannerItem[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [annonces, setAnnonces] = useState<any[]>([]);
+  const [telegramLink, setTelegramLink] = useState("");
 
   const circleActions = [
     { icon: ShoppingBag, label: t.index.myProducts, path: "/mes-produits" },
@@ -118,11 +118,16 @@ const Index = () => {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [bannersData, productsData, annoncesData] = await Promise.allSettled([
+        const [bannersData, productsData, annoncesData, settingsData] = await Promise.allSettled([
           api.get("/banners"),
           api.get("/products"),
           api.get("/info-items"),
+          api.get("/site-settings"),
         ]);
+        if (settingsData.status === "fulfilled") {
+          const tg = (settingsData.value as any[])?.find((s: any) => s.key === "official_telegram_link");
+          if (tg?.value) setTelegramLink(tg.value);
+        }
         if (bannersData.status === "fulfilled" && bannersData.value?.length) {
           setBanners(bannersData.value.map((b: any) => ({
             image_url: b.imageUrl ?? b.image_url ?? "",
@@ -177,7 +182,7 @@ const Index = () => {
             <button
               key={action.key}
               onClick={() => {
-                if (action.key === "Support") setShowService(true);
+                if (action.key === "Support") { if (telegramLink) window.open(telegramLink, "_blank", "noopener,noreferrer"); }
                 else if (action.key === "Invite") setShowInvite(true);
                 else if (action.key === "Exchange") navigate("/echanger-code");
               }}
@@ -283,13 +288,6 @@ const Index = () => {
           </div>
         </section>
       )}
-
-      <PremiumModal
-        triggerKey="service_client"
-        open={showService}
-        onClose={() => setShowService(false)}
-        onConfirm={() => navigate("/service-chat")}
-      />
 
       <PremiumModal
         triggerKey="welcome_promo"

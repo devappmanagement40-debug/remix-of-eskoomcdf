@@ -9,12 +9,14 @@ const FloatingButtons = () => {
   const [pos, setPos] = useState({ x: 0, y: 0 });
   const [wheelIconUrl, setWheelIconUrl] = useState("");
   const [supportIconUrl, setSupportIconUrl] = useState("");
+  const [telegramLink, setTelegramLink] = useState("");
 
   useEffect(() => {
     api.get("/site-settings").then((data: any[]) => {
       (data || []).forEach((s: any) => {
         if (s.key === "wheel_icon_url" && s.value) setWheelIconUrl(s.value);
         if (s.key === "support_icon_url" && s.value) setSupportIconUrl(s.value);
+        if (s.key === "official_telegram_link" && s.value) setTelegramLink(s.value);
       });
     }).catch(() => {});
   }, []);
@@ -49,6 +51,12 @@ const FloatingButtons = () => {
     dragState.current.moved = false;
   };
 
+  const openSupport = () => {
+    if (telegramLink) {
+      window.open(telegramLink, "_blank", "noopener,noreferrer");
+    }
+  };
+
   const defaultWheelIcon = (
     <svg viewBox="0 0 40 40" className="w-6 h-6 drop-shadow-md" fill="none">
       <circle cx="20" cy="20" r="16" stroke="white" strokeWidth="2.5" opacity="0.9" />
@@ -62,8 +70,8 @@ const FloatingButtons = () => {
 
   const defaultSupportIcon = (
     <svg viewBox="0 0 24 24" className="w-5 h-5 drop-shadow-md" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
-      <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+      <path d="M21.5 4.5L2 13l7 3L21.5 4.5z" />
+      <path d="M9 16l1 5 3-3" />
     </svg>
   );
 
@@ -93,15 +101,15 @@ const FloatingButtons = () => {
         {wheelIconUrl ? <img src={wheelIconUrl} alt="Roue" className="w-full h-full object-contain rounded-full p-1" /> : defaultWheelIcon}
       </button>
 
-      {/* Customer Support */}
+      {/* Telegram Support */}
       <button
-        onClick={() => handleClick(() => navigate("/service-chat"))}
+        onClick={() => handleClick(openSupport)}
         className="group w-[50px] h-[50px] rounded-full flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 overflow-hidden"
         style={{
-          background: supportIconUrl ? "transparent" : "linear-gradient(135deg, hsl(210 80% 55%), hsl(230 70% 50%))",
-          boxShadow: "0 4px 20px hsla(220, 80%, 50%, 0.4)",
+          background: supportIconUrl ? "transparent" : "linear-gradient(135deg, hsl(200 85% 45%), hsl(210 80% 38%))",
+          boxShadow: "0 4px 20px hsla(200, 80%, 45%, 0.4)",
         }}
-        aria-label="Support"
+        aria-label="Support Telegram"
       >
         {supportIconUrl ? <img src={supportIconUrl} alt="Support" className="w-full h-full object-contain rounded-full p-1" /> : defaultSupportIcon}
       </button>

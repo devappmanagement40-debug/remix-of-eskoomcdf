@@ -24,7 +24,6 @@ const Historique      = lazy(() => import("./pages/Historique"));
 const Aide            = lazy(() => import("./pages/Aide"));
 const Settings        = lazy(() => import("./pages/Settings"));
 const Loterie         = lazy(() => import("./pages/Loterie"));
-const ServiceChat     = lazy(() => import("./pages/ServiceChat"));
 const APropos         = lazy(() => import("./pages/APropos"));
 const NewsDetail      = lazy(() => import("./pages/NewsDetail"));
 const HistoriqueRetraits = lazy(() => import("./pages/HistoriqueRetraits"));
@@ -115,7 +114,6 @@ const App = () => (
                   <Route path="/profil"              element={<Auth><Profile /></Auth>} />
                   <Route path="/parametres"          element={<Auth><Settings /></Auth>} />
                   <Route path="/loterie"             element={<Auth><Loterie /></Auth>} />
-                  <Route path="/service-chat"        element={<Auth><ServiceChat /></Auth>} />
 
                   <Route path="*" element={<NotFound />} />
                 </Routes>
