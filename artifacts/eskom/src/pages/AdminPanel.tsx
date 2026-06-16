@@ -1335,7 +1335,7 @@ const ProductsTab = ({ series, products, reload, showSuccess, showError }: any) 
 
 // ==================== UPLOAD HELPER ====================
 const uploadFile = async (file: File, bucket: string = "site-assets"): Promise<string> => {
-  if (file.size > 10 * 1024 * 1024) throw new Error("Fichier trop volumineux (max 10 Mo)");
+  if (file.size > 20 * 1024 * 1024) throw new Error("Fichier trop volumineux (max 20 Mo)");
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error("Impossible de lire le fichier"));
@@ -1349,15 +1349,16 @@ const uploadFile = async (file: File, bucket: string = "site-assets"): Promise<s
         });
         if (!res.ok) {
           let errMsg = "Upload échoué";
-          try { const e = await res.json(); errMsg = e.error || errMsg; } catch {}
+          try { const e = await res.json(); errMsg = e.error || errMsg; } catch { errMsg = `Erreur serveur (${res.status})`; }
           reject(new Error(errMsg));
           return;
         }
         let data: any;
         try { data = await res.json(); } catch { reject(new Error("Réponse serveur invalide")); return; }
+        if (!data.url) { reject(new Error("URL manquante dans la réponse")); return; }
         resolve(data.url);
       } catch (err: any) {
-        reject(err);
+        reject(new Error(err?.message || "Erreur réseau lors de l'upload"));
       }
     };
     reader.readAsDataURL(file);

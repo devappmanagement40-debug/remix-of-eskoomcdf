@@ -147,8 +147,8 @@ const AdminProduits = () => {
     if (!file) return;
     try {
       setUploading(true);
-      if (file.size > 5 * 1024 * 1024) {
-        showError("Error", "Image must not exceed 5 MB");
+      if (file.size > 20 * 1024 * 1024) {
+        showError("Error", "Image must not exceed 20 MB");
         return;
       }
       const reader = new FileReader();
@@ -161,7 +161,8 @@ const AdminProduits = () => {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ base64, mimeType: file.type, fileName: file.name, bucket: "product-images" }),
           });
-          const data = await res.json();
+          let data: any;
+          try { data = await res.json(); } catch { reject(new Error(`Erreur serveur (${res.status})`)); return; }
           if (!res.ok) reject(new Error(data.error || "Upload échoué"));
           else resolve(data.url);
         };

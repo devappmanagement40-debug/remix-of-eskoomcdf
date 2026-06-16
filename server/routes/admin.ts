@@ -16,7 +16,29 @@ import crypto from "crypto";
 
 const router = Router();
 
-// ─── camelCase → snake_case helper ───────────────────────────────────────────
+// ─── snake_case → camelCase helper (normalize incoming body from frontend) ───
+function normalizeToCamelCase(obj: any): any {
+  if (Array.isArray(obj)) return obj.map(normalizeToCamelCase);
+  if (obj !== null && typeof obj === "object" && !(obj instanceof Date)) {
+    const result: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      const camel = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+      result[camel] = normalizeToCamelCase(value);
+    }
+    return result;
+  }
+  return obj;
+}
+
+// ─── Global middleware: normalize body snake_case → camelCase for Drizzle ────
+router.use((req: any, _res: any, next: any) => {
+  if (["POST", "PATCH", "PUT"].includes(req.method) && req.body && typeof req.body === "object") {
+    req.body = normalizeToCamelCase(req.body);
+  }
+  next();
+});
+
+// ─── camelCase → snake_case helper (for responses) ───────────────────────────
 function toSnake(obj: any): any {
   if (Array.isArray(obj)) return obj.map(toSnake);
   if (obj !== null && typeof obj === "object" && !(obj instanceof Date)) {
