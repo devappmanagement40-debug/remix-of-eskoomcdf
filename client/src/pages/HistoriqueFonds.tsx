@@ -55,7 +55,7 @@ const HistoriqueFonds = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 });
+  const fmt = (n: number | string) => Number(n).toLocaleString("en-US", { minimumFractionDigits: 2 });
   const fmtDate = (d: string) => {
     const dt = new Date(d);
     return dt.toLocaleDateString("en-US", { timeZone: "America/Port-au-Prince" }) + " " + dt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" });

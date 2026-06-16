@@ -45,10 +45,10 @@ const Portefeuille = () => {
   }, []);
 
   const withdrawable = depositNotWithdrawable
-    ? profile.earnings_balance + profile.referral_balance
-    : profile.balance;
+    ? Number(profile.earnings_balance) + Number(profile.referral_balance)
+    : Number(profile.balance);
 
-  const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 });
+  const fmt = (n: number | string) => Number(n).toLocaleString("en-US", { minimumFractionDigits: 2 });
 
   const menuItems = [
     { label: t.wallet.withdrawalHistory, path: "/historique-retraits", hasChevron: true },
@@ -77,7 +77,7 @@ const Portefeuille = () => {
               <div className="absolute inset-0 bg-black/50" />
               <div className="relative z-10 p-3 text-center flex flex-col justify-center h-full">
                 <p className="text-[10px] text-white/80 mb-0.5">{t.wallet.depositLabel}</p>
-                <p className="text-xs font-bold text-white">{profile.deposit_balance.toLocaleString("en-US")} USDT</p>
+                <p className="text-xs font-bold text-white">{Number(profile.deposit_balance).toLocaleString("en-US")} USDT</p>
                 {depositNotWithdrawable && <p className="text-[8px] text-red-400 mt-0.5">{t.wallet.nonWithdrawable}</p>}
               </div>
             </div>
@@ -86,7 +86,7 @@ const Portefeuille = () => {
               <div className="absolute inset-0 bg-black/50" />
               <div className="relative z-10 p-3 text-center flex flex-col justify-center h-full">
                 <p className="text-[10px] text-white/80 mb-0.5">{t.wallet.earningsLabel}</p>
-                <p className="text-xs font-bold text-emerald-300">{profile.earnings_balance.toLocaleString("en-US")} USDT</p>
+                <p className="text-xs font-bold text-emerald-300">{Number(profile.earnings_balance).toLocaleString("en-US")} USDT</p>
                 <p className="text-[8px] text-emerald-400 mt-0.5">{t.wallet.withdrawable}</p>
               </div>
             </div>
@@ -95,7 +95,7 @@ const Portefeuille = () => {
               <div className="absolute inset-0 bg-black/50" />
               <div className="relative z-10 p-3 text-center flex flex-col justify-center h-full">
                 <p className="text-[10px] text-white/80 mb-0.5">{t.wallet.referralLabel}</p>
-                <p className="text-xs font-bold text-purple-300">{profile.referral_balance.toLocaleString("en-US")} USDT</p>
+                <p className="text-xs font-bold text-purple-300">{Number(profile.referral_balance).toLocaleString("en-US")} USDT</p>
                 <p className="text-[8px] text-purple-400 mt-0.5">{t.wallet.withdrawable}</p>
               </div>
             </div>

@@ -266,8 +266,16 @@ const Index = () => {
                   <span className="text-[10px] text-primary font-semibold mt-2 inline-block">{t.common.readMore}</span>
                 </div>
                 {item.image_url && (
-                  <div className="w-24 h-20 rounded-lg overflow-hidden flex-shrink-0">
-                    <img src={item.image_url} alt={item.title} width={192} height={160} loading="lazy" className="w-full h-full object-cover" />
+                  <div className="w-24 h-20 rounded-lg overflow-hidden flex-shrink-0 bg-secondary/40">
+                    <img
+                      src={item.image_url}
+                      alt={item.title}
+                      width={192}
+                      height={160}
+                      loading="lazy"
+                      className="w-full h-full object-cover"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                    />
                   </div>
                 )}
               </div>

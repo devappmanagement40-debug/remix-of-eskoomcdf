@@ -41,7 +41,7 @@ const fmtDate = (d: string) => {
   return dt.toLocaleDateString("en-US", { timeZone: "America/Port-au-Prince" }) + " " + dt.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "America/Port-au-Prince" });
 };
 
-const fmt = (n: number) => n.toLocaleString("en-US", { minimumFractionDigits: 2 });
+const fmt = (n: number | string) => Number(n).toLocaleString("en-US", { minimumFractionDigits: 2 });
 
 const HistoriqueRetraits = () => {
   const [retraits, setRetraits] = useState<Retrait[]>([]);

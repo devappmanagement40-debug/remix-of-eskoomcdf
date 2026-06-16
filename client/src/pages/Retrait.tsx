@@ -133,11 +133,11 @@ const Retrait = () => {
       setTodayWithdrawals(todayWithdrawalsArr.length);
 
       if (profileData) {
-        const eb = profileData.earningsBalance ?? profileData.earnings_balance ?? 0;
-        const rb = profileData.referralBalance ?? profileData.referral_balance ?? 0;
+        const eb = Number(profileData.earningsBalance ?? profileData.earnings_balance ?? 0);
+        const rb = Number(profileData.referralBalance ?? profileData.referral_balance ?? 0);
         setEarningsBalance(eb);
         setReferralBalance(rb);
-        setWithdrawableBalance(dnw ? eb + rb : (profileData.balance || 0));
+        setWithdrawableBalance(dnw ? eb + rb : Number(profileData.balance || 0));
       }
     } catch (err) {
       console.error("Load error:", err);

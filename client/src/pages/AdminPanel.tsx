@@ -274,12 +274,12 @@ const DashboardTab = ({ profiles, recharges, withdrawals, products }: any) => {
   const totalUsers = profiles.length;
   const today = new Date().toDateString();
   const activeToday = profiles.filter((p: Profile) => p.created_at && new Date(p.created_at).toDateString() === today).length;
-  const totalDeposits = recharges.filter((r: Recharge) => r.status === "approved").reduce((s: number, r: Recharge) => s + r.amount, 0);
-  const totalWithdrawals = withdrawals.filter((w: Withdrawal) => w.status === "approved").reduce((s: number, w: Withdrawal) => s + w.amount, 0);
+  const totalDeposits = recharges.filter((r: Recharge) => r.status === "approved").reduce((s: number, r: Recharge) => s + Number(r.amount), 0);
+  const totalWithdrawals = withdrawals.filter((w: Withdrawal) => w.status === "approved").reduce((s: number, w: Withdrawal) => s + Number(w.amount), 0);
   const pendingDeposits = recharges.filter((r: Recharge) => r.status === "pending").length;
   const pendingWithdrawals = withdrawals.filter((w: Withdrawal) => w.status === "pending").length;
   const activeProducts = products.filter((p: Product) => p.is_active).length;
-  const totalBalance = profiles.reduce((s: number, p: Profile) => s + (p.balance || 0), 0);
+  const totalBalance = profiles.reduce((s: number, p: Profile) => s + Number(p.balance || 0), 0);
 
   const stats = [
     { label: "Users", value: totalUsers, color: "text-primary" },
@@ -545,7 +545,7 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
             <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
               <div>
                 <p className="text-[10px] text-muted-foreground">Solde</p>
-                <p className="text-xs font-bold text-primary">{(p.balance || 0).toLocaleString("en-US")} USDT</p>
+                <p className="text-xs font-bold text-primary">{Number(p.balance || 0).toLocaleString("en-US")} USDT</p>
               </div>
               <div>
                 <p className="text-[10px] text-muted-foreground">Code parrainage</p>
@@ -647,7 +647,7 @@ const DepositsTab = ({ recharges, profiles, reload, showSuccess, showError, logA
           return (
             <div key={r.id} className="bg-card rounded-xl border border-secondary px-4 pt-4 pb-3">
               <div className="flex items-start justify-between mb-2">
-                <p className="text-lg font-bold text-foreground">{r.amount.toLocaleString("en-US")} USDT</p>
+                <p className="text-lg font-bold text-foreground">{Number(r.amount).toLocaleString("en-US")} USDT</p>
                 <StatusBadge status={r.status} />
               </div>
               <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-3">
@@ -656,7 +656,7 @@ const DepositsTab = ({ recharges, profiles, reload, showSuccess, showError, logA
               <div className="border-t border-secondary my-2" />
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
                 <div><p className="text-[10px] text-muted-foreground">Client</p><p className="text-xs font-semibold text-foreground">{r.country_code} {r.phone}</p></div>
-                <div><p className="text-[10px] text-muted-foreground">Current balance</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("en-US")} USDT` : "—"}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Current balance</p><p className="text-xs font-semibold text-foreground">{p ? `${Number(p.balance || 0).toLocaleString("en-US")} USDT` : "—"}</p></div>
                 <div><p className="text-[10px] text-muted-foreground">Client name</p><p className="text-xs font-semibold text-foreground">{p?.full_name || "—"}</p></div>
                 <div><p className="text-[10px] text-muted-foreground">Date</p><p className="text-xs font-semibold text-foreground">{r.created_at ? new Date(r.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</p></div>
                 {r.proof_image_url && (
@@ -769,7 +769,7 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
       {detailW && (() => {
         const p = profileMap[detailW.user_id];
         const wallet = detailW.wallet_id ? wallets[detailW.wallet_id] : null;
-        const feePercent = detailW.amount > 0 ? Math.round((detailW.fee_amount / detailW.amount) * 100) : 0;
+        const feePercent = Number(detailW.amount) > 0 ? Math.round((Number(detailW.fee_amount) / Number(detailW.amount)) * 100) : 0;
         return (
           <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setDetailW(null)}>
             <div className="bg-card rounded-2xl border border-secondary w-full max-w-md max-h-[80vh] overflow-y-auto p-5 space-y-4" onClick={e => e.stopPropagation()}>
@@ -779,8 +779,8 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
               </div>
 
               <div className="text-center py-3">
-                <p className="text-2xl font-bold text-foreground">{detailW.amount.toLocaleString("en-US")} USDT</p>
-                <p className="text-sm text-success font-semibold">Net: {detailW.net_amount.toLocaleString("en-US")} USDT <span className="text-muted-foreground text-xs">(-{feePercent}% fee)</span></p>
+                <p className="text-2xl font-bold text-foreground">{Number(detailW.amount).toLocaleString("en-US")} USDT</p>
+                <p className="text-sm text-success font-semibold">Net: {Number(detailW.net_amount).toLocaleString("en-US")} USDT <span className="text-muted-foreground text-xs">(-{feePercent}% fee)</span></p>
                 <StatusBadge status={detailW.status} />
               </div>
 
@@ -789,7 +789,7 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
                 <div className="grid grid-cols-2 gap-2">
                   <div><p className="text-[10px] text-muted-foreground">Name</p><p className="text-xs font-semibold text-foreground">{p?.full_name || "—"}</p></div>
                   <div><p className="text-[10px] text-muted-foreground">Account phone</p><p className="text-xs font-semibold text-foreground">{p?.country_code} {p?.phone}</p></div>
-                  <div><p className="text-[10px] text-muted-foreground">Current balance</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("en-US")} USDT` : "—"}</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Current balance</p><p className="text-xs font-semibold text-foreground">{p ? `${Number(p.balance || 0).toLocaleString("en-US")} USDT` : "—"}</p></div>
                   <div><p className="text-[10px] text-muted-foreground">VIP Level</p><p className="text-xs font-semibold text-foreground">VIP {p?.vip_level || 0}</p></div>
                 </div>
               </div>
@@ -815,9 +815,9 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
               <div className="bg-secondary/30 rounded-xl p-4 space-y-2">
                 <p className="text-xs font-bold text-foreground mb-2">📋 Transaction</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <div><p className="text-[10px] text-muted-foreground">Gross amount</p><p className="text-xs font-semibold text-foreground">{detailW.amount.toLocaleString("en-US")} USDT</p></div>
-                  <div><p className="text-[10px] text-muted-foreground">Fee ({feePercent}%)</p><p className="text-xs font-semibold text-destructive">{detailW.fee_amount.toLocaleString("en-US")} USDT</p></div>
-                  <div><p className="text-[10px] text-muted-foreground">Net amount</p><p className="text-xs font-semibold text-success">{detailW.net_amount.toLocaleString("en-US")} USDT</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Gross amount</p><p className="text-xs font-semibold text-foreground">{Number(detailW.amount).toLocaleString("en-US")} USDT</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Fee ({feePercent}%)</p><p className="text-xs font-semibold text-destructive">{Number(detailW.fee_amount).toLocaleString("en-US")} USDT</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">Net amount</p><p className="text-xs font-semibold text-success">{Number(detailW.net_amount).toLocaleString("en-US")} USDT</p></div>
                   <div><p className="text-[10px] text-muted-foreground">Date</p><p className="text-xs font-semibold text-foreground">{detailW.created_at ? new Date(detailW.created_at).toLocaleDateString("en-US", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "—"}</p></div>
                 </div>
                 <div><p className="text-[10px] text-muted-foreground">ID</p><p className="text-[10px] font-mono text-muted-foreground break-all">{detailW.id}</p></div>
@@ -840,15 +840,15 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
         filtered.map((w: Withdrawal) => {
           const p = profileMap[w.user_id];
           const wallet = w.wallet_id ? wallets[w.wallet_id] : null;
-          const feePercent = w.amount > 0 ? Math.round((w.fee_amount / w.amount) * 100) : 0;
+          const feePercent = Number(w.amount) > 0 ? Math.round((Number(w.fee_amount) / Number(w.amount)) * 100) : 0;
           return (
             <div key={w.id} className="bg-card rounded-xl border border-secondary px-4 pt-4 pb-3 cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setDetailW(w)}>
               <div className="flex items-start justify-between mb-2">
                 <div>
-                  <p className="text-lg font-bold text-foreground">{w.amount.toLocaleString("en-US")} USDT</p>
+                  <p className="text-lg font-bold text-foreground">{Number(w.amount).toLocaleString("en-US")} USDT</p>
                   <div className="flex items-center gap-1.5 mt-0.5">
                     <ArrowDown size={12} className="text-success" />
-                    <span className="text-sm font-semibold text-success">Net: {w.net_amount.toLocaleString("en-US")} USDT</span>
+                    <span className="text-sm font-semibold text-success">Net: {Number(w.net_amount).toLocaleString("en-US")} USDT</span>
                     <span className="text-xs text-muted-foreground">(- {feePercent}%)</span>
                   </div>
                 </div>
@@ -860,7 +860,7 @@ const WithdrawalsTab = ({ withdrawals, profiles, reload, showSuccess, showError,
               <div className="border-t border-secondary my-2" />
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-2">
                 <div><p className="text-[10px] text-muted-foreground">Client</p><p className="text-xs font-semibold text-foreground">{p?.full_name || "—"}</p></div>
-                <div><p className="text-[10px] text-muted-foreground">Solde actuel</p><p className="text-xs font-semibold text-foreground">{p ? `${(p.balance || 0).toLocaleString("en-US")} USDT` : "—"}</p></div>
+                <div><p className="text-[10px] text-muted-foreground">Solde actuel</p><p className="text-xs font-semibold text-foreground">{p ? `${Number(p.balance || 0).toLocaleString("en-US")} USDT` : "—"}</p></div>
                 <div><p className="text-[10px] text-muted-foreground">Titulaire</p><p className="text-xs font-semibold text-foreground">{wallet?.holder_name || w.phone.startsWith("0x") ? (wallet?.holder_name || "—") : "—"}</p></div>
                 <div><p className="text-[10px] text-muted-foreground">Tél. compte</p><p className="text-xs font-semibold text-foreground">{p?.country_code} {p?.phone}</p></div>
               </div>
