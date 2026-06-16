@@ -173,7 +173,7 @@ const AdminPanel = () => {
 
   const loadAll = async () => {
     try {
-      const [allProfiles, r, w, s, pr, pm, sl, ss, pop, logs, ctrs, vipc, bn, wm, apic] = await Promise.all([
+      const [allProfiles, r, w, s, pr, pm, sl, ss, pop, logs, ctrs, vipc, bn, wm, apic, plogs] = await Promise.all([
         apiFetch("/api/profiles"),
         apiFetch("/api/recharges"),
         apiFetch("/api/withdrawals"),
@@ -182,13 +182,14 @@ const AdminPanel = () => {
         apiFetch("/api/payment-methods"),
         apiFetch("/api/admin/social-links"),
         apiFetch("/api/site-settings"),
-        apiFetch("/api/admin/banners"),
+        apiFetch("/api/admin/popups"),
         apiFetch("/api/admin/logs"),
         apiFetch("/api/admin/countries"),
         apiFetch("/api/admin/vip-conditions"),
         apiFetch("/api/admin/banners"),
         apiFetch("/api/admin/withdrawal-methods"),
         apiFetch("/api/admin/payment-api-configs"),
+        apiFetch("/api/admin/payment-logs"),
       ]);
 
       const mapProfile = (p: any): Profile => ({
@@ -224,6 +225,7 @@ const AdminPanel = () => {
       if (bn) setBanners(bn as Banner[]);
       if (wm) setWithdrawalMethods(wm as WithdrawalMethod[]);
       if (apic) setApiConfigs(apic as ApiConfig[]);
+      if (plogs) setPaymentLogs(plogs as PaymentLog[]);
     } catch (err) {
       console.error("Load error:", err);
       showError("Error", "Unable to load data");

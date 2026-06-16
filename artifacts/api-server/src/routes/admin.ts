@@ -9,7 +9,7 @@ import {
   siteSettings, socialLinks,
   countries, paymentMethods, withdrawalMethods, paymentApiConfigs,
   recharges, withdrawals, userWallets,
-  productSeries, products,
+  productSeries, products, paymentLogs,
 } from "@workspace/db";
 import { eq, inArray, desc, and } from "drizzle-orm";
 import crypto from "crypto";
@@ -863,6 +863,14 @@ router.post("/admin/chat/:userId/reply", async (req, res) => {
     isAi: false,
   }).returning();
   return res.json(msg);
+});
+
+// ─── Payment logs ────────────────────────────────────────────────────────────
+router.get("/admin/payment-logs", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const logs = await db.select().from(paymentLogs).orderBy(desc(paymentLogs.createdAt)).limit(200);
+  return res.json(logs);
 });
 
 export default router;

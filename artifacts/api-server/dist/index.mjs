@@ -51323,6 +51323,12 @@ router11.post("/admin/chat/:userId/reply", async (req, res) => {
   }).returning();
   return res.json(msg);
 });
+router11.get("/admin/payment-logs", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const logs = await db.select().from(paymentLogs).orderBy(desc(paymentLogs.createdAt)).limit(200);
+  return res.json(logs);
+});
 var admin_default = router11;
 
 // src/routes/index.ts
@@ -51386,8 +51392,8 @@ app.use((0, import_cors.default)({
   ],
   credentials: true
 }));
-app.use(import_express13.default.json());
-app.use(import_express13.default.urlencoded({ extended: true }));
+app.use(import_express13.default.json({ limit: "50mb" }));
+app.use(import_express13.default.urlencoded({ extended: true, limit: "50mb" }));
 app.use("/api", routes_default);
 var uploadsDir = process.env.UPLOAD_DIR || path2.resolve(process.cwd(), "public", "uploads");
 app.use("/uploads", import_express13.default.static(uploadsDir));
