@@ -42650,14 +42650,15 @@ var init_src = __esm({
     init_schema2();
     init_schema2();
     ({ Pool: Pool3 } = esm_default);
-    connectionString = process.env.DATABASE_URL;
+    connectionString = process.env.SUPABASE_DATABASE_URL;
     if (!connectionString) {
       throw new Error(
-        "DATABASE_URL is required. Make sure the PostgreSQL database is provisioned."
+        "SUPABASE_DATABASE_URL est requis. Configurez cette variable d'environnement avec votre URL Supabase."
       );
     }
     pool = new Pool3({
-      connectionString
+      connectionString,
+      ssl: { rejectUnauthorized: false }
     });
     db = drizzle(pool, { schema: schema_exports });
   }
@@ -51450,6 +51451,12 @@ app.use((0, import_cors.default)({
 app.use(import_express13.default.json({ limit: "50mb" }));
 app.use(import_express13.default.urlencoded({ extended: true, limit: "50mb" }));
 app.use("/api", routes_default);
+app.use((err, _req, res, next) => {
+  if (res.headersSent) return next(err);
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal server error";
+  return res.status(status).json({ error: message });
+});
 var uploadsDir = process.env.UPLOAD_DIR || path2.resolve(process.cwd(), "public", "uploads");
 app.use("/uploads", import_express13.default.static(uploadsDir));
 if (process.env.NODE_ENV === "production") {

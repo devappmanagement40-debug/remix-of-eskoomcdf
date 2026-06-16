@@ -43,6 +43,16 @@ app.use(express.urlencoded({ extended: true, limit: "50mb" }));
 // API routes
 app.use("/api", router);
 
+// JSON error handler — must come after routes, before static/SPA fallback
+// Catches body-parser failures (malformed JSON, payload too large, etc.)
+// and always returns a JSON response instead of Express's default HTML error page.
+app.use((err: any, _req: any, res: any, next: any) => {
+  if (res.headersSent) return next(err);
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal server error";
+  return res.status(status).json({ error: message });
+});
+
 // Serve locally uploaded files (replaces Supabase Storage)
 const uploadsDir = process.env.UPLOAD_DIR || path.resolve(process.cwd(), "public", "uploads");
 app.use("/uploads", express.static(uploadsDir));

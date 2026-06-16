@@ -143,7 +143,11 @@ const AdminPanel = () => {
     const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
     const res = await fetch(path, { headers });
     if (!res.ok) return null;
-    return res.json();
+    try {
+      return await res.json();
+    } catch {
+      return null;
+    }
   };
 
   const checkAdmin = async () => {
@@ -1333,9 +1337,15 @@ const uploadFile = async (file: File, bucket: string = "site-assets"): Promise<s
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ base64, mimeType: file.type, fileName: file.name, bucket }),
         });
-        const data = await res.json();
-        if (!res.ok) reject(new Error(data.error || "Upload échoué"));
-        else resolve(data.url);
+        if (!res.ok) {
+          let errMsg = "Upload échoué";
+          try { const e = await res.json(); errMsg = e.error || errMsg; } catch {}
+          reject(new Error(errMsg));
+          return;
+        }
+        let data: any;
+        try { data = await res.json(); } catch { reject(new Error("Réponse serveur invalide")); return; }
+        resolve(data.url);
       } catch (err: any) {
         reject(err);
       }

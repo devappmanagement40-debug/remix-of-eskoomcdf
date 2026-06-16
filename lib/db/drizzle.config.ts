@@ -1,9 +1,9 @@
 import { defineConfig } from "drizzle-kit";
 
-const dbUrl = process.env.DATABASE_URL;
+const dbUrl = process.env.SUPABASE_DATABASE_URL;
 
 if (!dbUrl) {
-  throw new Error("DATABASE_URL must be set");
+  throw new Error("SUPABASE_DATABASE_URL doit être défini");
 }
 
 export default defineConfig({
@@ -11,5 +11,6 @@ export default defineConfig({
   dialect: "postgresql",
   dbCredentials: {
     url: dbUrl,
+    ssl: "allow",
   },
 });

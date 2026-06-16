@@ -4,16 +4,17 @@ import * as schema from "./schema";
 
 const { Pool } = pg;
 
-const connectionString = process.env.DATABASE_URL;
+const connectionString = process.env.SUPABASE_DATABASE_URL;
 
 if (!connectionString) {
   throw new Error(
-    "DATABASE_URL is required. Make sure the PostgreSQL database is provisioned."
+    "SUPABASE_DATABASE_URL est requis. Configurez cette variable d'environnement avec votre URL Supabase."
   );
 }
 
 export const pool = new Pool({
   connectionString,
+  ssl: { rejectUnauthorized: false },
 });
 
 export const db = drizzle(pool, { schema });
