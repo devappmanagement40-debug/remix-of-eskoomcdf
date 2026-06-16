@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X } from "lucide-react";
+import { X, Send } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 type Tab = { label: string; content: string; url?: string };
@@ -12,6 +12,7 @@ type PopupMessage = {
   button_confirm: string;
   button_cancel: string | null;
   tabs: Tab[] | null;
+  telegram_url?: string | null;
 };
 
 interface PremiumModalProps {
@@ -65,6 +66,7 @@ const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacem
             button_confirm: msg.buttonConfirm ?? msg.button_confirm ?? "OK",
             button_cancel: msg.buttonCancel ?? msg.button_cancel ?? null,
             tabs: enrichedTabs,
+            telegram_url: msg.telegramUrl ?? msg.telegram_url ?? null,
           };
           setData(normalized);
           requestAnimationFrame(() => setVisible(true));
@@ -90,6 +92,13 @@ const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacem
 
   const tabs: Tab[] = data.tabs ? (Array.isArray(data.tabs) ? data.tabs : []) : [];
 
+  const telegramTab = tabs.find(t =>
+    t.url && (t.label.toLowerCase().includes("telegram") || t.url.includes("t.me") || t.url.includes("telegram"))
+  );
+  const telegramUrl = data.telegram_url || telegramTab?.url || null;
+
+  const otherTabs = tabs.filter(t => t !== telegramTab && t.url);
+
   const handleConfirm = () => {
     onConfirm?.();
     onClose();
@@ -102,70 +111,83 @@ const PremiumModal = ({ triggerKey, open, onClose, onConfirm, onCancel, replacem
 
   return (
     <div
-      className={`fixed inset-0 z-[100] flex items-center justify-center px-6 transition-all duration-300 ${
+      className={`fixed inset-0 z-[100] flex items-center justify-center px-5 transition-all duration-300 ${
         visible ? "opacity-100" : "opacity-0 pointer-events-none"
       }`}
     >
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleCancel} />
+      <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" onClick={handleCancel} />
 
       <div
-        className={`relative w-full max-w-sm rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 ${
+        className={`relative w-full max-w-[300px] rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 ${
           visible ? "scale-100 translate-y-0" : "scale-95 translate-y-4"
         }`}
       >
+        {/* Header */}
         <div
-          className="px-6 py-4 flex items-center justify-between"
+          className="px-5 py-3.5 flex items-center justify-between"
           style={{
             background: "linear-gradient(135deg, hsl(174 72% 50%), hsl(200 80% 55%), hsl(210 70% 50%))",
           }}
         >
-          <h3 className="text-white font-bold text-lg">{data.title}</h3>
-          <button onClick={handleCancel} className="text-white/80 hover:text-white transition-colors">
-            <X size={22} />
+          <h3 className="text-white font-bold text-base leading-tight">{data.title}</h3>
+          <button onClick={handleCancel} className="text-white/80 hover:text-white transition-colors ml-2 shrink-0">
+            <X size={18} />
           </button>
         </div>
 
-        <div className="bg-white px-6 py-5">
-          <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line mb-4">
-            {message}
-          </p>
+        {/* Body */}
+        <div className="bg-white px-5 py-4 space-y-3">
+          {message && (
+            <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">
+              {message}
+            </p>
+          )}
 
-          {tabs.length > 0 && (
-            <div className="space-y-3 mb-5">
-              <p className="text-lg">⬇️⬇️⬇️</p>
-              {tabs.map((tab, i) => (
-                <div key={i}>
-                  {tab.url && (
-                    <a
-                      href={tab.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-semibold break-all"
-                      style={{ color: "hsl(200 80% 50%)" }}
-                    >
-                      👉 {tab.url}
-                    </a>
-                  )}
-                </div>
+          {/* Telegram button */}
+          {telegramUrl && (
+            <a
+              href={telegramUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2.5 w-full py-3 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-95"
+              style={{ background: "linear-gradient(135deg, #0088cc, #006aa3)" }}
+            >
+              <Send size={16} className="shrink-0" />
+              Rejoindre le groupe Telegram
+            </a>
+          )}
+
+          {/* Other link tabs */}
+          {otherTabs.length > 0 && (
+            <div className="space-y-2">
+              {otherTabs.map((tab, i) => (
+                <a
+                  key={i}
+                  href={tab.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-semibold text-white transition-all hover:opacity-90"
+                  style={{ background: "linear-gradient(135deg, hsl(174 72% 50%), hsl(200 80% 55%))" }}
+                >
+                  {tab.label}
+                </a>
               ))}
             </div>
           )}
 
-          <div className="flex gap-3">
+          {/* Action buttons */}
+          <div className="flex gap-2 pt-1">
             {data.button_cancel && (
               <button
                 onClick={handleCancel}
-                className="flex-1 py-3 rounded-full text-sm font-bold text-white transition-all hover:opacity-90"
-                style={{
-                  background: "linear-gradient(135deg, hsl(174 72% 50%), hsl(200 80% 55%))",
-                }}
+                className="flex-1 py-2.5 rounded-xl text-xs font-bold text-gray-500 bg-gray-100 transition-all hover:bg-gray-200"
               >
                 {data.button_cancel}
               </button>
             )}
             <button
               onClick={handleConfirm}
-              className="flex-1 py-3 rounded-full text-sm font-bold text-white transition-all hover:opacity-90"
+              className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90"
               style={{
                 background: "linear-gradient(135deg, hsl(174 72% 50%), hsl(200 80% 55%))",
               }}

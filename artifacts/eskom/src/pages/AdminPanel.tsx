@@ -1659,7 +1659,7 @@ type TabItem = { label: string; content: string; url?: string };
 const AnnoncesTab = ({ reload, showSuccess, showError }: any) => {
   const [popup, setPopup] = useState<PopupMsg | null>(null);
   const [form, setForm] = useState<Partial<PopupMsg>>({});
-  const [tabs, setTabs] = useState<TabItem[]>([]);
+  const [telegramUrl, setTelegramUrl] = useState("");
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
@@ -1670,8 +1670,18 @@ const AnnoncesTab = ({ reload, showSuccess, showError }: any) => {
     const item = Array.isArray(data) ? data[0] : data;
     if (item) {
       setPopup(item as unknown as PopupMsg);
-      setForm({ title: item.title, message: item.message, button_confirm: item.button_confirm ?? '', button_cancel: item.button_cancel ?? undefined, is_active: item.is_active ?? true });
-      setTabs(Array.isArray(item.tabs) ? (item.tabs as unknown as TabItem[]) : []);
+      setForm({
+        title: item.title,
+        message: item.message,
+        button_confirm: item.button_confirm ?? "OK",
+        button_cancel: item.button_cancel ?? "",
+        is_active: item.is_active ?? true,
+      });
+      const existingTabs: TabItem[] = Array.isArray(item.tabs) ? (item.tabs as unknown as TabItem[]) : [];
+      const tgTab = existingTabs.find((t: TabItem) =>
+        t.label?.toLowerCase().includes("telegram") || t.url?.includes("t.me") || t.url?.includes("telegram")
+      );
+      setTelegramUrl(tgTab?.url || "");
     }
     setLoading(false);
   };
@@ -1682,84 +1692,110 @@ const AnnoncesTab = ({ reload, showSuccess, showError }: any) => {
     if (!popup) return;
     const token = getAuthToken();
     const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-    const res = await fetch(`/api/admin/popups/${popup.id}`, { method: "PATCH", headers: h, body: JSON.stringify({ title: form.title, message: form.message, button_confirm: form.button_confirm, button_cancel: form.button_cancel || null, tabs: tabs.length > 0 ? tabs : null, is_active: form.is_active }) });
-    if (!res.ok) showError("Error", "Unable to save");
-    else { showSuccess("Saved ✅", "Announcement updated"); load(); reload(); }
+    const tabs: TabItem[] = telegramUrl.trim()
+      ? [{ label: "Telegram", content: "", url: telegramUrl.trim() }]
+      : [];
+    const res = await fetch(`/api/admin/popups/${popup.id}`, {
+      method: "PATCH", headers: h,
+      body: JSON.stringify({
+        title: form.title,
+        message: form.message,
+        button_confirm: form.button_confirm || "OK",
+        button_cancel: form.button_cancel || null,
+        tabs: tabs.length > 0 ? tabs : null,
+        is_active: form.is_active,
+      }),
+    });
+    if (!res.ok) showError("Erreur", "Impossible de sauvegarder");
+    else { showSuccess("Popup sauvegardée ✅", "Le popup s'affichera sur la page d'accueil"); load(); reload(); }
   };
 
   if (loading) return <div className="flex justify-center py-10"><Loader2 className="animate-spin text-primary" size={24} /></div>;
-  if (!popup) return <p className="text-center text-muted-foreground py-10">No announcement configured</p>;
+  if (!popup) return <p className="text-center text-muted-foreground py-10">Aucun popup configuré</p>;
 
   return (
-    <div className="space-y-4">
-      <div className="bg-card rounded-xl border border-secondary p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-bold text-foreground">Welcome popup</h3>
+    <div className="space-y-4 pb-6">
+
+      {/* Preview card */}
+      <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+        <div className="flex items-center justify-between mb-1">
+          <h3 className="text-sm font-bold text-foreground">📢 Popup d'accueil</h3>
           <button onClick={async () => {
             const token = getAuthToken();
             const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
             await fetch(`/api/admin/popups/${popup.id}`, { method: "PATCH", headers: h, body: JSON.stringify({ is_active: !popup.is_active }) });
             load(); reload();
-          }} className={`px-3 py-1.5 rounded-lg text-xs font-bold ${popup.is_active ? "bg-primary/20 text-primary" : "bg-secondary text-muted-foreground"}`}>
-            {popup.is_active ? "✅ Active" : "❌ Inactive"}
+          }} className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${popup.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>
+            {popup.is_active ? "✅ Actif" : "❌ Inactif"}
           </button>
         </div>
+        <p className="text-xs text-muted-foreground">
+          Ce popup s'affiche automatiquement 1 seconde après l'arrivée sur la page d'accueil.
+        </p>
+      </div>
 
+      <div className="bg-card rounded-xl border border-secondary p-4 space-y-4">
+
+        {/* Title */}
         <div>
-          <label className="text-xs text-muted-foreground block mb-1">Title</label>
+          <label className="text-xs text-muted-foreground block mb-1">Titre du popup</label>
           <input value={form.title || ""} onChange={e => setForm({ ...form, title: e.target.value })}
+            placeholder="🎁 Offre spéciale"
             className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
         </div>
 
+        {/* Message */}
         <div>
           <label className="text-xs text-muted-foreground block mb-1">Message</label>
           <textarea value={form.message || ""} onChange={e => setForm({ ...form, message: e.target.value })}
-            rows={3} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none resize-none" />
+            rows={4} placeholder="Votre message d'accueil ici..."
+            className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none resize-none" />
         </div>
 
+        {/* Telegram link — highlighted section */}
+        <div className="bg-[#0088cc]/10 border border-[#0088cc]/30 rounded-xl p-4 space-y-2">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-6 h-6 rounded-full bg-[#0088cc] flex items-center justify-center">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.562 8.248l-2.018 9.504c-.144.66-.537.82-1.087.51l-3-2.21-1.448 1.393c-.16.16-.294.294-.604.294l.213-3.053 5.56-5.023c.242-.213-.054-.333-.373-.12l-6.871 4.326-2.962-.924c-.643-.204-.657-.643.136-.953l11.57-4.462c.537-.194 1.006.131.884.718z"/></svg>
+            </div>
+            <label className="text-xs font-bold text-[#0088cc]">Lien du groupe Telegram</label>
+          </div>
+          <input
+            value={telegramUrl}
+            onChange={e => setTelegramUrl(e.target.value)}
+            placeholder="https://t.me/votre_groupe"
+            className="w-full bg-white text-gray-800 rounded-lg px-4 py-2.5 text-sm border border-[#0088cc]/30 outline-none"
+          />
+          <p className="text-[10px] text-[#0088cc]/70">
+            Ce lien s'affichera comme un bouton Telegram dans le popup.
+            Laissez vide pour ne pas afficher de bouton Telegram.
+          </p>
+          {telegramUrl && (
+            <div className="flex items-center gap-2 mt-2 p-2.5 rounded-lg bg-[#0088cc]/10">
+              <span className="text-xs text-[#0088cc] font-semibold">Aperçu :</span>
+              <span className="text-xs text-[#0088cc] font-bold">📨 Rejoindre le groupe Telegram →</span>
+            </div>
+          )}
+        </div>
+
+        {/* Buttons */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">Confirm button</label>
+            <label className="text-xs text-muted-foreground block mb-1">Bouton principal</label>
             <input value={form.button_confirm || ""} onChange={e => setForm({ ...form, button_confirm: e.target.value })}
+              placeholder="OK"
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground block mb-1">Cancel button (empty = none)</label>
+            <label className="text-xs text-muted-foreground block mb-1">Bouton annuler (vide = aucun)</label>
             <input value={form.button_cancel || ""} onChange={e => setForm({ ...form, button_cancel: e.target.value })}
+              placeholder="Plus tard"
               className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
           </div>
-        </div>
-
-        {/* Tabs */}
-        <div>
-          <label className="text-xs text-muted-foreground block mb-2">Tabs (buttons in the popup)</label>
-          {tabs.map((tab, i) => (
-            <div key={i} className="bg-secondary/50 rounded-lg p-3 mb-2 space-y-2">
-              <input value={tab.label} onChange={e => {
-                const n = [...tabs]; n[i] = { ...n[i], label: e.target.value }; setTabs(n);
-              }} placeholder="Tab name"
-                className="w-full bg-secondary text-foreground rounded-lg px-3 py-2 text-sm outline-none" />
-              <textarea value={tab.content} onChange={e => {
-                const n = [...tabs]; n[i] = { ...n[i], content: e.target.value }; setTabs(n);
-              }} rows={2} placeholder="Content"
-                className="w-full bg-secondary text-foreground rounded-lg px-3 py-2 text-sm outline-none resize-none" />
-              <input value={tab.url || ""} onChange={e => {
-                const n = [...tabs]; n[i] = { ...n[i], url: e.target.value }; setTabs(n);
-              }} placeholder="URL (ex: /service-chat, https://wa.me/...)"
-                className="w-full bg-secondary text-foreground rounded-lg px-3 py-2 text-sm outline-none" />
-              <button onClick={() => setTabs(tabs.filter((_, idx) => idx !== i))} className="text-destructive text-xs flex items-center gap-1">
-                <Trash2 size={12} /> Delete
-              </button>
-            </div>
-          ))}
-          <button onClick={() => setTabs([...tabs, { label: "Nouveau", content: "", url: "" }])}
-            className="text-primary text-xs flex items-center gap-1 mt-1">
-            <Plus size={12} /> Add a tab
-          </button>
         </div>
 
         <button onClick={save} className="w-full gradient-button text-primary-foreground text-sm font-bold py-3 rounded-xl flex items-center justify-center gap-2">
-          <Save size={14} /> Save announcement
+          <Save size={14} /> Sauvegarder le popup
         </button>
       </div>
     </div>
