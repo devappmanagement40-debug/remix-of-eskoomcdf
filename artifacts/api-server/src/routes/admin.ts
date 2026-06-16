@@ -722,31 +722,25 @@ router.delete("/admin/popups/:id", async (req, res) => {
 });
 
 // ─── Suspend / unsuspend user (admin) ─────────────────────────────────────────
-router.post("/admin/users/:userId/suspend", async (req, res) => {
+async function suspendUser(req: any, res: any) {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
-  const { suspended } = req.body as { suspended?: boolean };
-  const newVal = suspended ?? true;
+  const [targetRole] = await db.select().from(userRoles).where(eq(userRoles.userId, req.params.userId)).limit(1);
+  if (targetRole?.role === "admin" || targetRole?.role === "moderator") {
+    return res.status(403).json({ error: "Cannot suspend an admin or moderator account" });
+  }
+  const { suspended, isSuspended } = req.body as { suspended?: boolean; isSuspended?: boolean };
+  const newVal = suspended ?? isSuspended ?? true;
   const [updated] = await db.update(profiles)
     .set({ isSuspended: newVal, updatedAt: new Date() })
     .where(eq(profiles.userId, req.params.userId))
     .returning();
   if (!updated) return res.status(404).json({ error: "User not found" });
   return res.json(updated);
-});
+}
 
-router.patch("/admin/users/:userId/suspend", async (req, res) => {
-  const auth = await requireAdmin(req, res);
-  if (!auth) return;
-  const { suspended } = req.body as { suspended?: boolean };
-  const newVal = suspended ?? true;
-  const [updated] = await db.update(profiles)
-    .set({ isSuspended: newVal, updatedAt: new Date() })
-    .where(eq(profiles.userId, req.params.userId))
-    .returning();
-  if (!updated) return res.status(404).json({ error: "User not found" });
-  return res.json(updated);
-});
+router.post("/admin/users/:userId/suspend", suspendUser);
+router.patch("/admin/users/:userId/suspend", suspendUser);
 
 // ─── User products (admin) ────────────────────────────────────────────────────
 router.get("/admin/user-products", async (req, res) => {

@@ -48433,7 +48433,11 @@ router2.post("/auth/login", async (req, res) => {
       return res.status(401).json({ error: "Incorrect number or password" });
     }
     if (profile.isSuspended) {
-      return res.status(403).json({ error: "Account suspended" });
+      const [roleRow] = await db.select().from(userRoles).where(eq(userRoles.userId, profile.userId)).limit(1);
+      const isPrivileged = roleRow?.role === "admin" || roleRow?.role === "moderator";
+      if (!isPrivileged) {
+        return res.status(403).json({ error: "Account suspended" });
+      }
     }
     const accessToken = await createSession(profile.userId);
     return res.json({
@@ -51472,24 +51476,21 @@ router11.delete("/admin/popups/:id", async (req, res) => {
   await db.delete(popupMessages).where(eq(popupMessages.id, req.params.id));
   return res.json({ ok: true });
 });
-router11.post("/admin/users/:userId/suspend", async (req, res) => {
+async function suspendUser(req, res) {
   const auth = await requireAdmin(req, res);
   if (!auth) return;
-  const { suspended } = req.body;
-  const newVal = suspended ?? true;
+  const [targetRole] = await db.select().from(userRoles).where(eq(userRoles.userId, req.params.userId)).limit(1);
+  if (targetRole?.role === "admin" || targetRole?.role === "moderator") {
+    return res.status(403).json({ error: "Cannot suspend an admin or moderator account" });
+  }
+  const { suspended, isSuspended } = req.body;
+  const newVal = suspended ?? isSuspended ?? true;
   const [updated] = await db.update(profiles).set({ isSuspended: newVal, updatedAt: /* @__PURE__ */ new Date() }).where(eq(profiles.userId, req.params.userId)).returning();
   if (!updated) return res.status(404).json({ error: "User not found" });
   return res.json(updated);
-});
-router11.patch("/admin/users/:userId/suspend", async (req, res) => {
-  const auth = await requireAdmin(req, res);
-  if (!auth) return;
-  const { suspended } = req.body;
-  const newVal = suspended ?? true;
-  const [updated] = await db.update(profiles).set({ isSuspended: newVal, updatedAt: /* @__PURE__ */ new Date() }).where(eq(profiles.userId, req.params.userId)).returning();
-  if (!updated) return res.status(404).json({ error: "User not found" });
-  return res.json(updated);
-});
+}
+router11.post("/admin/users/:userId/suspend", suspendUser);
+router11.patch("/admin/users/:userId/suspend", suspendUser);
 router11.get("/admin/user-products", async (req, res) => {
   const auth = await requireAdmin(req, res);
   if (!auth) return;

@@ -198,7 +198,11 @@ router.post("/auth/login", async (req, res) => {
     }
 
     if (profile.isSuspended) {
-      return res.status(403).json({ error: "Account suspended" });
+      const [roleRow] = await db.select().from(userRoles).where(eq(userRoles.userId, profile.userId)).limit(1);
+      const isPrivileged = roleRow?.role === "admin" || roleRow?.role === "moderator";
+      if (!isPrivileged) {
+        return res.status(403).json({ error: "Account suspended" });
+      }
     }
 
     const accessToken = await createSession(profile.userId);

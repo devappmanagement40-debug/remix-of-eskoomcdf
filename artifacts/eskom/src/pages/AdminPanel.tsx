@@ -20,7 +20,7 @@ type Profile = {
   balance: number | null; deposit_balance: number | null; earnings_balance: number | null;
   referral_balance: number | null; country_code: string | null; referral_code: string | null;
   is_suspended: boolean | null; created_at: string | null; vip_level: number | null;
-  gift_points: number | null;
+  gift_points: number | null; role?: string | null;
 };
 type Recharge = {
   id: string; phone: string; country_code: string; amount: number;
@@ -212,6 +212,7 @@ const AdminPanel = () => {
         referred_by: p.referredBy,
         is_suspended: p.isSuspended,
         created_at: p.createdAt,
+        role: p.role ?? null,
       });
 
       if (allProfiles) setProfiles((allProfiles as any[]).map(mapProfile));
@@ -639,6 +640,9 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-[9px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold">VIP{p.vip_level || 0}</span>
+                {(p.role === "admin" || p.role === "moderator") && (
+                  <span className="text-[9px] bg-yellow-500/20 text-yellow-500 px-2 py-0.5 rounded-full font-bold uppercase">{p.role}</span>
+                )}
                 {p.is_suspended && <span className="text-[9px] bg-destructive/20 text-destructive px-2 py-0.5 rounded-full font-bold">SUSPENDU</span>}
               </div>
             </div>
@@ -668,16 +672,28 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
               </button>
             </div>
             <div className="flex gap-2 mt-2">
-              <button onClick={() => toggleSuspend(p)}
-                className={`flex-1 flex items-center justify-center gap-1.5 border font-semibold py-2 rounded-xl text-xs transition-colors ${
-                  p.is_suspended ? "border-success text-success hover:bg-success/10" : "border-destructive text-destructive hover:bg-destructive/10"
-                }`}>
-                {p.is_suspended ? <><UserCheck size={12} /> Réactiver</> : <><Ban size={12} /> Suspendre</>}
-              </button>
-              <button onClick={() => deleteUser(p)}
-                className="flex-1 flex items-center justify-center gap-1.5 border border-destructive text-destructive font-semibold py-2 rounded-xl text-xs hover:bg-destructive/10 transition-colors">
-                <Trash2 size={12} /> Delete
-              </button>
+              {(p.role === "admin" || p.role === "moderator") ? (
+                <div className="flex-1 flex items-center justify-center gap-1.5 border border-muted text-muted-foreground py-2 rounded-xl text-xs cursor-not-allowed opacity-50">
+                  <Shield size={12} /> Admin protégé
+                </div>
+              ) : (
+                <button onClick={() => toggleSuspend(p)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 border font-semibold py-2 rounded-xl text-xs transition-colors ${
+                    p.is_suspended ? "border-success text-success hover:bg-success/10" : "border-destructive text-destructive hover:bg-destructive/10"
+                  }`}>
+                  {p.is_suspended ? <><UserCheck size={12} /> Réactiver</> : <><Ban size={12} /> Suspendre</>}
+                </button>
+              )}
+              {(p.role === "admin" || p.role === "moderator") ? (
+                <div className="flex-1 flex items-center justify-center gap-1.5 border border-muted text-muted-foreground py-2 rounded-xl text-xs cursor-not-allowed opacity-50">
+                  <Shield size={12} /> Protégé
+                </div>
+              ) : (
+                <button onClick={() => deleteUser(p)}
+                  className="flex-1 flex items-center justify-center gap-1.5 border border-destructive text-destructive font-semibold py-2 rounded-xl text-xs hover:bg-destructive/10 transition-colors">
+                  <Trash2 size={12} /> Delete
+                </button>
+              )}
             </div>
           </div>
         </div>
