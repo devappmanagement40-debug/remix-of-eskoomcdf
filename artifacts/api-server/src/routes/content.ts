@@ -182,4 +182,24 @@ router.post("/chat/send", async (req, res) => {
   return res.json({ message: msg, reply: aiReply[0] });
 });
 
+router.post("/chat/send-system", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+
+  const { message, sender } = req.body;
+  if (!message) return res.status(400).json({ error: "Message required" });
+
+  const [msg] = await db.insert(chatMessages).values({
+    id: crypto.randomUUID(),
+    userId: me.userId,
+    message,
+    sender: sender ?? "system",
+    isAi: true,
+  }).returning();
+
+  return res.json(msg);
+});
+
 export default router;

@@ -163,7 +163,22 @@ router.get("/recharges/my", async (req, res) => {
   const me = await getProfileFromToken(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
 
-  const myRecharges = await db.select().from(recharges).where(eq(recharges.userId, me.userId));
+  const statusFilter = req.query.status as string | undefined;
+  let myRecharges = await db.select().from(recharges).where(eq(recharges.userId, me.userId));
+  if (statusFilter) myRecharges = myRecharges.filter(r => r.status === statusFilter);
+  return res.json(myRecharges.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
+});
+
+// Alias: /api/payments/recharges/my  (frontend uses this path)
+router.get("/payments/recharges/my", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+
+  const statusFilter = req.query.status as string | undefined;
+  let myRecharges = await db.select().from(recharges).where(eq(recharges.userId, me.userId));
+  if (statusFilter) myRecharges = myRecharges.filter(r => r.status === statusFilter);
   return res.json(myRecharges.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
 });
 

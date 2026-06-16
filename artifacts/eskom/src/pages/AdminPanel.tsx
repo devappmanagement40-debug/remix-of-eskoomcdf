@@ -336,35 +336,45 @@ const AdminPanel = () => {
 };
 
 // ==================== DASHBOARD ====================
+const fmtAmount = (n: number): string => {
+  if (isNaN(n)) return "0.00";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(2)}K`;
+  return n.toFixed(2);
+};
+
 const DashboardTab = ({ profiles, recharges, withdrawals, products }: any) => {
   const totalUsers = profiles.length;
   const today = new Date().toDateString();
   const activeToday = profiles.filter((p: Profile) => p.created_at && new Date(p.created_at).toDateString() === today).length;
-  const totalDeposits = recharges.filter((r: Recharge) => r.status === "approved").reduce((s: number, r: Recharge) => s + r.amount, 0);
-  const totalWithdrawals = withdrawals.filter((w: Withdrawal) => w.status === "approved").reduce((s: number, w: Withdrawal) => s + w.amount, 0);
+  const totalDeposits = recharges.filter((r: Recharge) => r.status === "approved").reduce((s: number, r: Recharge) => s + Number(r.amount || 0), 0);
+  const totalWithdrawals = withdrawals.filter((w: Withdrawal) => w.status === "approved").reduce((s: number, w: Withdrawal) => s + Number(w.amount || 0), 0);
   const pendingDeposits = recharges.filter((r: Recharge) => r.status === "pending").length;
   const pendingWithdrawals = withdrawals.filter((w: Withdrawal) => w.status === "pending").length;
   const activeProducts = products.filter((p: Product) => p.is_active).length;
-  const totalBalance = profiles.reduce((s: number, p: Profile) => s + (p.balance || 0), 0);
+  const totalBalance = profiles.reduce((s: number, p: Profile) => s + Number(p.balance || 0), 0);
 
   const stats = [
-    { label: "Users", value: totalUsers, color: "text-primary" },
-    { label: "New today", value: activeToday, color: "text-primary" },
-    { label: "Total deposits", value: `${totalDeposits.toLocaleString("en-US")}`, color: "text-success" },
-    { label: "Total withdrawals", value: `${totalWithdrawals.toLocaleString("en-US")}`, color: "text-destructive" },
-    { label: "Cumulative balances", value: `${totalBalance.toLocaleString("en-US")}`, color: "text-primary" },
-    { label: "Active products", value: activeProducts, color: "text-primary" },
-    { label: "Pending deposits", value: pendingDeposits, color: "text-warning" },
-    { label: "Pending withdrawals", value: pendingWithdrawals, color: "text-warning" },
+    { label: "👥 Utilisateurs", value: totalUsers, sub: "", color: "text-primary" },
+    { label: "🆕 Inscrits aujourd'hui", value: activeToday, sub: "", color: "text-primary" },
+    { label: "💰 Dépôts totaux", value: fmtAmount(totalDeposits), sub: "USDT", color: "text-success" },
+    { label: "📤 Retraits totaux", value: fmtAmount(totalWithdrawals), sub: "USDT", color: "text-destructive" },
+    { label: "🏦 Soldes cumulés", value: fmtAmount(totalBalance), sub: "USDT", color: "text-primary" },
+    { label: "📦 Produits actifs", value: activeProducts, sub: "", color: "text-primary" },
+    { label: "⏳ Dépôts en attente", value: pendingDeposits, sub: "", color: "text-warning" },
+    { label: "⏳ Retraits en attente", value: pendingWithdrawals, sub: "", color: "text-warning" },
   ];
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 gap-2">
         {stats.map(s => (
-          <div key={s.label} className="bg-card rounded-xl border border-secondary p-4">
+          <div key={s.label} className="bg-card rounded-xl border border-secondary p-3 flex flex-col gap-0.5">
             <p className="text-[10px] text-muted-foreground leading-tight">{s.label}</p>
-            <p className={`text-base font-bold truncate mt-0.5 ${s.color}`}>{s.value}</p>
+            <div className="flex items-baseline gap-1 mt-0.5 min-w-0">
+              <p className={`text-lg font-bold leading-none ${s.color}`} style={{ wordBreak: "break-all" }}>{s.value}</p>
+              {s.sub && <span className="text-[9px] text-muted-foreground font-normal flex-shrink-0">{s.sub}</span>}
+            </div>
           </div>
         ))}
       </div>

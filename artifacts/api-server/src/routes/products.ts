@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { products, productSeries, userProducts, userSessions, profiles, userRoles, referralCommissions } from "@workspace/db";
+import { products, productSeries, userProducts, userSessions, profiles, userRoles, referralCommissions, vipConditions } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
 import crypto from "crypto";
 
@@ -35,6 +35,11 @@ router.get("/products", async (req, res) => {
     console.error("Products DB error:", err?.message, err?.cause?.message, err?.cause?.code);
     return res.status(500).json({ error: "DB error", detail: err?.message, cause: err?.cause?.message });
   }
+});
+
+router.get("/products/series", async (req, res) => {
+  const all = await db.select().from(productSeries);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
 });
 
 router.get("/products/:id", async (req, res) => {
@@ -82,6 +87,16 @@ router.delete("/products/:id", async (req, res) => {
 router.get("/product-series", async (req, res) => {
   const all = await db.select().from(productSeries);
   return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+
+router.get("/products/series", async (req, res) => {
+  const all = await db.select().from(productSeries);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+
+router.get("/vip-conditions", async (req, res) => {
+  const all = await db.select().from(vipConditions);
+  return res.json(all.sort((a, b) => (a.level ?? 0) - (b.level ?? 0)));
 });
 
 router.get("/user-products/my", async (req, res) => {

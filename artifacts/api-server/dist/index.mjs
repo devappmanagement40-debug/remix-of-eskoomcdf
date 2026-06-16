@@ -48671,6 +48671,10 @@ router4.get("/products", async (req, res) => {
     return res.status(500).json({ error: "DB error", detail: err?.message, cause: err?.cause?.message });
   }
 });
+router4.get("/products/series", async (req, res) => {
+  const all = await db.select().from(productSeries);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
 router4.get("/products/:id", async (req, res) => {
   const [product] = await db.select().from(products).where(eq(products.id, req.params.id)).limit(1);
   if (!product) return res.status(404).json({ error: "Not found" });
@@ -48709,6 +48713,14 @@ router4.delete("/products/:id", async (req, res) => {
 router4.get("/product-series", async (req, res) => {
   const all = await db.select().from(productSeries);
   return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router4.get("/products/series", async (req, res) => {
+  const all = await db.select().from(productSeries);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router4.get("/vip-conditions", async (req, res) => {
+  const all = await db.select().from(vipConditions);
+  return res.json(all.sort((a, b) => (a.level ?? 0) - (b.level ?? 0)));
 });
 router4.get("/user-products/my", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -48914,7 +48926,19 @@ router5.get("/recharges/my", async (req, res) => {
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken3(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
-  const myRecharges = await db.select().from(recharges).where(eq(recharges.userId, me.userId));
+  const statusFilter = req.query.status;
+  let myRecharges = await db.select().from(recharges).where(eq(recharges.userId, me.userId));
+  if (statusFilter) myRecharges = myRecharges.filter((r) => r.status === statusFilter);
+  return res.json(myRecharges.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+});
+router5.get("/payments/recharges/my", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken3(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const statusFilter = req.query.status;
+  let myRecharges = await db.select().from(recharges).where(eq(recharges.userId, me.userId));
+  if (statusFilter) myRecharges = myRecharges.filter((r) => r.status === statusFilter);
   return res.json(myRecharges.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
 });
 router5.get("/recharges", async (req, res) => {
@@ -49233,6 +49257,15 @@ router6.put("/site-settings/:key", async (req, res) => {
     return res.json(created);
   }
 });
+router6.get("/popups", async (req, res) => {
+  const all = await db.select().from(popupMessages);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router6.patch("/popups/:id", async (req, res) => {
+  const [updated] = await db.update(popupMessages).set({ ...normalizeToCamelCase2(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(popupMessages.id, req.params.id)).returning();
+  if (!updated) return res.status(404).json({ error: "Not found" });
+  return res.json(updated);
+});
 router6.get("/popup-messages", async (req, res) => {
   const { triggerKey } = req.query;
   const all = await db.select().from(popupMessages).where(eq(popupMessages.isActive, true));
@@ -49434,6 +49467,22 @@ router7.post("/chat/send", async (req, res) => {
     isAi: true
   }).returning();
   return res.json({ message: msg, reply: aiReply[0] });
+});
+router7.post("/chat/send-system", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken5(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { message, sender } = req.body;
+  if (!message) return res.status(400).json({ error: "Message required" });
+  const [msg] = await db.insert(chatMessages).values({
+    id: crypto6.randomUUID(),
+    userId: me.userId,
+    message,
+    sender: sender ?? "system",
+    isAi: true
+  }).returning();
+  return res.json(msg);
 });
 var content_default = router7;
 

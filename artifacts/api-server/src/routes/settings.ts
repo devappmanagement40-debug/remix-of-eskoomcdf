@@ -54,6 +54,17 @@ router.put("/site-settings/:key", async (req, res) => {
   }
 });
 
+router.get("/popups", async (req, res) => {
+  const all = await db.select().from(popupMessages);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+
+router.patch("/popups/:id", async (req, res) => {
+  const [updated] = await db.update(popupMessages).set({ ...normalizeToCamelCase(req.body), updatedAt: new Date() }).where(eq(popupMessages.id, req.params.id)).returning();
+  if (!updated) return res.status(404).json({ error: "Not found" });
+  return res.json(updated);
+});
+
 router.get("/popup-messages", async (req, res) => {
   const { triggerKey } = req.query;
   const all = await db.select().from(popupMessages).where(eq(popupMessages.isActive, true));
