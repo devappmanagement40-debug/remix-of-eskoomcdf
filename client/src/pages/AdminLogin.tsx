@@ -6,7 +6,7 @@ import { useAppImages } from "@/contexts/AppImagesContext";
 const AdminLogin = () => {
   const navigate = useNavigate();
   const { appLogo } = useAppImages();
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -15,7 +15,7 @@ const AdminLogin = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!phone.trim() || !password) {
+    if (!email.trim() || !password) {
       setError("Veuillez remplir tous les champs");
       return;
     }
@@ -25,24 +25,30 @@ const AdminLogin = () => {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: phone.trim().replace(/\D/g, ""), password }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
       });
 
       const data = await res.json();
 
       if (!res.ok || !data.ok) {
-        setError("Numéro ou mot de passe incorrect");
+        setError("Email ou mot de passe incorrect");
         setLoading(false);
         return;
       }
 
-      if (!data.isAdmin) {
+      const token = data.session?.access_token ?? data.token;
+
+      const checkRes = await fetch("/api/admin/check", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!checkRes.ok) {
         setError("Accès refusé. Ce compte n'a pas les droits administrateur.");
         setLoading(false);
         return;
       }
 
-      localStorage.setItem("auth_token", data.token);
+      localStorage.setItem("auth_token", token);
       navigate("/admin", { replace: true });
     } catch {
       setError("Erreur de connexion. Réessayez.");
@@ -68,14 +74,14 @@ const AdminLogin = () => {
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="bg-card border border-secondary rounded-2xl p-5 space-y-4">
             <div>
-              <label className="text-xs text-muted-foreground mb-1.5 block">Numéro de téléphone</label>
+              <label className="text-xs text-muted-foreground mb-1.5 block">Adresse e-mail</label>
               <div className="input-glow rounded-xl bg-secondary px-4 py-3">
                 <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="50912345678"
-                  autoComplete="tel"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="admin@exemple.com"
+                  autoComplete="email"
                   className="w-full bg-transparent text-foreground text-sm outline-none placeholder:text-muted-foreground"
                 />
               </div>

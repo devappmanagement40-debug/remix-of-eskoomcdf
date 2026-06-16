@@ -17,6 +17,7 @@ export const profiles = pgTable("profiles", {
   vipLevel: integer("vip_level").default(0),
   referralCode: text("referral_code"),
   referredBy: text("referred_by"),
+  email: text("email"),
   passwordHash: text("password_hash"),
   avatarUrl: text("avatar_url"),
   isSuspended: boolean("is_suspended").default(false),
