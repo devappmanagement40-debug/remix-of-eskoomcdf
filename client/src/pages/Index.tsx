@@ -1,28 +1,104 @@
 import { Headphones, Mail, RefreshCw, ShoppingBag, Clock, Download, Users, TrendingUp } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import BottomNav from "@/components/BottomNav";
 import FloatingButtons from "@/components/FloatingButtons";
 import PremiumModal from "@/components/PremiumModal";
 import InviteModal from "@/components/InviteModal";
 import { api } from "@/lib/api";
 import { Badge } from "@/components/ui/badge";
-import bannerHome from "@/assets/banner-home.jpg";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-const fallbackBanners = [
-  { image_url: bannerHome, link_path: "/loterie" },
-];
+type BannerItem = { image_url: string; link_path: string };
+
+const BannerCarousel = ({ banners }: { banners: BannerItem[] }) => {
+  const navigate = useNavigate();
+  const [current, setCurrent] = useState(0);
+  const paused = useRef(false);
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+
+  const goTo = useCallback((idx: number) => {
+    setCurrent((idx + banners.length) % banners.length);
+  }, [banners.length]);
+
+  const next = useCallback(() => { if (!paused.current) goTo(current + 1); }, [current, goTo]);
+
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    const id = setInterval(next, 4000);
+    return () => clearInterval(id);
+  }, [next, banners.length]);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+    paused.current = true;
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    touchEndX.current = e.changedTouches[0].clientX;
+    const diff = touchStartX.current - touchEndX.current;
+    if (Math.abs(diff) > 40) {
+      diff > 0 ? goTo(current + 1) : goTo(current - 1);
+    }
+    paused.current = false;
+  };
+
+  if (banners.length === 0) return null;
+
+  return (
+    <section className="px-4 pt-4">
+      <div
+        className="relative rounded-2xl overflow-hidden shadow-lg"
+        onMouseEnter={() => { paused.current = true; }}
+        onMouseLeave={() => { paused.current = false; }}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div
+          className="flex transition-transform duration-500 ease-in-out"
+          style={{ transform: `translateX(-${current * 100}%)` }}
+        >
+          {banners.map((banner, index) => (
+            <img
+              key={index}
+              src={banner.image_url}
+              alt="GE Energy"
+              className="w-full h-44 object-cover flex-shrink-0 cursor-pointer select-none"
+              draggable={false}
+              onClick={() => navigate(banner.link_path)}
+              loading={index === 0 ? undefined : "lazy"}
+            />
+          ))}
+        </div>
+
+        {banners.length > 1 && (
+          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1.5 items-center">
+            {banners.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => goTo(index)}
+                className={`rounded-full transition-all duration-300 ${
+                  index === current
+                    ? "bg-white w-5 h-2"
+                    : "bg-white/50 w-2 h-2"
+                }`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+};
 
 const Index = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const [currentBanner, setCurrentBanner] = useState(0);
   const [showService, setShowService] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [showPromo, setShowPromo] = useState(false);
-  const [banners, setBanners] = useState<{ image_url: string; link_path: string }[]>(fallbackBanners);
+  const [banners, setBanners] = useState<BannerItem[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<any[]>([]);
   const [annonces, setAnnonces] = useState<any[]>([]);
 
@@ -48,7 +124,10 @@ const Index = () => {
           api.get("/info-items"),
         ]);
         if (bannersData.status === "fulfilled" && bannersData.value?.length) {
-          setBanners(bannersData.value.map((b: any) => ({ ...b, link_path: b.linkPath ?? b.link_path ?? "/" })));
+          setBanners(bannersData.value.map((b: any) => ({
+            image_url: b.imageUrl ?? b.image_url ?? "",
+            link_path: b.linkPath ?? b.link_path ?? "/",
+          })));
         }
         if (productsData.status === "fulfilled" && productsData.value) {
           setFeaturedProducts(productsData.value.filter((p: any) => p.isFeatured || p.is_featured));
@@ -73,54 +152,12 @@ const Index = () => {
     return () => clearTimeout(timer);
   }, [location.key]);
 
-  const nextBanner = useCallback(() => {
-    setCurrentBanner((prev) => (prev + 1) % banners.length);
-  }, [banners.length]);
-
-  useEffect(() => {
-    const interval = setInterval(nextBanner, 4000);
-    return () => clearInterval(interval);
-  }, [nextBanner]);
-
   return (
     <div className="min-h-screen bg-background pb-20">
-      {/* Banner Carousel */}
-      <section className="px-4 pt-4">
-        <div className="relative rounded-xl overflow-hidden">
-          <div
-            className="flex transition-transform duration-500 ease-in-out"
-            style={{ transform: `translateX(-${currentBanner * 100}%)` }}
-          >
-            {banners.map((banner, index) => (
-              <img
-                key={index}
-                src={banner.image_url}
-                alt="GE Energy"
-                width={800}
-                height={400}
-                className="w-full h-44 object-cover flex-shrink-0 cursor-pointer"
-                onClick={() => navigate(banner.link_path)}
-                loading={index === 0 ? undefined : "lazy"}
-                {...(index === 0 ? { fetchPriority: "high" as const } : {})}
-              />
-            ))}
-          </div>
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
-            {banners.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentBanner(index)}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  index === currentBanner ? "bg-primary w-5" : "bg-foreground/30"
-                }`}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
+      <BannerCarousel banners={banners} />
 
       {/* Circle Actions */}
-      <section className="px-4 mt-6">
+      <section className={`px-4 ${banners.length > 0 ? "mt-6" : "mt-4"}`}>
         <div className="grid grid-cols-4 gap-4">
           {circleActions.map((action) => (
             <button key={action.path} onClick={() => navigate(action.path)} className="flex flex-col items-center gap-2">
