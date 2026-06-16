@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
+import fallbackAppLogo from "@/assets/ge-energy-logo.svg";
 import fallbackEmma from "@/assets/emma-avatar.jpg";
 import fallbackBgDepot from "@/assets/bg-depot.png";
 import fallbackBgGains from "@/assets/bg-gains.png";
@@ -22,7 +23,7 @@ export type AppImages = {
 };
 
 const defaultImages: AppImages = {
-  appLogo:           "/logo-ge.jpg",
+  appLogo:           fallbackAppLogo,
   emmaAvatar:        fallbackEmma,
   bgDepot:           fallbackBgDepot,
   bgGains:           fallbackBgGains,

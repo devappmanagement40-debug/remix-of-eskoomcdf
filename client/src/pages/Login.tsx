@@ -83,7 +83,7 @@ const Login = () => {
         <p className="text-xl font-bold text-foreground text-center mb-8">{t.login.instant}</p>
 
         <div className="mb-10 flex flex-col items-center gap-2">
-          <img src={appLogo} alt="GE Energy" className="w-24 h-24 rounded-full object-cover" />
+          <img src={appLogo} alt="GE Energy" className="w-24 h-24 object-contain" />
           <span className="text-base font-bold text-foreground">GE Energy</span>
         </div>
 
