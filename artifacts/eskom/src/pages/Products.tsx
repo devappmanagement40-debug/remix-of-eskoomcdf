@@ -199,12 +199,12 @@ const Products = () => {
                     <div className="flex flex-col gap-1 flex-1 min-w-0">
                       <div className="flex gap-1.5 items-center flex-wrap">
                         <Badge variant="outline" className={`${colorBorderMap[seriesColor] || ""} text-[10px]`}>{product.name}</Badge>
-                        <Badge className="bg-success text-success-foreground text-[10px]">{product.return_percent}%</Badge>
+                        <Badge className="bg-success text-success-foreground text-[10px]">{product.return_percent != null ? product.return_percent : '—'}%</Badge>
                         <Badge className="bg-primary/90 text-primary-foreground text-[9px]">{t.products.live}</Badge>
                       </div>
                       <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 mt-1">
-                        <div><p className="text-[9px] text-muted-foreground">{t.products.totalRevenue}</p><p className="text-xs font-bold text-primary">{Number(product.total_revenue).toLocaleString("en-US")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p></div>
-                        <div><p className="text-[9px] text-muted-foreground">{t.products.dailyRevenue}</p><p className="text-xs font-bold text-primary">{Number(product.daily_revenue).toLocaleString("en-US")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p></div>
+                        <div><p className="text-[9px] text-muted-foreground">{t.products.totalRevenue}</p><p className="text-xs font-bold text-primary">{product.total_revenue != null ? Number(product.total_revenue).toLocaleString("en-US") : '—'} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p></div>
+                        <div><p className="text-[9px] text-muted-foreground">{t.products.dailyRevenue}</p><p className="text-xs font-bold text-primary">{product.daily_revenue != null ? Number(product.daily_revenue).toLocaleString("en-US") : '—'} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p></div>
                         <div><p className="text-[9px] text-muted-foreground">{t.products.cycles}</p><p className="text-xs font-bold text-primary">{product.cycles}{t.products.days}</p></div>
                         <div><p className="text-[9px] text-muted-foreground">{t.products.price}</p><p className="text-xs font-bold text-primary">{Number(product.price).toLocaleString("en-US")} <span className="text-[9px] font-normal text-muted-foreground">USDT</span></p></div>
                         {product.max_purchases && (
@@ -256,7 +256,7 @@ const Products = () => {
                 <div className="bg-secondary/50 rounded-xl p-3 grid grid-cols-2 gap-2 text-center">
                   <div><p className="text-[10px] text-muted-foreground">{t.products.dailyRevenue}</p><p className="text-xs font-bold text-primary">{Number(confirmProduct?.daily_revenue || 0).toLocaleString("en-US")} U</p></div>
                   <div><p className="text-[10px] text-muted-foreground">{t.products.cycles}</p><p className="text-xs font-bold text-primary">{confirmProduct?.cycles}{t.products.days}</p></div>
-                  <div><p className="text-[10px] text-muted-foreground">{t.products.yieldLabel}</p><p className="text-xs font-bold text-success">{confirmProduct?.return_percent}%</p></div>
+                  <div><p className="text-[10px] text-muted-foreground">{t.products.yieldLabel}</p><p className="text-xs font-bold text-success">{confirmProduct?.return_percent != null ? confirmProduct.return_percent : '—'}%</p></div>
                   <div><p className="text-[10px] text-muted-foreground">{t.products.totalRevenue}</p><p className="text-xs font-bold text-primary">{Number(confirmProduct?.total_revenue || 0).toLocaleString("en-US")} U</p></div>
                 </div>
               </div>

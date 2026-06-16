@@ -204,7 +204,7 @@ const Index = () => {
                   )}
                   <div className="flex flex-col gap-1 flex-1 min-w-0">
                     <Badge variant="outline" className="bg-primary/10 text-primary border-primary text-[10px] w-fit">{product.name}</Badge>
-                    <Badge className="bg-success text-success-foreground text-[10px] w-fit">{product.return_percent}%</Badge>
+                    <Badge className="bg-success text-success-foreground text-[10px] w-fit">{product.return_percent != null ? product.return_percent : '—'}%</Badge>
                     <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 mt-1">
                       <div>
                         <p className="text-[9px] text-muted-foreground">{t.index.totalRevenue}</p>

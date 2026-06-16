@@ -557,6 +557,16 @@ router.patch("/payments/fee-payments/:id/status", async (req, res) => {
   return res.json(updated);
 });
 
+// ─── GET /user-wallets/my (alias for /wallets/my) ────────────────────────────
+router.get("/user-wallets/my", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const wallets = await db.select().from(userWallets).where(eq(userWallets.userId, me.userId));
+  return res.json(wallets);
+});
+
 // ─── GET /user-wallets/batch?ids=id1,id2 ────────────────────────────────────
 
 router.get("/user-wallets/batch", async (req, res) => {

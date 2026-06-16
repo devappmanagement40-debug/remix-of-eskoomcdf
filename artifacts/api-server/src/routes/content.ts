@@ -202,4 +202,20 @@ router.post("/chat/send-system", async (req, res) => {
   return res.json(msg);
 });
 
+// ─── Wheel aliases (frontend uses /wheel/prizes and /wheel/my-spins) ─────────
+router.get("/wheel/prizes", async (req, res) => {
+  const all = await db.select().from(wheelPrizes).where(eq(wheelPrizes.isActive, true));
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+
+router.get("/wheel/my-spins", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const limit = Math.min(Number(req.query.limit ?? 20), 100);
+  const spins = await db.select().from(wheelSpins).where(eq(wheelSpins.userId, me.userId));
+  return res.json(spins.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()).slice(0, limit));
+});
+
 export default router;

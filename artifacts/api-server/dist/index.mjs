@@ -48825,6 +48825,128 @@ router4.post("/user-products/:id/collect", async (req, res) => {
   }).where(eq(profiles.userId, me.userId));
   return res.json({ collected: dailyRev });
 });
+router4.post("/products/purchase", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken2(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { productId } = req.body;
+  if (!productId) return res.status(400).json({ error: "productId requis" });
+  const [product] = await db.select().from(products).where(eq(products.id, productId)).limit(1);
+  if (!product || !product.isActive) return res.status(400).json({ error: "Produit non disponible" });
+  const price = Number(product.price ?? 0);
+  const balance = Number(me.balance ?? 0);
+  if (balance < price) return res.status(400).json({ error: "Solde insuffisant" });
+  const cycles = product.cycles ?? 30;
+  const expiresAt = new Date(Date.now() + cycles * 24 * 60 * 60 * 1e3);
+  const [userProduct] = await db.insert(userProducts).values({
+    id: crypto3.randomUUID(),
+    userId: me.userId,
+    productId: product.id,
+    expiresAt
+  }).returning();
+  await db.update(profiles).set({
+    balance: String(balance - price),
+    depositBalance: String(Math.max(0, Number(me.depositBalance ?? 0) - price)),
+    updatedAt: /* @__PURE__ */ new Date()
+  }).where(eq(profiles.userId, me.userId));
+  if (price > 0) {
+    try {
+      const { pool: dbPool } = await Promise.resolve().then(() => (init_src(), src_exports));
+      const RATES = [
+        { level: "L1", rate: 0.1 },
+        { level: "L2", rate: 0.05 },
+        { level: "L3", rate: 0.01 }
+      ];
+      let currentProfileId = me.referredBy ?? null;
+      for (const { level, rate } of RATES) {
+        if (!currentProfileId) break;
+        const { rows: refRows } = await dbPool.query(
+          `SELECT id, user_id, referred_by, balance, referral_balance FROM profiles WHERE id = $1 LIMIT 1`,
+          [currentProfileId]
+        );
+        if (!refRows.length) break;
+        const referrer = refRows[0];
+        const commission = Math.round(price * rate * 100) / 100;
+        await dbPool.query(
+          `UPDATE profiles SET balance = balance + $1, referral_balance = referral_balance + $1, updated_at = now() WHERE user_id = $2`,
+          [commission, referrer.user_id]
+        );
+        await dbPool.query(
+          `INSERT INTO referral_commissions (id, beneficiary_id, buyer_id, product_price, commission_amount, commission_rate, level, created_at) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, now())`,
+          [referrer.id, me.id, price, commission, rate, level]
+        );
+        currentProfileId = referrer.referred_by ?? null;
+      }
+    } catch (commErr) {
+      console.error("[referral] Commission crediting error:", commErr);
+    }
+  }
+  return res.json(userProduct);
+});
+router4.get("/products/user-products/my", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken2(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { pool: pool2 } = await Promise.resolve().then(() => (init_src(), src_exports));
+  const { rows } = await pool2.query(`
+    SELECT
+      up.id, up.user_id, up.product_id, up.is_active,
+      up.purchased_at, up.expires_at, up.last_collected_at, up.total_collected,
+      json_build_object(
+        'name', p.name, 'price', p.price, 'daily_revenue', p.daily_revenue,
+        'total_revenue', p.total_revenue, 'cycles', p.cycles,
+        'description', p.description, 'image_url', p.image_url,
+        'series_id', p.series_id, 'gain_type', p.gain_type
+      ) as products
+    FROM user_products up
+    JOIN products p ON p.id = up.product_id
+    WHERE up.user_id = $1
+    ORDER BY up.purchased_at DESC
+  `, [me.userId]);
+  return res.json(rows);
+});
+router4.post("/products/user-products/collect", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken2(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { userProductId } = req.body;
+  if (!userProductId) return res.status(400).json({ error: "userProductId requis" });
+  const [up] = await db.select().from(userProducts).where(
+    and(eq(userProducts.id, userProductId), eq(userProducts.userId, me.userId))
+  ).limit(1);
+  if (!up) return res.status(404).json({ error: "Produit introuvable" });
+  const [product] = await db.select().from(products).where(eq(products.id, up.productId)).limit(1);
+  const dailyRev = Number(product?.dailyRevenue ?? 0);
+  const newCollected = Number(up.totalCollected ?? 0) + dailyRev;
+  await db.update(userProducts).set({
+    lastCollectedAt: /* @__PURE__ */ new Date(),
+    totalCollected: String(newCollected)
+  }).where(eq(userProducts.id, up.id));
+  await db.update(profiles).set({
+    balance: String(Number(me.balance ?? 0) + dailyRev),
+    earningsBalance: String(Number(me.earningsBalance ?? 0) + dailyRev),
+    updatedAt: /* @__PURE__ */ new Date()
+  }).where(eq(profiles.userId, me.userId));
+  return res.json({ collected: dailyRev, amount: dailyRev });
+});
+router4.get("/products/user-products/active-by-users", async (req, res) => {
+  const { userIds } = req.query;
+  if (!userIds) return res.json([]);
+  const ids = userIds.split(",").filter(Boolean);
+  if (!ids.length) return res.json([]);
+  const { pool: pool2 } = await Promise.resolve().then(() => (init_src(), src_exports));
+  const { rows } = await pool2.query(
+    `SELECT up.user_id as "userId", up.id
+     FROM user_products up
+     WHERE up.user_id = ANY($1::text[])
+     AND up.is_active = true`,
+    [ids]
+  );
+  return res.json(rows);
+});
 var products_default = router4;
 
 // src/routes/payments.ts
@@ -49198,6 +49320,14 @@ router5.patch("/payments/fee-payments/:id/status", async (req, res) => {
   if (!updated) return res.status(404).json({ error: "Not found" });
   return res.json(updated);
 });
+router5.get("/user-wallets/my", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken3(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const wallets = await db.select().from(userWallets).where(eq(userWallets.userId, me.userId));
+  return res.json(wallets);
+});
 router5.get("/user-wallets/batch", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
@@ -49483,6 +49613,19 @@ router7.post("/chat/send-system", async (req, res) => {
     isAi: true
   }).returning();
   return res.json(msg);
+});
+router7.get("/wheel/prizes", async (req, res) => {
+  const all = await db.select().from(wheelPrizes).where(eq(wheelPrizes.isActive, true));
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router7.get("/wheel/my-spins", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken5(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const limit = Math.min(Number(req.query.limit ?? 20), 100);
+  const spins = await db.select().from(wheelSpins).where(eq(wheelSpins.userId, me.userId));
+  return res.json(spins.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, limit));
 });
 var content_default = router7;
 
@@ -51010,6 +51153,30 @@ router11.patch("/admin/official-documents/:id", async (req, res) => {
   return res.json(updated);
 });
 router11.delete("/admin/official-documents/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(officialDocuments).where(eq(officialDocuments.id, req.params.id));
+  return res.json({ ok: true });
+});
+router11.get("/admin/official-docs", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(officialDocuments);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router11.post("/admin/official-docs", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [doc] = await db.insert(officialDocuments).values({ id: crypto8.randomUUID(), ...normalizeToCamelCase3(req.body) }).returning();
+  return res.json(doc);
+});
+router11.patch("/admin/official-docs/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(officialDocuments).set({ ...normalizeToCamelCase3(req.body), updatedAt: /* @__PURE__ */ new Date() }).where(eq(officialDocuments.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router11.delete("/admin/official-docs/:id", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;
   await db.delete(officialDocuments).where(eq(officialDocuments.id, req.params.id));

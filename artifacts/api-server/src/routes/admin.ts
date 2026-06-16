@@ -367,6 +367,32 @@ router.delete("/admin/official-documents/:id", async (req, res) => {
   return res.json({ ok: true });
 });
 
+// ─── Official-docs aliases (frontend uses /official-docs, API uses /official-documents) ──
+router.get("/admin/official-docs", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(officialDocuments);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router.post("/admin/official-docs", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [doc] = await db.insert(officialDocuments).values({ id: crypto.randomUUID(), ...normalizeToCamelCase(req.body) }).returning();
+  return res.json(doc);
+});
+router.patch("/admin/official-docs/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(officialDocuments).set({ ...normalizeToCamelCase(req.body), updatedAt: new Date() }).where(eq(officialDocuments.id, req.params.id)).returning();
+  return res.json(updated);
+});
+router.delete("/admin/official-docs/:id", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  await db.delete(officialDocuments).where(eq(officialDocuments.id, req.params.id));
+  return res.json({ ok: true });
+});
+
 // ─── Banners (admin) ──────────────────────────────────────────────────────────
 router.get("/admin/banners", async (req, res) => {
   const auth = await requireAdmin(req, res);

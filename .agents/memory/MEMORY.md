@@ -4,3 +4,4 @@
 - [Port config for dual-service dev](port-config.md) — Vite frontend must run on port 5000 (webview); API server on port 8080; use PORT=5000 and API_PORT=8080 in dev script
 - [Plesk deployment workflow](plesk-deployment.md) — build on Replit → commit dist/ to git → Plesk: git pull + restart. app.js → dist/index.mjs. SUPABASE_DATABASE_URL required with SSL.
 - [CamelCase vs snake_case systemic fix](camelcase-fix.md) — Drizzle ORM requires camelCase in set()/values(); admin panel sends snake_case; fix: normalizeToCamelCase() in all routes + dual read (p.isActive ?? p.is_active) in frontend
+- [Route alias mismatches](route-alias-mismatches.md) — frontend calls different URL patterns than API; add alias routes rather than changing frontend

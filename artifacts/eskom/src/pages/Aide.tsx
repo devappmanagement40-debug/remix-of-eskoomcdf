@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { HelpCircle, ChevronRight } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import BottomNav from "@/components/BottomNav";
 
 type FaqItem = {
   id: string;
@@ -13,7 +14,7 @@ const Aide = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/db?table=faq_items&filter=eq:is_active:true&order=sort_order:asc")
+    fetch("/api/faq")
       .then(r => r.ok ? r.json() : [])
       .then(data => { if (Array.isArray(data)) setFaqItems(data); })
       .catch(() => {})
@@ -21,13 +22,21 @@ const Aide = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background">
-      <PageHeader title="Help Center" showBack />
+    <div className="min-h-screen bg-background pb-20">
+      <PageHeader title="Centre d'aide" showBack />
       <div className="px-4 pt-6 space-y-3">
         {loading ? (
-          <p className="text-center text-sm text-muted-foreground py-10">Loading...</p>
+          <div className="flex justify-center py-10">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          </div>
         ) : faqItems.length === 0 ? (
-          <p className="text-center text-sm text-muted-foreground py-10">No help articles available</p>
+          <div className="flex flex-col items-center py-16 text-center">
+            <div className="w-16 h-16 rounded-full bg-secondary/50 flex items-center justify-center mb-4">
+              <HelpCircle size={28} className="text-muted-foreground/50" />
+            </div>
+            <p className="text-sm font-semibold text-foreground mb-1">Aucun article disponible</p>
+            <p className="text-xs text-muted-foreground">Les articles d'aide seront bientôt disponibles.</p>
+          </div>
         ) : (
           faqItems.map((item) => (
             <details key={item.id} className="bg-card rounded-xl border border-secondary overflow-hidden group">
@@ -45,6 +54,7 @@ const Aide = () => {
           ))
         )}
       </div>
+      <BottomNav />
     </div>
   );
 };
