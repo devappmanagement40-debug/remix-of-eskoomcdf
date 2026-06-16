@@ -1,7 +1,11 @@
-# compiled output — DO NOT ignore dist (pre-built for Plesk deployment)
+# compiled output — DO NOT ignore dist/ at root (pre-built for Plesk deployment)
 # Source maps excluded (too large for git; regenerated on each build)
 dist/*.map
 dist/**/*.map
+
+# Intermediate artifact builds — Plesk uses root dist/ only
+artifacts/api-server/dist/
+artifacts/eskom/dist/
 tmp
 out-tsc
 *.tsbuildinfo
