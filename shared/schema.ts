@@ -1,4 +1,4 @@
-import { pgTable, text, numeric, boolean, timestamp, integer, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, numeric, boolean, timestamp, integer, jsonb, pgEnum } from "drizzle-orm/pg-core";
 
 export const appRoleEnum = pgEnum("app_role", ["admin", "moderator", "user"]);
 
@@ -62,7 +62,6 @@ export const vipHistory = pgTable("vip_history", {
   changedBy: text("changed_by"),
   createdAt: timestamp("created_at").defaultNow(),
 });
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const userSessions = pgTable("user_sessions", {
   id: text("id").primaryKey().default("gen_random_uuid()"),
@@ -71,7 +70,6 @@ export const userSessions = pgTable("user_sessions", {
   expiresAt: timestamp("expires_at").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
-import { pgTable, text, numeric, boolean, timestamp, integer } from "drizzle-orm/pg-core";
 
 export const productSeries = pgTable("product_series", {
   id: text("id").primaryKey().default("gen_random_uuid()"),
@@ -128,7 +126,6 @@ export const referralCommissions = pgTable("referral_commissions", {
   level: text("level").default("L1"),
   createdAt: timestamp("created_at").defaultNow(),
 });
-import { pgTable, text, numeric, boolean, timestamp, integer, jsonb } from "drizzle-orm/pg-core";
 
 export const countries = pgTable("countries", {
   id: text("id").primaryKey().default("gen_random_uuid()"),
@@ -272,7 +269,6 @@ export const omnipayCallbacks = pgTable("omnipay_callbacks", {
   rawPayload: jsonb("raw_payload"),
   createdAt: timestamp("created_at").defaultNow(),
 });
-import { pgTable, text, boolean, timestamp, integer, jsonb } from "drizzle-orm/pg-core";
 
 export const siteSettings = pgTable("site_settings", {
   id: text("id").primaryKey().default("gen_random_uuid()"),
@@ -326,7 +322,6 @@ export const faqItems = pgTable("faq_items", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
-import { pgTable, text, boolean, timestamp, integer, numeric } from "drizzle-orm/pg-core";
 
 export const banners = pgTable("banners", {
   id: text("id").primaryKey().default("gen_random_uuid()"),
@@ -425,7 +420,6 @@ export const wheelSpins = pgTable("wheel_spins", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
-import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const adminLogs = pgTable("admin_logs", {
   id: text("id").primaryKey().default("gen_random_uuid()"),
