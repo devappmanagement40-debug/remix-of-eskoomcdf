@@ -1,13 +1,16 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
+const DEFAULT_WHEEL_ICON = "/icons/wheel-floating.png";
+const DEFAULT_SUPPORT_ICON = "/icons/support-floating.png";
+
 const FloatingButtons = () => {
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const dragState = useRef({ dragging: false, startX: 0, startY: 0, offsetX: 0, offsetY: 0, moved: false });
   const [pos, setPos] = useState({ x: 0, y: 0 });
-  const [wheelIconUrl, setWheelIconUrl] = useState("");
-  const [supportIconUrl, setSupportIconUrl] = useState("");
+  const [wheelIconUrl, setWheelIconUrl] = useState(DEFAULT_WHEEL_ICON);
+  const [supportIconUrl, setSupportIconUrl] = useState(DEFAULT_SUPPORT_ICON);
   const [supportLink, setSupportLink] = useState("");
 
   useEffect(() => {
@@ -53,28 +56,10 @@ const FloatingButtons = () => {
     dragState.current.moved = false;
   };
 
-  const defaultWheelIcon = (
-    <svg viewBox="0 0 40 40" className="w-6 h-6 drop-shadow-md" fill="none">
-      <circle cx="20" cy="20" r="16" stroke="white" strokeWidth="2.5" opacity="0.9" />
-      <circle cx="20" cy="20" r="4" fill="white" opacity="0.9" />
-      {[0, 45, 90, 135].map((a) => (
-        <line key={a} x1="20" y1="20" x2={20 + 16 * Math.cos((a * Math.PI) / 180)} y2={20 + 16 * Math.sin((a * Math.PI) / 180)} stroke="white" strokeWidth="1.5" opacity="0.7" />
-      ))}
-      <polygon points="20,2 22,7 18,7" fill="hsl(45, 100%, 70%)" />
-    </svg>
-  );
-
-  const defaultSupportIcon = (
-    <svg viewBox="0 0 24 24" className="w-5 h-5 drop-shadow-md" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
-      <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
-    </svg>
-  );
-
   return (
     <div
       ref={containerRef}
-      className="fixed bottom-24 right-4 z-50 flex flex-col gap-5 touch-none select-none"
+      className="fixed bottom-24 right-4 z-50 flex flex-col gap-3 touch-none select-none"
       style={{ transform: `translate3d(${pos.x}px, ${pos.y}px, 0)` }}
       onMouseDown={onStart}
       onMouseMove={onMove}
@@ -84,31 +69,43 @@ const FloatingButtons = () => {
       onTouchMove={onMove}
       onTouchEnd={onEnd}
     >
+      {/* Bouton Roue */}
       <button
         onClick={() => handleClick(() => navigate("/loterie"))}
-        className="group w-[50px] h-[50px] rounded-full flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 overflow-hidden"
+        className="group w-[56px] h-[56px] rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95"
         style={{
-          background: wheelIconUrl ? "transparent" : "linear-gradient(135deg, hsl(35 90% 55%), hsl(25 95% 45%))",
-          boxShadow: "0 4px 20px hsla(35, 90%, 50%, 0.4)",
+          background: "transparent",
+          filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.35))",
         }}
         aria-label="Loterie"
       >
-        {wheelIconUrl ? <img src={wheelIconUrl} alt="Roue" className="w-full h-full object-contain rounded-full p-1" /> : defaultWheelIcon}
+        <img
+          src={wheelIconUrl}
+          alt="Roue"
+          className="w-full h-full object-contain rounded-full"
+          style={{ filter: "drop-shadow(0 2px 8px rgba(218,165,32,0.5))" }}
+        />
       </button>
 
+      {/* Bouton Service Client */}
       <button
         onClick={() => handleClick(() => {
           if (supportLink) window.open(supportLink, "_blank", "noopener,noreferrer");
           else navigate("/service-chat");
         })}
-        className="group w-[50px] h-[50px] rounded-full flex items-center justify-center shadow-lg transition-all duration-300 hover:scale-110 active:scale-95 overflow-hidden"
+        className="group w-[56px] h-[56px] rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 active:scale-95"
         style={{
-          background: supportIconUrl ? "transparent" : "linear-gradient(135deg, hsl(210 80% 55%), hsl(230 70% 50%))",
-          boxShadow: "0 4px 20px hsla(220, 80%, 50%, 0.4)",
+          background: "transparent",
+          filter: "drop-shadow(0 4px 12px rgba(0,0,0,0.35))",
         }}
         aria-label="Support"
       >
-        {supportIconUrl ? <img src={supportIconUrl} alt="Support" className="w-full h-full object-contain rounded-full p-1" /> : defaultSupportIcon}
+        <img
+          src={supportIconUrl}
+          alt="Support"
+          className="w-full h-full object-contain rounded-full"
+          style={{ filter: "drop-shadow(0 2px 8px rgba(34,197,94,0.4))" }}
+        />
       </button>
     </div>
   );

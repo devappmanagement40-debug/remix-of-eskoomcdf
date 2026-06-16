@@ -1,0 +1,14 @@
+uploads = []
+outputs = []
+
+[[generated]]
+id = "cSExyduNTRbB8fLlHbmJe"
+uri = "file://artifacts/eskom/public/icons/wheel-floating.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "n57M91SJSKa06ZG-AKk-j"
+uri = "file://artifacts/eskom/public/icons/support-floating.png"
+type = "image"
+title = "generated_image"
