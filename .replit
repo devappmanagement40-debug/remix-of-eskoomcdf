@@ -102,7 +102,6 @@ externalPort = 3000
 [userenv]
 
 [userenv.shared]
-NOWPAYMENTS_EMAIL = "devappmanagement40@gmail.com"
 DB_SSL = "false"
 APP_DOMAIN = "geenergy.top"
 PORT = "5000"

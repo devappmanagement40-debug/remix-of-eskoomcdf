@@ -50656,6 +50656,18 @@ function normalizeToCamelCase3(obj) {
   }
   return result;
 }
+function toSnake2(obj) {
+  if (Array.isArray(obj)) return obj.map(toSnake2);
+  if (obj !== null && typeof obj === "object" && !(obj instanceof Date)) {
+    const out = {};
+    for (const [k, v] of Object.entries(obj)) {
+      const snake = k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+      out[snake] = toSnake2(v);
+    }
+    return out;
+  }
+  return obj;
+}
 async function getProfileFromToken6(token) {
   const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
   if (!session || session.expiresAt < /* @__PURE__ */ new Date()) return null;
@@ -51384,6 +51396,69 @@ router11.get("/admin/payment-logs", async (req, res) => {
   if (!auth) return;
   const logs = await db.select().from(paymentLogs).orderBy(desc(paymentLogs.createdAt)).limit(200);
   return res.json(logs);
+});
+router11.get("/admin/all-data", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  try {
+    const [
+      profilesAll,
+      rechargesAll,
+      withdrawalsAll,
+      seriesAll,
+      productsAll,
+      paymentMethodsAll,
+      socialLinksAll,
+      siteSettingsAll,
+      popupsAll,
+      logsAll,
+      countriesAll,
+      vipAll,
+      bannersAll,
+      withdrawalMethodsAll,
+      apiConfigsAll,
+      paymentLogsAll
+    ] = await Promise.all([
+      db.select().from(profiles),
+      db.select().from(recharges),
+      db.select().from(withdrawals),
+      db.select().from(productSeries),
+      db.select().from(products),
+      db.select().from(paymentMethods),
+      db.select().from(socialLinks),
+      db.select().from(siteSettings),
+      db.select().from(popupMessages),
+      db.select().from(adminLogs),
+      db.select().from(countries),
+      db.select().from(vipConditions),
+      db.select().from(banners),
+      db.select().from(withdrawalMethods),
+      db.select().from(paymentApiConfigs),
+      db.select().from(paymentLogs)
+    ]);
+    const byDate = (a, b) => new Date(b.createdAt ?? b.created_at ?? 0).getTime() - new Date(a.createdAt ?? a.created_at ?? 0).getTime();
+    return res.json({
+      profiles: toSnake2(profilesAll.sort(byDate)),
+      recharges: toSnake2(rechargesAll.sort(byDate)),
+      withdrawals: toSnake2(withdrawalsAll.sort(byDate)),
+      series: toSnake2(seriesAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      products: toSnake2(productsAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      paymentMethods: toSnake2(paymentMethodsAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      socialLinks: toSnake2(socialLinksAll),
+      siteSettings: toSnake2(siteSettingsAll),
+      popups: toSnake2(popupsAll),
+      adminLogs: toSnake2(logsAll.sort(byDate).slice(0, 100)),
+      countries: toSnake2(countriesAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      vipConditions: toSnake2(vipAll.sort((a, b) => (a.level ?? 0) - (b.level ?? 0))),
+      banners: toSnake2(bannersAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      withdrawalMethods: toSnake2(withdrawalMethodsAll.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      apiConfigs: toSnake2(apiConfigsAll),
+      paymentLogs: toSnake2(paymentLogsAll.sort(byDate).slice(0, 200))
+    });
+  } catch (err) {
+    console.error("[admin/all-data] DB error:", err?.message ?? err);
+    return res.status(500).json({ error: err?.message ?? "Database error loading admin data" });
+  }
 });
 var admin_default = router11;
 

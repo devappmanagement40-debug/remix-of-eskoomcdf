@@ -25,6 +25,19 @@ function normalizeToCamelCase(obj: Record<string, any>): Record<string, any> {
   return result;
 }
 
+function toSnake(obj: any): any {
+  if (Array.isArray(obj)) return obj.map(toSnake);
+  if (obj !== null && typeof obj === "object" && !(obj instanceof Date)) {
+    const out: any = {};
+    for (const [k, v] of Object.entries(obj)) {
+      const snake = k.replace(/[A-Z]/g, c => `_${c.toLowerCase()}`);
+      out[snake] = toSnake(v);
+    }
+    return out;
+  }
+  return obj;
+}
+
 async function getProfileFromToken(token: string) {
   const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
   if (!session || session.expiresAt < new Date()) return null;
@@ -871,6 +884,63 @@ router.get("/admin/payment-logs", async (req, res) => {
   if (!auth) return;
   const logs = await db.select().from(paymentLogs).orderBy(desc(paymentLogs.createdAt)).limit(200);
   return res.json(logs);
+});
+
+// ─── /admin/all-data  (single bulk load for AdminPanel) ──────────────────────
+router.get("/admin/all-data", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  try {
+    const [
+      profilesAll, rechargesAll, withdrawalsAll, seriesAll, productsAll,
+      paymentMethodsAll, socialLinksAll, siteSettingsAll, popupsAll, logsAll,
+      countriesAll, vipAll, bannersAll, withdrawalMethodsAll, apiConfigsAll,
+      paymentLogsAll,
+    ] = await Promise.all([
+      db.select().from(profiles),
+      db.select().from(recharges),
+      db.select().from(withdrawals),
+      db.select().from(productSeries),
+      db.select().from(products),
+      db.select().from(paymentMethods),
+      db.select().from(socialLinks),
+      db.select().from(siteSettings),
+      db.select().from(popupMessages),
+      db.select().from(adminLogs),
+      db.select().from(countries),
+      db.select().from(vipConditions),
+      db.select().from(banners),
+      db.select().from(withdrawalMethods),
+      db.select().from(paymentApiConfigs),
+      db.select().from(paymentLogs),
+    ]);
+
+    const byDate = (a: any, b: any) =>
+      new Date(b.createdAt ?? b.created_at ?? 0).getTime() -
+      new Date(a.createdAt ?? a.created_at ?? 0).getTime();
+
+    return res.json({
+      profiles:          toSnake(profilesAll.sort(byDate)),
+      recharges:         toSnake(rechargesAll.sort(byDate)),
+      withdrawals:       toSnake(withdrawalsAll.sort(byDate)),
+      series:            toSnake(seriesAll.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      products:          toSnake(productsAll.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      paymentMethods:    toSnake(paymentMethodsAll.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      socialLinks:       toSnake(socialLinksAll),
+      siteSettings:      toSnake(siteSettingsAll),
+      popups:            toSnake(popupsAll),
+      adminLogs:         toSnake(logsAll.sort(byDate).slice(0, 100)),
+      countries:         toSnake(countriesAll.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      vipConditions:     toSnake(vipAll.sort((a: any, b: any) => (a.level ?? 0) - (b.level ?? 0))),
+      banners:           toSnake(bannersAll.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      withdrawalMethods: toSnake(withdrawalMethodsAll.sort((a: any, b: any) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))),
+      apiConfigs:        toSnake(apiConfigsAll),
+      paymentLogs:       toSnake(paymentLogsAll.sort(byDate).slice(0, 200)),
+    });
+  } catch (err: any) {
+    console.error("[admin/all-data] DB error:", err?.message ?? err);
+    return res.status(500).json({ error: err?.message ?? "Database error loading admin data" });
+  }
 });
 
 export default router;

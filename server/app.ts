@@ -33,6 +33,15 @@ app.use("/uploads", express.static(uploadsDir));
 // API routes
 app.use("/api", router);
 
+// JSON error handler — catches body-parser errors and unhandled route errors
+// Always returns JSON instead of Express's default HTML error page
+app.use((err: any, _req: any, res: any, next: any) => {
+  if (res.headersSent) return next(err);
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal server error";
+  return res.status(status).json({ error: message });
+});
+
 // Serve pre-built React frontend in production
 if (process.env.NODE_ENV === "production") {
   const frontendDist =
