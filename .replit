@@ -104,8 +104,8 @@ externalPort = 3000
 [userenv.shared]
 DB_SSL = "false"
 APP_DOMAIN = "geenergy.top"
-PORT = "5000"
 API_PORT = "8080"
+JWT_SECRET = "a749459832452c17e5d5a413b936de469096492c270cc8322c9a46ba84982ebd2581af58265835cb56053b104472f5e6"
 
 [userenv.production]
 NOWPAYMENTS_WEBHOOK_URL = "https://geenergy.top/api/nowpayments/webhook"
