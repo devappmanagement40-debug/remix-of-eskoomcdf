@@ -1,4 +1,4 @@
 #!/bin/bash
 set -e
 pnpm install --frozen-lockfile
-pnpm --filter @workspace/db run push-force
+cd lib/db && npx drizzle-kit migrate 2>&1 || true
