@@ -1,6 +1,6 @@
 import { Router } from "express";
 import crypto from "crypto";
-import { db, recharges, withdrawals, profiles } from "@workspace/db";
+import { db, recharges, withdrawals, profiles, userSessions, userRoles } from "@workspace/db";
 import { eq, sql, and } from "drizzle-orm";
 
 const router = Router();
@@ -11,6 +11,17 @@ function getApiKey(): string { return process.env["NOWPAYMENTS_API_KEY"] ?? ""; 
 function getIpnSecret(): string { return process.env["NOWPAYMENTS_IPN_SECRET"] ?? ""; }
 function getPayoutEmail(): string { return process.env["NOWPAYMENTS_EMAIL"] ?? ""; }
 function getPayoutPassword(): string { return process.env["NOWPAYMENTS_PASSWORD"] ?? ""; }
+
+// ---- Admin auth guard ----
+async function requireAdmin(req: any, res: any): Promise<{ userId: string } | null> {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) { res.status(401).json({ error: "Unauthorized" }); return null; }
+  const [session] = await db.select().from(userSessions).where(eq(userSessions.token, token)).limit(1);
+  if (!session || session.expiresAt < new Date()) { res.status(401).json({ error: "Session expired" }); return null; }
+  const [role] = await db.select({ role: userRoles.role }).from(userRoles).where(eq(userRoles.userId, session.userId)).limit(1);
+  if (role?.role !== "admin" && role?.role !== "moderator") { res.status(403).json({ error: "Forbidden" }); return null; }
+  return { userId: session.userId };
+}
 
 function getWebhookUrl(path: string): string {
   const base = process.env["NOWPAYMENTS_WEBHOOK_URL"];
@@ -249,15 +260,25 @@ router.get("/nowpayments/ping", async (_req, res) => {
 
 // GET /nowpayments/diagnostic — Full system diagnostic for production debugging (no auth required)
 router.get("/nowpayments/diagnostic", async (_req, res) => {
+  const webhookBase = process.env["NOWPAYMENTS_WEBHOOK_URL"];
+  const devDomain   = process.env["REPLIT_DEV_DOMAIN"];
+  const webhookDeposit  = webhookBase ? webhookBase : devDomain ? `https://${devDomain}/api/nowpayments/webhook` : "";
+  const webhookPayout   = webhookBase ? webhookBase.replace(/\/webhook$/, "") + "/payout-webhook" : devDomain ? `https://${devDomain}/api/nowpayments/payout-webhook` : "";
+
   const result: Record<string, any> = {
     timestamp: new Date().toISOString(),
     env: {
-      NOWPAYMENTS_API_KEY: !!process.env["NOWPAYMENTS_API_KEY"] ? "✅ set" : "❌ MISSING",
-      NOWPAYMENTS_IPN_SECRET: !!process.env["NOWPAYMENTS_IPN_SECRET"] ? "✅ set" : "⚠️ not set",
-      NOWPAYMENTS_PASSWORD: !!process.env["NOWPAYMENTS_PASSWORD"] ? "✅ set" : "⚠️ not set",
-      SUPABASE_DATABASE_URL: !!process.env["SUPABASE_DATABASE_URL"] ? "✅ set" : "❌ MISSING",
-      DATABASE_URL: !!process.env["DATABASE_URL"] ? "✅ set" : "not set",
-      NODE_ENV: process.env["NODE_ENV"] ?? "not set",
+      NOWPAYMENTS_API_KEY:      !!process.env["NOWPAYMENTS_API_KEY"]      ? "✅ set" : "❌ MISSING — payments cannot be created",
+      NOWPAYMENTS_IPN_SECRET:   !!process.env["NOWPAYMENTS_IPN_SECRET"]   ? "✅ set" : "⚠️ not set — IPN webhooks unverified (insecure)",
+      NOWPAYMENTS_EMAIL:        !!process.env["NOWPAYMENTS_EMAIL"]         ? "✅ set" : "❌ MISSING — automatic payouts (withdrawals) will FAIL",
+      NOWPAYMENTS_PASSWORD:     !!process.env["NOWPAYMENTS_PASSWORD"]      ? "✅ set" : "❌ MISSING — automatic payouts will FAIL",
+      SUPABASE_DATABASE_URL:    !!process.env["SUPABASE_DATABASE_URL"]     ? "✅ set" : "❌ MISSING",
+      NODE_ENV:                 process.env["NODE_ENV"] ?? "not set",
+    },
+    webhooks: {
+      deposit:  webhookDeposit  || "⚠️ EMPTY — set NOWPAYMENTS_WEBHOOK_URL on Plesk (e.g. https://geenergy.top/api/nowpayments/webhook)",
+      payout:   webhookPayout   || "⚠️ EMPTY — set NOWPAYMENTS_WEBHOOK_URL on Plesk",
+      note: webhookBase ? "✅ Using NOWPAYMENTS_WEBHOOK_URL" : devDomain ? "⚠️ Using REPLIT_DEV_DOMAIN (dev only, won't work in production)" : "❌ No webhook URL configured — IPN will not reach this server in production",
     },
     db: { ok: false, error: null as string | null, tablesFound: [] as string[] },
     nowpayments: { ok: false, error: null as string | null },
@@ -568,10 +589,22 @@ router.post("/nowpayments/webhook", async (req, res) => {
   return res.status(200).json({ ok: true });
 });
 
-// POST /nowpayments/payout — Automatic withdrawal via NowPayments Payouts API
+// POST /nowpayments/payout — Automatic withdrawal via NowPayments Payouts API (admin only)
 router.post("/nowpayments/payout", async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
   const apiKey = getApiKey();
   if (!apiKey) return res.status(503).json({ error: "NowPayments not configured" });
+
+  const email = getPayoutEmail();
+  const password = getPayoutPassword();
+  if (!email || !password) {
+    return res.status(503).json({
+      error: "Automatic payouts not configured",
+      detail: "NOWPAYMENTS_EMAIL and NOWPAYMENTS_PASSWORD are required. Please add NOWPAYMENTS_EMAIL to your environment secrets (same email as your NOWPayments account).",
+    });
+  }
 
   const { withdrawalId } = req.body as { withdrawalId?: string };
   if (!withdrawalId) return res.status(400).json({ error: "withdrawalId is required" });
@@ -658,8 +691,11 @@ router.post("/nowpayments/payout", async (req, res) => {
   }
 });
 
-// GET /nowpayments/payout/:payoutId — Get payout batch status
+// GET /nowpayments/payout/:payoutId — Get payout batch status (admin only)
 router.get("/nowpayments/payout/:payoutId", async (req, res) => {
+  const admin = await requireAdmin(req, res);
+  if (!admin) return;
+
   const apiKey = getApiKey();
   if (!apiKey) return res.status(503).json({ error: "Not configured" });
   try {
