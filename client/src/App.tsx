@@ -84,7 +84,7 @@ const App = () => (
                   <Route path="/inscription" element={<R><Signup /></R>} />
                   {/* /reg — alias anglais pour les liens de parrainage: /#/reg?invite_code=XXX */}
                   <Route path="/reg"         element={<R><Signup /></R>} />
-                  <Route path="/admin/827728389992871772661616161626€" element={<R><AdminLogin /></R>} />
+                  <Route path="/admin/827728389992871772661616161626E" element={<R><AdminLogin /></R>} />
 
                   {/* Toutes les autres pages — connexion obligatoire */}
                   <Route path="/"                    element={<Auth><Index /></Auth>} />
