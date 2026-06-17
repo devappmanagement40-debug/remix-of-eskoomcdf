@@ -1,57 +1,66 @@
 import { Router } from "express";
-import { createClient } from "@supabase/supabase-js";
-import { getSecret } from "../secrets";
+import fs from "fs";
+import path from "path";
 
 const router = Router();
 
-function getSupabase() {
-  const url = getSecret("SUPABASE_URL");
-  const key = getSecret("SUPABASE_SERVICE_ROLE_KEY");
-  if (!url || !key) {
-    throw new Error("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not configured");
-  }
-  return createClient(url, key, { auth: { persistSession: false } });
+const ALLOWED_MIME_TYPES = [
+  "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp",
+  "image/svg+xml", "image/avif", "image/bmp", "image/tiff",
+];
+
+function getUploadsDir(): string {
+  if (process.env.UPLOAD_DIR) return process.env.UPLOAD_DIR;
+  const cwd = process.cwd();
+  // When running from artifacts/api-server, go up two levels to repo root
+  const fromApiServer = path.resolve(cwd, "../..", "public", "uploads");
+  if (fs.existsSync(path.resolve(cwd, "../..", "public"))) return fromApiServer;
+  // When running from repo root (production)
+  return path.resolve(cwd, "public", "uploads");
 }
 
-async function ensureBucketPublic(supabase: ReturnType<typeof createClient>, bucket: string) {
-  const { data: buckets } = await supabase.storage.listBuckets();
-  const exists = buckets?.some((b: any) => b.name === bucket);
-  if (!exists) {
-    await supabase.storage.createBucket(bucket, { public: true });
-  }
+function ensureDir(dir: string) {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
 router.post("/upload", async (req, res) => {
-  if (!req.body) return res.status(400).json({ error: "base64, mimeType and fileName are required" });
+  if (!req.body) {
+    return res.status(400).json({ error: "base64, mimeType et fileName sont requis" });
+  }
+
   const { base64, mimeType, fileName, bucket = "site-assets" } = req.body;
 
   if (!base64 || !mimeType || !fileName) {
-    return res.status(400).json({ error: "base64, mimeType and fileName are required" });
+    return res.status(400).json({ error: "base64, mimeType et fileName sont requis" });
+  }
+
+  if (!ALLOWED_MIME_TYPES.includes(mimeType)) {
+    return res.status(400).json({ error: `Type de fichier non supporté: ${mimeType}. Types acceptés: JPEG, PNG, GIF, WebP, SVG, AVIF, BMP, TIFF` });
   }
 
   try {
-    const supabase = getSupabase();
-    await ensureBucketPublic(supabase, bucket);
-
     const buffer = Buffer.from(base64, "base64");
-    const ext = fileName.split(".").pop()?.toLowerCase() || "bin";
-    const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const filePath = `${uniqueName}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from(bucket)
-      .upload(filePath, buffer, { contentType: mimeType, upsert: false });
-
-    if (uploadError) {
-      console.error("[upload] Supabase Storage error:", uploadError.message);
-      return res.status(500).json({ error: uploadError.message || "Upload failed" });
+    if (buffer.length > 20 * 1024 * 1024) {
+      return res.status(400).json({ error: "Fichier trop volumineux. Maximum 20 MB." });
     }
 
-    const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
-    return res.json({ ok: true, url: data.publicUrl });
+    const ext = (fileName.split(".").pop() || "bin").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+    const uploadsDir = getUploadsDir();
+    const bucketDir = path.join(uploadsDir, bucket);
+    ensureDir(bucketDir);
+
+    const filePath = path.join(bucketDir, uniqueName);
+    fs.writeFileSync(filePath, buffer);
+
+    const url = `/uploads/${bucket}/${uniqueName}`;
+    console.log(`[upload] ✅ Saved: ${url} (${buffer.length} bytes)`);
+    return res.json({ ok: true, url });
   } catch (err: any) {
     console.error("[upload] Error:", err?.message);
-    return res.status(500).json({ error: err.message || "Upload failed" });
+    return res.status(500).json({ error: err.message || "Échec de l'upload" });
   }
 });
 

@@ -2,6 +2,7 @@ import express, { type Express } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import router from "./routes";
 import { logger } from "./lib/logger";
@@ -53,8 +54,15 @@ app.use((err: any, _req: any, res: any, next: any) => {
   return res.status(status).json({ error: message });
 });
 
-// Serve locally uploaded files (replaces Supabase Storage)
-const uploadsDir = process.env.UPLOAD_DIR || path.resolve(process.cwd(), "public", "uploads");
+// Serve locally uploaded files
+function getUploadsDir(): string {
+  if (process.env.UPLOAD_DIR) return process.env.UPLOAD_DIR;
+  const cwd = process.cwd();
+  const fromApiServer = path.resolve(cwd, "../..", "public", "uploads");
+  if (fs.existsSync(path.resolve(cwd, "../..", "public"))) return fromApiServer;
+  return path.resolve(cwd, "public", "uploads");
+}
+const uploadsDir = getUploadsDir();
 app.use("/uploads", express.static(uploadsDir));
 
 // Serve pre-built React frontend in production
