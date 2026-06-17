@@ -69,7 +69,7 @@ const tabs = [
   { key: "withdrawals", icon: Upload, label: "Withdrawals" },
   { key: "products", icon: Package, label: "Products" },
   { key: "banners", icon: ImageIcon, label: "Banners" },
-  { key: "annonces", icon: Bell, label: "Announcements" },
+  { key: "infos", icon: Bell, label: "Annonces" },
   { key: "wheel", icon: Activity, label: "Wheel" },
   { key: "rewards", icon: Star, label: "Rewards" },
   { key: "giftcodes", icon: Gift, label: "Codes" },
@@ -79,14 +79,14 @@ const tabs = [
   { key: "apiconfigs", icon: Power, label: "APIs" },
   { key: "secrets", icon: Key, label: "Secrets" },
   { key: "links", icon: Link2, label: "Links" },
-  { key: "popups", icon: Bell, label: "Popups" },
+  { key: "annonces", icon: MessageSquare, label: "Popup" },
+  { key: "popups", icon: Bell, label: "Popups+" },
   { key: "vip", icon: TrendingUp, label: "Levels" },
   { key: "sarah", icon: Bot, label: "Sarah AI" },
   { key: "officialdocs", icon: FileText, label: "Off. Docs" },
   { key: "officialinfo", icon: Globe, label: "Off. Info" },
   { key: "support", icon: MessageSquare, label: "Support" },
   { key: "faq", icon: HelpCircle, label: "FAQ" },
-  { key: "infos", icon: Info, label: "Infos" },
   { key: "app", icon: Smartphone, label: "App" },
   { key: "dates", icon: Clock, label: "Dates" },
   { key: "devises", icon: Coins, label: "Devises" },
@@ -2617,8 +2617,10 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState({ title: "", description: "" });
   const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => { load(); }, []);
+
   const load = async () => {
     const token = getAuthToken();
     const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
@@ -2633,13 +2635,34 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
   };
 
   const save = async () => {
-    if (!form.title || !form.description) { showError("Error", "Please fill in all fields"); return; }
-    const token = getAuthToken();
-    const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-    if (editing) await fetch(`/api/admin/info-items/${editing.id}`, { method: "PATCH", headers: h, body: JSON.stringify(form) });
-    else await fetch("/api/admin/info-items", { method: "POST", headers: h, body: JSON.stringify({ ...form, sort_order: items.length }) });
-    showSuccess(editing ? "Announcement updated" : "Announcement added", "");
-    setShowForm(false); load();
+    if (!form.title.trim() || !form.description.trim()) {
+      showError("Champs requis", "Veuillez remplir le titre et le contenu");
+      return;
+    }
+    setSaving(true);
+    try {
+      const token = getAuthToken();
+      const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
+      const payload = { title: form.title.trim(), description: form.description.trim() };
+      let res: Response;
+      if (editing) {
+        res = await fetch(`/api/admin/info-items/${editing.id}`, { method: "PATCH", headers: h, body: JSON.stringify(payload) });
+      } else {
+        res = await fetch("/api/admin/info-items", { method: "POST", headers: h, body: JSON.stringify({ ...payload, is_active: true, sort_order: items.length }) });
+      }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        showError("Erreur", err.error || "Impossible de sauvegarder l'annonce");
+        return;
+      }
+      showSuccess(editing ? "✅ Annonce modifiée" : "✅ Annonce publiée", "Elle apparaît maintenant sur la page d'accueil");
+      setShowForm(false);
+      setEditing(null);
+      setForm({ title: "", description: "" });
+      await load();
+    } finally {
+      setSaving(false);
+    }
   };
 
   const toggle = async (item: any) => {
@@ -2647,14 +2670,15 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
     const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     const currentActive = item.isActive ?? item.is_active ?? true;
     await fetch(`/api/admin/info-items/${item.id}`, { method: "PATCH", headers: h, body: JSON.stringify({ is_active: !currentActive }) });
-    load();
+    await load();
   };
 
   const remove = async (id: string) => {
     const token = getAuthToken();
     const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-    await fetch(`/api/admin/info-items/${id}`, { method: "DELETE", headers: h });
-    showSuccess("Announcement deleted", ""); load();
+    const res = await fetch(`/api/admin/info-items/${id}`, { method: "DELETE", headers: h });
+    if (res.ok) { showSuccess("✅ Annonce supprimée", ""); await load(); }
+    else showError("Erreur", "Impossible de supprimer cette annonce");
   };
 
   const uploadImage = async (itemId: string, file: File) => {
@@ -2664,8 +2688,8 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
       const token = getAuthToken();
       const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
       await fetch(`/api/admin/info-items/${itemId}`, { method: "PATCH", headers: h, body: JSON.stringify({ imageUrl: url }) });
-      showSuccess("Image ajoutée ✅", "");
-      load();
+      showSuccess("✅ Image ajoutée", "");
+      await load();
     } catch (err: any) {
       showError("Erreur upload", err?.message || "Vérifiez votre connexion");
     } finally {
@@ -2677,61 +2701,136 @@ const InfoItemsTab = ({ showSuccess, showError }: any) => {
     const token = getAuthToken();
     const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
     await fetch(`/api/admin/info-items/${itemId}`, { method: "PATCH", headers: h, body: JSON.stringify({ imageUrl: null }) });
-    showSuccess("Image deleted", "");
-    load();
+    showSuccess("✅ Image retirée", "");
+    await load();
   };
 
   return (
-    <div className="space-y-3">
-      <button onClick={() => openForm()} className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2">
-        <Plus size={16} /> Add an announcement
+    <div className="space-y-3 pb-6">
+      {/* Header info */}
+      <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-1">
+          <Bell size={14} className="text-primary" />
+          <h3 className="text-sm font-bold text-foreground">Annonces — Page d'accueil</h3>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Ces annonces s'affichent dans la section "Annonces" de la page d'accueil. Cliquez sur une annonce pour voir tous les détails. Activez/désactivez chaque annonce individuellement.
+        </p>
+      </div>
+
+      {/* Add button */}
+      <button
+        onClick={() => openForm()}
+        className="w-full gradient-button text-primary-foreground font-bold py-3 rounded-xl text-sm flex items-center justify-center gap-2"
+      >
+        <Plus size={16} /> Ajouter une annonce
       </button>
 
+      {/* Form */}
       {showForm && (
-        <div className="bg-card rounded-xl border border-secondary p-4 space-y-3">
-          <div className="flex justify-between"><span className="text-xs font-bold text-foreground">{editing ? "Edit" : "New announcement"}</span><button onClick={() => setShowForm(false)}><X size={14} className="text-muted-foreground" /></button></div>
-          <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Title" className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none" />
-          <textarea value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Description" rows={3} className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none resize-none" />
-          <button onClick={save} className="w-full gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm">{editing ? "Update" : "Add"}</button>
+        <div className="bg-card rounded-xl border border-primary/30 p-4 space-y-3">
+          <div className="flex justify-between items-center">
+            <span className="text-xs font-bold text-foreground">
+              {editing ? "✏️ Modifier l'annonce" : "📢 Nouvelle annonce"}
+            </span>
+            <button onClick={() => { setShowForm(false); setEditing(null); }}>
+              <X size={14} className="text-muted-foreground" />
+            </button>
+          </div>
+          <div>
+            <label className="text-[11px] text-muted-foreground block mb-1">Titre *</label>
+            <input
+              value={form.title}
+              onChange={e => setForm({ ...form, title: e.target.value })}
+              placeholder="Ex: Nouvelle mise à jour importante"
+              className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none"
+            />
+          </div>
+          <div>
+            <label className="text-[11px] text-muted-foreground block mb-1">Contenu complet *</label>
+            <textarea
+              value={form.description}
+              onChange={e => setForm({ ...form, description: e.target.value })}
+              placeholder="Rédigez le texte complet de l'annonce ici. Ce texte sera visible quand l'utilisateur clique sur l'annonce."
+              rows={5}
+              className="w-full bg-secondary text-foreground rounded-xl px-4 py-2.5 text-sm border border-secondary outline-none resize-none"
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">Ce texte s'affiche sur la page de détail de l'annonce.</p>
+          </div>
+          <button
+            onClick={save}
+            disabled={saving}
+            className="w-full gradient-button text-primary-foreground font-bold py-2.5 rounded-xl text-sm disabled:opacity-60"
+          >
+            {saving ? "Sauvegarde..." : (editing ? "Mettre à jour" : "Publier l'annonce")}
+          </button>
         </div>
       )}
 
-      {items.length === 0 ? <p className="text-xs text-muted-foreground text-center py-6">No announcements</p> :
+      {/* Items list */}
+      {items.length === 0 ? (
+        <div className="bg-card rounded-xl border border-dashed border-border p-8 flex flex-col items-center text-center">
+          <Bell size={24} className="text-muted-foreground mb-3" />
+          <p className="text-sm font-semibold text-foreground">Aucune annonce</p>
+          <p className="text-xs text-muted-foreground mt-1">Cliquez sur "Ajouter une annonce" pour créer votre première annonce.</p>
+        </div>
+      ) : (
         items.map((item: any) => {
           const isActive = item.isActive ?? item.is_active ?? true;
           const imageUrl = item.imageUrl ?? item.image_url ?? null;
           return (
-            <div key={item.id} className={`bg-card rounded-xl border border-secondary p-4 ${!isActive ? "opacity-50" : ""}`}>
+            <div key={item.id} className={`bg-card rounded-xl border p-4 transition-opacity ${!isActive ? "border-border/40 opacity-60" : "border-secondary"}`}>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex gap-3 flex-1 min-w-0">
                   {imageUrl && (
                     <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 relative group">
                       <img src={imageUrl} alt="" className="w-full h-full object-cover" />
-                      <button onClick={() => removeImage(item.id)} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => removeImage(item.id)}
+                        className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-lg"
+                        title="Retirer l'image"
+                      >
                         <Trash2 size={14} className="text-white" />
                       </button>
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground">{item.title}</p>
-                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="text-sm font-semibold text-foreground truncate">{item.title}</p>
+                      {!isActive && <span className="text-[9px] bg-secondary text-muted-foreground px-1.5 py-0.5 rounded-full font-bold shrink-0">INACTIF</span>}
+                    </div>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
                   </div>
                 </div>
                 <div className="flex gap-1.5 shrink-0">
-                  <label className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center cursor-pointer">
+                  {/* Upload image */}
+                  <label className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center cursor-pointer" title="Ajouter une image">
                     <ImageIcon size={10} className="text-primary" />
                     <input type="file" accept="image/*" className="hidden" onChange={e => { if (e.target.files?.[0]) uploadImage(item.id, e.target.files[0]); }} />
                   </label>
-                  <button onClick={() => toggle(item)} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${isActive ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{isActive ? "ON" : "OFF"}</button>
-                  <button onClick={() => openForm(item)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
-                  <button onClick={() => remove(item.id)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Trash2 size={10} className="text-destructive" /></button>
+                  {/* Toggle */}
+                  <button
+                    onClick={() => toggle(item)}
+                    title={isActive ? "Désactiver" : "Activer"}
+                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-bold ${isActive ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}
+                  >
+                    {isActive ? "ON" : "OFF"}
+                  </button>
+                  {/* Edit */}
+                  <button onClick={() => openForm(item)} title="Modifier" className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center">
+                    <Edit2 size={10} className="text-primary" />
+                  </button>
+                  {/* Delete */}
+                  <button onClick={() => remove(item.id)} title="Supprimer" className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center">
+                    <Trash2 size={10} className="text-destructive" />
+                  </button>
                 </div>
               </div>
             </div>
           );
         })
-      }
-      {uploading && <p className="text-xs text-center text-muted-foreground animate-pulse">Uploading...</p>}
+      )}
+      {uploading && <p className="text-xs text-center text-muted-foreground animate-pulse">⏳ Upload en cours...</p>}
     </div>
   );
 };
