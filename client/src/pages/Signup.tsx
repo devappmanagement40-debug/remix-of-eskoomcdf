@@ -59,8 +59,9 @@ const Signup = () => {
         return;
       }
 
-      if (data.token) {
-        localStorage.setItem("auth_token", data.token);
+      const authToken = data.token ?? data.session?.access_token;
+      if (authToken) {
+        localStorage.setItem("auth_token", authToken);
       }
 
       showSuccess(t.signup.successTitle, t.signup.successMsg);

@@ -42642,7 +42642,7 @@ __export(src_exports, {
   withdrawalMethods: () => withdrawalMethods,
   withdrawals: () => withdrawals
 });
-var Pool3, rawConnectionString, connectionString, pool, db;
+var Pool3, rawConnectionString, isSupabase, connectionString, pool, db;
 var init_src = __esm({
   "../../lib/db/src/index.ts"() {
     "use strict";
@@ -42651,14 +42651,15 @@ var init_src = __esm({
     init_schema2();
     init_schema2();
     ({ Pool: Pool3 } = esm_default);
-    rawConnectionString = process.env.DATABASE_URL;
+    rawConnectionString = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
     if (!rawConnectionString) {
-      throw new Error("DATABASE_URL environment variable is required.");
+      throw new Error("SUPABASE_DATABASE_URL or DATABASE_URL environment variable is required.");
     }
+    isSupabase = rawConnectionString.includes("supabase.com") || rawConnectionString.includes("pooler.supabase");
     connectionString = rawConnectionString.replace(/[?&]sslmode=[^&]*/g, "").replace(/\?$/, "");
     pool = new Pool3({
       connectionString,
-      ssl: false
+      ssl: isSupabase ? { rejectUnauthorized: false } : false
     });
     db = drizzle(pool, { schema: schema_exports });
   }
@@ -61618,6 +61619,7 @@ router2.post("/auth/signup", async (req, res) => {
     const accessToken = await createSession(userId);
     return res.json({
       ok: true,
+      token: accessToken,
       session: {
         access_token: accessToken,
         refresh_token: "",
@@ -61656,6 +61658,7 @@ router2.post("/auth/login", async (req, res) => {
     const accessToken = await createSession(profile.userId);
     return res.json({
       ok: true,
+      token: accessToken,
       session: {
         access_token: accessToken,
         refresh_token: "",
@@ -62767,6 +62770,18 @@ router5.get("/user-wallets/batch", async (req, res) => {
   const result = await db.select().from(userWallets).where(inArray(userWallets.id, ids));
   return res.json(result);
 });
+router5.delete("/user-wallets/:id", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken3(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const walletId = req.params.id;
+  const [existing] = await db.select().from(userWallets).where(eq(userWallets.id, walletId)).limit(1);
+  if (!existing) return res.status(404).json({ error: "Wallet not found" });
+  if (existing.userId !== me.userId) return res.status(403).json({ error: "Forbidden" });
+  await db.delete(userWallets).where(eq(userWallets.id, walletId));
+  return res.json({ ok: true });
+});
 var payments_default = router5;
 
 // src/routes/settings.ts
@@ -62947,6 +62962,32 @@ router7.post("/gift-rewards/:id/redeem", async (req, res) => {
   const me = await getProfileFromToken5(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
   const [reward] = await db.select().from(giftRewards).where(eq(giftRewards.id, req.params.id)).limit(1);
+  if (!reward || !reward.isActive) return res.status(400).json({ error: "Reward not available" });
+  const pointsRequired = reward.pointsRequired ?? 0;
+  if ((me.giftPoints ?? 0) < pointsRequired) return res.status(400).json({ error: "Insufficient points" });
+  const [exchange] = await db.insert(pointExchanges).values({
+    id: crypto6.randomUUID(),
+    userId: me.userId,
+    rewardId: reward.id,
+    rewardName: reward.name,
+    pointsSpent: pointsRequired,
+    moneyCredited: String(reward.moneyValue)
+  }).returning();
+  await db.update(profiles).set({
+    giftPoints: (me.giftPoints ?? 0) - pointsRequired,
+    balance: String(Number(me.balance ?? 0) + Number(reward.moneyValue)),
+    updatedAt: /* @__PURE__ */ new Date()
+  }).where(eq(profiles.userId, me.userId));
+  return res.json(exchange);
+});
+router7.post("/point-exchanges", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken5(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { rewardId } = req.body;
+  if (!rewardId) return res.status(400).json({ error: "rewardId required" });
+  const [reward] = await db.select().from(giftRewards).where(eq(giftRewards.id, rewardId)).limit(1);
   if (!reward || !reward.isActive) return res.status(400).json({ error: "Reward not available" });
   const pointsRequired = reward.pointsRequired ?? 0;
   if ((me.giftPoints ?? 0) < pointsRequired) return res.status(400).json({ error: "Insufficient points" });
@@ -74296,6 +74337,78 @@ router11.get("/admin/all-data", async (req, res) => {
     console.error("[admin/all-data] DB error:", err?.message ?? err);
     return res.status(500).json({ error: err?.message ?? "Database error loading admin data" });
   }
+});
+router11.get("/admin/faq-items", async (req, res) => {
+  const auth = await requireAdmin2(req, res);
+  if (!auth) return;
+  const all = await db.select().from(faqItems);
+  return res.json(toSnake3(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
+});
+router11.post("/admin/faq-items", async (req, res) => {
+  const auth = await requireAdmin2(req, res);
+  if (!auth) return;
+  const [item] = await db.insert(faqItems).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  return res.json(toSnake3(item));
+});
+router11.patch("/admin/faq-items/:id", async (req, res) => {
+  const auth = await requireAdmin2(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(faqItems).set(req.body).where(eq(faqItems.id, req.params.id)).returning();
+  return res.json(toSnake3(updated));
+});
+router11.delete("/admin/faq-items/:id", async (req, res) => {
+  const auth = await requireAdmin2(req, res);
+  if (!auth) return;
+  await db.delete(faqItems).where(eq(faqItems.id, req.params.id));
+  return res.json({ ok: true });
+});
+router11.get("/admin/popup-messages", async (req, res) => {
+  const auth = await requireAdmin2(req, res);
+  if (!auth) return;
+  const all = await db.select().from(popupMessages);
+  return res.json(toSnake3(all));
+});
+router11.post("/admin/popup-messages", async (req, res) => {
+  const auth = await requireAdmin2(req, res);
+  if (!auth) return;
+  const [popup] = await db.insert(popupMessages).values({ id: crypto8.randomUUID(), ...req.body }).returning();
+  return res.json(toSnake3(popup));
+});
+router11.patch("/admin/popup-messages/:id", async (req, res) => {
+  const auth = await requireAdmin2(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(popupMessages).set(req.body).where(eq(popupMessages.id, req.params.id)).returning();
+  return res.json(toSnake3(updated));
+});
+router11.delete("/admin/popup-messages/:id", async (req, res) => {
+  const auth = await requireAdmin2(req, res);
+  if (!auth) return;
+  await db.delete(popupMessages).where(eq(popupMessages.id, req.params.id));
+  return res.json({ ok: true });
+});
+router11.get("/admin/chat-conversations", async (req, res) => {
+  const auth = await requireAdmin2(req, res);
+  if (!auth) return;
+  const all = await db.select().from(chatMessages);
+  const byUser = {};
+  for (const msg of all) {
+    if (!byUser[msg.userId]) byUser[msg.userId] = { user_id: msg.userId, messages: [] };
+    byUser[msg.userId].messages.push(msg);
+  }
+  return res.json(Object.values(byUser));
+});
+router11.post("/admin/chat-reply", async (req, res) => {
+  const auth = await requireAdmin2(req, res);
+  if (!auth) return;
+  const { userId, content } = req.body;
+  if (!userId || !content) return res.status(400).json({ error: "userId and content required" });
+  const [msg] = await db.insert(chatMessages).values({
+    id: crypto8.randomUUID(),
+    userId,
+    content,
+    isFromUser: false
+  }).returning();
+  return res.json(toSnake3(msg));
 });
 var admin_default = router11;
 

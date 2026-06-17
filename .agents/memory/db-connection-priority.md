@@ -1,12 +1,27 @@
 ---
-name: DB connection priority fix
-description: Old SUPABASE_DATABASE_URL secret can shadow DATABASE_URL in lib/db/src/index.ts; always use DATABASE_URL only for Replit Postgres.
+name: DB connection priority and rebuild requirement
+description: SUPABASE_DATABASE_URL is the active database; artifacts/api-server runs compiled dist so must be rebuilt after source changes
 ---
 
-The compiled API server previously read `process.env.SUPABASE_POOLER_URL ?? process.env.SUPABASE_DATABASE_URL ?? process.env.DATABASE_URL`. Because `SUPABASE_DATABASE_URL` was set as a Replit secret (pointing at the old Supabase host), it took priority and caused `getaddrinfo ENOTFOUND db.*.supabase.co` on every query.
+# DB connection and rebuild
 
-**Fix applied:** `lib/db/src/index.ts` now reads only `process.env.DATABASE_URL` with `ssl: false`. The API server must be rebuilt (`pnpm run build` inside `artifacts/api-server`) after any change to `lib/db/src/index.ts`.
+## Active database (current state — June 2026)
+`lib/db/src/index.ts` uses `SUPABASE_DATABASE_URL || DATABASE_URL`. `SUPABASE_DATABASE_URL` IS set (postgresql://postgres.wrtkihbt...) and takes priority. Both `server/` (port 3001, legacy) and `artifacts/api-server` (port 8080, REAL frontend backend) connect to Supabase when running with current source.
 
-**Why:** Replit's managed Postgres injects `DATABASE_URL` automatically and does not require SSL. Legacy Supabase secrets must not be allowed to override it.
+**Why this matters:** Before rebuild, `dist/index.mjs` was compiled from old source → was connecting to Replit Postgres (empty DB) while server/ used Supabase. All table data was missing on port 8080 until rebuild.
 
-**How to apply:** If queries start failing with ENOTFOUND, check that `lib/db/src/index.ts` uses only `DATABASE_URL` and rebuild the API server dist.
+## Rebuild requirement (CRITICAL)
+`artifacts/api-server` runs `node --enable-source-maps ./dist/index.mjs` (NOT tsx watch). Source changes NEVER take effect without:
+1. `pnpm --filter @workspace/api-server run build`
+2. Restart the `artifacts/api-server: API Server` workflow
+
+**How to apply:** Any route/logic change in `artifacts/api-server/src/` requires rebuild + restart before testing or verifying.
+
+## Route aliases added
+These alias routes were added in admin.ts, payments.ts, and content.ts because the frontend calls different URL patterns than the base server routes:
+- `/admin/faq-items` → faqItems CRUD (admin.ts)
+- `/admin/popup-messages` → popupMessages CRUD (admin.ts)
+- `/admin/chat-conversations` → chatMessages grouped by user (admin.ts)
+- `/admin/chat-reply` → insert admin chatMessage (admin.ts)
+- `DELETE /user-wallets/:id` → delete user wallet (payments.ts)
+- `POST /point-exchanges` → exchange gift points for reward (content.ts)

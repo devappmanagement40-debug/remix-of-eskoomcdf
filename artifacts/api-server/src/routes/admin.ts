@@ -1023,4 +1023,88 @@ router.get("/admin/all-data", async (req, res) => {
   }
 });
 
+// ─── Aliases for frontend compatibility ──────────────────────────────────────
+
+router.get("/admin/faq-items", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(faqItems);
+  return res.json(toSnake(all.sort((a: any, b: any) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
+});
+
+router.post("/admin/faq-items", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [item] = await db.insert(faqItems).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  return res.json(toSnake(item));
+});
+
+router.patch("/admin/faq-items/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(faqItems).set(req.body).where(eq(faqItems.id, req.params.id)).returning();
+  return res.json(toSnake(updated));
+});
+
+router.delete("/admin/faq-items/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(faqItems).where(eq(faqItems.id, req.params.id));
+  return res.json({ ok: true });
+});
+
+router.get("/admin/popup-messages", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(popupMessages);
+  return res.json(toSnake(all));
+});
+
+router.post("/admin/popup-messages", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [popup] = await db.insert(popupMessages).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  return res.json(toSnake(popup));
+});
+
+router.patch("/admin/popup-messages/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [updated] = await db.update(popupMessages).set(req.body).where(eq(popupMessages.id, req.params.id)).returning();
+  return res.json(toSnake(updated));
+});
+
+router.delete("/admin/popup-messages/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(popupMessages).where(eq(popupMessages.id, req.params.id));
+  return res.json({ ok: true });
+});
+
+router.get("/admin/chat-conversations", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(chatMessages);
+  const byUser: Record<string, any> = {};
+  for (const msg of all) {
+    if (!byUser[msg.userId]) byUser[msg.userId] = { user_id: msg.userId, messages: [] };
+    byUser[msg.userId].messages.push(msg);
+  }
+  return res.json(Object.values(byUser));
+});
+
+router.post("/admin/chat-reply", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { userId, content } = req.body;
+  if (!userId || !content) return res.status(400).json({ error: "userId and content required" });
+  const [msg] = await db.insert(chatMessages).values({
+    id: crypto.randomUUID(),
+    userId,
+    content,
+    isFromUser: false,
+  }).returning();
+  return res.json(toSnake(msg));
+});
+
 export default router;

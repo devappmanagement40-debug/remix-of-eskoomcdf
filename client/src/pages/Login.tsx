@@ -64,7 +64,7 @@ const Login = () => {
         return;
       }
 
-      localStorage.setItem("auth_token", data.token);
+      localStorage.setItem("auth_token", data.token ?? data.session?.access_token ?? "");
 
       setUserName(data.profile?.fullName || data.profile?.full_name || data.profile?.phone || phone);
       setShowWelcome(true);

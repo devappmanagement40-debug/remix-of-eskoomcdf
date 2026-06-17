@@ -80,6 +80,39 @@ router.post("/gift-rewards/:id/redeem", async (req, res) => {
   return res.json(exchange);
 });
 
+router.post("/point-exchanges", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+
+  const { rewardId } = req.body;
+  if (!rewardId) return res.status(400).json({ error: "rewardId required" });
+
+  const [reward] = await db.select().from(giftRewards).where(eq(giftRewards.id, rewardId)).limit(1);
+  if (!reward || !reward.isActive) return res.status(400).json({ error: "Reward not available" });
+
+  const pointsRequired = reward.pointsRequired ?? 0;
+  if ((me.giftPoints ?? 0) < pointsRequired) return res.status(400).json({ error: "Insufficient points" });
+
+  const [exchange] = await db.insert(pointExchanges).values({
+    id: crypto.randomUUID(),
+    userId: me.userId,
+    rewardId: reward.id,
+    rewardName: reward.name,
+    pointsSpent: pointsRequired,
+    moneyCredited: String(reward.moneyValue),
+  }).returning();
+
+  await db.update(profiles).set({
+    giftPoints: (me.giftPoints ?? 0) - pointsRequired,
+    balance: String(Number(me.balance ?? 0) + Number(reward.moneyValue)),
+    updatedAt: new Date(),
+  }).where(eq(profiles.userId, me.userId));
+
+  return res.json(exchange);
+});
+
 router.get("/point-exchanges/my", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });

@@ -749,5 +749,19 @@ router.get("/user-wallets/batch", async (req, res) => {
   return res.json(result);
 });
 
+// ─── DELETE /user-wallets/:id ────────────────────────────────────────────────
+router.delete("/user-wallets/:id", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const walletId = req.params.id;
+  const [existing] = await db.select().from(userWallets).where(eq(userWallets.id, walletId)).limit(1);
+  if (!existing) return res.status(404).json({ error: "Wallet not found" });
+  if (existing.userId !== me.userId) return res.status(403).json({ error: "Forbidden" });
+  await db.delete(userWallets).where(eq(userWallets.id, walletId));
+  return res.json({ ok: true });
+});
+
 export { atomicRejectWithdrawal };
 export default router;

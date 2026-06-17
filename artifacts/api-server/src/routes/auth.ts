@@ -160,6 +160,7 @@ router.post("/auth/signup", async (req, res) => {
 
     return res.json({
       ok: true,
+      token: accessToken,
       session: {
         access_token: accessToken,
         refresh_token: "",
@@ -209,6 +210,7 @@ router.post("/auth/login", async (req, res) => {
 
     return res.json({
       ok: true,
+      token: accessToken,
       session: {
         access_token: accessToken,
         refresh_token: "",
