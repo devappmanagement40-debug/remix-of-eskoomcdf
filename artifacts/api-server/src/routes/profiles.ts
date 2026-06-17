@@ -102,7 +102,8 @@ router.get("/team/my", async (req, res) => {
   const me = await getProfileFromToken(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
 
-  const teamMembers = await db.select().from(profiles).where(eq(profiles.referredBy, me.id));
+  // referredBy stores the referrer's userId — compare against me.userId, not me.id
+  const teamMembers = await db.select().from(profiles).where(eq(profiles.referredBy, me.userId));
   return res.json(teamMembers);
 });
 
@@ -112,7 +113,7 @@ router.get("/profiles/team/direct", async (req, res) => {
   const me = await getProfileFromToken(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
 
-  const directMembers = await db.select().from(profiles).where(eq(profiles.referredBy, me.id));
+  const directMembers = await db.select().from(profiles).where(eq(profiles.referredBy, me.userId));
   return res.json(directMembers);
 });
 
@@ -123,16 +124,16 @@ router.get("/team", async (req, res) => {
   const me = await getProfileFromToken(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
 
-  // Level B: directly referred by me
-  const bRaw = await db.select().from(profiles).where(eq(profiles.referredBy, me.id));
-  const bIds = bRaw.map(m => m.id);
+  // Level B: directly referred by me (referredBy stores userId, compare with me.userId)
+  const bRaw = await db.select().from(profiles).where(eq(profiles.referredBy, me.userId));
+  const bIds = bRaw.map(m => m.userId);
 
   // Level C
   let cRaw: typeof bRaw = [];
   if (bIds.length > 0) {
     cRaw = await db.select().from(profiles).where(inArray(profiles.referredBy, bIds));
   }
-  const cIds = cRaw.map(m => m.id);
+  const cIds = cRaw.map(m => m.userId);
 
   // Level D
   let dRaw: typeof bRaw = [];

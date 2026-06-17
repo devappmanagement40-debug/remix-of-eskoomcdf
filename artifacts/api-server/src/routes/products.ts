@@ -163,12 +163,13 @@ router.post("/user-products/buy/:productId", async (req, res) => {
         { level: "L2", rate: 0.05 },
         { level: "L3", rate: 0.01 },
       ];
-      let currentProfileId: string | null = me.referredBy ?? null;
+      // referredBy stores the referrer's userId (user_id column), not profile id
+      let currentUserId: string | null = me.referredBy ?? null;
       for (const { level, rate } of RATES) {
-        if (!currentProfileId) break;
+        if (!currentUserId) break;
         const { rows: refRows } = await dbPool.query(
-          `SELECT id, user_id, referred_by, balance, referral_balance FROM profiles WHERE id = $1 LIMIT 1`,
-          [currentProfileId]
+          `SELECT id, user_id, referred_by, balance, referral_balance FROM profiles WHERE user_id = $1 LIMIT 1`,
+          [currentUserId]
         );
         if (!refRows.length) break;
         const referrer = refRows[0];
@@ -181,7 +182,7 @@ router.post("/user-products/buy/:productId", async (req, res) => {
           `INSERT INTO referral_commissions (id, beneficiary_id, buyer_id, product_price, commission_amount, commission_rate, level, created_at) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, now())`,
           [referrer.id, me.id, price, commission, rate, level]
         );
-        currentProfileId = referrer.referred_by ?? null;
+        currentUserId = referrer.referred_by ?? null;
       }
     } catch (commErr) {
       console.error("[referral] Commission crediting error:", commErr);
@@ -291,12 +292,13 @@ router.post("/products/purchase", async (req, res) => {
         { level: "L2", rate: 0.05 },
         { level: "L3", rate: 0.01 },
       ];
-      let currentProfileId: string | null = me.referredBy ?? null;
+      // referredBy stores the referrer's userId (user_id column), not profile id
+      let currentUserId: string | null = me.referredBy ?? null;
       for (const { level, rate } of RATES) {
-        if (!currentProfileId) break;
+        if (!currentUserId) break;
         const { rows: refRows } = await dbPool.query(
-          `SELECT id, user_id, referred_by, balance, referral_balance FROM profiles WHERE id = $1 LIMIT 1`,
-          [currentProfileId]
+          `SELECT id, user_id, referred_by, balance, referral_balance FROM profiles WHERE user_id = $1 LIMIT 1`,
+          [currentUserId]
         );
         if (!refRows.length) break;
         const referrer = refRows[0];
@@ -309,7 +311,7 @@ router.post("/products/purchase", async (req, res) => {
           `INSERT INTO referral_commissions (id, beneficiary_id, buyer_id, product_price, commission_amount, commission_rate, level, created_at) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, now())`,
           [referrer.id, me.id, price, commission, rate, level]
         );
-        currentProfileId = referrer.referred_by ?? null;
+        currentUserId = referrer.referred_by ?? null;
       }
     } catch (commErr) {
       console.error("[referral] Commission crediting error:", commErr);
