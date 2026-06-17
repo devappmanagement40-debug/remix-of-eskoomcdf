@@ -103,35 +103,53 @@ router.post("/wheel/spin", async (req, res) => {
 
   if ((me.spinsBalance ?? 0) < 1) return res.status(400).json({ error: "No spins available" });
 
-  const prizes = await db.select().from(wheelPrizes).where(and(eq(wheelPrizes.isActive, true), eq(wheelPrizes.isWinnable, true)));
-  if (!prizes.length) return res.status(400).json({ error: "No prizes available" });
+  // All active prizes (sorted) — used to determine winIndex for the wheel animation
+  const allActive = await db.select().from(wheelPrizes)
+    .where(eq(wheelPrizes.isActive, true));
+  allActive.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999));
 
-  const rand = Math.random();
+  // Only winnable prizes are eligible for selection
+  const winnable = allActive.filter(p => p.isWinnable !== false);
+  if (!winnable.length) return res.status(400).json({ error: "No prizes available" });
+
+  // Weighted random selection — probabilities stored as percentages (0-100 scale)
+  const totalProb = winnable.reduce((sum, p) => sum + Number(p.probability ?? 0), 0);
+  const rand = Math.random() * (totalProb || 100);
   let cumulative = 0;
-  let selected = prizes[prizes.length - 1];
-  for (const prize of prizes) {
+  let selected = winnable[winnable.length - 1];
+  for (const prize of winnable) {
     cumulative += Number(prize.probability ?? 0);
     if (rand <= cumulative) { selected = prize; break; }
   }
+
+  // winIndex = position of selected prize in the full wheel (for animation)
+  const winIndex = allActive.findIndex(p => p.id === selected.id);
+
+  const isVip = selected.prizeType === "vip";
+  const isCash = selected.prizeType === "cash";
+  const newSpinsBalance = (me.spinsBalance ?? 0) - 1;
+  const newBalance = isCash
+    ? String(Number(me.balance ?? 0) + Number(selected.value ?? 0))
+    : String(me.balance ?? 0);
 
   const [spin] = await db.insert(wheelSpins).values({
     id: crypto.randomUUID(),
     userId: me.userId,
     prizeId: selected.id,
-    prizeLabel: selected.label,
+    prizeLabel: selected.label ?? "",
     prizeType: selected.prizeType ?? "cash",
     prizeValue: String(selected.value ?? 0),
-    vipLevel: me.vipLevel,
-    status: "completed",
+    vipLevel: isVip ? (selected.vipLevel ?? null) : null,
+    status: isVip ? "pending_vip" : "completed",
   }).returning();
 
   await db.update(profiles).set({
-    spinsBalance: (me.spinsBalance ?? 0) - 1,
-    balance: selected.prizeType === "cash" ? String(Number(me.balance ?? 0) + Number(selected.value ?? 0)) : String(me.balance ?? 0),
+    spinsBalance: newSpinsBalance,
+    balance: newBalance,
     updatedAt: new Date(),
   }).where(eq(profiles.userId, me.userId));
 
-  return res.json(spin);
+  return res.json({ winIndex, prize: selected, spinsLeft: newSpinsBalance, spin });
 });
 
 router.get("/wheel/recent-winners", async (req, res) => {

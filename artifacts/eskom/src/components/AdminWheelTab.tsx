@@ -179,14 +179,18 @@ const PrizesSection = ({ prizes, reload, showSuccess, showError }: any) => {
             <div className="flex gap-1.5">
               <button onClick={async () => {
                 const token = getAuthToken();
-                await fetch(`/api/admin/wheel-prizes/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ is_active: !p.is_active }) });
+                const r = await fetch(`/api/admin/wheel-prizes/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ is_active: !p.is_active }) });
+                if (!r.ok) { showError("Erreur", "Impossible de modifier"); return; }
                 reload();
               }} className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold ${p.is_active ? "bg-success/20 text-success" : "bg-secondary text-muted-foreground"}`}>{p.is_active ? "ON" : "OFF"}</button>
               <button onClick={async () => {
                 const token = getAuthToken();
-                await fetch(`/api/admin/wheel-prizes/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ is_winnable: !(p as any).is_winnable }) });
+                const newVal = (p as any).is_winnable === false ? true : false;
+                const r = await fetch(`/api/admin/wheel-prizes/${p.id}`, { method: "PATCH", headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ is_winnable: newVal }) });
+                if (!r.ok) { showError("Erreur", "Impossible de modifier"); return; }
+                showSuccess(newVal ? "WIN activé ✅" : "NO WIN activé", "");
                 reload();
-              }} className={`h-7 px-1.5 rounded-lg flex items-center justify-center text-[9px] font-bold ${(p as any).is_winnable !== false ? "bg-warning/20 text-warning" : "bg-destructive/20 text-destructive"}`}>{(p as any).is_winnable !== false ? "WIN" : "NO WIN"}</button>
+              }} className={`h-7 px-1.5 rounded-lg flex items-center justify-center text-[9px] font-bold ${(p as any).is_winnable === false ? "bg-destructive/20 text-destructive" : "bg-warning/20 text-warning"}`}>{(p as any).is_winnable === false ? "NO WIN" : "WIN"}</button>
               <button onClick={() => openForm(p)} className="w-7 h-7 rounded-lg bg-secondary flex items-center justify-center"><Edit2 size={10} className="text-primary" /></button>
               <button onClick={async () => {
                 const token = getAuthToken();
