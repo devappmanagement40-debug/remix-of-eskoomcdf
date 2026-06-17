@@ -135,7 +135,7 @@ const Index = () => {
           })));
         }
         if (productsData.status === "fulfilled" && productsData.value) {
-          setFeaturedProducts(productsData.value.filter((p: any) => p.isFeatured || p.is_featured));
+          setFeaturedProducts(productsData.value.filter((p: any) => p.isFeatured || p.is_featured || p.isNew || p.is_new));
         }
         if (annoncesData.status === "fulfilled" && annoncesData.value) {
           setAnnonces(annoncesData.value);
