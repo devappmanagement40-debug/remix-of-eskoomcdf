@@ -7,7 +7,7 @@ const RequireAuth = ({ children }: { children: React.ReactNode }) => {
   const [authenticated, setAuthenticated] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("auth_token");
+    const token = localStorage.getItem("ge_auth_token") || localStorage.getItem("auth_token");
     setAuthenticated(!!token);
     setChecking(false);
   }, []);
