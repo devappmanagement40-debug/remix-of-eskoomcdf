@@ -7,7 +7,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useRealtimeProfile } from "@/hooks/useRealtimeProfile";
 import { useVipProgress } from "@/hooks/useVipProgress";
 import { useDisplaySettings } from "@/hooks/useDisplaySettings";
-import PremiumModal from "@/components/PremiumModal";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 const Profile = () => {
@@ -158,13 +157,24 @@ const Profile = () => {
         </button>
       </div>
 
-      <PremiumModal
-        triggerKey="logout_confirm"
-        open={showLogout}
-        onClose={() => setShowLogout(false)}
-        onConfirm={() => { localStorage.removeItem("auth_token"); navigate("/connexion"); }}
-        onCancel={() => setShowLogout(false)}
-      />
+      {showLogout && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4" onClick={() => setShowLogout(false)}>
+          <div className="bg-card rounded-2xl p-6 w-full max-w-xs shadow-xl border border-secondary" onClick={e => e.stopPropagation()}>
+            <p className="text-base font-semibold text-foreground text-center mb-2">{t.profile.signOut}</p>
+            <p className="text-sm text-muted-foreground text-center mb-6">Êtes-vous sûr de vouloir vous déconnecter ?</p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowLogout(false)} className="flex-1 py-2.5 rounded-xl border border-secondary text-sm font-medium text-muted-foreground">Annuler</button>
+              <button onClick={async () => {
+                try { await fetch("/api/auth/logout", { method: "POST", headers: { Authorization: `Bearer ${localStorage.getItem("ge_auth_token")}` } }); } catch {}
+                localStorage.removeItem("ge_auth_token");
+                localStorage.removeItem("ge_auth_user");
+                localStorage.removeItem("auth_token");
+                navigate("/connexion");
+              }} className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium">Déconnecter</button>
+            </div>
+          </div>
+        </div>
+      )}
       <BottomNav />
     </div>
   );

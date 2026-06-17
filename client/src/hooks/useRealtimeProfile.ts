@@ -33,7 +33,7 @@ export const useRealtimeProfile = () => {
   const [loading, setLoading] = useState(true);
 
   const fetchProfile = useCallback(async () => {
-    const token = localStorage.getItem("auth_token");
+    const token = localStorage.getItem("ge_auth_token") || localStorage.getItem("auth_token");
     if (!token) { setLoading(false); return; }
     try {
       const data = await api.get("/auth/me");
