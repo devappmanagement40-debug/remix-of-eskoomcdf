@@ -1194,3 +1194,212 @@ router.patch("/admin/users/:profileId", async (req, res) => {
 });
 
 export default router;
+
+// ─── Alias: /admin/users (list) ───────────────────────────────────────────────
+router.get("/admin/users", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(profiles);
+  return res.json(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
+});
+
+// ─── Alias: /admin/users/:id/suspend ─────────────────────────────────────────
+router.patch("/admin/users/:id/suspend", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { isSuspended, is_suspended } = req.body;
+  const val = isSuspended ?? is_suspended;
+  const [updated] = await db.update(profiles).set({ isSuspended: val }).where(eq(profiles.userId, req.params.id)).returning();
+  return res.json(updated ?? { ok: true });
+});
+
+// ─── Alias: /admin/users/:id/vip ─────────────────────────────────────────────
+router.patch("/admin/users/:id/vip", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { vipLevel, vip_level } = req.body;
+  const lvl = vipLevel ?? vip_level ?? 0;
+  const [updated] = await db.update(profiles).set({ vipLevel: lvl }).where(eq(profiles.userId, req.params.id)).returning();
+  if (updated) {
+    await db.insert(vipHistory).values({ userId: req.params.id, oldLevel: 0, newLevel: lvl, reason: "admin_manual", changedBy: auth.userId }).catch(() => {});
+  }
+  return res.json(updated ?? { ok: true });
+});
+
+// ─── Alias: /admin/api-configs → payment-api-configs ─────────────────────────
+router.get("/admin/api-configs", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(paymentApiConfigs);
+  return res.json(all);
+});
+
+router.post("/admin/api-configs", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [item] = await db.insert(paymentApiConfigs).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  return res.json(item);
+});
+
+router.patch("/admin/api-configs/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [item] = await db.update(paymentApiConfigs).set(req.body).where(eq(paymentApiConfigs.id, req.params.id)).returning();
+  return res.json(item);
+});
+
+router.delete("/admin/api-configs/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(paymentApiConfigs).where(eq(paymentApiConfigs.id, req.params.id));
+  return res.json({ ok: true });
+});
+
+// ─── Alias: /admin/faq → faq-items ───────────────────────────────────────────
+router.get("/admin/faq", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(faqItems);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+
+router.post("/admin/faq", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [item] = await db.insert(faqItems).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  return res.json(item);
+});
+
+router.patch("/admin/faq/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [item] = await db.update(faqItems).set(req.body).where(eq(faqItems.id, req.params.id)).returning();
+  return res.json(item);
+});
+
+router.delete("/admin/faq/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(faqItems).where(eq(faqItems.id, req.params.id));
+  return res.json({ ok: true });
+});
+
+// ─── Alias: /admin/official-docs → official-documents ────────────────────────
+router.get("/admin/official-docs", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(officialDocuments);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+
+router.post("/admin/official-docs", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [item] = await db.insert(officialDocuments).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  return res.json(item);
+});
+
+router.patch("/admin/official-docs/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [item] = await db.update(officialDocuments).set(req.body).where(eq(officialDocuments.id, req.params.id)).returning();
+  return res.json(item);
+});
+
+router.delete("/admin/official-docs/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(officialDocuments).where(eq(officialDocuments.id, req.params.id));
+  return res.json({ ok: true });
+});
+
+// ─── Alias: /admin/popups → popup-messages ───────────────────────────────────
+router.get("/admin/popups", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(popupMessages);
+  return res.json(all);
+});
+
+router.post("/admin/popups", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [item] = await db.insert(popupMessages).values({ id: crypto.randomUUID(), ...req.body }).returning();
+  return res.json(item);
+});
+
+router.patch("/admin/popups/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [item] = await db.update(popupMessages).set(req.body).where(eq(popupMessages.id, req.params.id)).returning();
+  return res.json(item);
+});
+
+// ─── Alias: /admin/chat/conversations ────────────────────────────────────────
+router.get("/admin/chat/conversations", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const msgs = await db.select().from(chatMessages);
+  const sorted = msgs.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime());
+  const userMap: Record<string, typeof msgs> = {};
+  sorted.forEach(m => { if (!userMap[m.userId!]) userMap[m.userId!] = []; userMap[m.userId!].push(m); });
+  const userIds = Object.keys(userMap);
+  if (userIds.length === 0) return res.json([]);
+  const profs = await db.select().from(profiles).where(inArray(profiles.userId, userIds));
+  const result = userIds.map(uid => {
+    const prof = profs.find(p => p.userId === uid);
+    const msgs_ = userMap[uid];
+    return { userId: uid, phone: prof?.phone, fullName: prof?.fullName, lastMessage: msgs_[0]?.message, messageCount: msgs_.length, updatedAt: msgs_[0]?.createdAt };
+  });
+  return res.json(result);
+});
+
+router.post("/admin/chat/reply", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { userId, message } = req.body;
+  if (!userId || !message) return res.status(400).json({ error: "userId and message required" });
+  const [msg] = await db.insert(chatMessages).values({ userId, message, sender: "sarah", isAi: true }).returning();
+  return res.json(msg);
+});
+
+// ─── /admin/site-settings/batch ──────────────────────────────────────────────
+router.patch("/admin/site-settings/batch", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const settings: Array<{ key: string; value: string; category?: string }> = Array.isArray(req.body) ? req.body : req.body.settings ?? [];
+  if (!settings.length) return res.status(400).json({ error: "settings array required" });
+  for (const { key, value, category } of settings) {
+    const existing = await db.select().from(siteSettings).where(eq(siteSettings.key, key)).limit(1);
+    if (existing.length > 0) {
+      await db.update(siteSettings).set({ value, updatedAt: new Date() }).where(eq(siteSettings.key, key));
+    } else {
+      await db.insert(siteSettings).values({ key, value, category: category ?? "general" });
+    }
+  }
+  return res.json({ ok: true, count: settings.length });
+});
+
+// ─── /admin/secrets (payment API keys — masked) ───────────────────────────────
+router.get("/admin/secrets", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(paymentApiConfigs);
+  return res.json(all.map(c => ({ ...c, secretKey: c.secretKey ? "***" : null })));
+});
+
+// ─── /admin/team ──────────────────────────────────────────────────────────────
+router.get("/admin/team", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const mods = await db.select().from(userRoles).where(eq(userRoles.role, "moderator" as any));
+  if (mods.length === 0) return res.json([]);
+  const userIds = mods.map(r => r.userId);
+  const profs = await db.select().from(profiles).where(inArray(profiles.userId, userIds));
+  const perms = await db.select().from(adminPermissions).where(inArray(adminPermissions.userId, userIds));
+  return res.json(userIds.map(uid => {
+    const prof = profs.find(p => p.userId === uid);
+    const userPerms = perms.filter(p => p.userId === uid).map(p => p.permission);
+    return { userId: uid, phone: prof?.phone, fullName: prof?.fullName, permissions: userPerms };
+  }));
+});

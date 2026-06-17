@@ -42097,7 +42097,7 @@ var init_profiles = __esm({
     init_pg_core();
     appRoleEnum = pgEnum("app_role", ["admin", "moderator", "user"]);
     profiles = pgTable("profiles", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull().unique(),
       phone: text("phone"),
       fullName: text("full_name"),
@@ -42118,19 +42118,19 @@ var init_profiles = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     userRoles = pgTable("user_roles", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       role: appRoleEnum("role").notNull().default("user")
     });
     adminPermissions = pgTable("admin_permissions", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       permission: text("permission").notNull(),
       grantedBy: text("granted_by").notNull(),
       createdAt: timestamp("created_at").defaultNow()
     });
     vipConditions = pgTable("vip_conditions", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       level: integer("level").notNull(),
       levelName: text("level_name").notNull(),
       minInvestment: numeric("min_investment", { precision: 18, scale: 8 }),
@@ -42144,7 +42144,7 @@ var init_profiles = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     vipHistory = pgTable("vip_history", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       oldLevel: integer("old_level").default(0),
       newLevel: integer("new_level").default(0),
@@ -42162,7 +42162,7 @@ var init_auth = __esm({
     "use strict";
     init_pg_core();
     userSessions = pgTable("user_sessions", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       token: text("token").notNull().unique(),
       expiresAt: timestamp("expires_at").notNull(),
@@ -42178,7 +42178,7 @@ var init_products = __esm({
     "use strict";
     init_pg_core();
     productSeries = pgTable("product_series", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       name: text("name").notNull(),
       color: text("color"),
       minVipLevel: integer("min_vip_level"),
@@ -42189,7 +42189,7 @@ var init_products = __esm({
       createdAt: timestamp("created_at").defaultNow()
     });
     products = pgTable("products", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       name: text("name").notNull(),
       description: text("description"),
       price: numeric("price", { precision: 18, scale: 8 }),
@@ -42210,7 +42210,7 @@ var init_products = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     userProducts = pgTable("user_products", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       productId: text("product_id").notNull().references(() => products.id),
       isActive: boolean("is_active").default(true),
@@ -42220,7 +42220,7 @@ var init_products = __esm({
       totalCollected: numeric("total_collected", { precision: 18, scale: 8 }).default("0")
     });
     referralCommissions = pgTable("referral_commissions", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       beneficiaryId: text("beneficiary_id").notNull(),
       buyerId: text("buyer_id").notNull(),
       productPrice: numeric("product_price", { precision: 18, scale: 8 }).default("0"),
@@ -42239,7 +42239,7 @@ var init_payments = __esm({
     "use strict";
     init_pg_core();
     countries = pgTable("countries", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       name: text("name").notNull(),
       countryCode: text("country_code").notNull(),
       flagEmoji: text("flag_emoji"),
@@ -42251,7 +42251,7 @@ var init_payments = __esm({
       createdAt: timestamp("created_at").defaultNow()
     });
     paymentApiConfigs = pgTable("payment_api_configs", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       name: text("name").notNull(),
       provider: text("provider").default(""),
       mode: text("mode").default("manual"),
@@ -42266,7 +42266,7 @@ var init_payments = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     paymentMethods = pgTable("payment_methods", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       name: text("name").notNull(),
       paymentType: text("payment_type").default("manual"),
       country: text("country").default(""),
@@ -42282,7 +42282,7 @@ var init_payments = __esm({
       createdAt: timestamp("created_at").defaultNow()
     });
     recharges = pgTable("recharges", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       amount: numeric("amount", { precision: 18, scale: 8 }).notNull(),
       phone: text("phone"),
@@ -42296,7 +42296,7 @@ var init_payments = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     userWallets = pgTable("user_wallets", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       phone: text("phone").notNull(),
       network: text("network").default(""),
@@ -42306,7 +42306,7 @@ var init_payments = __esm({
       createdAt: timestamp("created_at").defaultNow()
     });
     withdrawalMethods = pgTable("withdrawal_methods", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       name: text("name").notNull(),
       paymentType: text("payment_type").default("manual"),
       apiProvider: text("api_provider"),
@@ -42317,7 +42317,7 @@ var init_payments = __esm({
       createdAt: timestamp("created_at").defaultNow()
     });
     withdrawals = pgTable("withdrawals", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       amount: numeric("amount", { precision: 18, scale: 8 }).notNull(),
       feeAmount: numeric("fee_amount", { precision: 18, scale: 8 }).default("0"),
@@ -42335,7 +42335,7 @@ var init_payments = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     withdrawalFeePayments = pgTable("withdrawal_fee_payments", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       capitalAmount: numeric("capital_amount", { precision: 18, scale: 8 }).default("0"),
       feeAmount: numeric("fee_amount", { precision: 18, scale: 8 }).default("0"),
@@ -42346,7 +42346,7 @@ var init_payments = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     paymentLogs = pgTable("payment_logs", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       amount: numeric("amount", { precision: 18, scale: 8 }).notNull(),
       phone: text("phone").notNull(),
@@ -42361,7 +42361,7 @@ var init_payments = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     omnipayCallbacks = pgTable("omnipay_callbacks", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       reference: text("reference").notNull(),
       statusResult: text("status_result").notNull(),
       statusCode: text("status_code"),
@@ -42381,14 +42381,14 @@ var init_settings = __esm({
     "use strict";
     init_pg_core();
     siteSettings = pgTable("site_settings", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       key: text("key").notNull().unique(),
       value: text("value"),
       category: text("category").default("general"),
       updatedAt: timestamp("updated_at").defaultNow()
     });
     socialLinks = pgTable("social_links", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       key: text("key").notNull(),
       label: text("label").notNull(),
       url: text("url"),
@@ -42396,7 +42396,7 @@ var init_settings = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     officialDocuments = pgTable("official_documents", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       title: text("title").notNull(),
       docType: text("doc_type").default("policy"),
       description: text("description"),
@@ -42407,7 +42407,7 @@ var init_settings = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     popupMessages = pgTable("popup_messages", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       triggerKey: text("trigger_key").notNull(),
       title: text("title").notNull(),
       message: text("message").notNull(),
@@ -42420,7 +42420,7 @@ var init_settings = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     faqItems = pgTable("faq_items", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       question: text("question").notNull(),
       answer: text("answer").notNull(),
       isActive: boolean("is_active").default(true),
@@ -42438,7 +42438,7 @@ var init_content = __esm({
     "use strict";
     init_pg_core();
     banners = pgTable("banners", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       imageUrl: text("image_url").notNull(),
       linkPath: text("link_path"),
       isActive: boolean("is_active").default(true),
@@ -42446,7 +42446,7 @@ var init_content = __esm({
       createdAt: timestamp("created_at").defaultNow()
     });
     infoItems = pgTable("info_items", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       title: text("title").notNull(),
       description: text("description").notNull(),
       imageUrl: text("image_url"),
@@ -42456,7 +42456,7 @@ var init_content = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     chatMessages = pgTable("chat_messages", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       message: text("message").notNull(),
       sender: text("sender").default("user"),
@@ -42464,7 +42464,7 @@ var init_content = __esm({
       createdAt: timestamp("created_at").defaultNow()
     });
     giftCodes = pgTable("gift_codes", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       code: text("code").notNull().unique(),
       pointsValue: integer("points_value").default(0),
       maxUses: integer("max_uses").default(1),
@@ -42475,14 +42475,14 @@ var init_content = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     giftCodeUses = pgTable("gift_code_uses", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       codeId: text("code_id").notNull().references(() => giftCodes.id),
       userId: text("user_id").notNull(),
       pointsAwarded: integer("points_awarded").notNull(),
       createdAt: timestamp("created_at").defaultNow()
     });
     giftRewards = pgTable("gift_rewards", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       name: text("name").notNull(),
       pointsRequired: integer("points_required").default(0),
       moneyValue: numeric("money_value", { precision: 18, scale: 8 }).default("0"),
@@ -42493,7 +42493,7 @@ var init_content = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     pointExchanges = pgTable("point_exchanges", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       rewardId: text("reward_id").references(() => giftRewards.id),
       rewardName: text("reward_name").notNull(),
@@ -42502,7 +42502,7 @@ var init_content = __esm({
       createdAt: timestamp("created_at").defaultNow()
     });
     wheelPrizes = pgTable("wheel_prizes", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       label: text("label").notNull(),
       prizeType: text("prize_type").default("cash"),
       value: numeric("value", { precision: 18, scale: 8 }).default("0"),
@@ -42515,7 +42515,7 @@ var init_content = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     wheelSpins = pgTable("wheel_spins", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       prizeId: text("prize_id").references(() => wheelPrizes.id),
       prizeLabel: text("prize_label").notNull(),
@@ -42536,7 +42536,7 @@ var init_admin = __esm({
     "use strict";
     init_pg_core();
     adminLogs = pgTable("admin_logs", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       adminId: text("admin_id").notNull(),
       action: text("action").notNull(),
       targetType: text("target_type"),
@@ -42642,7 +42642,7 @@ __export(src_exports, {
   withdrawalMethods: () => withdrawalMethods,
   withdrawals: () => withdrawals
 });
-var Pool3, connectionString, isSupabase, pool, db;
+var Pool3, rawConnectionString, connectionString, isSupabase, pool, db;
 var init_src = __esm({
   "../../lib/db/src/index.ts"() {
     "use strict";
@@ -42651,11 +42651,12 @@ var init_src = __esm({
     init_schema2();
     init_schema2();
     ({ Pool: Pool3 } = esm_default);
-    connectionString = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
-    if (!connectionString) {
+    rawConnectionString = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
+    if (!rawConnectionString) {
       throw new Error("SUPABASE_DATABASE_URL or DATABASE_URL environment variable is required.");
     }
-    isSupabase = connectionString.includes("supabase.com") || connectionString.includes("pooler.supabase");
+    connectionString = rawConnectionString.replace(/[?&]sslmode=[^&]*/g, "").replace(/\?$/, "");
+    isSupabase = rawConnectionString.includes("supabase.com") || rawConnectionString.includes("pooler.supabase");
     pool = new Pool3({
       connectionString,
       ssl: isSupabase ? { rejectUnauthorized: false } : false
@@ -61735,7 +61736,8 @@ router3.get("/profiles/me", async (req, res) => {
   const profile = await getProfileFromToken(token);
   if (!profile) return res.status(401).json({ error: "Unauthorized" });
   const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, profile.userId)).limit(1);
-  return res.json({ ...profile, role: role?.role ?? "user" });
+  const { passwordHash: _pw, ...safeProfile } = profile;
+  return res.json({ ...safeProfile, role: role?.role ?? "user" });
 });
 router3.patch("/profiles/me", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -61859,6 +61861,14 @@ router3.get("/team", async (req, res) => {
     levelC: enrich(cRaw),
     levelD: enrich(dRaw)
   });
+});
+router3.get("/referral-commissions/my", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const commissions = await db.select().from(referralCommissions).where(eq(referralCommissions.beneficiaryId, me.id));
+  return res.json(commissions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
 });
 var profiles_default = router3;
 
@@ -62431,6 +62441,24 @@ router5.get("/wallets/my", async (req, res) => {
   return res.json(wallets);
 });
 router5.post("/wallets", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken3(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { phone, network, countryCode, holderName, label } = req.body;
+  if (!phone) return res.status(400).json({ error: "Phone required" });
+  const [wallet] = await db.insert(userWallets).values({
+    id: crypto4.randomUUID(),
+    userId: me.userId,
+    phone,
+    network,
+    countryCode,
+    holderName,
+    label
+  }).returning();
+  return res.json(wallet);
+});
+router5.post("/user-wallets", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken3(token);
@@ -74041,6 +74069,31 @@ router11.get("/admin/referral-commissions", async (req, res) => {
   if (!auth) return;
   const all = await db.select().from(referralCommissions);
   return res.json(toSnake3(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
+});
+router11.get("/admin/site-settings", async (req, res) => {
+  const auth = await requireAdmin2(req, res);
+  if (!auth) return;
+  const all = await db.select().from(siteSettings);
+  return res.json(all);
+});
+router11.patch("/admin/site-settings/batch", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const body = req.body;
+  const settings = Array.isArray(body) ? body : body.settings ?? [];
+  if (!settings.length) return res.status(400).json({ error: "settings array required" });
+  const results = [];
+  for (const s of settings) {
+    const existing = await db.select().from(siteSettings).where(eq(siteSettings.key, s.key)).limit(1);
+    if (existing.length > 0) {
+      const [updated] = await db.update(siteSettings).set({ value: s.value, updatedAt: /* @__PURE__ */ new Date() }).where(eq(siteSettings.key, s.key)).returning();
+      results.push(updated);
+    } else {
+      const [created] = await db.insert(siteSettings).values({ id: crypto8.randomUUID(), key: s.key, value: s.value, category: s.category ?? "general" }).returning();
+      results.push(created);
+    }
+  }
+  return res.json(results);
 });
 router11.post("/admin/site-settings/batch", async (req, res) => {
   const auth = await requireAdminOnly(req, res);

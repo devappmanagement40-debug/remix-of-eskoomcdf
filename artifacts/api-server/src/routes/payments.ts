@@ -330,6 +330,19 @@ router.post("/wallets", async (req, res) => {
   return res.json(wallet);
 });
 
+router.post("/user-wallets", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { phone, network, countryCode, holderName, label } = req.body;
+  if (!phone) return res.status(400).json({ error: "Phone required" });
+  const [wallet] = await db.insert(userWallets).values({
+    id: crypto.randomUUID(), userId: me.userId, phone, network, countryCode, holderName, label,
+  }).returning();
+  return res.json(wallet);
+});
+
 // ────────────────────────────────────────────────────────────────────────────
 // WITHDRAWALS (RETRAITS)
 // ────────────────────────────────────────────────────────────────────────────

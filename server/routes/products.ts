@@ -307,6 +307,50 @@ router.post("/user-products/buy/:productId", async (req, res) => {
   return res.json(toSnake(userProduct));
 });
 
+router.get("/products/series", async (req, res) => {
+  const all = await db.select().from(productSeries);
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
+});
+
+router.get("/products/user-products/my", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { pool } = await import("../db");
+  const { rows } = await pool.query(`
+    SELECT up.id, up.user_id, up.product_id, up.is_active,
+      up.purchased_at, up.expires_at, up.last_collected_at, up.total_collected,
+      json_build_object(
+        'name', p.name, 'price', p.price, 'daily_revenue', p.daily_revenue,
+        'total_revenue', p.total_revenue, 'cycles', p.cycles,
+        'description', p.description, 'image_url', p.image_url,
+        'series_id', p.series_id, 'gain_type', p.gain_type
+      ) as products
+    FROM user_products up
+    JOIN products p ON p.id = up.product_id
+    WHERE up.user_id = $1
+    ORDER BY up.purchased_at DESC
+  `, [me.userId]);
+  return res.json(rows);
+});
+
+router.post("/products/user-products/collect", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const upId = req.body.userProductId ?? req.body.user_product_id;
+  if (!upId) return res.status(400).json({ error: "userProductId required" });
+  const [up] = await db.select().from(userProducts).where(and(eq(userProducts.id, upId), eq(userProducts.userId, me.userId))).limit(1);
+  if (!up) return res.status(404).json({ error: "Not found" });
+  const [product] = await db.select().from(products).where(eq(products.id, up.productId)).limit(1);
+  const dailyRev = Number(product?.dailyRevenue ?? 0);
+  await db.update(userProducts).set({ lastCollectedAt: new Date(), totalCollected: String(Number(up.totalCollected ?? 0) + dailyRev) }).where(eq(userProducts.id, up.id));
+  await db.update(profiles).set({ balance: String(Number(me.balance ?? 0) + dailyRev), earningsBalance: String(Number(me.earningsBalance ?? 0) + dailyRev), updatedAt: new Date() }).where(eq(profiles.userId, me.userId));
+  return res.json({ collected: dailyRev });
+});
+
 router.post("/user-products/:id/collect", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });

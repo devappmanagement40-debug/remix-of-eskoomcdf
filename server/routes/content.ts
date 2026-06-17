@@ -155,6 +155,51 @@ router.get("/wheel/recent-winners", async (req, res) => {
   return res.json(toSnake(winners));
 });
 
+router.get("/wheel/prizes", async (req, res) => {
+  const all = await db.select().from(wheelPrizes).where(eq(wheelPrizes.isActive, true));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
+});
+
+router.get("/popups", async (req, res) => {
+  const { triggerKey, trigger_key } = req.query as Record<string, string>;
+  const key = triggerKey || trigger_key;
+  const { popupMessages } = await import("../db");
+  const popups = await db.select().from(popupMessages).where(eq(popupMessages.isActive, true));
+  const filtered = key ? popups.filter((p: any) => p.triggerKey === key) : popups;
+  return res.json(toSnake(filtered));
+});
+
+router.post("/chat/send-system", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const adminRole = await isAdmin(me.userId);
+  if (!adminRole) return res.status(403).json({ error: "Forbidden" });
+  const { userId, message } = req.body;
+  if (!userId || !message) return res.status(400).json({ error: "userId and message required" });
+  const [msg] = await db.insert(chatMessages).values({
+    userId,
+    message,
+    sender: "sarah",
+    isAi: true,
+  }).returning();
+  return res.json(toSnake(msg));
+});
+
+router.get("/point-exchanges", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { pointExchanges } = await import("../db");
+  const adminCheck = await isAdmin(me.userId);
+  const exchanges = adminCheck
+    ? await db.select().from(pointExchanges)
+    : await db.select().from(pointExchanges).where(eq(pointExchanges.userId, me.userId));
+  return res.json(toSnake(exchanges.sort((a: any, b: any) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())));
+});
+
 router.get("/chat/my", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });

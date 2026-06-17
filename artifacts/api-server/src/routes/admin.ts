@@ -776,7 +776,35 @@ router.get("/admin/referral-commissions", async (req, res) => {
   return res.json(toSnake(all.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())));
 });
 
+// ─── Site settings GET (admin) ────────────────────────────────────────────────
+router.get("/admin/site-settings", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(siteSettings);
+  return res.json(all);
+});
+
 // ─── Site settings batch upsert (admin) ───────────────────────────────────────
+router.patch("/admin/site-settings/batch", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  const body = req.body;
+  const settings: { key: string; value: string; category?: string }[] = Array.isArray(body) ? body : (body.settings ?? []);
+  if (!settings.length) return res.status(400).json({ error: "settings array required" });
+  const results = [];
+  for (const s of settings) {
+    const existing = await db.select().from(siteSettings).where(eq(siteSettings.key, s.key)).limit(1);
+    if (existing.length > 0) {
+      const [updated] = await db.update(siteSettings).set({ value: s.value, updatedAt: new Date() }).where(eq(siteSettings.key, s.key)).returning();
+      results.push(updated);
+    } else {
+      const [created] = await db.insert(siteSettings).values({ id: crypto.randomUUID(), key: s.key, value: s.value, category: s.category ?? "general" }).returning();
+      results.push(created);
+    }
+  }
+  return res.json(results);
+});
+
 router.post("/admin/site-settings/batch", async (req, res) => {
   const auth = await requireAdminOnly(req, res);
   if (!auth) return;

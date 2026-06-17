@@ -307,6 +307,24 @@ router.get("/payments/withdrawals", async (req, res) => {
   return res.json(toSnake(myWithdrawals.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())));
 });
 
+router.get("/payments/recharges/my", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const myRecharges = await db.select().from(recharges).where(eq(recharges.userId, me.userId));
+  return res.json(toSnake(myRecharges.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())));
+});
+
+router.get("/payments/fee-payments", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const myPayments = await db.select().from(withdrawalFeePayments).where(eq(withdrawalFeePayments.userId, me.userId));
+  return res.json(toSnake(myPayments.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime())));
+});
+
 router.patch("/payments/withdrawals/:id/proof", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });

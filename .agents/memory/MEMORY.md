@@ -6,4 +6,4 @@
 - [CamelCase vs snake_case systemic fix](camelcase-fix.md) — Drizzle ORM requires camelCase in set()/values(); admin panel sends snake_case; fix: normalizeToCamelCase() in all routes + dual read (p.isActive ?? p.is_active) in frontend
 - [Route alias mismatches](route-alias-mismatches.md) — frontend calls different URL patterns than API; add alias routes rather than changing frontend
 - [Site settings seeding](site-settings-seed.md) — site_settings table must be seeded with defaults; many keys (deposit_min, deposit_max, referral, VIP, toggles, points) are missing until seeded; PATCH /admin/site-settings upserts by key
-- [Drizzle UUID default pitfall](drizzle-uuid-default.md) — .default("gen_random_uuid()") stores a literal string, not a function call; use .$defaultFn(() => crypto.randomUUID()) on all PK id columns
+- [Real API server location](artifacts-api-server-structure.md) — artifacts/api-server/src/routes/ is the REAL server (port 8080); server/routes/ is unused legacy; always edit artifacts/ files

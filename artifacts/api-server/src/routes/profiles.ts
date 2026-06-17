@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { profiles, userRoles, userSessions, adminPermissions, userProducts, products } from "@workspace/db";
+import { profiles, userRoles, userSessions, adminPermissions, userProducts, products, referralCommissions } from "@workspace/db";
 import { eq, inArray } from "drizzle-orm";
 import crypto from "crypto";
 
@@ -19,7 +19,8 @@ router.get("/profiles/me", async (req, res) => {
   const profile = await getProfileFromToken(token);
   if (!profile) return res.status(401).json({ error: "Unauthorized" });
   const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, profile.userId)).limit(1);
-  return res.json({ ...profile, role: role?.role ?? "user" });
+  const { passwordHash: _pw, ...safeProfile } = profile;
+  return res.json({ ...safeProfile, role: role?.role ?? "user" });
 });
 
 router.patch("/profiles/me", async (req, res) => {
@@ -179,6 +180,15 @@ router.get("/team", async (req, res) => {
     levelC: enrich(cRaw),
     levelD: enrich(dRaw),
   });
+});
+
+router.get("/referral-commissions/my", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const commissions = await db.select().from(referralCommissions).where(eq(referralCommissions.beneficiaryId, me.id));
+  return res.json(commissions.sort((a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime()));
 });
 
 export default router;
