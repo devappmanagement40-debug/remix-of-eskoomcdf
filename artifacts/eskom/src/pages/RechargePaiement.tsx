@@ -50,6 +50,8 @@ const RechargePaiement = () => {
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Store rechargeId so Retry reuses the same record (no duplicate orphaned recharges)
+  const rechargeIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!state?.amount || !state?.currency) {
@@ -73,17 +75,23 @@ const RechargePaiement = () => {
 
       const { amount, currency } = state!;
 
-      const rechargeRes = await fetch("/api/recharges", {
-        method: "POST",
-        headers: h,
-        body: JSON.stringify({ amount, paymentMethod: currency.label, status: "pending" }),
-      });
-      if (!rechargeRes.ok) {
-        const errData = await rechargeRes.json().catch(() => ({}));
-        setCreateError(errData.error || "Failed to create deposit record. Please try again.");
-        return;
+      // Reuse existing rechargeId on retry to avoid creating duplicate orphaned records
+      let rechargeId = rechargeIdRef.current;
+      if (!rechargeId) {
+        const rechargeRes = await fetch("/api/recharges", {
+          method: "POST",
+          headers: h,
+          body: JSON.stringify({ amount, paymentMethod: currency.label, status: "pending" }),
+        });
+        if (!rechargeRes.ok) {
+          const errData = await rechargeRes.json().catch(() => ({}));
+          setCreateError(errData.error || "Failed to create deposit record. Please try again.");
+          return;
+        }
+        const recharge = await rechargeRes.json();
+        rechargeId = recharge.id;
+        rechargeIdRef.current = rechargeId;
       }
-      const recharge = await rechargeRes.json();
 
       const res = await fetch("/api/nowpayments/create", {
         method: "POST",
@@ -91,7 +99,7 @@ const RechargePaiement = () => {
         body: JSON.stringify({
           amount,
           currency: currency.code,
-          rechargeId: recharge.id,
+          rechargeId,
         }),
       });
 

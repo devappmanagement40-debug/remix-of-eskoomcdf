@@ -554,15 +554,20 @@ router.post("/nowpayments/webhook", async (req, res) => {
   const ipnSecret = getIpnSecret();
   const sig = req.headers["x-nowpayments-sig"] as string | undefined;
 
-  if (ipnSecret) {
-    if (!sig) {
-      console.warn("[NP] Deposit IPN: missing signature header");
-      return res.status(401).json({ error: "Missing signature" });
-    }
-    if (!verifyNpSignature(ipnSecret, req.body, sig)) {
-      console.warn("[NP] Deposit IPN: invalid signature");
-      return res.status(401).json({ error: "Invalid signature" });
-    }
+  if (!ipnSecret) {
+    // No secret configured — reject ALL webhook calls for security
+    // (accepting unsigned webhooks would allow anyone to trigger credits)
+    console.error("[NP] Deposit IPN BLOCKED: NOWPAYMENTS_IPN_SECRET not configured. Set it in your environment secrets to accept webhooks.");
+    return res.status(503).json({ error: "Webhook not configured — IPN secret missing" });
+  }
+
+  if (!sig) {
+    console.warn("[NP] Deposit IPN: missing signature header");
+    return res.status(401).json({ error: "Missing signature" });
+  }
+  if (!verifyNpSignature(ipnSecret, req.body, sig)) {
+    console.warn("[NP] Deposit IPN: invalid signature");
+    return res.status(401).json({ error: "Invalid signature" });
   }
 
   const payload = req.body as {
@@ -717,15 +722,18 @@ router.post("/nowpayments/payout-webhook", async (req, res) => {
   const ipnSecret = getIpnSecret();
   const sig = req.headers["x-nowpayments-sig"] as string | undefined;
 
-  if (ipnSecret) {
-    if (!sig) {
-      console.warn("[NP] Payout IPN: missing signature header");
-      return res.status(401).json({ error: "Missing signature" });
-    }
-    if (!verifyNpSignature(ipnSecret, req.body, sig)) {
-      console.warn("[NP] Payout IPN: invalid signature");
-      return res.status(401).json({ error: "Invalid signature" });
-    }
+  if (!ipnSecret) {
+    console.error("[NP] Payout IPN BLOCKED: NOWPAYMENTS_IPN_SECRET not configured. Set it in environment secrets.");
+    return res.status(503).json({ error: "Webhook not configured — IPN secret missing" });
+  }
+
+  if (!sig) {
+    console.warn("[NP] Payout IPN: missing signature header");
+    return res.status(401).json({ error: "Missing signature" });
+  }
+  if (!verifyNpSignature(ipnSecret, req.body, sig)) {
+    console.warn("[NP] Payout IPN: invalid signature");
+    return res.status(401).json({ error: "Invalid signature" });
   }
 
   type PayoutItem = { id?: string; status?: string; unique_external_id?: string };

@@ -259,11 +259,23 @@ router.patch("/recharges/:id/reject", async (req, res) => {
   const me = await getProfileFromToken(token);
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
 
+  // GUARD: only reject if still pending — never reject an already-approved recharge
+  // (approved = balance already credited; rejecting it without debiting would cause inconsistency)
+  const [current] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
+  if (!current) return res.status(404).json({ error: "Not found" });
+  if (current.status === "approved") {
+    return res.status(409).json({ error: "Cannot reject: recharge is already approved (balance credited)" });
+  }
+  if (current.status === "rejected") {
+    return res.status(409).json({ error: "Already rejected" });
+  }
+
   const [updated] = await db
     .update(recharges)
     .set({ status: "rejected", adminNote: req.body.adminNote, updatedAt: new Date() })
-    .where(eq(recharges.id, req.params.id))
+    .where(and(eq(recharges.id, req.params.id), eq(recharges.status, "pending")))
     .returning();
+  if (!updated) return res.status(409).json({ error: "Concurrent update — please refresh" });
   return res.json(updated);
 });
 
@@ -473,12 +485,21 @@ router.patch("/withdrawals/:id/approve", async (req, res) => {
   const me = await getProfileFromToken(token);
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
 
+  // GUARD: only approve if still pending or processing — never approve a rejected withdrawal
+  // (rejected = balance already refunded; approving it would create a double-payment)
+  const [current] = await db.select().from(withdrawals).where(eq(withdrawals.id, req.params.id)).limit(1);
+  if (!current) return res.status(404).json({ error: "Not found" });
+  if (current.status === "rejected" || current.status === "approved") {
+    return res.status(409).json({ error: `Cannot approve: withdrawal is already '${current.status}'` });
+  }
+
   // Balance already deducted at submission — just mark approved
   const [updated] = await db
     .update(withdrawals)
     .set({ status: "approved", adminNote: req.body.adminNote, updatedAt: new Date() })
-    .where(eq(withdrawals.id, req.params.id))
+    .where(and(eq(withdrawals.id, req.params.id), sql`${withdrawals.status} IN ('pending', 'processing')`))
     .returning();
+  if (!updated) return res.status(409).json({ error: "Concurrent update — please refresh" });
   return res.json(updated);
 });
 

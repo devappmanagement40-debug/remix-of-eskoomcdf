@@ -62413,7 +62413,16 @@ router5.patch("/recharges/:id/reject", async (req, res) => {
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken3(token);
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
-  const [updated] = await db.update(recharges).set({ status: "rejected", adminNote: req.body.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq(recharges.id, req.params.id)).returning();
+  const [current] = await db.select().from(recharges).where(eq(recharges.id, req.params.id)).limit(1);
+  if (!current) return res.status(404).json({ error: "Not found" });
+  if (current.status === "approved") {
+    return res.status(409).json({ error: "Cannot reject: recharge is already approved (balance credited)" });
+  }
+  if (current.status === "rejected") {
+    return res.status(409).json({ error: "Already rejected" });
+  }
+  const [updated] = await db.update(recharges).set({ status: "rejected", adminNote: req.body.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(and(eq(recharges.id, req.params.id), eq(recharges.status, "pending"))).returning();
+  if (!updated) return res.status(409).json({ error: "Concurrent update \u2014 please refresh" });
   return res.json(updated);
 });
 router5.patch("/recharges/:id/status", async (req, res) => {
@@ -62571,7 +62580,13 @@ router5.patch("/withdrawals/:id/approve", async (req, res) => {
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken3(token);
   if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
-  const [updated] = await db.update(withdrawals).set({ status: "approved", adminNote: req.body.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(eq(withdrawals.id, req.params.id)).returning();
+  const [current] = await db.select().from(withdrawals).where(eq(withdrawals.id, req.params.id)).limit(1);
+  if (!current) return res.status(404).json({ error: "Not found" });
+  if (current.status === "rejected" || current.status === "approved") {
+    return res.status(409).json({ error: `Cannot approve: withdrawal is already '${current.status}'` });
+  }
+  const [updated] = await db.update(withdrawals).set({ status: "approved", adminNote: req.body.adminNote, updatedAt: /* @__PURE__ */ new Date() }).where(and(eq(withdrawals.id, req.params.id), sql`${withdrawals.status} IN ('pending', 'processing')`)).returning();
+  if (!updated) return res.status(409).json({ error: "Concurrent update \u2014 please refresh" });
   return res.json(updated);
 });
 router5.patch("/withdrawals/:id/reject", async (req, res) => {
@@ -64211,15 +64226,17 @@ router9.get("/nowpayments/status/:paymentId", async (req, res) => {
 router9.post("/nowpayments/webhook", async (req, res) => {
   const ipnSecret = getIpnSecret();
   const sig = req.headers["x-nowpayments-sig"];
-  if (ipnSecret) {
-    if (!sig) {
-      console.warn("[NP] Deposit IPN: missing signature header");
-      return res.status(401).json({ error: "Missing signature" });
-    }
-    if (!verifyNpSignature(ipnSecret, req.body, sig)) {
-      console.warn("[NP] Deposit IPN: invalid signature");
-      return res.status(401).json({ error: "Invalid signature" });
-    }
+  if (!ipnSecret) {
+    console.error("[NP] Deposit IPN BLOCKED: NOWPAYMENTS_IPN_SECRET not configured. Set it in your environment secrets to accept webhooks.");
+    return res.status(503).json({ error: "Webhook not configured \u2014 IPN secret missing" });
+  }
+  if (!sig) {
+    console.warn("[NP] Deposit IPN: missing signature header");
+    return res.status(401).json({ error: "Missing signature" });
+  }
+  if (!verifyNpSignature(ipnSecret, req.body, sig)) {
+    console.warn("[NP] Deposit IPN: invalid signature");
+    return res.status(401).json({ error: "Invalid signature" });
   }
   const payload = req.body;
   const status = payload.payment_status ?? "";
@@ -64330,15 +64347,17 @@ router9.get("/nowpayments/payout/:payoutId", async (req, res) => {
 router9.post("/nowpayments/payout-webhook", async (req, res) => {
   const ipnSecret = getIpnSecret();
   const sig = req.headers["x-nowpayments-sig"];
-  if (ipnSecret) {
-    if (!sig) {
-      console.warn("[NP] Payout IPN: missing signature header");
-      return res.status(401).json({ error: "Missing signature" });
-    }
-    if (!verifyNpSignature(ipnSecret, req.body, sig)) {
-      console.warn("[NP] Payout IPN: invalid signature");
-      return res.status(401).json({ error: "Invalid signature" });
-    }
+  if (!ipnSecret) {
+    console.error("[NP] Payout IPN BLOCKED: NOWPAYMENTS_IPN_SECRET not configured. Set it in environment secrets.");
+    return res.status(503).json({ error: "Webhook not configured \u2014 IPN secret missing" });
+  }
+  if (!sig) {
+    console.warn("[NP] Payout IPN: missing signature header");
+    return res.status(401).json({ error: "Missing signature" });
+  }
+  if (!verifyNpSignature(ipnSecret, req.body, sig)) {
+    console.warn("[NP] Payout IPN: invalid signature");
+    return res.status(401).json({ error: "Invalid signature" });
   }
   const payload = req.body;
   const batchStatus = (payload.status ?? "").toUpperCase();
