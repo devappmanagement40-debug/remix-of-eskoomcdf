@@ -78,6 +78,7 @@ const Retrait = () => {
       let wHourEnd = 24;
       let wMin = 800, wMax = 500000, wFee = 10;
 
+      let rawRules = "";
       settingsArr.forEach((s: any) => {
         const key = s.key;
         const value = s.value;
@@ -92,14 +93,15 @@ const Retrait = () => {
         if (key === "withdrawal_days" && value) wDays = value.split(",").map(Number).filter(Boolean);
         if (key === "withdrawal_hour_start" && value) wHourStart = Number(value);
         if (key === "withdrawal_hour_end" && value) wHourEnd = Number(value);
-        if (key === "withdrawal_rules" && value) {
-          const parsed = value
-            .replace("{min}", String(wMin.toLocaleString()))
-            .replace("{max}", String(wMax.toLocaleString()))
-            .replace("{fee}", String(wFee));
-          setRules(parsed.split("|"));
-        }
+        if (key === "withdrawal_rules" && value) rawRules = value;
       });
+      if (rawRules) {
+        const parsed = rawRules
+          .replace(/\{min\}/g, wMin.toLocaleString())
+          .replace(/\{max\}/g, wMax.toLocaleString())
+          .replace(/\{fee\}/g, String(wFee));
+        setRules(parsed.split("|"));
+      }
 
       setDepositNotWithdrawable(dnw);
       setWithdrawalEnabled(wEnabled);

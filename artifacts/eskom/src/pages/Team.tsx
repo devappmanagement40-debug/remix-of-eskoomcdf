@@ -42,6 +42,7 @@ const Team = () => {
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [expandedLevel, setExpandedLevel] = useState<string | null>(null);
+  const [levelRates, setLevelRates] = useState({ b: "10", c: "5", d: "2" });
 
   useEffect(() => {
     fetchTeam();
@@ -51,7 +52,10 @@ const Team = () => {
     try {
       const token = getAuthToken();
       const h: HeadersInit = { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-      const res = await fetch("/api/team", { headers: h });
+      const [res, settingsRes] = await Promise.all([
+        fetch("/api/team", { headers: h }),
+        fetch("/api/site-settings"),
+      ]);
       if (!res.ok) return;
       const data = await res.json();
       setReferralCode(data.referralCode || "");
@@ -60,6 +64,16 @@ const Team = () => {
         { label: "F", color: "from-pink-400 to-rose-400", members: data.levelC || [], revenue: (data.levelC || []).reduce((s: number, m: TeamMember) => s + m.bonusEarned, 0) },
         { label: "G", color: "from-purple-400 to-violet-400", members: data.levelD || [], revenue: (data.levelD || []).reduce((s: number, m: TeamMember) => s + m.bonusEarned, 0) },
       ]);
+      if (settingsRes.ok) {
+        const settings: any[] = await settingsRes.json();
+        const map: Record<string, string> = {};
+        settings.forEach((s: any) => { map[s.key] = s.value || ""; });
+        setLevelRates({
+          b: map.referral_bonus_level_b || "10",
+          c: map.referral_bonus_level_c || "5",
+          d: map.referral_bonus_level_d || "2",
+        });
+      }
     } catch (err) {
       console.error("Team load error:", err);
     } finally {
@@ -230,33 +244,40 @@ const Team = () => {
         </div>
 
         {/* Level cards */}
-        {levels.map((level) => (
-          <button
-            key={level.label}
-            onClick={() => setExpandedLevel(level.label)}
-            className="w-full bg-card border border-border rounded-xl p-4 text-left"
-          >
-            <div className="flex items-center gap-4">
-              <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${level.color} flex items-center justify-center text-white text-xl font-bold flex-shrink-0`}>
-                {level.label}
+        {levels.map((level) => {
+          const rateMap: Record<string, string> = { E: levelRates.b, F: levelRates.c, G: levelRates.d };
+          const rate = rateMap[level.label] ?? "—";
+          return (
+            <button
+              key={level.label}
+              onClick={() => setExpandedLevel(level.label)}
+              className="w-full bg-card border border-border rounded-xl p-4 text-left"
+            >
+              <div className="flex items-center gap-4">
+                <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${level.color} flex items-center justify-center text-white text-xl font-bold flex-shrink-0`}>
+                  {level.label}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-foreground">Level {level.label}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-full">{rate}% commission</span>
+                      <ChevronRight size={20} className="text-muted-foreground" />
+                    </div>
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span className="text-sm text-muted-foreground">Size</span>
+                    <span className="text-sm text-foreground">{level.members.length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-muted-foreground">Revenue</span>
+                    <span className="text-sm text-foreground">{level.revenue.toLocaleString()} USDT</span>
+                  </div>
+                </div>
               </div>
-              <div className="flex-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-semibold text-foreground">Level {level.label}</span>
-                  <ChevronRight size={20} className="text-muted-foreground" />
-                </div>
-                <div className="flex justify-between mt-1">
-                  <span className="text-sm text-muted-foreground">Size</span>
-                  <span className="text-sm text-foreground">{level.members.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Revenue</span>
-                  <span className="text-sm text-foreground">{level.revenue.toLocaleString()} USDT</span>
-                </div>
-              </div>
-            </div>
-          </button>
-        ))}
+            </button>
+          );
+        })}
       </div>
 
       <BottomNav />

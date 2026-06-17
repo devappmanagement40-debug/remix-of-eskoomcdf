@@ -15,6 +15,7 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
   const [rules, setRules] = useState<{ text: string }[]>([]);
   const [title, setTitle] = useState("Invite Friends");
   const [subtitle, setSubtitle] = useState("Referral Earnings");
+  const [levelRates, setLevelRates] = useState({ b: "10", c: "5", d: "2" });
   const { showCopy } = useActionPopup();
 
   useEffect(() => {
@@ -31,13 +32,17 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
         }).catch(() => {});
     }
 
-    fetch("/api/site-settings?category=referral")
+    fetch("/api/site-settings")
       .then(r => r.ok ? r.json() : [])
       .then((data: any[]) => {
         const map: Record<string, string> = {};
         (Array.isArray(data) ? data : []).forEach((s: any) => { map[s.key] = s.value || ""; });
         if (map.referral_title) setTitle(map.referral_title);
         if (map.referral_subtitle) setSubtitle(map.referral_subtitle);
+        const b = map.referral_bonus_level_b || "10";
+        const c = map.referral_bonus_level_c || "5";
+        const d = map.referral_bonus_level_d || "2";
+        setLevelRates({ b, c, d });
         if (map.referral_rules) {
           try {
             const parsed = JSON.parse(map.referral_rules);
@@ -66,9 +71,9 @@ const InviteModal = ({ open, onClose }: InviteModalProps) => {
 
   const defaultRules = [
     "Share your invitation link with friends so they join and get an invitation bonus — you earn a commission",
-    "Earn 10% commission on direct referrals (level E)",
-    "Earn an additional 5% commission on second-level referrals (level F)",
-    "Earn an additional 1% commission on third-level referrals (level G)",
+    `Earn ${levelRates.b}% commission on direct referrals (level E)`,
+    `Earn an additional ${levelRates.c}% commission on second-level referrals (level F)`,
+    `Earn an additional ${levelRates.d}% commission on third-level referrals (level G)`,
   ];
 
   const displayRules = rules.length > 0 ? rules.map((r) => r.text) : defaultRules;
