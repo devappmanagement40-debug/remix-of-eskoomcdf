@@ -21,7 +21,7 @@ export const DEFAULT_CRYPTO_CURRENCIES: CryptoCurrency[] = [
   { code: "usdtbsc",   label: "BEP20-USDT", network: "BNB Smart Chain (BEP20)", color: "#26A17B", symbol: "₮", bg: "rgba(38,161,123,0.18)", logoUrl: "/crypto-logos/usdt.png",  enabled: true },
   { code: "usdttrc20", label: "TRC20-USDT", network: "TRON (TRC20)",            color: "#EF0027", symbol: "₮", bg: "rgba(239,0,39,0.18)",    logoUrl: "/crypto-logos/usdt.png",  enabled: true },
   { code: "trx",       label: "TRX",        network: "TRON",                    color: "#EF0027", symbol: "◈", bg: "rgba(239,0,39,0.18)",    logoUrl: "/crypto-logos/trx.png",   enabled: true },
-  { code: "bnbbsc",    label: "BNB",        network: "BNB Smart Chain (BEP20)", color: "#F0B90B", symbol: "⬡", bg: "rgba(240,185,11,0.18)", logoUrl: "/crypto-logos/bnb.png",   enabled: true },
+  { code: "usdtmatic", label: "USDT Polygon", network: "Polygon (MATIC)",          color: "#8247E5", symbol: "₮", bg: "rgba(130,71,229,0.18)",  logoUrl: "/crypto-logos/usdt.png",  enabled: true },
 ];
 
 // Export de compatibilité (utilisé par d'autres pages si besoin)

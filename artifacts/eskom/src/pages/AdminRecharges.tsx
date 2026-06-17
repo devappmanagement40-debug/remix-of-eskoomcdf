@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { getAuthToken } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
-import { Search, Clock, CheckCircle2, XCircle, CreditCard, X, ZoomIn } from "lucide-react";
+import { Search, Clock, CheckCircle2, XCircle, CreditCard, X, ZoomIn, Info } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 type Recharge = {
@@ -104,6 +104,29 @@ const AdminRecharges = () => {
     <div className="min-h-screen bg-background pb-10">
       <PageHeader title="Admin — Deposits" showBack />
       <div className="px-4 pt-4 space-y-4">
+        {/* Méthodes de dépôt acceptées */}
+        <div className="bg-card rounded-2xl border border-primary/20 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Info size={15} className="text-primary flex-shrink-0" />
+            <p className="text-xs font-bold text-foreground">Méthodes de dépôt acceptées</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { label: "USDT BEP20", network: "BNB Smart Chain", color: "#26A17B", bg: "rgba(38,161,123,0.12)" },
+              { label: "USDT TRC20", network: "TRON (TRC20)", color: "#EF0027", bg: "rgba(239,0,39,0.12)" },
+              { label: "TRX", network: "TRON", color: "#EF0027", bg: "rgba(239,0,39,0.12)" },
+              { label: "USDT Polygon", network: "Polygon (MATIC)", color: "#8247E5", bg: "rgba(130,71,229,0.12)" },
+            ].map((m) => (
+              <div key={m.label} className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ background: m.bg }}>
+                <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black flex-shrink-0" style={{ background: m.color + "33", color: m.color }}>₮</div>
+                <div>
+                  <p className="text-[11px] font-bold text-foreground">{m.label}</p>
+                  <p className="text-[9px] text-muted-foreground">{m.network}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
         <div className="grid grid-cols-3 gap-3">
           {(["pending", "approved", "rejected"] as const).map(s => (
             <button key={s} onClick={() => setFilter(s)} className={`bg-card rounded-xl border p-4 flex flex-col items-center gap-1 transition-colors ${filter === s ? s === "pending" ? "border-warning" : s === "approved" ? "border-success" : "border-destructive" : "border-secondary"}`}>

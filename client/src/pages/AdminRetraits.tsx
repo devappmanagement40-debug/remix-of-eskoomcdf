@@ -240,6 +240,20 @@ const AdminRetraits = () => {
       <PageHeader title="Admin — Retraits" showBack />
 
       <div className="px-4 pt-4 space-y-4">
+        {/* Méthode de retrait */}
+        <div className="bg-card rounded-2xl border border-success/20 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <ShieldCheck size={15} className="text-success flex-shrink-0" />
+            <p className="text-xs font-bold text-foreground">Méthode de retrait</p>
+          </div>
+          <div className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={{ background: "rgba(38,161,123,0.12)" }}>
+            <div className="w-8 h-8 rounded-full flex items-center justify-center font-black flex-shrink-0" style={{ background: "rgba(38,161,123,0.25)", color: "#26A17B" }}>₮</div>
+            <div>
+              <p className="text-sm font-bold text-foreground">USDT BEP20</p>
+              <p className="text-[10px] text-muted-foreground">BNB Smart Chain (BEP20) — Retraits exclusivement via ce réseau</p>
+            </div>
+          </div>
+        </div>
         {/* Tabs */}
         <div className="flex gap-2">
           <button

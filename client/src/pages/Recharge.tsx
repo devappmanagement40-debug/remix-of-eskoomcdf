@@ -48,7 +48,7 @@ const FALLBACK_CURRENCIES: CryptoCurrency[] = [
   { code: "usdtbsc",   label: "BEP20-USDT", ...CRYPTO_META.usdtbsc   } as CryptoCurrency,
   { code: "usdttrc20", label: "TRC20-USDT", ...CRYPTO_META.usdttrc20 } as CryptoCurrency,
   { code: "trx",       label: "TRX",        ...CRYPTO_META.trx       } as CryptoCurrency,
-  { code: "bnbbsc",    label: "BNB",        ...CRYPTO_META.bnbbsc    } as CryptoCurrency,
+  { code: "usdtmatic", label: "USDT Polygon", ...CRYPTO_META.usdtmatic } as CryptoCurrency,
 ];
 
 export const CRYPTO_CURRENCIES = FALLBACK_CURRENCIES;
