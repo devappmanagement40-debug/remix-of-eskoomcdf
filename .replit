@@ -60,10 +60,6 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 5001
-externalPort = 8008
-
-[[ports]]
 localPort = 5173
 externalPort = 5173
 
@@ -105,7 +101,6 @@ externalPort = 3000
 APP_DOMAIN = "geenergy.top"
 API_PORT = "8080"
 JWT_SECRET = "268b6600c744aaa246a2455ff54bf823c8fac29402a2b0186c95e028db438eb9aff61acfe6f2157cb77651eb6e5e04de"
-SUPABASE_URL = "https://dmuvuzjnsdckfyucnujn.supabase.co"
 
 [userenv.production]
 NOWPAYMENTS_WEBHOOK_URL = "https://geenergy.top/api/nowpayments/webhook"
