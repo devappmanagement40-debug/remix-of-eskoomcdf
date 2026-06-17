@@ -1,7 +1,7 @@
 import { pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const adminLogs = pgTable("admin_logs", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   adminId: text("admin_id").notNull(),
   action: text("action").notNull(),
   targetType: text("target_type"),

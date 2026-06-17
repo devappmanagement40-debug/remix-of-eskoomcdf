@@ -1,7 +1,7 @@
 import { pgTable, text, numeric, boolean, timestamp, integer } from "drizzle-orm/pg-core";
 
 export const productSeries = pgTable("product_series", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   color: text("color"),
   minVipLevel: integer("min_vip_level"),
@@ -13,7 +13,7 @@ export const productSeries = pgTable("product_series", {
 });
 
 export const products = pgTable("products", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   description: text("description"),
   price: numeric("price", { precision: 18, scale: 8 }),
@@ -35,7 +35,7 @@ export const products = pgTable("products", {
 });
 
 export const userProducts = pgTable("user_products", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   productId: text("product_id").notNull().references(() => products.id),
   isActive: boolean("is_active").default(true),
@@ -46,7 +46,7 @@ export const userProducts = pgTable("user_products", {
 });
 
 export const referralCommissions = pgTable("referral_commissions", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   beneficiaryId: text("beneficiary_id").notNull(),
   buyerId: text("buyer_id").notNull(),
   productPrice: numeric("product_price", { precision: 18, scale: 8 }).default("0"),

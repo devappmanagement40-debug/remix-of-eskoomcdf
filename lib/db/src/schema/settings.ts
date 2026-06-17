@@ -1,7 +1,7 @@
 import { pgTable, text, boolean, timestamp, integer, jsonb } from "drizzle-orm/pg-core";
 
 export const siteSettings = pgTable("site_settings", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   key: text("key").notNull().unique(),
   value: text("value"),
   category: text("category").default("general"),
@@ -9,7 +9,7 @@ export const siteSettings = pgTable("site_settings", {
 });
 
 export const socialLinks = pgTable("social_links", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   key: text("key").notNull(),
   label: text("label").notNull(),
   url: text("url"),
@@ -18,7 +18,7 @@ export const socialLinks = pgTable("social_links", {
 });
 
 export const officialDocuments = pgTable("official_documents", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   title: text("title").notNull(),
   docType: text("doc_type").default("policy"),
   description: text("description"),
@@ -30,7 +30,7 @@ export const officialDocuments = pgTable("official_documents", {
 });
 
 export const popupMessages = pgTable("popup_messages", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   triggerKey: text("trigger_key").notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
@@ -44,7 +44,7 @@ export const popupMessages = pgTable("popup_messages", {
 });
 
 export const faqItems = pgTable("faq_items", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   question: text("question").notNull(),
   answer: text("answer").notNull(),
   isActive: boolean("is_active").default(true),

@@ -1,7 +1,7 @@
 import { pgTable, text, boolean, timestamp, integer, numeric } from "drizzle-orm/pg-core";
 
 export const banners = pgTable("banners", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   imageUrl: text("image_url").notNull(),
   linkPath: text("link_path"),
   isActive: boolean("is_active").default(true),
@@ -10,7 +10,7 @@ export const banners = pgTable("banners", {
 });
 
 export const infoItems = pgTable("info_items", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   title: text("title").notNull(),
   description: text("description").notNull(),
   imageUrl: text("image_url"),
@@ -21,7 +21,7 @@ export const infoItems = pgTable("info_items", {
 });
 
 export const chatMessages = pgTable("chat_messages", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   message: text("message").notNull(),
   sender: text("sender").default("user"),
@@ -30,7 +30,7 @@ export const chatMessages = pgTable("chat_messages", {
 });
 
 export const giftCodes = pgTable("gift_codes", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   code: text("code").notNull().unique(),
   pointsValue: integer("points_value").default(0),
   maxUses: integer("max_uses").default(1),
@@ -42,7 +42,7 @@ export const giftCodes = pgTable("gift_codes", {
 });
 
 export const giftCodeUses = pgTable("gift_code_uses", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   codeId: text("code_id").notNull().references(() => giftCodes.id),
   userId: text("user_id").notNull(),
   pointsAwarded: integer("points_awarded").notNull(),
@@ -50,7 +50,7 @@ export const giftCodeUses = pgTable("gift_code_uses", {
 });
 
 export const giftRewards = pgTable("gift_rewards", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   pointsRequired: integer("points_required").default(0),
   moneyValue: numeric("money_value", { precision: 18, scale: 8 }).default("0"),
@@ -62,7 +62,7 @@ export const giftRewards = pgTable("gift_rewards", {
 });
 
 export const pointExchanges = pgTable("point_exchanges", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   rewardId: text("reward_id").references(() => giftRewards.id),
   rewardName: text("reward_name").notNull(),
@@ -72,7 +72,7 @@ export const pointExchanges = pgTable("point_exchanges", {
 });
 
 export const wheelPrizes = pgTable("wheel_prizes", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   label: text("label").notNull(),
   prizeType: text("prize_type").default("cash"),
   value: numeric("value", { precision: 18, scale: 8 }).default("0"),
@@ -86,7 +86,7 @@ export const wheelPrizes = pgTable("wheel_prizes", {
 });
 
 export const wheelSpins = pgTable("wheel_spins", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   prizeId: text("prize_id").references(() => wheelPrizes.id),
   prizeLabel: text("prize_label").notNull(),

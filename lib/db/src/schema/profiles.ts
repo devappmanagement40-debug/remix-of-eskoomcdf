@@ -3,7 +3,7 @@ import { pgTable, text, numeric, boolean, timestamp, integer, pgEnum } from "dri
 export const appRoleEnum = pgEnum("app_role", ["admin", "moderator", "user"]);
 
 export const profiles = pgTable("profiles", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull().unique(),
   phone: text("phone"),
   fullName: text("full_name"),
@@ -25,13 +25,13 @@ export const profiles = pgTable("profiles", {
 });
 
 export const userRoles = pgTable("user_roles", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   role: appRoleEnum("role").notNull().default("user"),
 });
 
 export const adminPermissions = pgTable("admin_permissions", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   permission: text("permission").notNull(),
   grantedBy: text("granted_by").notNull(),
@@ -39,7 +39,7 @@ export const adminPermissions = pgTable("admin_permissions", {
 });
 
 export const vipConditions = pgTable("vip_conditions", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   level: integer("level").notNull(),
   levelName: text("level_name").notNull(),
   minInvestment: numeric("min_investment", { precision: 18, scale: 8 }),
@@ -54,7 +54,7 @@ export const vipConditions = pgTable("vip_conditions", {
 });
 
 export const vipHistory = pgTable("vip_history", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   oldLevel: integer("old_level").default(0),
   newLevel: integer("new_level").default(0),

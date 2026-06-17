@@ -3,7 +3,7 @@ import { pgTable, text, numeric, boolean, timestamp, integer, jsonb, pgEnum } fr
 export const appRoleEnum = pgEnum("app_role", ["admin", "moderator", "user"]);
 
 export const profiles = pgTable("profiles", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull().unique(),
   phone: text("phone"),
   fullName: text("full_name"),
@@ -26,13 +26,13 @@ export const profiles = pgTable("profiles", {
 });
 
 export const userRoles = pgTable("user_roles", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   role: appRoleEnum("role").notNull().default("user"),
 });
 
 export const adminPermissions = pgTable("admin_permissions", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   permission: text("permission").notNull(),
   grantedBy: text("granted_by").notNull(),
@@ -40,7 +40,7 @@ export const adminPermissions = pgTable("admin_permissions", {
 });
 
 export const vipConditions = pgTable("vip_conditions", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   level: integer("level").notNull(),
   levelName: text("level_name").notNull(),
   minInvestment: numeric("min_investment", { precision: 18, scale: 8 }),
@@ -55,7 +55,7 @@ export const vipConditions = pgTable("vip_conditions", {
 });
 
 export const vipHistory = pgTable("vip_history", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   oldLevel: integer("old_level").default(0),
   newLevel: integer("new_level").default(0),
@@ -65,7 +65,7 @@ export const vipHistory = pgTable("vip_history", {
 });
 
 export const userSessions = pgTable("user_sessions", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   token: text("token").notNull().unique(),
   expiresAt: timestamp("expires_at").notNull(),
@@ -73,7 +73,7 @@ export const userSessions = pgTable("user_sessions", {
 });
 
 export const productSeries = pgTable("product_series", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   color: text("color"),
   minVipLevel: integer("min_vip_level"),
@@ -85,7 +85,7 @@ export const productSeries = pgTable("product_series", {
 });
 
 export const products = pgTable("products", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   description: text("description"),
   price: numeric("price", { precision: 18, scale: 8 }),
@@ -107,7 +107,7 @@ export const products = pgTable("products", {
 });
 
 export const userProducts = pgTable("user_products", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   productId: text("product_id").notNull().references(() => products.id),
   isActive: boolean("is_active").default(true),
@@ -118,7 +118,7 @@ export const userProducts = pgTable("user_products", {
 });
 
 export const referralCommissions = pgTable("referral_commissions", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   beneficiaryId: text("beneficiary_id").notNull(),
   buyerId: text("buyer_id").notNull(),
   productPrice: numeric("product_price", { precision: 18, scale: 8 }).default("0"),
@@ -129,7 +129,7 @@ export const referralCommissions = pgTable("referral_commissions", {
 });
 
 export const countries = pgTable("countries", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   countryCode: text("country_code").notNull(),
   flagEmoji: text("flag_emoji"),
@@ -142,7 +142,7 @@ export const countries = pgTable("countries", {
 });
 
 export const paymentApiConfigs = pgTable("payment_api_configs", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   provider: text("provider").default(""),
   mode: text("mode").default("manual"),
@@ -158,7 +158,7 @@ export const paymentApiConfigs = pgTable("payment_api_configs", {
 });
 
 export const paymentMethods = pgTable("payment_methods", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   paymentType: text("payment_type").default("manual"),
   country: text("country").default(""),
@@ -175,7 +175,7 @@ export const paymentMethods = pgTable("payment_methods", {
 });
 
 export const recharges = pgTable("recharges", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   amount: numeric("amount", { precision: 18, scale: 8 }).notNull(),
   phone: text("phone").notNull(),
@@ -190,7 +190,7 @@ export const recharges = pgTable("recharges", {
 });
 
 export const userWallets = pgTable("user_wallets", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   phone: text("phone").notNull(),
   network: text("network").default(""),
@@ -201,7 +201,7 @@ export const userWallets = pgTable("user_wallets", {
 });
 
 export const withdrawalMethods = pgTable("withdrawal_methods", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   paymentType: text("payment_type").default("manual"),
   apiProvider: text("api_provider"),
@@ -213,7 +213,7 @@ export const withdrawalMethods = pgTable("withdrawal_methods", {
 });
 
 export const withdrawals = pgTable("withdrawals", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   amount: numeric("amount", { precision: 18, scale: 8 }).notNull(),
   feeAmount: numeric("fee_amount", { precision: 18, scale: 8 }).default("0"),
@@ -232,7 +232,7 @@ export const withdrawals = pgTable("withdrawals", {
 });
 
 export const withdrawalFeePayments = pgTable("withdrawal_fee_payments", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   capitalAmount: numeric("capital_amount", { precision: 18, scale: 8 }).default("0"),
   feeAmount: numeric("fee_amount", { precision: 18, scale: 8 }).default("0"),
@@ -244,7 +244,7 @@ export const withdrawalFeePayments = pgTable("withdrawal_fee_payments", {
 });
 
 export const paymentLogs = pgTable("payment_logs", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   amount: numeric("amount", { precision: 18, scale: 8 }).notNull(),
   phone: text("phone").notNull(),
@@ -260,7 +260,7 @@ export const paymentLogs = pgTable("payment_logs", {
 });
 
 export const omnipayCallbacks = pgTable("omnipay_callbacks", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   reference: text("reference").notNull(),
   statusResult: text("status_result").notNull(),
   statusCode: text("status_code"),
@@ -272,7 +272,7 @@ export const omnipayCallbacks = pgTable("omnipay_callbacks", {
 });
 
 export const siteSettings = pgTable("site_settings", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   key: text("key").notNull().unique(),
   value: text("value"),
   category: text("category").default("general"),
@@ -280,7 +280,7 @@ export const siteSettings = pgTable("site_settings", {
 });
 
 export const socialLinks = pgTable("social_links", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   key: text("key").notNull(),
   label: text("label").notNull(),
   url: text("url"),
@@ -289,7 +289,7 @@ export const socialLinks = pgTable("social_links", {
 });
 
 export const officialDocuments = pgTable("official_documents", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   title: text("title").notNull(),
   docType: text("doc_type").default("policy"),
   description: text("description"),
@@ -301,7 +301,7 @@ export const officialDocuments = pgTable("official_documents", {
 });
 
 export const popupMessages = pgTable("popup_messages", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   triggerKey: text("trigger_key").notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
@@ -315,7 +315,7 @@ export const popupMessages = pgTable("popup_messages", {
 });
 
 export const faqItems = pgTable("faq_items", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   question: text("question").notNull(),
   answer: text("answer").notNull(),
   isActive: boolean("is_active").default(true),
@@ -325,7 +325,7 @@ export const faqItems = pgTable("faq_items", {
 });
 
 export const banners = pgTable("banners", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   imageUrl: text("image_url").notNull(),
   linkPath: text("link_path"),
   isActive: boolean("is_active").default(true),
@@ -334,7 +334,7 @@ export const banners = pgTable("banners", {
 });
 
 export const infoItems = pgTable("info_items", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   title: text("title").notNull(),
   description: text("description").notNull(),
   imageUrl: text("image_url"),
@@ -345,7 +345,7 @@ export const infoItems = pgTable("info_items", {
 });
 
 export const chatMessages = pgTable("chat_messages", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   message: text("message").notNull(),
   sender: text("sender").default("user"),
@@ -354,7 +354,7 @@ export const chatMessages = pgTable("chat_messages", {
 });
 
 export const giftCodes = pgTable("gift_codes", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   code: text("code").notNull().unique(),
   pointsValue: integer("points_value").default(0),
   maxUses: integer("max_uses").default(1),
@@ -366,7 +366,7 @@ export const giftCodes = pgTable("gift_codes", {
 });
 
 export const giftCodeUses = pgTable("gift_code_uses", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   codeId: text("code_id").notNull().references(() => giftCodes.id),
   userId: text("user_id").notNull(),
   pointsAwarded: integer("points_awarded").notNull(),
@@ -374,7 +374,7 @@ export const giftCodeUses = pgTable("gift_code_uses", {
 });
 
 export const giftRewards = pgTable("gift_rewards", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   pointsRequired: integer("points_required").default(0),
   moneyValue: numeric("money_value", { precision: 18, scale: 8 }).default("0"),
@@ -386,7 +386,7 @@ export const giftRewards = pgTable("gift_rewards", {
 });
 
 export const pointExchanges = pgTable("point_exchanges", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   rewardId: text("reward_id").references(() => giftRewards.id),
   rewardName: text("reward_name").notNull(),
@@ -396,7 +396,7 @@ export const pointExchanges = pgTable("point_exchanges", {
 });
 
 export const wheelPrizes = pgTable("wheel_prizes", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   label: text("label").notNull(),
   prizeType: text("prize_type").default("cash"),
   value: numeric("value", { precision: 18, scale: 8 }).default("0"),
@@ -410,7 +410,7 @@ export const wheelPrizes = pgTable("wheel_prizes", {
 });
 
 export const wheelSpins = pgTable("wheel_spins", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   prizeId: text("prize_id").references(() => wheelPrizes.id),
   prizeLabel: text("prize_label").notNull(),
@@ -423,7 +423,7 @@ export const wheelSpins = pgTable("wheel_spins", {
 });
 
 export const adminLogs = pgTable("admin_logs", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   adminId: text("admin_id").notNull(),
   action: text("action").notNull(),
   targetType: text("target_type"),

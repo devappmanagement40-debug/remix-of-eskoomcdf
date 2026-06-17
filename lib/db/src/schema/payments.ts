@@ -1,7 +1,7 @@
 import { pgTable, text, numeric, boolean, timestamp, integer, jsonb } from "drizzle-orm/pg-core";
 
 export const countries = pgTable("countries", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   countryCode: text("country_code").notNull(),
   flagEmoji: text("flag_emoji"),
@@ -14,7 +14,7 @@ export const countries = pgTable("countries", {
 });
 
 export const paymentApiConfigs = pgTable("payment_api_configs", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   provider: text("provider").default(""),
   mode: text("mode").default("manual"),
@@ -30,7 +30,7 @@ export const paymentApiConfigs = pgTable("payment_api_configs", {
 });
 
 export const paymentMethods = pgTable("payment_methods", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   paymentType: text("payment_type").default("manual"),
   country: text("country").default(""),
@@ -47,7 +47,7 @@ export const paymentMethods = pgTable("payment_methods", {
 });
 
 export const recharges = pgTable("recharges", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   amount: numeric("amount", { precision: 18, scale: 8 }).notNull(),
   phone: text("phone"),
@@ -62,7 +62,7 @@ export const recharges = pgTable("recharges", {
 });
 
 export const userWallets = pgTable("user_wallets", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   phone: text("phone").notNull(),
   network: text("network").default(""),
@@ -73,7 +73,7 @@ export const userWallets = pgTable("user_wallets", {
 });
 
 export const withdrawalMethods = pgTable("withdrawal_methods", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: text("name").notNull(),
   paymentType: text("payment_type").default("manual"),
   apiProvider: text("api_provider"),
@@ -85,7 +85,7 @@ export const withdrawalMethods = pgTable("withdrawal_methods", {
 });
 
 export const withdrawals = pgTable("withdrawals", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   amount: numeric("amount", { precision: 18, scale: 8 }).notNull(),
   feeAmount: numeric("fee_amount", { precision: 18, scale: 8 }).default("0"),
@@ -104,7 +104,7 @@ export const withdrawals = pgTable("withdrawals", {
 });
 
 export const withdrawalFeePayments = pgTable("withdrawal_fee_payments", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   capitalAmount: numeric("capital_amount", { precision: 18, scale: 8 }).default("0"),
   feeAmount: numeric("fee_amount", { precision: 18, scale: 8 }).default("0"),
@@ -116,7 +116,7 @@ export const withdrawalFeePayments = pgTable("withdrawal_fee_payments", {
 });
 
 export const paymentLogs = pgTable("payment_logs", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: text("user_id").notNull(),
   amount: numeric("amount", { precision: 18, scale: 8 }).notNull(),
   phone: text("phone").notNull(),
@@ -132,7 +132,7 @@ export const paymentLogs = pgTable("payment_logs", {
 });
 
 export const omnipayCallbacks = pgTable("omnipay_callbacks", {
-  id: text("id").primaryKey().default("gen_random_uuid()"),
+  id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
   reference: text("reference").notNull(),
   statusResult: text("status_result").notNull(),
   statusCode: text("status_code"),
