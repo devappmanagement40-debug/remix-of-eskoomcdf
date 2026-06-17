@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Trophy, Zap } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Trophy, Zap, ChevronRight } from "lucide-react";
 import { getAuthToken } from "@/integrations/supabase/client";
 import { useActionPopup } from "@/components/ActionPopupProvider";
 import PageHeader from "@/components/PageHeader";
@@ -10,11 +10,142 @@ type WheelPrize = {
   vip_level: number | null; probability: number; is_active: boolean;
 };
 
+type Winner = {
+  id: string;
+  maskedPhone: string;
+  prizeValue: number;
+  prizeType: string;
+  vipLevel?: number | null;
+  createdAt: string;
+  isReal?: boolean;
+};
+
 const JACKPOT_COLORS = [
   "#E53935", "#1E88E5", "#FFB300", "#43A047",
   "#E91E63", "#8E24AA", "#FF7043", "#00ACC1",
   "#7CB342", "#5E35B1", "#F4511E", "#039BE5",
 ];
+
+const FAKE_PHONES = [
+  "+509 ** ** 34", "+509 ** ** 17", "+509 ** ** 82", "+509 ** ** 55",
+  "+509 ** ** 09", "+509 ** ** 63", "+509 ** ** 41", "+509 ** ** 76",
+  "+509 ** ** 28", "+509 ** ** 94", "+509 ** ** 13", "+509 ** ** 67",
+  "+509 ** ** 50", "+509 ** ** 38", "+509 ** ** 21", "+509 ** ** 89",
+  "+509 ** ** 03", "+509 ** ** 72", "+509 ** ** 46", "+509 ** ** 91",
+];
+
+const FAKE_PRIZES = [1, 2, 3, 5, 8, 10, 15, 20, 25, 50];
+
+function generateFakeWinners(count: number): Winner[] {
+  const now = Date.now();
+  return Array.from({ length: count }, (_, i) => ({
+    id: `fake-${i}`,
+    maskedPhone: FAKE_PHONES[i % FAKE_PHONES.length],
+    prizeValue: FAKE_PRIZES[Math.floor(Math.random() * FAKE_PRIZES.length)],
+    prizeType: "cash",
+    vipLevel: null,
+    createdAt: new Date(now - (i * 7 + Math.floor(Math.random() * 5)) * 60 * 1000).toISOString(),
+    isReal: false,
+  }));
+}
+
+function timeAgo(dateStr: string): string {
+  const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+  if (diff < 60) return `${Math.floor(diff)}s`;
+  if (diff < 3600) return `${Math.floor(diff / 60)}min`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+  return `${Math.floor(diff / 86400)}j`;
+}
+
+const AVATAR_COLORS = [
+  "bg-red-500", "bg-blue-500", "bg-amber-500", "bg-green-500",
+  "bg-pink-500", "bg-purple-500", "bg-orange-500", "bg-cyan-500",
+  "bg-lime-500", "bg-indigo-500",
+];
+
+function WinnersTicker({ winners }: { winners: Winner[] }) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [isPaused, setIsPaused] = useState(false);
+
+  const items = winners.length >= 8 ? winners : [...winners, ...generateFakeWinners(Math.max(0, 20 - winners.length))];
+  const doubled = [...items, ...items];
+
+  const itemWidth = 220;
+  const totalWidth = items.length * itemWidth;
+
+  return (
+    <div
+      className="relative overflow-hidden rounded-xl border border-amber-500/30 bg-gradient-to-r from-[hsl(220,20%,5%)] via-[hsl(220,20%,8%)] to-[hsl(220,20%,5%)]"
+      style={{ boxShadow: "0 0 20px rgba(255,176,0,0.10), inset 0 0 40px rgba(0,0,0,0.3)" }}
+    >
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-amber-500/20">
+        <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+        <Trophy size={13} className="text-amber-400" />
+        <span className="text-xs font-bold text-amber-400 tracking-widest uppercase">Live Winners</span>
+        <ChevronRight size={13} className="text-amber-400/60 ml-auto" />
+      </div>
+
+      <div
+        className="relative overflow-hidden py-2.5"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+        onTouchStart={() => setIsPaused(true)}
+        onTouchEnd={() => setIsPaused(false)}
+      >
+        <div
+          ref={trackRef}
+          className="flex gap-3"
+          style={{
+            width: `${totalWidth * 2}px`,
+            animation: `tickerScroll ${items.length * 3.5}s linear infinite`,
+            animationPlayState: isPaused ? "paused" : "running",
+          }}
+        >
+          {doubled.map((w, idx) => {
+            const initials = (w.maskedPhone || "?").replace(/[^0-9+]/g, "").slice(-2) || "GE";
+            const colorClass = AVATAR_COLORS[idx % AVATAR_COLORS.length];
+            const isVip = w.prizeType === "vip";
+            const prizeText = isVip
+              ? `VIP ${w.vipLevel ?? 1}`
+              : `+${Number(w.prizeValue).toLocaleString("en-US")} USDT`;
+            const ago = timeAgo(w.createdAt);
+
+            return (
+              <div
+                key={`${w.id}-${idx}`}
+                className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/5 bg-white/4"
+                style={{ minWidth: `${itemWidth - 12}px`, background: "rgba(255,255,255,0.03)" }}
+              >
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 ${colorClass}`}>
+                  {initials.toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold text-white/90 truncate leading-tight">{w.maskedPhone}</p>
+                  <p className="text-[10px] text-muted-foreground leading-tight">{ago} ago</p>
+                </div>
+                <div className="ml-auto flex-shrink-0 text-right">
+                  <span
+                    className="text-[11px] font-bold px-1.5 py-0.5 rounded-md"
+                    style={{
+                      background: isVip ? "rgba(168,85,247,0.2)" : "rgba(255,176,0,0.15)",
+                      color: isVip ? "#c084fc" : "#FFB000",
+                      border: `1px solid ${isVip ? "rgba(168,85,247,0.3)" : "rgba(255,176,0,0.25)"}`,
+                    }}
+                  >
+                    {prizeText}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-8 z-10" style={{ background: "linear-gradient(to right, hsl(220,20%,5%), transparent)" }} />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-8 z-10" style={{ background: "linear-gradient(to left, hsl(220,20%,5%), transparent)" }} />
+      </div>
+    </div>
+  );
+}
 
 const Loterie = () => {
   const [prizes, setPrizes] = useState<WheelPrize[]>([]);
@@ -52,7 +183,7 @@ const Loterie = () => {
         const [spinRes, profileRes, globalRes] = await Promise.all([
           fetch("/api/wheel/my-spins?limit=20", { headers }).then(r => r.ok ? r.json() : []),
           fetch("/api/profiles/me", { headers }).then(r => r.ok ? r.json() : null),
-          fetch("/api/wheel/recent-winners").then(r => r.ok ? r.json() : []),
+          fetch("/api/wheel/recent-winners?limit=50", { headers }).then(r => r.ok ? r.json() : []),
         ]);
 
         if (Array.isArray(spinRes)) {
@@ -61,7 +192,15 @@ const Loterie = () => {
           setTotalWon(total);
         }
         if (profileRes) setSpinsLeft(profileRes.spinsBalance ?? profileRes.spins_balance ?? 0);
-        if (Array.isArray(globalRes)) setGlobalSpins(globalRes);
+        if (Array.isArray(globalRes)) setGlobalSpins(globalRes.map((s: any) => ({
+          id: s.id,
+          maskedPhone: s.maskedPhone ?? s.masked_phone ?? "*** ****",
+          prizeValue: Number(s.prizeValue ?? s.prize_value ?? 0),
+          prizeType: s.prizeType ?? s.prize_type ?? "cash",
+          vipLevel: s.vipLevel ?? s.vip_level ?? null,
+          createdAt: s.createdAt ?? s.created_at ?? new Date().toISOString(),
+          isReal: true,
+        })));
       }
     } catch (err) {
       console.error("Loterie load error:", err);
@@ -181,70 +320,85 @@ const Loterie = () => {
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
-      <PageHeader title="GE Energy LOTTERY" showBack />
-      {wheelBanner && <div className="px-4 pt-4"><img src={wheelBanner} alt="Banner" className="w-full rounded-xl object-cover max-h-32" /></div>}
-      <div className="bg-gradient-to-b from-[hsl(0,70%,20%)] via-[hsl(30,80%,15%)] to-background px-4 pt-6 pb-8">
-        <div className="text-center mb-4">
-          <h1 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2"><Zap size={24} className="text-warning" /> {wheelTitle}</h1>
-          <div className="mt-2 inline-block bg-warning/20 rounded-full px-6 py-1.5"><span className="text-sm text-warning font-medium">{wheelSubtitle}</span></div>
-        </div>
-        <div className="bg-card rounded-xl border border-secondary p-4 flex">
-          <div className="flex-1 text-center border-r border-secondary">
-            <p className="text-xl font-bold text-foreground">{totalWon.toLocaleString("en-US")} <span className="text-sm font-normal text-muted-foreground">USDT</span></p>
-            <p className="text-xs text-muted-foreground mt-1">Amount won</p>
+    <>
+      <style>{`
+        @keyframes tickerScroll {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
+      <div className="min-h-screen bg-background pb-20">
+        <PageHeader title="GE Energy LOTTERY" showBack />
+        {wheelBanner && <div className="px-4 pt-4"><img src={wheelBanner} alt="Banner" className="w-full rounded-xl object-cover max-h-32" /></div>}
+        <div className="bg-gradient-to-b from-[hsl(0,70%,20%)] via-[hsl(30,80%,15%)] to-background px-4 pt-6 pb-8">
+          <div className="text-center mb-4">
+            <h1 className="text-2xl font-bold text-foreground flex items-center justify-center gap-2"><Zap size={24} className="text-warning" /> {wheelTitle}</h1>
+            <div className="mt-2 inline-block bg-warning/20 rounded-full px-6 py-1.5"><span className="text-sm text-warning font-medium">{wheelSubtitle}</span></div>
           </div>
-          <div className="flex-1 text-center border-r border-secondary">
-            <p className="text-xl font-bold text-foreground">{spins.length}</p>
-            <p className="text-xs text-muted-foreground mt-1">Spins</p>
-          </div>
-          <div className="flex-1 text-center">
-            <p className="text-xl font-bold text-warning">{spinsLeft}</p>
-            <p className="text-xs text-muted-foreground mt-1">Spins left</p>
-          </div>
-        </div>
-      </div>
-      <div className="flex flex-col items-center px-4 -mt-2">
-        <div className="relative w-[320px] h-[320px]">{renderWheel()}</div>
-        <button onClick={spin} disabled={spinning} className={`mt-6 font-bold py-3.5 px-12 rounded-2xl text-lg transition-all shadow-lg ${spinsLeft > 0 ? "bg-gradient-to-r from-[#FFD54F] to-[#FF8F00] text-[hsl(220,20%,8%)] hover:shadow-warning/30 hover:shadow-xl active:scale-95" : "bg-secondary text-muted-foreground cursor-not-allowed"} disabled:opacity-50`}>
-          {spinning ? "Spinning..." : spinsLeft > 0 ? "SPIN" : "No spins"}
-        </button>
-      </div>
-      <div className="px-4 mt-6">
-        <div className="bg-card rounded-xl border border-secondary p-5">
-          <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">{wheelInfoTitle}</h3>
-          <div className="border-t border-secondary pt-3 space-y-3">
-            {wheelRules.split("\n").filter(Boolean).map((rule: string, i: number) => (
-              <p key={i} className="text-sm text-muted-foreground">
-                <span className="text-primary font-semibold">{rule.split(":")[0]}:</span>{rule.includes(":") ? rule.substring(rule.indexOf(":") + 1) : ""}
-              </p>
-            ))}
+          <div className="bg-card rounded-xl border border-secondary p-4 flex">
+            <div className="flex-1 text-center border-r border-secondary">
+              <p className="text-xl font-bold text-foreground">{totalWon.toLocaleString("en-US")} <span className="text-sm font-normal text-muted-foreground">USDT</span></p>
+              <p className="text-xs text-muted-foreground mt-1">Amount won</p>
+            </div>
+            <div className="flex-1 text-center border-r border-secondary">
+              <p className="text-xl font-bold text-foreground">{spins.length}</p>
+              <p className="text-xs text-muted-foreground mt-1">Spins</p>
+            </div>
+            <div className="flex-1 text-center">
+              <p className="text-xl font-bold text-warning">{spinsLeft}</p>
+              <p className="text-xs text-muted-foreground mt-1">Spins left</p>
+            </div>
           </div>
         </div>
-      </div>
-      <div className="px-4 mt-4">
-        <div className="bg-card rounded-xl border border-secondary p-4">
-          <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3"><Trophy size={16} className="text-warning" /> Recent winners</h3>
-          <div className="border-t border-secondary">
-            <div className="grid grid-cols-3 py-2.5 text-xs text-muted-foreground font-semibold"><span>Time</span><span>User</span><span className="text-right">Prize</span></div>
-            {globalSpins.length === 0 ? (
-              <p className="text-xs text-muted-foreground text-center py-4">No spins yet</p>
-            ) : (
-              <div className="max-h-72 overflow-y-auto divide-y divide-secondary">
-                {globalSpins.map((s) => (
-                  <div key={s.id} className="grid grid-cols-3 py-2.5 text-xs items-center">
-                    <span className="text-muted-foreground">{new Date(s.createdAt ?? s.created_at).toLocaleDateString("en-US", { day: "2-digit", month: "2-digit", timeZone: "America/Port-au-Prince" })}{" "}{new Date(s.createdAt ?? s.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" })}</span>
-                    <span className="font-bold text-foreground">{s.maskedPhone ?? s.masked_phone}</span>
-                    <span className="text-right font-bold text-warning">{(s.prizeType ?? s.prize_type) === "vip" ? `VIP${s.vipLevel ?? s.vip_level ?? ""}` : `${Number(s.prizeValue ?? s.prize_value).toLocaleString("en-US")} USDT`}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+
+        <div className="flex flex-col items-center px-4 -mt-2">
+          <div className="relative w-[320px] h-[320px]">{renderWheel()}</div>
+          <button onClick={spin} disabled={spinning} className={`mt-6 font-bold py-3.5 px-12 rounded-2xl text-lg transition-all shadow-lg ${spinsLeft > 0 ? "bg-gradient-to-r from-[#FFD54F] to-[#FF8F00] text-[hsl(220,20%,8%)] hover:shadow-warning/30 hover:shadow-xl active:scale-95" : "bg-secondary text-muted-foreground cursor-not-allowed"} disabled:opacity-50`}>
+            {spinning ? "Spinning..." : spinsLeft > 0 ? "SPIN" : "No spins"}
+          </button>
+        </div>
+
+        <div className="px-4 mt-5">
+          <WinnersTicker winners={globalSpins} />
+        </div>
+
+        <div className="px-4 mt-4">
+          <div className="bg-card rounded-xl border border-secondary p-5">
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3">{wheelInfoTitle}</h3>
+            <div className="border-t border-secondary pt-3 space-y-3">
+              {wheelRules.split("\n").filter(Boolean).map((rule: string, i: number) => (
+                <p key={i} className="text-sm text-muted-foreground">
+                  <span className="text-primary font-semibold">{rule.split(":")[0]}:</span>{rule.includes(":") ? rule.substring(rule.indexOf(":") + 1) : ""}
+                </p>
+              ))}
+            </div>
           </div>
         </div>
+
+        <div className="px-4 mt-4">
+          <div className="bg-card rounded-xl border border-secondary p-4">
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2 mb-3"><Trophy size={16} className="text-warning" /> Recent winners</h3>
+            <div className="border-t border-secondary">
+              <div className="grid grid-cols-3 py-2.5 text-xs text-muted-foreground font-semibold"><span>Time</span><span>User</span><span className="text-right">Prize</span></div>
+              {globalSpins.length === 0 ? (
+                <p className="text-xs text-muted-foreground text-center py-4">No spins yet</p>
+              ) : (
+                <div className="max-h-72 overflow-y-auto divide-y divide-secondary">
+                  {globalSpins.map((s) => (
+                    <div key={s.id} className="grid grid-cols-3 py-2.5 text-xs items-center">
+                      <span className="text-muted-foreground">{new Date(s.createdAt).toLocaleDateString("en-US", { day: "2-digit", month: "2-digit", timeZone: "America/Port-au-Prince" })}{" "}{new Date(s.createdAt).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZone: "America/Port-au-Prince" })}</span>
+                      <span className="font-bold text-foreground">{s.maskedPhone}</span>
+                      <span className="text-right font-bold text-warning">{s.prizeType === "vip" ? `VIP${s.vipLevel ?? ""}` : `${Number(s.prizeValue).toLocaleString("en-US")} USDT`}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        <BottomNav />
       </div>
-      <BottomNav />
-    </div>
+    </>
   );
 };
 
