@@ -1107,22 +1107,4 @@ router.post("/admin/chat-reply", async (req, res) => {
   return res.json(toSnake(msg));
 });
 
-const SECRET_KEYS = [
-  "secret_nowpayments_api_key",
-  "secret_nowpayments_ipn_secret",
-  "secret_nowpayments_email",
-  "secret_nowpayments_password",
-  "secret_supabase_service_role_key",
-  "secret_supabase_url",
-];
-
-router.get("/admin/secrets", async (req, res) => {
-  const auth = await requireAdmin(req, res);
-  if (!auth) return;
-  const rows = await db.select().from(siteSettings).where(eq(siteSettings.category, "secrets"));
-  const setKeys = new Set(rows.filter(r => r.value && r.value.trim()).map(r => r.key));
-  const result = SECRET_KEYS.map(key => ({ key, isSet: setKeys.has(key) }));
-  return res.json(result);
-});
-
 export default router;
