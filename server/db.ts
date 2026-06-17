@@ -4,20 +4,15 @@ import * as schema from "../shared/schema";
 
 const { Pool } = pg;
 
-const rawConnectionString = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
+const connectionString = process.env.DATABASE_URL;
 
-if (!rawConnectionString) {
-  throw new Error("SUPABASE_DATABASE_URL or DATABASE_URL environment variable is required.");
+if (!connectionString) {
+  throw new Error("DATABASE_URL environment variable is required.");
 }
-
-const isSupabase = rawConnectionString.includes("supabase.com") || rawConnectionString.includes("pooler.supabase");
-
-// Strip sslmode — we handle SSL explicitly via pool options
-const connectionString = rawConnectionString.replace(/[?&]sslmode=[^&]*/g, "").replace(/\?$/, "");
 
 export const pool = new Pool({
   connectionString,
-  ssl: isSupabase ? { rejectUnauthorized: false } : false,
+  ssl: false,
 });
 
 export const db = drizzle(pool, { schema });
