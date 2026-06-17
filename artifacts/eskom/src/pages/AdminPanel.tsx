@@ -20,7 +20,8 @@ type Profile = {
   balance: number | null; deposit_balance: number | null; earnings_balance: number | null;
   referral_balance: number | null; country_code: string | null; referral_code: string | null;
   is_suspended: boolean | null; created_at: string | null; vip_level: number | null;
-  gift_points: number | null; role?: string | null;
+  gift_points: number | null; role?: string | null; avatar_url?: string | null;
+  referred_by?: string | null;
 };
 type Recharge = {
   id: string; phone: string; country_code: string; amount: number;
@@ -214,6 +215,7 @@ const AdminPanel = () => {
         is_suspended: p.isSuspended,
         created_at: p.createdAt,
         role: p.role ?? null,
+        avatar_url: p.avatarUrl ?? p.avatar_url ?? null,
       });
 
       if (allProfiles) setProfiles((allProfiles as any[]).map(mapProfile));
@@ -636,9 +638,29 @@ const UsersTab = ({ profiles, products, reload, showSuccess, showError, logActio
         <div key={p.id} className={`bg-card rounded-xl border overflow-hidden ${p.is_suspended ? "border-destructive/50 opacity-70" : "border-secondary"}`}>
           <div className="px-4 pt-4 pb-3">
             <div className="flex items-start justify-between mb-2">
-              <div>
-                <p className="text-sm font-bold text-foreground">{p.full_name || "No name"}</p>
-                <p className="text-xs text-muted-foreground">{p.country_code} {p.phone}</p>
+              <div className="flex items-center gap-3">
+                {p.avatar_url ? (
+                  <img
+                    src={p.avatar_url}
+                    alt={p.full_name || p.phone || "User"}
+                    className="w-10 h-10 rounded-full object-cover border border-secondary flex-shrink-0"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                      const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                      if (fallback) fallback.style.display = "flex";
+                    }}
+                  />
+                ) : null}
+                <div
+                  className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 text-xs font-bold text-primary"
+                  style={{ display: p.avatar_url ? "none" : "flex" }}
+                >
+                  {(p.full_name || p.phone || "U").slice(0, 2).toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-foreground">{p.full_name || "No name"}</p>
+                  <p className="text-xs text-muted-foreground">{p.country_code} {p.phone}</p>
+                </div>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-[9px] bg-primary/20 text-primary px-2 py-0.5 rounded-full font-bold">VIP{p.vip_level || 0}</span>

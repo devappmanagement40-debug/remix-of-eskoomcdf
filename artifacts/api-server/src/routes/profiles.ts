@@ -28,7 +28,7 @@ router.patch("/profiles/me", async (req, res) => {
   const me = await getProfileFromToken(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
 
-  const allowed = ["fullName", "phone", "countryCode"];
+  const allowed = ["fullName", "phone", "countryCode", "avatarUrl"];
   const updates: Record<string, unknown> = {};
   for (const key of allowed) {
     if (req.body[key] !== undefined) updates[key] = req.body[key];
