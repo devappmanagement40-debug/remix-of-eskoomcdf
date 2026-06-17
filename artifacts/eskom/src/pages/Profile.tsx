@@ -1,6 +1,6 @@
-import { Wallet, Download, Clock, MessageCircle, Headphones, FileText, Smartphone, CreditCard, Lock, Gift, LogOut, Crown, ChevronRight, Package, Camera, Loader2 } from "lucide-react";
+import { Wallet, Download, Clock, MessageCircle, Headphones, FileText, Smartphone, CreditCard, Lock, Gift, LogOut, Crown, ChevronRight, Package } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState, useRef } from "react";
+import { useState } from "react";
 import BottomNav from "@/components/BottomNav";
 import PageHeader from "@/components/PageHeader";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,71 +10,16 @@ import { useVipProgress } from "@/hooks/useVipProgress";
 import { useDisplaySettings } from "@/hooks/useDisplaySettings";
 import PremiumModal from "@/components/PremiumModal";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useActionPopup } from "@/components/ActionPopupProvider";
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { profile, userId, loading, refetch } = useRealtimeProfile();
+  const { profile, userId, loading } = useRealtimeProfile();
   const { displaySettings } = useDisplaySettings();
   const { vipProgress } = useVipProgress(userId, profile.vip_level, profile.balance);
   const [showLogout, setShowLogout] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
   const { t } = useLanguage();
-  const { showSuccess, showError } = useActionPopup();
 
   const phone = profile.phone || "...";
-
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { showError("Fichier trop grand", "Maximum 5 MB"); return; }
-    setUploadingAvatar(true);
-    try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const base64 = (reader.result as string).split(",")[1];
-          const token = getAuthToken();
-          if (!token) return;
-
-          const uploadRes = await fetch("/api/upload", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ base64, mimeType: file.type, fileName: file.name, bucket: "avatars" }),
-          });
-          const uploadData = await uploadRes.json();
-          if (!uploadRes.ok) {
-            showError("Erreur upload", uploadData.error || "Impossible d'uploader la photo");
-            setUploadingAvatar(false);
-            return;
-          }
-
-          const patchRes = await fetch("/api/profiles/me", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ avatarUrl: uploadData.url }),
-          });
-          if (!patchRes.ok) {
-            showError("Erreur", "Impossible de mettre à jour la photo");
-            setUploadingAvatar(false);
-            return;
-          }
-          await refetch();
-          showSuccess("Photo mise à jour", "Votre photo de profil a été mise à jour");
-        } catch {
-          showError("Erreur", "Une erreur est survenue");
-        } finally {
-          setUploadingAvatar(false);
-        }
-      };
-      reader.readAsDataURL(file);
-    } catch {
-      showError("Erreur", "Impossible de lire le fichier");
-      setUploadingAvatar(false);
-    }
-    if (fileRef.current) fileRef.current.value = "";
-  };
 
   const actionButtons = [
     { icon: Wallet, label: t.profile.depositBtn, path: "/portefeuille" },
@@ -109,34 +54,12 @@ const Profile = () => {
                   className="w-24 h-24 rounded-full object-cover border-2 border-primary shadow-[0_0_20px_hsl(174_72%_50%/0.3)]"
                 />
               ) : (
-                <div className="relative group">
-                  <Avatar className="w-20 h-20 border-2 border-primary shadow-[0_0_20px_hsl(174_72%_50%/0.3)]">
-                    <AvatarImage src={profile.avatar_url ?? ""} alt="photo" />
-                    <AvatarFallback className="bg-secondary text-2xl font-bold text-primary">
-                      {phone.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={handleAvatarChange}
-                    className="hidden"
-                  />
-                  <button
-                    onClick={() => fileRef.current?.click()}
-                    disabled={uploadingAvatar}
-                    className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 active:opacity-100 transition-opacity"
-                    title="Changer la photo"
-                  >
-                    {uploadingAvatar
-                      ? <Loader2 size={20} className="text-white animate-spin" />
-                      : <Camera size={20} className="text-white" />}
-                  </button>
-                  <div className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full bg-primary border-2 border-card flex items-center justify-center pointer-events-none">
-                    <Camera size={10} className="text-primary-foreground" />
-                  </div>
-                </div>
+                <Avatar className="w-20 h-20 border-2 border-primary shadow-[0_0_20px_hsl(174_72%_50%/0.3)]">
+                  <AvatarImage src={profile.avatar_url ?? ""} alt="photo" />
+                  <AvatarFallback className="bg-secondary text-2xl font-bold text-primary">
+                    {phone.slice(0, 2).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
               )}
               <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full gradient-button flex items-center justify-center shadow-lg">
                 <Crown size={14} className="text-primary-foreground" />
