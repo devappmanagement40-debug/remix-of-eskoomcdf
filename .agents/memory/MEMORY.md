@@ -3,7 +3,7 @@
 - [DB connection priority fix](db-connection-priority.md) — lib/db/src/index.ts uses SUPABASE_DATABASE_URL||DATABASE_URL; artifacts/api-server MUST be rebuilt after source changes or it runs stale dist/index.mjs
 - [Port config for dual-service dev](port-config.md) — Vite frontend port 5000; artifacts/api-server port 8080 (REAL backend); server/ port 3001 is LEGACY unused by frontend
 - [Auth token response format](auth-token-format.md) — artifacts/api-server login/signup must return top-level `token` field; Login.tsx reads data.token; use fallback: data.token??data.session?.access_token
-- [Plesk deployment workflow](plesk-deployment.md) — build on Replit → commit dist/ to git → Plesk: git pull + restart. app.js → dist/index.mjs. SUPABASE_DATABASE_URL required with SSL.
+- [Plesk deployment workflow](plesk-deployment.md) — root build.mjs bundles artifacts/api-server/src/index.ts → dist/index.mjs; eskom frontend → dist/public/; app.js is Plesk entry; dist/ committed to git; no build in Plesk.
 - [CamelCase vs snake_case systemic fix](camelcase-fix.md) — Drizzle ORM requires camelCase in set()/values(); admin panel sends snake_case; fix: normalizeToCamelCase() in all routes + dual read (p.isActive ?? p.is_active) in frontend
 - [Route alias mismatches](route-alias-mismatches.md) — frontend calls different URL patterns than API; add alias routes rather than changing frontend
 - [Site settings seeding](site-settings-seed.md) — site_settings table must be seeded with defaults; many keys (deposit_min, deposit_max, referral, VIP, toggles, points) are missing until seeded; PATCH /admin/site-settings upserts by key

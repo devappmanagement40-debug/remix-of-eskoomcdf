@@ -52272,14 +52272,11 @@ app.use((err, _req, res, next) => {
   const message = err.message || "Internal server error";
   return res.status(status).json({ error: message });
 });
-function getUploadsDir2() {
-  if (process.env.UPLOAD_DIR) return process.env.UPLOAD_DIR;
+var uploadsDir = process.env.UPLOAD_DIR || (() => {
   const cwd = process.cwd();
-  const fromApiServer = path2.resolve(cwd, "../..", "public", "uploads");
-  if (fs2.existsSync(path2.resolve(cwd, "../..", "public"))) return fromApiServer;
-  return path2.resolve(cwd, "public", "uploads");
-}
-var uploadsDir = getUploadsDir2();
+  const repoRoot = fs2.existsSync(path2.resolve(cwd, "../../package.json")) ? path2.resolve(cwd, "../..") : cwd;
+  return path2.resolve(repoRoot, "public", "uploads");
+})();
 app.use("/uploads", import_express13.default.static(uploadsDir));
 if (process.env.NODE_ENV === "production") {
   const frontendDist = process.env.FRONTEND_DIST || path2.resolve(process.cwd(), "dist/public");

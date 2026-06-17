@@ -55,14 +55,15 @@ app.use((err: any, _req: any, res: any, next: any) => {
 });
 
 // Serve locally uploaded files
-function getUploadsDir(): string {
-  if (process.env.UPLOAD_DIR) return process.env.UPLOAD_DIR;
+// Dev:  cwd = artifacts/api-server/ → repo root is ../../
+// Prod: cwd = repo root (Plesk runs app.js from repo root)
+const uploadsDir = process.env.UPLOAD_DIR || (() => {
   const cwd = process.cwd();
-  const fromApiServer = path.resolve(cwd, "../..", "public", "uploads");
-  if (fs.existsSync(path.resolve(cwd, "../..", "public"))) return fromApiServer;
-  return path.resolve(cwd, "public", "uploads");
-}
-const uploadsDir = getUploadsDir();
+  const repoRoot = fs.existsSync(path.resolve(cwd, "../../package.json"))
+    ? path.resolve(cwd, "../..")
+    : cwd;
+  return path.resolve(repoRoot, "public", "uploads");
+})();
 app.use("/uploads", express.static(uploadsDir));
 
 // Serve pre-built React frontend in production
