@@ -15351,11 +15351,11 @@ var require_mime_types = __commonJS({
       }
       return exts[0];
     }
-    function lookup(path2) {
-      if (!path2 || typeof path2 !== "string") {
+    function lookup(path3) {
+      if (!path3 || typeof path3 !== "string") {
         return false;
       }
-      var extension2 = extname("x." + path2).toLowerCase().slice(1);
+      var extension2 = extname("x." + path3).toLowerCase().slice(1);
       if (!extension2) {
         return false;
       }
@@ -18826,13 +18826,13 @@ var require_view = __commonJS({
   "node_modules/.pnpm/express@5.2.1/node_modules/express/lib/view.js"(exports, module) {
     "use strict";
     var debug = require_src()("express:view");
-    var path2 = __require("node:path");
-    var fs = __require("node:fs");
-    var dirname = path2.dirname;
-    var basename = path2.basename;
-    var extname = path2.extname;
-    var join = path2.join;
-    var resolve = path2.resolve;
+    var path3 = __require("node:path");
+    var fs2 = __require("node:fs");
+    var dirname = path3.dirname;
+    var basename = path3.basename;
+    var extname = path3.extname;
+    var join = path3.join;
+    var resolve = path3.resolve;
     module.exports = View2;
     function View2(name, options) {
       var opts = options || {};
@@ -18861,17 +18861,17 @@ var require_view = __commonJS({
       this.path = this.lookup(fileName);
     }
     View2.prototype.lookup = function lookup(name) {
-      var path3;
+      var path4;
       var roots = [].concat(this.root);
       debug('lookup "%s"', name);
-      for (var i = 0; i < roots.length && !path3; i++) {
+      for (var i = 0; i < roots.length && !path4; i++) {
         var root = roots[i];
         var loc = resolve(root, name);
         var dir = dirname(loc);
         var file = basename(loc);
-        path3 = this.resolve(dir, file);
+        path4 = this.resolve(dir, file);
       }
-      return path3;
+      return path4;
     };
     View2.prototype.render = function render(options, callback) {
       var sync = true;
@@ -18893,21 +18893,21 @@ var require_view = __commonJS({
     };
     View2.prototype.resolve = function resolve2(dir, file) {
       var ext = this.ext;
-      var path3 = join(dir, file);
-      var stat = tryStat(path3);
+      var path4 = join(dir, file);
+      var stat = tryStat(path4);
       if (stat && stat.isFile()) {
-        return path3;
+        return path4;
       }
-      path3 = join(dir, basename(file, ext), "index" + ext);
-      stat = tryStat(path3);
+      path4 = join(dir, basename(file, ext), "index" + ext);
+      stat = tryStat(path4);
       if (stat && stat.isFile()) {
-        return path3;
+        return path4;
       }
     };
-    function tryStat(path3) {
-      debug('stat "%s"', path3);
+    function tryStat(path4) {
+      debug('stat "%s"', path4);
       try {
-        return fs.statSync(path3);
+        return fs2.statSync(path4);
       } catch (e) {
         return void 0;
       }
@@ -20043,15 +20043,15 @@ var require_dist = __commonJS({
       let index = 0;
       function consumeUntil(end) {
         const output = [];
-        let path2 = "";
+        let path3 = "";
         function writePath() {
-          if (!path2)
+          if (!path3)
             return;
           output.push({
             type: "text",
-            value: encodePath(path2)
+            value: encodePath(path3)
           });
-          path2 = "";
+          path3 = "";
         }
         while (index < chars.length) {
           const value = chars[index++];
@@ -20063,7 +20063,7 @@ var require_dist = __commonJS({
             if (index === chars.length) {
               throw new PathError(`Unexpected end after \\ at index ${index}`, str);
             }
-            path2 += chars[index++];
+            path3 += chars[index++];
             continue;
           }
           if (value === ":" || value === "*") {
@@ -20107,7 +20107,7 @@ var require_dist = __commonJS({
           if (value === "}" || value === "(" || value === ")" || value === "[" || value === "]" || value === "+" || value === "?" || value === "!") {
             throw new PathError(`Unexpected ${value} at index ${index - 1}`, str);
           }
-          path2 += value;
+          path3 += value;
         }
         if (end) {
           throw new PathError(`Unexpected end at index ${index}, expected ${end}`, str);
@@ -20117,17 +20117,17 @@ var require_dist = __commonJS({
       }
       return new TokenData(consumeUntil(""), str);
     }
-    function compile(path2, options = {}) {
+    function compile(path3, options = {}) {
       const { encode = encodeURIComponent, delimiter = DEFAULT_DELIMITER } = options;
-      const data = typeof path2 === "object" ? path2 : parse(path2, options);
+      const data = typeof path3 === "object" ? path3 : parse(path3, options);
       const fn = tokensToFunction(data.tokens, delimiter, encode);
-      return function path3(params = {}) {
+      return function path4(params = {}) {
         const missing = [];
-        const path4 = fn(params, missing);
+        const path5 = fn(params, missing);
         if (missing.length) {
           throw new TypeError(`Missing parameters: ${missing.join(", ")}`);
         }
-        return path4;
+        return path5;
       };
     }
     function tokensToFunction(tokens, delimiter, encode) {
@@ -20189,9 +20189,9 @@ var require_dist = __commonJS({
         return encodeValue(value);
       };
     }
-    function match(path2, options = {}) {
+    function match(path3, options = {}) {
       const { decode = decodeURIComponent, delimiter = DEFAULT_DELIMITER } = options;
-      const { regexp, keys } = pathToRegexp(path2, options);
+      const { regexp, keys } = pathToRegexp(path3, options);
       const decoders = keys.map((key) => {
         if (decode === false)
           return NOOP_VALUE;
@@ -20203,7 +20203,7 @@ var require_dist = __commonJS({
         const m = regexp.exec(input);
         if (!m)
           return false;
-        const path3 = m[0];
+        const path4 = m[0];
         const params = /* @__PURE__ */ Object.create(null);
         for (let i = 1; i < m.length; i++) {
           if (m[i] === void 0)
@@ -20212,21 +20212,21 @@ var require_dist = __commonJS({
           const decoder = decoders[i - 1];
           params[key.name] = decoder(m[i]);
         }
-        return { path: path3, params };
+        return { path: path4, params };
       };
     }
-    function pathToRegexp(path2, options = {}) {
+    function pathToRegexp(path3, options = {}) {
       const { delimiter = DEFAULT_DELIMITER, end = true, sensitive = false, trailing = true } = options;
       const keys = [];
       let source = "";
       let combinations = 0;
-      function process3(path3) {
-        if (Array.isArray(path3)) {
-          for (const p of path3)
+      function process3(path4) {
+        if (Array.isArray(path4)) {
+          for (const p of path4)
             process3(p);
           return;
         }
-        const data = typeof path3 === "object" ? path3 : parse(path3, options);
+        const data = typeof path4 === "object" ? path4 : parse(path4, options);
         flatten(data.tokens, 0, [], (tokens) => {
           if (combinations >= 256) {
             throw new PathError("Too many path combinations", data.originalPath);
@@ -20237,7 +20237,7 @@ var require_dist = __commonJS({
           combinations++;
         });
       }
-      process3(path2);
+      process3(path3);
       let pattern = `^(?:${source})`;
       if (trailing)
         pattern += "(?:" + escape2(delimiter) + "$)?";
@@ -20377,18 +20377,18 @@ var require_layer = __commonJS({
     var TRAILING_SLASH_REGEXP = /\/+$/;
     var MATCHING_GROUP_REGEXP = /\((?:\?<(.*?)>)?(?!\?)/g;
     module.exports = Layer;
-    function Layer(path2, options, fn) {
+    function Layer(path3, options, fn) {
       if (!(this instanceof Layer)) {
-        return new Layer(path2, options, fn);
+        return new Layer(path3, options, fn);
       }
-      debug("new %o", path2);
+      debug("new %o", path3);
       const opts = options || {};
       this.handle = fn;
       this.keys = [];
       this.name = fn.name || "<anonymous>";
       this.params = void 0;
       this.path = void 0;
-      this.slash = path2 === "/" && opts.end === false;
+      this.slash = path3 === "/" && opts.end === false;
       function matcher(_path) {
         if (_path instanceof RegExp) {
           const keys = [];
@@ -20427,7 +20427,7 @@ var require_layer = __commonJS({
           decode: decodeParam
         });
       }
-      this.matchers = Array.isArray(path2) ? path2.map(matcher) : [matcher(path2)];
+      this.matchers = Array.isArray(path3) ? path3.map(matcher) : [matcher(path3)];
     }
     Layer.prototype.handleError = function handleError2(error, req, res, next) {
       const fn = this.handle;
@@ -20467,9 +20467,9 @@ var require_layer = __commonJS({
         next(err);
       }
     };
-    Layer.prototype.match = function match(path2) {
+    Layer.prototype.match = function match(path3) {
       let match2;
-      if (path2 != null) {
+      if (path3 != null) {
         if (this.slash) {
           this.params = {};
           this.path = "";
@@ -20477,7 +20477,7 @@ var require_layer = __commonJS({
         }
         let i = 0;
         while (!match2 && i < this.matchers.length) {
-          match2 = this.matchers[i](path2);
+          match2 = this.matchers[i](path3);
           i++;
         }
       }
@@ -20505,13 +20505,13 @@ var require_layer = __commonJS({
         throw err;
       }
     }
-    function loosen(path2) {
-      if (path2 instanceof RegExp || path2 === "/") {
-        return path2;
+    function loosen(path3) {
+      if (path3 instanceof RegExp || path3 === "/") {
+        return path3;
       }
-      return Array.isArray(path2) ? path2.map(function(p) {
+      return Array.isArray(path3) ? path3.map(function(p) {
         return loosen(p);
-      }) : String(path2).replace(TRAILING_SLASH_REGEXP, "");
+      }) : String(path3).replace(TRAILING_SLASH_REGEXP, "");
     }
   }
 });
@@ -20527,9 +20527,9 @@ var require_route = __commonJS({
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
     module.exports = Route;
-    function Route(path2) {
-      debug("new %o", path2);
-      this.path = path2;
+    function Route(path3) {
+      debug("new %o", path3);
+      this.path = path3;
       this.stack = [];
       this.methods = /* @__PURE__ */ Object.create(null);
     }
@@ -20737,8 +20737,8 @@ var require_router = __commonJS({
         if (++sync > 100) {
           return setImmediate(next, err);
         }
-        const path2 = getPathname(req);
-        if (path2 == null) {
+        const path3 = getPathname(req);
+        if (path3 == null) {
           return done(layerError);
         }
         let layer;
@@ -20746,7 +20746,7 @@ var require_router = __commonJS({
         let route;
         while (match !== true && idx < stack.length) {
           layer = stack[idx++];
-          match = matchLayer(layer, path2);
+          match = matchLayer(layer, path3);
           route = layer.route;
           if (typeof match !== "boolean") {
             layerError = layerError || match;
@@ -20784,18 +20784,18 @@ var require_router = __commonJS({
           } else if (route) {
             layer.handleRequest(req, res, next);
           } else {
-            trimPrefix(layer, layerError, layerPath, path2);
+            trimPrefix(layer, layerError, layerPath, path3);
           }
           sync = 0;
         });
       }
-      function trimPrefix(layer, layerError, layerPath, path2) {
+      function trimPrefix(layer, layerError, layerPath, path3) {
         if (layerPath.length !== 0) {
-          if (layerPath !== path2.substring(0, layerPath.length)) {
+          if (layerPath !== path3.substring(0, layerPath.length)) {
             next(layerError);
             return;
           }
-          const c = path2[layerPath.length];
+          const c = path3[layerPath.length];
           if (c && c !== "/") {
             next(layerError);
             return;
@@ -20819,7 +20819,7 @@ var require_router = __commonJS({
     };
     Router14.prototype.use = function use(handler) {
       let offset = 0;
-      let path2 = "/";
+      let path3 = "/";
       if (typeof handler !== "function") {
         let arg = handler;
         while (Array.isArray(arg) && arg.length !== 0) {
@@ -20827,7 +20827,7 @@ var require_router = __commonJS({
         }
         if (typeof arg !== "function") {
           offset = 1;
-          path2 = handler;
+          path3 = handler;
         }
       }
       const callbacks = flatten.call(slice.call(arguments, offset), Infinity);
@@ -20839,8 +20839,8 @@ var require_router = __commonJS({
         if (typeof fn !== "function") {
           throw new TypeError("argument handler must be a function");
         }
-        debug("use %o %s", path2, fn.name || "<anonymous>");
-        const layer = new Layer(path2, {
+        debug("use %o %s", path3, fn.name || "<anonymous>");
+        const layer = new Layer(path3, {
           sensitive: this.caseSensitive,
           strict: false,
           end: false
@@ -20850,9 +20850,9 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router14.prototype.route = function route(path2) {
-      const route2 = new Route(path2);
-      const layer = new Layer(path2, {
+    Router14.prototype.route = function route(path3) {
+      const route2 = new Route(path3);
+      const layer = new Layer(path3, {
         sensitive: this.caseSensitive,
         strict: this.strict,
         end: true
@@ -20865,8 +20865,8 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router14.prototype[method] = function(path2) {
-        const route = this.route(path2);
+      Router14.prototype[method] = function(path3) {
+        const route = this.route(path3);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
       };
@@ -20895,9 +20895,9 @@ var require_router = __commonJS({
       const fqdnIndex = url.substring(0, pathLength).indexOf("://");
       return fqdnIndex !== -1 ? url.substring(0, url.indexOf("/", 3 + fqdnIndex)) : void 0;
     }
-    function matchLayer(layer, path2) {
+    function matchLayer(layer, path3) {
       try {
-        return layer.match(path2);
+        return layer.match(path3);
       } catch (err) {
         return err;
       }
@@ -21125,7 +21125,7 @@ var require_application = __commonJS({
     };
     app2.use = function use(fn) {
       var offset = 0;
-      var path2 = "/";
+      var path3 = "/";
       if (typeof fn !== "function") {
         var arg = fn;
         while (Array.isArray(arg) && arg.length !== 0) {
@@ -21133,7 +21133,7 @@ var require_application = __commonJS({
         }
         if (typeof arg !== "function") {
           offset = 1;
-          path2 = fn;
+          path3 = fn;
         }
       }
       var fns = flatten.call(slice.call(arguments, offset), Infinity);
@@ -21143,12 +21143,12 @@ var require_application = __commonJS({
       var router14 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router14.use(path2, fn2);
+          return router14.use(path3, fn2);
         }
-        debug(".use app under %s", path2);
-        fn2.mountpath = path2;
+        debug(".use app under %s", path3);
+        fn2.mountpath = path3;
         fn2.parent = this;
-        router14.use(path2, function mounted_app(req, res, next) {
+        router14.use(path3, function mounted_app(req, res, next) {
           var orig = req.app;
           fn2.handle(req, res, function(err) {
             Object.setPrototypeOf(req, orig.request);
@@ -21160,8 +21160,8 @@ var require_application = __commonJS({
       }, this);
       return this;
     };
-    app2.route = function route(path2) {
-      return this.router.route(path2);
+    app2.route = function route(path3) {
+      return this.router.route(path3);
     };
     app2.engine = function engine(ext, fn) {
       if (typeof fn !== "function") {
@@ -21204,7 +21204,7 @@ var require_application = __commonJS({
       }
       return this;
     };
-    app2.path = function path2() {
+    app2.path = function path3() {
       return this.parent ? this.parent.path() + this.mountpath : "";
     };
     app2.enabled = function enabled(setting) {
@@ -21220,17 +21220,17 @@ var require_application = __commonJS({
       return this.set(setting, false);
     };
     methods.forEach(function(method) {
-      app2[method] = function(path2) {
+      app2[method] = function(path3) {
         if (method === "get" && arguments.length === 1) {
-          return this.set(path2);
+          return this.set(path3);
         }
-        var route = this.route(path2);
+        var route = this.route(path3);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
       };
     });
-    app2.all = function all(path2) {
-      var route = this.route(path2);
+    app2.all = function all(path3) {
+      var route = this.route(path3);
       var args = slice.call(arguments, 1);
       for (var i = 0; i < methods.length; i++) {
         route[methods[i]].apply(route, args);
@@ -22140,7 +22140,7 @@ var require_request = __commonJS({
       var subdomains2 = !isIP(hostname) ? hostname.split(".").reverse() : [hostname];
       return subdomains2.slice(offset);
     });
-    defineGetter(req, "path", function path2() {
+    defineGetter(req, "path", function path3() {
       return parse(this).pathname;
     });
     defineGetter(req, "host", function host() {
@@ -22351,8 +22351,8 @@ var require_content_disposition = __commonJS({
       this.type = type;
       this.parameters = parameters;
     }
-    function basename(path2) {
-      const normalized = path2.replaceAll("\\", "/");
+    function basename(path3) {
+      const normalized = path3.replaceAll("\\", "/");
       let end = normalized.length;
       while (end > 0 && normalized[end - 1] === "/") {
         end--;
@@ -22593,32 +22593,32 @@ var require_send = __commonJS({
     var escapeHtml = require_escape_html();
     var etag = require_etag();
     var fresh = require_fresh();
-    var fs = __require("fs");
+    var fs2 = __require("fs");
     var mime = require_mime_types();
     var ms = require_ms();
     var onFinished = require_on_finished();
     var parseRange = require_range_parser();
-    var path2 = __require("path");
+    var path3 = __require("path");
     var statuses = require_statuses();
     var Stream = __require("stream");
     var util2 = __require("util");
-    var extname = path2.extname;
-    var join = path2.join;
-    var normalize = path2.normalize;
-    var resolve = path2.resolve;
-    var sep = path2.sep;
+    var extname = path3.extname;
+    var join = path3.join;
+    var normalize = path3.normalize;
+    var resolve = path3.resolve;
+    var sep = path3.sep;
     var BYTES_RANGE_REGEXP = /^ *bytes=/;
     var MAX_MAXAGE = 60 * 60 * 24 * 365 * 1e3;
     var UP_PATH_REGEXP = /(?:^|[\\/])\.\.(?:[\\/]|$)/;
     module.exports = send;
-    function send(req, path3, options) {
-      return new SendStream(req, path3, options);
+    function send(req, path4, options) {
+      return new SendStream(req, path4, options);
     }
-    function SendStream(req, path3, options) {
+    function SendStream(req, path4, options) {
       Stream.call(this);
       var opts = options || {};
       this.options = opts;
-      this.path = path3;
+      this.path = path4;
       this.req = req;
       this._acceptRanges = opts.acceptRanges !== void 0 ? Boolean(opts.acceptRanges) : true;
       this._cacheControl = opts.cacheControl !== void 0 ? Boolean(opts.cacheControl) : true;
@@ -22732,10 +22732,10 @@ var require_send = __commonJS({
       var lastModified = this.res.getHeader("Last-Modified");
       return parseHttpDate(lastModified) <= parseHttpDate(ifRange);
     };
-    SendStream.prototype.redirect = function redirect(path3) {
+    SendStream.prototype.redirect = function redirect(path4) {
       var res = this.res;
       if (hasListeners(this, "directory")) {
-        this.emit("directory", res, path3);
+        this.emit("directory", res, path4);
         return;
       }
       if (this.hasTrailingSlash()) {
@@ -22755,38 +22755,38 @@ var require_send = __commonJS({
     SendStream.prototype.pipe = function pipe(res) {
       var root = this._root;
       this.res = res;
-      var path3 = decode(this.path);
-      if (path3 === -1) {
+      var path4 = decode(this.path);
+      if (path4 === -1) {
         this.error(400);
         return res;
       }
-      if (~path3.indexOf("\0")) {
+      if (~path4.indexOf("\0")) {
         this.error(400);
         return res;
       }
       var parts;
       if (root !== null) {
-        if (path3) {
-          path3 = normalize("." + sep + path3);
+        if (path4) {
+          path4 = normalize("." + sep + path4);
         }
-        if (UP_PATH_REGEXP.test(path3)) {
-          debug('malicious path "%s"', path3);
+        if (UP_PATH_REGEXP.test(path4)) {
+          debug('malicious path "%s"', path4);
           this.error(403);
           return res;
         }
-        parts = path3.split(sep);
-        path3 = normalize(join(root, path3));
+        parts = path4.split(sep);
+        path4 = normalize(join(root, path4));
       } else {
-        if (UP_PATH_REGEXP.test(path3)) {
-          debug('malicious path "%s"', path3);
+        if (UP_PATH_REGEXP.test(path4)) {
+          debug('malicious path "%s"', path4);
           this.error(403);
           return res;
         }
-        parts = normalize(path3).split(sep);
-        path3 = resolve(path3);
+        parts = normalize(path4).split(sep);
+        path4 = resolve(path4);
       }
       if (containsDotFile(parts)) {
-        debug('%s dotfile "%s"', this._dotfiles, path3);
+        debug('%s dotfile "%s"', this._dotfiles, path4);
         switch (this._dotfiles) {
           case "allow":
             break;
@@ -22800,13 +22800,13 @@ var require_send = __commonJS({
         }
       }
       if (this._index.length && this.hasTrailingSlash()) {
-        this.sendIndex(path3);
+        this.sendIndex(path4);
         return res;
       }
-      this.sendFile(path3);
+      this.sendFile(path4);
       return res;
     };
-    SendStream.prototype.send = function send2(path3, stat) {
+    SendStream.prototype.send = function send2(path4, stat) {
       var len = stat.size;
       var options = this.options;
       var opts = {};
@@ -22818,9 +22818,9 @@ var require_send = __commonJS({
         this.headersAlreadySent();
         return;
       }
-      debug('pipe "%s"', path3);
-      this.setHeader(path3, stat);
-      this.type(path3);
+      debug('pipe "%s"', path4);
+      this.setHeader(path4, stat);
+      this.type(path4);
       if (this.isConditionalGET()) {
         if (this.isPreconditionFailure()) {
           this.error(412);
@@ -22869,30 +22869,30 @@ var require_send = __commonJS({
         res.end();
         return;
       }
-      this.stream(path3, opts);
+      this.stream(path4, opts);
     };
-    SendStream.prototype.sendFile = function sendFile(path3) {
+    SendStream.prototype.sendFile = function sendFile(path4) {
       var i = 0;
       var self2 = this;
-      debug('stat "%s"', path3);
-      fs.stat(path3, function onstat(err, stat) {
-        var pathEndsWithSep = path3[path3.length - 1] === sep;
-        if (err && err.code === "ENOENT" && !extname(path3) && !pathEndsWithSep) {
+      debug('stat "%s"', path4);
+      fs2.stat(path4, function onstat(err, stat) {
+        var pathEndsWithSep = path4[path4.length - 1] === sep;
+        if (err && err.code === "ENOENT" && !extname(path4) && !pathEndsWithSep) {
           return next(err);
         }
         if (err) return self2.onStatError(err);
-        if (stat.isDirectory()) return self2.redirect(path3);
+        if (stat.isDirectory()) return self2.redirect(path4);
         if (pathEndsWithSep) return self2.error(404);
-        self2.emit("file", path3, stat);
-        self2.send(path3, stat);
+        self2.emit("file", path4, stat);
+        self2.send(path4, stat);
       });
       function next(err) {
         if (self2._extensions.length <= i) {
           return err ? self2.onStatError(err) : self2.error(404);
         }
-        var p = path3 + "." + self2._extensions[i++];
+        var p = path4 + "." + self2._extensions[i++];
         debug('stat "%s"', p);
-        fs.stat(p, function(err2, stat) {
+        fs2.stat(p, function(err2, stat) {
           if (err2) return next(err2);
           if (stat.isDirectory()) return next();
           self2.emit("file", p, stat);
@@ -22900,7 +22900,7 @@ var require_send = __commonJS({
         });
       }
     };
-    SendStream.prototype.sendIndex = function sendIndex(path3) {
+    SendStream.prototype.sendIndex = function sendIndex(path4) {
       var i = -1;
       var self2 = this;
       function next(err) {
@@ -22908,9 +22908,9 @@ var require_send = __commonJS({
           if (err) return self2.onStatError(err);
           return self2.error(404);
         }
-        var p = join(path3, self2._index[i]);
+        var p = join(path4, self2._index[i]);
         debug('stat "%s"', p);
-        fs.stat(p, function(err2, stat) {
+        fs2.stat(p, function(err2, stat) {
           if (err2) return next(err2);
           if (stat.isDirectory()) return next();
           self2.emit("file", p, stat);
@@ -22919,10 +22919,10 @@ var require_send = __commonJS({
       }
       next();
     };
-    SendStream.prototype.stream = function stream(path3, options) {
+    SendStream.prototype.stream = function stream(path4, options) {
       var self2 = this;
       var res = this.res;
-      var stream2 = fs.createReadStream(path3, options);
+      var stream2 = fs2.createReadStream(path4, options);
       this.emit("stream", stream2);
       stream2.pipe(res);
       function cleanup() {
@@ -22937,17 +22937,17 @@ var require_send = __commonJS({
         self2.emit("end");
       });
     };
-    SendStream.prototype.type = function type(path3) {
+    SendStream.prototype.type = function type(path4) {
       var res = this.res;
       if (res.getHeader("Content-Type")) return;
-      var ext = extname(path3);
+      var ext = extname(path4);
       var type2 = mime.contentType(ext) || "application/octet-stream";
       debug("content-type %s", type2);
       res.setHeader("Content-Type", type2);
     };
-    SendStream.prototype.setHeader = function setHeader2(path3, stat) {
+    SendStream.prototype.setHeader = function setHeader2(path4, stat) {
       var res = this.res;
-      this.emit("headers", res, path3, stat);
+      this.emit("headers", res, path4, stat);
       if (this._acceptRanges && !res.getHeader("Accept-Ranges")) {
         debug("accept ranges");
         res.setHeader("Accept-Ranges", "bytes");
@@ -23005,9 +23005,9 @@ var require_send = __commonJS({
       }
       return err instanceof Error ? createError(status, err, { expose: false }) : createError(status, err);
     }
-    function decode(path3) {
+    function decode(path4) {
       try {
-        return decodeURIComponent(path3);
+        return decodeURIComponent(path4);
       } catch (err) {
         return -1;
       }
@@ -23151,7 +23151,7 @@ var require_response = __commonJS({
     var http = __require("node:http");
     var onFinished = require_on_finished();
     var mime = require_mime_types();
-    var path2 = __require("node:path");
+    var path3 = __require("node:path");
     var pathIsAbsolute = __require("node:path").isAbsolute;
     var statuses = require_statuses();
     var sign = require_cookie_signature().sign;
@@ -23160,8 +23160,8 @@ var require_response = __commonJS({
     var setCharset = require_utils3().setCharset;
     var cookie = require_cookie();
     var send = require_send();
-    var extname = path2.extname;
-    var resolve = path2.resolve;
+    var extname = path3.extname;
+    var resolve = path3.resolve;
     var vary = require_vary();
     var { Buffer: Buffer2 } = __require("node:buffer");
     var res = Object.create(http.ServerResponse.prototype);
@@ -23307,26 +23307,26 @@ var require_response = __commonJS({
       this.type("txt");
       return this.send(body);
     };
-    res.sendFile = function sendFile(path3, options, callback) {
+    res.sendFile = function sendFile(path4, options, callback) {
       var done = callback;
       var req = this.req;
       var res2 = this;
       var next = req.next;
       var opts = options || {};
-      if (!path3) {
+      if (!path4) {
         throw new TypeError("path argument is required to res.sendFile");
       }
-      if (typeof path3 !== "string") {
+      if (typeof path4 !== "string") {
         throw new TypeError("path must be a string to res.sendFile");
       }
       if (typeof options === "function") {
         done = options;
         opts = {};
       }
-      if (!opts.root && !pathIsAbsolute(path3)) {
+      if (!opts.root && !pathIsAbsolute(path4)) {
         throw new TypeError("path must be absolute or specify root to res.sendFile");
       }
-      var pathname = encodeURI(path3);
+      var pathname = encodeURI(path4);
       opts.etag = this.app.enabled("etag");
       var file = send(req, pathname, opts);
       sendfile(res2, file, opts, function(err) {
@@ -23337,7 +23337,7 @@ var require_response = __commonJS({
         }
       });
     };
-    res.download = function download(path3, filename, options, callback) {
+    res.download = function download(path4, filename, options, callback) {
       var done = callback;
       var name = filename;
       var opts = options || null;
@@ -23354,7 +23354,7 @@ var require_response = __commonJS({
         opts = filename;
       }
       var headers = {
-        "Content-Disposition": contentDisposition(name || path3)
+        "Content-Disposition": contentDisposition(name || path4)
       };
       if (opts && opts.headers) {
         var keys = Object.keys(opts.headers);
@@ -23367,7 +23367,7 @@ var require_response = __commonJS({
       }
       opts = Object.create(opts);
       opts.headers = headers;
-      var fullPath = !opts.root ? resolve(path3) : path3;
+      var fullPath = !opts.root ? resolve(path4) : path4;
       return this.sendFile(fullPath, opts, done);
     };
     res.contentType = res.type = function contentType(type) {
@@ -23650,11 +23650,11 @@ var require_serve_static = __commonJS({
         }
         var forwardError = !fallthrough;
         var originalUrl = parseUrl.original(req);
-        var path2 = parseUrl(req).pathname;
-        if (path2 === "/" && originalUrl.pathname.substr(-1) !== "/") {
-          path2 = "";
+        var path3 = parseUrl(req).pathname;
+        if (path3 === "/" && originalUrl.pathname.substr(-1) !== "/") {
+          path3 = "";
         }
-        var stream = send(req, path2, opts);
+        var stream = send(req, path3, opts);
         stream.on("directory", onDirectory);
         if (setHeaders) {
           stream.on("headers", setHeaders);
@@ -24302,8 +24302,8 @@ var require_req = __commonJS({
       if (req.originalUrl) {
         _req.url = req.originalUrl;
       } else {
-        const path2 = req.path;
-        _req.url = typeof path2 === "string" ? path2 : req.url ? req.url.path || req.url : void 0;
+        const path3 = req.path;
+        _req.url = typeof path3 === "string" ? path3 : req.url ? req.url.path || req.url : void 0;
       }
       if (req.query) {
         _req.query = req.query;
@@ -24468,14 +24468,14 @@ var require_redact = __commonJS({
       }
       return obj;
     }
-    function parsePath(path2) {
+    function parsePath(path3) {
       const parts = [];
       let current = "";
       let inBrackets = false;
       let inQuotes = false;
       let quoteChar = "";
-      for (let i = 0; i < path2.length; i++) {
-        const char2 = path2[i];
+      for (let i = 0; i < path3.length; i++) {
+        const char2 = path3[i];
         if (!inBrackets && char2 === ".") {
           if (current) {
             parts.push(current);
@@ -24606,10 +24606,10 @@ var require_redact = __commonJS({
       return current;
     }
     function redactPaths(obj, paths, censor, remove2 = false) {
-      for (const path2 of paths) {
-        const parts = parsePath(path2);
+      for (const path3 of paths) {
+        const parts = parsePath(path3);
         if (parts.includes("*")) {
-          redactWildcardPath(obj, parts, censor, path2, remove2);
+          redactWildcardPath(obj, parts, censor, path3, remove2);
         } else {
           if (remove2) {
             removeKey(obj, parts);
@@ -24694,8 +24694,8 @@ var require_redact = __commonJS({
           }
         } else {
           if (afterWildcard.includes("*")) {
-            const wrappedCensor = typeof censor === "function" ? (value, path2) => {
-              const fullPath = [...pathArray.slice(0, pathLength), ...path2];
+            const wrappedCensor = typeof censor === "function" ? (value, path3) => {
+              const fullPath = [...pathArray.slice(0, pathLength), ...path3];
               return censor(value, fullPath);
             } : censor;
             redactWildcardPath(current, afterWildcard, wrappedCensor, originalPath, remove2);
@@ -24730,8 +24730,8 @@ var require_redact = __commonJS({
         return null;
       }
       const pathStructure = /* @__PURE__ */ new Map();
-      for (const path2 of pathsToClone) {
-        const parts = parsePath(path2);
+      for (const path3 of pathsToClone) {
+        const parts = parsePath(path3);
         let current = pathStructure;
         for (let i = 0; i < parts.length; i++) {
           const part = parts[i];
@@ -24783,24 +24783,24 @@ var require_redact = __commonJS({
       }
       return cloneSelectively(obj, pathStructure);
     }
-    function validatePath(path2) {
-      if (typeof path2 !== "string") {
+    function validatePath(path3) {
+      if (typeof path3 !== "string") {
         throw new Error("Paths must be (non-empty) strings");
       }
-      if (path2 === "") {
+      if (path3 === "") {
         throw new Error("Invalid redaction path ()");
       }
-      if (path2.includes("..")) {
-        throw new Error(`Invalid redaction path (${path2})`);
+      if (path3.includes("..")) {
+        throw new Error(`Invalid redaction path (${path3})`);
       }
-      if (path2.includes(",")) {
-        throw new Error(`Invalid redaction path (${path2})`);
+      if (path3.includes(",")) {
+        throw new Error(`Invalid redaction path (${path3})`);
       }
       let bracketCount = 0;
       let inQuotes = false;
       let quoteChar = "";
-      for (let i = 0; i < path2.length; i++) {
-        const char2 = path2[i];
+      for (let i = 0; i < path3.length; i++) {
+        const char2 = path3[i];
         if ((char2 === '"' || char2 === "'") && bracketCount > 0) {
           if (!inQuotes) {
             inQuotes = true;
@@ -24814,20 +24814,20 @@ var require_redact = __commonJS({
         } else if (char2 === "]" && !inQuotes) {
           bracketCount--;
           if (bracketCount < 0) {
-            throw new Error(`Invalid redaction path (${path2})`);
+            throw new Error(`Invalid redaction path (${path3})`);
           }
         }
       }
       if (bracketCount !== 0) {
-        throw new Error(`Invalid redaction path (${path2})`);
+        throw new Error(`Invalid redaction path (${path3})`);
       }
     }
     function validatePaths(paths) {
       if (!Array.isArray(paths)) {
         throw new TypeError("paths must be an array");
       }
-      for (const path2 of paths) {
-        validatePath(path2);
+      for (const path3 of paths) {
+        validatePath(path3);
       }
     }
     function slowRedact(options = {}) {
@@ -24995,8 +24995,8 @@ var require_redaction = __commonJS({
         if (shape[k] === null) {
           o[k] = (value) => topCensor(value, [k]);
         } else {
-          const wrappedCensor = typeof censor === "function" ? (value, path2) => {
-            return censor(value, [k, ...path2]);
+          const wrappedCensor = typeof censor === "function" ? (value, path3) => {
+            return censor(value, [k, ...path3]);
           } : censor;
           o[k] = Redact({
             paths: shape[k],
@@ -25214,10 +25214,10 @@ var require_atomic_sleep = __commonJS({
 var require_sonic_boom = __commonJS({
   "node_modules/.pnpm/sonic-boom@4.2.1/node_modules/sonic-boom/index.js"(exports, module) {
     "use strict";
-    var fs = __require("fs");
+    var fs2 = __require("fs");
     var EventEmitter = __require("events");
     var inherits = __require("util").inherits;
-    var path2 = __require("path");
+    var path3 = __require("path");
     var sleep2 = require_atomic_sleep();
     var assert = __require("assert");
     var BUSY_WRITE_TIMEOUT = 100;
@@ -25271,20 +25271,20 @@ var require_sonic_boom = __commonJS({
       const mode = sonic.mode;
       if (sonic.sync) {
         try {
-          if (sonic.mkdir) fs.mkdirSync(path2.dirname(file), { recursive: true });
-          const fd = fs.openSync(file, flags, mode);
+          if (sonic.mkdir) fs2.mkdirSync(path3.dirname(file), { recursive: true });
+          const fd = fs2.openSync(file, flags, mode);
           fileOpened(null, fd);
         } catch (err) {
           fileOpened(err);
           throw err;
         }
       } else if (sonic.mkdir) {
-        fs.mkdir(path2.dirname(file), { recursive: true }, (err) => {
+        fs2.mkdir(path3.dirname(file), { recursive: true }, (err) => {
           if (err) return fileOpened(err);
-          fs.open(file, flags, mode, fileOpened);
+          fs2.open(file, flags, mode, fileOpened);
         });
       } else {
-        fs.open(file, flags, mode, fileOpened);
+        fs2.open(file, flags, mode, fileOpened);
       }
     }
     function SonicBoom(opts) {
@@ -25325,8 +25325,8 @@ var require_sonic_boom = __commonJS({
         this.flush = flushBuffer;
         this.flushSync = flushBufferSync;
         this._actualWrite = actualWriteBuffer;
-        fsWriteSync = () => fs.writeSync(this.fd, this._writingBuf);
-        fsWrite = () => fs.write(this.fd, this._writingBuf, this.release);
+        fsWriteSync = () => fs2.writeSync(this.fd, this._writingBuf);
+        fsWrite = () => fs2.write(this.fd, this._writingBuf, this.release);
       } else if (contentMode === void 0 || contentMode === kContentModeUtf8) {
         this._writingBuf = "";
         this.write = write;
@@ -25335,15 +25335,15 @@ var require_sonic_boom = __commonJS({
         this._actualWrite = actualWrite;
         fsWriteSync = () => {
           if (Buffer.isBuffer(this._writingBuf)) {
-            return fs.writeSync(this.fd, this._writingBuf);
+            return fs2.writeSync(this.fd, this._writingBuf);
           }
-          return fs.writeSync(this.fd, this._writingBuf, "utf8");
+          return fs2.writeSync(this.fd, this._writingBuf, "utf8");
         };
         fsWrite = () => {
           if (Buffer.isBuffer(this._writingBuf)) {
-            return fs.write(this.fd, this._writingBuf, this.release);
+            return fs2.write(this.fd, this._writingBuf, this.release);
           }
-          return fs.write(this.fd, this._writingBuf, "utf8", this.release);
+          return fs2.write(this.fd, this._writingBuf, "utf8", this.release);
         };
       } else {
         throw new Error(`SonicBoom supports "${kContentModeUtf8}" and "${kContentModeBuffer}", but passed ${contentMode}`);
@@ -25400,7 +25400,7 @@ var require_sonic_boom = __commonJS({
           }
         }
         if (this._fsync) {
-          fs.fsyncSync(this.fd);
+          fs2.fsyncSync(this.fd);
         }
         const len = this._len;
         if (this._reopening) {
@@ -25514,7 +25514,7 @@ var require_sonic_boom = __commonJS({
       const onDrain = () => {
         if (!this._fsync) {
           try {
-            fs.fsync(this.fd, (err) => {
+            fs2.fsync(this.fd, (err) => {
               this._flushPending = false;
               cb(err);
             });
@@ -25616,7 +25616,7 @@ var require_sonic_boom = __commonJS({
       const fd = this.fd;
       this.once("ready", () => {
         if (fd !== this.fd) {
-          fs.close(fd, (err) => {
+          fs2.close(fd, (err) => {
             if (err) {
               return this.emit("error", err);
             }
@@ -25665,7 +25665,7 @@ var require_sonic_boom = __commonJS({
           buf = this._bufs[0];
         }
         try {
-          const n = Buffer.isBuffer(buf) ? fs.writeSync(this.fd, buf) : fs.writeSync(this.fd, buf, "utf8");
+          const n = Buffer.isBuffer(buf) ? fs2.writeSync(this.fd, buf) : fs2.writeSync(this.fd, buf, "utf8");
           const releasedBufObj = releaseWritingBuf(buf, this._len, n);
           buf = releasedBufObj.writingBuf;
           this._len = releasedBufObj.len;
@@ -25681,7 +25681,7 @@ var require_sonic_boom = __commonJS({
         }
       }
       try {
-        fs.fsyncSync(this.fd);
+        fs2.fsyncSync(this.fd);
       } catch {
       }
     }
@@ -25702,7 +25702,7 @@ var require_sonic_boom = __commonJS({
           buf = mergeBuf(this._bufs[0], this._lens[0]);
         }
         try {
-          const n = fs.writeSync(this.fd, buf);
+          const n = fs2.writeSync(this.fd, buf);
           buf = buf.subarray(n);
           this._len = Math.max(this._len - n, 0);
           if (buf.length <= 0) {
@@ -25730,13 +25730,13 @@ var require_sonic_boom = __commonJS({
       this._writingBuf = this._writingBuf.length ? this._writingBuf : this._bufs.shift() || "";
       if (this.sync) {
         try {
-          const written = Buffer.isBuffer(this._writingBuf) ? fs.writeSync(this.fd, this._writingBuf) : fs.writeSync(this.fd, this._writingBuf, "utf8");
+          const written = Buffer.isBuffer(this._writingBuf) ? fs2.writeSync(this.fd, this._writingBuf) : fs2.writeSync(this.fd, this._writingBuf, "utf8");
           release(null, written);
         } catch (err) {
           release(err);
         }
       } else {
-        fs.write(this.fd, this._writingBuf, release);
+        fs2.write(this.fd, this._writingBuf, release);
       }
     }
     function actualWriteBuffer() {
@@ -25745,7 +25745,7 @@ var require_sonic_boom = __commonJS({
       this._writingBuf = this._writingBuf.length ? this._writingBuf : mergeBuf(this._bufs.shift(), this._lens.shift());
       if (this.sync) {
         try {
-          const written = fs.writeSync(this.fd, this._writingBuf);
+          const written = fs2.writeSync(this.fd, this._writingBuf);
           release(null, written);
         } catch (err) {
           release(err);
@@ -25754,7 +25754,7 @@ var require_sonic_boom = __commonJS({
         if (kCopyBuffer) {
           this._writingBuf = Buffer.from(this._writingBuf);
         }
-        fs.write(this.fd, this._writingBuf, release);
+        fs2.write(this.fd, this._writingBuf, release);
       }
     }
     function actualClose(sonic) {
@@ -25770,12 +25770,12 @@ var require_sonic_boom = __commonJS({
       sonic._lens = [];
       assert(typeof sonic.fd === "number", `sonic.fd must be a number, got ${typeof sonic.fd}`);
       try {
-        fs.fsync(sonic.fd, closeWrapped);
+        fs2.fsync(sonic.fd, closeWrapped);
       } catch {
       }
       function closeWrapped() {
         if (sonic.fd !== 1 && sonic.fd !== 2) {
-          fs.close(sonic.fd, done);
+          fs2.close(sonic.fd, done);
         } else {
           done();
         }
@@ -28139,9 +28139,9 @@ var require_pino = __commonJS({
   "node_modules/.pnpm/pino@9.14.0/node_modules/pino/pino.js"(exports, module) {
     function pinoBundlerAbsolutePath(p) {
       try {
-        const path2 = __require("path");
+        const path3 = __require("path");
         const outputDir = "/home/runner/workspace/dist";
-        return path2.resolve(outputDir, p.replace(/^\.\//, ""));
+        return path3.resolve(outputDir, p.replace(/^\.\//, ""));
       } catch (e) {
         const f = new Function("p", "return new URL(p, import.meta.url).pathname");
         return f(p);
@@ -30233,15 +30233,15 @@ var require_pg_connection_string = __commonJS({
       if (config.sslcert || config.sslkey || config.sslrootcert || config.sslmode) {
         config.ssl = {};
       }
-      const fs = config.sslcert || config.sslkey || config.sslrootcert ? __require("fs") : null;
+      const fs2 = config.sslcert || config.sslkey || config.sslrootcert ? __require("fs") : null;
       if (config.sslcert) {
-        config.ssl.cert = fs.readFileSync(config.sslcert).toString();
+        config.ssl.cert = fs2.readFileSync(config.sslcert).toString();
       }
       if (config.sslkey) {
-        config.ssl.key = fs.readFileSync(config.sslkey).toString();
+        config.ssl.key = fs2.readFileSync(config.sslkey).toString();
       }
       if (config.sslrootcert) {
-        config.ssl.ca = fs.readFileSync(config.sslrootcert).toString();
+        config.ssl.ca = fs2.readFileSync(config.sslrootcert).toString();
       }
       if (options.useLibpqCompat && config.uselibpqcompat) {
         throw new Error("Both useLibpqCompat and uselibpqcompat are set. Please use only one of them.");
@@ -32006,7 +32006,7 @@ var require_split2 = __commonJS({
 var require_helper = __commonJS({
   "node_modules/.pnpm/pgpass@1.0.5/node_modules/pgpass/lib/helper.js"(exports, module) {
     "use strict";
-    var path2 = __require("path");
+    var path3 = __require("path");
     var Stream = __require("stream").Stream;
     var split = require_split2();
     var util2 = __require("util");
@@ -32045,7 +32045,7 @@ var require_helper = __commonJS({
     };
     module.exports.getFileName = function(rawEnv) {
       var env2 = rawEnv || process.env;
-      var file = env2.PGPASSFILE || (isWin ? path2.join(env2.APPDATA || "./", "postgresql", "pgpass.conf") : path2.join(env2.HOME || "./", ".pgpass"));
+      var file = env2.PGPASSFILE || (isWin ? path3.join(env2.APPDATA || "./", "postgresql", "pgpass.conf") : path3.join(env2.HOME || "./", ".pgpass"));
       return file;
     };
     module.exports.usePgPass = function(stats, fname) {
@@ -32177,16 +32177,16 @@ var require_helper = __commonJS({
 var require_lib4 = __commonJS({
   "node_modules/.pnpm/pgpass@1.0.5/node_modules/pgpass/lib/index.js"(exports, module) {
     "use strict";
-    var path2 = __require("path");
-    var fs = __require("fs");
+    var path3 = __require("path");
+    var fs2 = __require("fs");
     var helper = require_helper();
     module.exports = function(connInfo, cb) {
       var file = helper.getFileName();
-      fs.stat(file, function(err, stat) {
+      fs2.stat(file, function(err, stat) {
         if (err || !helper.usePgPass(stat, file)) {
           return cb(void 0);
         }
-        var st = fs.createReadStream(file);
+        var st = fs2.createReadStream(file);
         helper.getPassword(connInfo, st, cb);
       });
     };
@@ -35243,7 +35243,7 @@ var init_selection_proxy = __esm({
 function mapResultRow(columns, row, joinsNotNullableMap) {
   const nullifyMap = {};
   const result = columns.reduce(
-    (result2, { path: path2, field }, columnIndex) => {
+    (result2, { path: path3, field }, columnIndex) => {
       let decoder;
       if (is(field, Column)) {
         decoder = field;
@@ -35255,8 +35255,8 @@ function mapResultRow(columns, row, joinsNotNullableMap) {
         decoder = field.sql.decoder;
       }
       let node = result2;
-      for (const [pathChunkIndex, pathChunk] of path2.entries()) {
-        if (pathChunkIndex < path2.length - 1) {
+      for (const [pathChunkIndex, pathChunk] of path3.entries()) {
+        if (pathChunkIndex < path3.length - 1) {
           if (!(pathChunk in node)) {
             node[pathChunk] = {};
           }
@@ -35264,8 +35264,8 @@ function mapResultRow(columns, row, joinsNotNullableMap) {
         } else {
           const rawValue = row[columnIndex];
           const value = node[pathChunk] = rawValue === null ? null : decoder.mapFromDriverValue(rawValue);
-          if (joinsNotNullableMap && is(field, Column) && path2.length === 2) {
-            const objectName = path2[0];
+          if (joinsNotNullableMap && is(field, Column) && path3.length === 2) {
+            const objectName = path3[0];
             if (!(objectName in nullifyMap)) {
               nullifyMap[objectName] = value === null ? getTableName(field.table) : false;
             } else if (typeof nullifyMap[objectName] === "string" && nullifyMap[objectName] !== getTableName(field.table)) {
@@ -42134,7 +42134,7 @@ var init_schema2 = __esm({
     init_pg_core();
     appRoleEnum = pgEnum("app_role", ["admin", "moderator", "user"]);
     profiles = pgTable("profiles", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull().unique(),
       phone: text("phone"),
       fullName: text("full_name"),
@@ -42156,19 +42156,19 @@ var init_schema2 = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     userRoles = pgTable("user_roles", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       role: appRoleEnum("role").notNull().default("user")
     });
     adminPermissions = pgTable("admin_permissions", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       permission: text("permission").notNull(),
       grantedBy: text("granted_by").notNull(),
       createdAt: timestamp("created_at").defaultNow()
     });
     vipConditions = pgTable("vip_conditions", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       level: integer("level").notNull(),
       levelName: text("level_name").notNull(),
       minInvestment: numeric("min_investment", { precision: 18, scale: 8 }),
@@ -42182,7 +42182,7 @@ var init_schema2 = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     vipHistory = pgTable("vip_history", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       oldLevel: integer("old_level").default(0),
       newLevel: integer("new_level").default(0),
@@ -42191,14 +42191,14 @@ var init_schema2 = __esm({
       createdAt: timestamp("created_at").defaultNow()
     });
     userSessions = pgTable("user_sessions", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       token: text("token").notNull().unique(),
       expiresAt: timestamp("expires_at").notNull(),
       createdAt: timestamp("created_at").defaultNow()
     });
     productSeries = pgTable("product_series", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       name: text("name").notNull(),
       color: text("color"),
       minVipLevel: integer("min_vip_level"),
@@ -42209,7 +42209,7 @@ var init_schema2 = __esm({
       createdAt: timestamp("created_at").defaultNow()
     });
     products = pgTable("products", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       name: text("name").notNull(),
       description: text("description"),
       price: numeric("price", { precision: 18, scale: 8 }),
@@ -42230,7 +42230,7 @@ var init_schema2 = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     userProducts = pgTable("user_products", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       productId: text("product_id").notNull().references(() => products.id),
       isActive: boolean("is_active").default(true),
@@ -42240,7 +42240,7 @@ var init_schema2 = __esm({
       totalCollected: numeric("total_collected", { precision: 18, scale: 8 }).default("0")
     });
     referralCommissions = pgTable("referral_commissions", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       beneficiaryId: text("beneficiary_id").notNull(),
       buyerId: text("buyer_id").notNull(),
       productPrice: numeric("product_price", { precision: 18, scale: 8 }).default("0"),
@@ -42250,7 +42250,7 @@ var init_schema2 = __esm({
       createdAt: timestamp("created_at").defaultNow()
     });
     countries = pgTable("countries", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       name: text("name").notNull(),
       countryCode: text("country_code").notNull(),
       flagEmoji: text("flag_emoji"),
@@ -42262,7 +42262,7 @@ var init_schema2 = __esm({
       createdAt: timestamp("created_at").defaultNow()
     });
     paymentApiConfigs = pgTable("payment_api_configs", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       name: text("name").notNull(),
       provider: text("provider").default(""),
       mode: text("mode").default("manual"),
@@ -42277,7 +42277,7 @@ var init_schema2 = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     paymentMethods = pgTable("payment_methods", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       name: text("name").notNull(),
       paymentType: text("payment_type").default("manual"),
       country: text("country").default(""),
@@ -42293,7 +42293,7 @@ var init_schema2 = __esm({
       createdAt: timestamp("created_at").defaultNow()
     });
     recharges = pgTable("recharges", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       amount: numeric("amount", { precision: 18, scale: 8 }).notNull(),
       phone: text("phone").notNull(),
@@ -42307,7 +42307,7 @@ var init_schema2 = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     userWallets = pgTable("user_wallets", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       phone: text("phone").notNull(),
       network: text("network").default(""),
@@ -42317,7 +42317,7 @@ var init_schema2 = __esm({
       createdAt: timestamp("created_at").defaultNow()
     });
     withdrawalMethods = pgTable("withdrawal_methods", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       name: text("name").notNull(),
       paymentType: text("payment_type").default("manual"),
       apiProvider: text("api_provider"),
@@ -42328,7 +42328,7 @@ var init_schema2 = __esm({
       createdAt: timestamp("created_at").defaultNow()
     });
     withdrawals = pgTable("withdrawals", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       amount: numeric("amount", { precision: 18, scale: 8 }).notNull(),
       feeAmount: numeric("fee_amount", { precision: 18, scale: 8 }).default("0"),
@@ -42346,7 +42346,7 @@ var init_schema2 = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     withdrawalFeePayments = pgTable("withdrawal_fee_payments", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       capitalAmount: numeric("capital_amount", { precision: 18, scale: 8 }).default("0"),
       feeAmount: numeric("fee_amount", { precision: 18, scale: 8 }).default("0"),
@@ -42357,7 +42357,7 @@ var init_schema2 = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     paymentLogs = pgTable("payment_logs", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       amount: numeric("amount", { precision: 18, scale: 8 }).notNull(),
       phone: text("phone").notNull(),
@@ -42372,7 +42372,7 @@ var init_schema2 = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     omnipayCallbacks = pgTable("omnipay_callbacks", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       reference: text("reference").notNull(),
       statusResult: text("status_result").notNull(),
       statusCode: text("status_code"),
@@ -42383,14 +42383,14 @@ var init_schema2 = __esm({
       createdAt: timestamp("created_at").defaultNow()
     });
     siteSettings = pgTable("site_settings", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       key: text("key").notNull().unique(),
       value: text("value"),
       category: text("category").default("general"),
       updatedAt: timestamp("updated_at").defaultNow()
     });
     socialLinks = pgTable("social_links", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       key: text("key").notNull(),
       label: text("label").notNull(),
       url: text("url"),
@@ -42398,7 +42398,7 @@ var init_schema2 = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     officialDocuments = pgTable("official_documents", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       title: text("title").notNull(),
       docType: text("doc_type").default("policy"),
       description: text("description"),
@@ -42409,7 +42409,7 @@ var init_schema2 = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     popupMessages = pgTable("popup_messages", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       triggerKey: text("trigger_key").notNull(),
       title: text("title").notNull(),
       message: text("message").notNull(),
@@ -42422,7 +42422,7 @@ var init_schema2 = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     faqItems = pgTable("faq_items", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       question: text("question").notNull(),
       answer: text("answer").notNull(),
       isActive: boolean("is_active").default(true),
@@ -42431,7 +42431,7 @@ var init_schema2 = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     banners = pgTable("banners", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       imageUrl: text("image_url").notNull(),
       linkPath: text("link_path"),
       isActive: boolean("is_active").default(true),
@@ -42439,7 +42439,7 @@ var init_schema2 = __esm({
       createdAt: timestamp("created_at").defaultNow()
     });
     infoItems = pgTable("info_items", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       title: text("title").notNull(),
       description: text("description").notNull(),
       imageUrl: text("image_url"),
@@ -42449,7 +42449,7 @@ var init_schema2 = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     chatMessages = pgTable("chat_messages", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       message: text("message").notNull(),
       sender: text("sender").default("user"),
@@ -42457,7 +42457,7 @@ var init_schema2 = __esm({
       createdAt: timestamp("created_at").defaultNow()
     });
     giftCodes = pgTable("gift_codes", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       code: text("code").notNull().unique(),
       pointsValue: integer("points_value").default(0),
       maxUses: integer("max_uses").default(1),
@@ -42468,14 +42468,14 @@ var init_schema2 = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     giftCodeUses = pgTable("gift_code_uses", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       codeId: text("code_id").notNull().references(() => giftCodes.id),
       userId: text("user_id").notNull(),
       pointsAwarded: integer("points_awarded").notNull(),
       createdAt: timestamp("created_at").defaultNow()
     });
     giftRewards = pgTable("gift_rewards", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       name: text("name").notNull(),
       pointsRequired: integer("points_required").default(0),
       moneyValue: numeric("money_value", { precision: 18, scale: 8 }).default("0"),
@@ -42486,7 +42486,7 @@ var init_schema2 = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     pointExchanges = pgTable("point_exchanges", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       rewardId: text("reward_id").references(() => giftRewards.id),
       rewardName: text("reward_name").notNull(),
@@ -42495,7 +42495,7 @@ var init_schema2 = __esm({
       createdAt: timestamp("created_at").defaultNow()
     });
     wheelPrizes = pgTable("wheel_prizes", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       label: text("label").notNull(),
       prizeType: text("prize_type").default("cash"),
       value: numeric("value", { precision: 18, scale: 8 }).default("0"),
@@ -42508,7 +42508,7 @@ var init_schema2 = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     wheelSpins = pgTable("wheel_spins", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       userId: text("user_id").notNull(),
       prizeId: text("prize_id").references(() => wheelPrizes.id),
       prizeLabel: text("prize_label").notNull(),
@@ -42520,7 +42520,7 @@ var init_schema2 = __esm({
       updatedAt: timestamp("updated_at").defaultNow()
     });
     adminLogs = pgTable("admin_logs", {
-      id: text("id").primaryKey().default("gen_random_uuid()"),
+      id: text("id").primaryKey().$defaultFn(() => crypto.randomUUID()),
       adminId: text("admin_id").notNull(),
       action: text("action").notNull(),
       targetType: text("target_type"),
@@ -42573,7 +42573,7 @@ __export(db_exports, {
   withdrawalMethods: () => withdrawalMethods,
   withdrawals: () => withdrawals
 });
-var Pool3, connectionString, isSupabase, pool, db;
+var Pool3, rawConnectionString, connectionString, isSupabase, pool, db;
 var init_db2 = __esm({
   "server/db.ts"() {
     "use strict";
@@ -42582,11 +42582,12 @@ var init_db2 = __esm({
     init_schema2();
     init_schema2();
     ({ Pool: Pool3 } = esm_default);
-    connectionString = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
-    if (!connectionString) {
+    rawConnectionString = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
+    if (!rawConnectionString) {
       throw new Error("SUPABASE_DATABASE_URL or DATABASE_URL environment variable is required.");
     }
-    isSupabase = connectionString.includes("supabase.com") || connectionString.includes("pooler.supabase");
+    connectionString = rawConnectionString.replace(/[?&]sslmode=[^&]*/g, "").replace(/\?$/, "");
+    isSupabase = rawConnectionString.includes("supabase.com") || rawConnectionString.includes("pooler.supabase");
     pool = new Pool3({
       connectionString,
       ssl: isSupabase ? { rejectUnauthorized: false } : false
@@ -46836,13 +46837,13 @@ function __disposeResources(env2) {
   }
   return next();
 }
-function __rewriteRelativeImportExtension(path2, preserveJsx) {
-  if (typeof path2 === "string" && /^\.\.?\//.test(path2)) {
-    return path2.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
+function __rewriteRelativeImportExtension(path3, preserveJsx) {
+  if (typeof path3 === "string" && /^\.\.?\//.test(path3)) {
+    return path3.replace(/\.(tsx)$|((?:\.d)?)((?:\.[^./]+?)?)\.([cm]?)ts$/i, function(m, tsx, d, ext, cm) {
       return tsx ? preserveJsx ? ".jsx" : ".js" : d && (!ext || !cm) ? m : d + ext + "." + cm.toLowerCase() + "js";
     });
   }
-  return path2;
+  return path3;
 }
 var extendStatics, __assign, __createBinding, __setModuleDefault, ownKeys, _SuppressedError, tslib_es6_default;
 var init_tslib_es6 = __esm({
@@ -59624,7 +59625,7 @@ var require_main3 = __commonJS({
 var import_express14 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
-import path from "path";
+import path2 from "path";
 import { existsSync } from "fs";
 
 // server/routes/index.ts
@@ -60111,8 +60112,8 @@ function getErrorMap() {
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/helpers/parseUtil.js
 var makeIssue = (params) => {
-  const { data, path: path2, errorMaps, issueData } = params;
-  const fullPath = [...path2, ...issueData.path || []];
+  const { data, path: path3, errorMaps, issueData } = params;
+  const fullPath = [...path3, ...issueData.path || []];
   const fullIssue = {
     ...issueData,
     path: fullPath
@@ -60228,11 +60229,11 @@ var errorUtil;
 
 // node_modules/.pnpm/zod@3.25.76/node_modules/zod/v3/types.js
 var ParseInputLazyPath = class {
-  constructor(parent, value, path2, key) {
+  constructor(parent, value, path3, key) {
     this._cachedPath = [];
     this.parent = parent;
     this.data = value;
-    this._path = path2;
+    this._path = path3;
     this._key = key;
   }
   get path() {
@@ -65500,11 +65501,11 @@ router2.post("/auth/login", async (req, res) => {
       expiresAt
     });
     const [roleRow] = await db.select().from(userRoles).where(eq(userRoles.userId, profile.userId)).limit(1);
-    const isAdmin3 = roleRow?.role === "admin" || roleRow?.role === "moderator";
+    const isAdmin4 = roleRow?.role === "admin" || roleRow?.role === "moderator";
     return res.json({
       ok: true,
       token,
-      isAdmin: isAdmin3,
+      isAdmin: isAdmin4,
       session: { access_token: token },
       user: { id: profile.userId, role: roleRow?.role ?? "user" },
       profile: {
@@ -65638,7 +65639,8 @@ router3.get("/profiles/me", async (req, res) => {
   const profile = await getProfileFromToken(token);
   if (!profile) return res.status(401).json({ error: "Unauthorized" });
   const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, profile.userId)).limit(1);
-  return res.json(toSnake({ ...profile, role: role?.role ?? "user" }));
+  const { passwordHash: _pw, ...safeProfile } = profile;
+  return res.json(toSnake({ ...safeProfile, role: role?.role ?? "user" }));
 });
 router3.patch("/profiles/me", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -65696,6 +65698,84 @@ router3.get("/team/my", async (req, res) => {
   const teamMembers = await db.select().from(profiles).where(eq(profiles.referredBy, me.id));
   return res.json(toSnake(teamMembers));
 });
+router3.get("/team", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const teamMembers = await db.select().from(profiles).where(eq(profiles.referredBy, me.id));
+  return res.json(toSnake(teamMembers));
+});
+router3.get("/profiles/team/direct", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const teamMembers = await db.select().from(profiles).where(eq(profiles.referredBy, me.id));
+  return res.json(toSnake(teamMembers));
+});
+router3.post("/profiles/batch", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { ids } = req.body;
+  if (!ids || !Array.isArray(ids) || ids.length === 0) return res.json([]);
+  const result = await db.select().from(profiles).where(inArray(profiles.userId, ids));
+  const { passwordHash: _pw, ..._ } = result[0] ?? {};
+  return res.json(toSnake(result.map(({ passwordHash: _p, ...p }) => p)));
+});
+router3.get("/referral-commissions/my", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const commissions = await db.select().from(referralCommissions).where(eq(referralCommissions.beneficiaryId, me.id));
+  return res.json(toSnake(commissions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
+});
+router3.get("/user-wallets/my", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const wallets = await db.select().from(userWallets).where(eq(userWallets.userId, me.userId));
+  return res.json(toSnake(wallets));
+});
+router3.get("/user-wallets", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const wallets = await db.select().from(userWallets).where(eq(userWallets.userId, me.userId));
+  return res.json(toSnake(wallets));
+});
+router3.post("/user-wallets", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { phone, network, countryCode, holderName, label } = req.body;
+  if (!phone) return res.status(400).json({ error: "Phone required" });
+  const [wallet] = await db.insert(userWallets).values({
+    userId: me.userId,
+    phone,
+    network,
+    countryCode,
+    holderName,
+    label
+  }).returning();
+  return res.json(toSnake(wallet));
+});
+router3.post("/user-wallets/batch", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { ids } = req.body;
+  if (!ids || !Array.isArray(ids) || ids.length === 0) return res.json([]);
+  const result = await db.select().from(userWallets).where(inArray(userWallets.id, ids));
+  return res.json(toSnake(result));
+});
 var profiles_default = router3;
 
 // server/routes/products.ts
@@ -65717,7 +65797,7 @@ router4.get("/products", async (req, res) => {
     const all = await db.select().from(products);
     let filtered = all;
     if (active !== void 0) filtered = filtered.filter((p) => p.isActive === (active === "true"));
-    if (featured !== void 0) filtered = filtered.filter((p) => p.isFeatured === (featured === "true"));
+    if (featured !== void 0) filtered = filtered.filter((p) => featured === "true" ? p.isFeatured === true || p.isNew === true : p.isFeatured === false);
     if (sid) filtered = filtered.filter((p) => p.seriesId === sid);
     return res.json(toSnake(filtered.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
   } catch (err) {
@@ -65959,6 +66039,47 @@ router4.post("/user-products/buy/:productId", async (req, res) => {
     }
   }
   return res.json(toSnake(userProduct));
+});
+router4.get("/products/series", async (req, res) => {
+  const all = await db.select().from(productSeries);
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
+});
+router4.get("/products/user-products/my", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken2(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { pool: pool2 } = await Promise.resolve().then(() => (init_db2(), db_exports));
+  const { rows } = await pool2.query(`
+    SELECT up.id, up.user_id, up.product_id, up.is_active,
+      up.purchased_at, up.expires_at, up.last_collected_at, up.total_collected,
+      json_build_object(
+        'name', p.name, 'price', p.price, 'daily_revenue', p.daily_revenue,
+        'total_revenue', p.total_revenue, 'cycles', p.cycles,
+        'description', p.description, 'image_url', p.image_url,
+        'series_id', p.series_id, 'gain_type', p.gain_type
+      ) as products
+    FROM user_products up
+    JOIN products p ON p.id = up.product_id
+    WHERE up.user_id = $1
+    ORDER BY up.purchased_at DESC
+  `, [me.userId]);
+  return res.json(rows);
+});
+router4.post("/products/user-products/collect", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken2(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const upId = req.body.userProductId ?? req.body.user_product_id;
+  if (!upId) return res.status(400).json({ error: "userProductId required" });
+  const [up] = await db.select().from(userProducts).where(and(eq(userProducts.id, upId), eq(userProducts.userId, me.userId))).limit(1);
+  if (!up) return res.status(404).json({ error: "Not found" });
+  const [product] = await db.select().from(products).where(eq(products.id, up.productId)).limit(1);
+  const dailyRev = Number(product?.dailyRevenue ?? 0);
+  await db.update(userProducts).set({ lastCollectedAt: /* @__PURE__ */ new Date(), totalCollected: String(Number(up.totalCollected ?? 0) + dailyRev) }).where(eq(userProducts.id, up.id));
+  await db.update(profiles).set({ balance: String(Number(me.balance ?? 0) + dailyRev), earningsBalance: String(Number(me.earningsBalance ?? 0) + dailyRev), updatedAt: /* @__PURE__ */ new Date() }).where(eq(profiles.userId, me.userId));
+  return res.json({ collected: dailyRev });
 });
 router4.post("/user-products/:id/collect", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -66245,6 +66366,22 @@ router5.get("/payments/withdrawals", async (req, res) => {
   const myWithdrawals = await db.select().from(withdrawals).where(eq(withdrawals.userId, me.userId));
   return res.json(toSnake(myWithdrawals.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
 });
+router5.get("/payments/recharges/my", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken3(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const myRecharges = await db.select().from(recharges).where(eq(recharges.userId, me.userId));
+  return res.json(toSnake(myRecharges.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
+});
+router5.get("/payments/fee-payments", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken3(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const myPayments = await db.select().from(withdrawalFeePayments).where(eq(withdrawalFeePayments.userId, me.userId));
+  return res.json(toSnake(myPayments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
+});
 router5.patch("/payments/withdrawals/:id/proof", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
@@ -66412,6 +66549,10 @@ async function getProfileFromToken5(token) {
   const [profile] = await db.select().from(profiles).where(eq(profiles.userId, session.userId)).limit(1);
   return profile ?? null;
 }
+async function isAdmin3(userId) {
+  const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, userId)).limit(1);
+  return role?.role === "admin";
+}
 router7.post("/gift-codes/redeem", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "Unauthorized" });
@@ -66521,6 +66662,45 @@ router7.get("/wheel/recent-winners", async (req, res) => {
   const spins = await db.select().from(wheelSpins);
   const winners = spins.filter((s) => s.status === "completed" && Number(s.prizeValue) > 0).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, limit);
   return res.json(toSnake(winners));
+});
+router7.get("/wheel/prizes", async (req, res) => {
+  const all = await db.select().from(wheelPrizes).where(eq(wheelPrizes.isActive, true));
+  return res.json(toSnake(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999))));
+});
+router7.get("/popups", async (req, res) => {
+  const { triggerKey, trigger_key } = req.query;
+  const key = triggerKey || trigger_key;
+  const { popupMessages: popupMessages2 } = await Promise.resolve().then(() => (init_db2(), db_exports));
+  const popups = await db.select().from(popupMessages2).where(eq(popupMessages2.isActive, true));
+  const filtered = key ? popups.filter((p) => p.triggerKey === key) : popups;
+  return res.json(toSnake(filtered));
+});
+router7.post("/chat/send-system", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken5(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const adminRole = await isAdmin3(me.userId);
+  if (!adminRole) return res.status(403).json({ error: "Forbidden" });
+  const { userId, message } = req.body;
+  if (!userId || !message) return res.status(400).json({ error: "userId and message required" });
+  const [msg] = await db.insert(chatMessages).values({
+    userId,
+    message,
+    sender: "sarah",
+    isAi: true
+  }).returning();
+  return res.json(toSnake(msg));
+});
+router7.get("/point-exchanges", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken5(token);
+  if (!me) return res.status(401).json({ error: "Unauthorized" });
+  const { pointExchanges: pointExchanges2 } = await Promise.resolve().then(() => (init_db2(), db_exports));
+  const adminCheck = await isAdmin3(me.userId);
+  const exchanges = adminCheck ? await db.select().from(pointExchanges2) : await db.select().from(pointExchanges2).where(eq(pointExchanges2.userId, me.userId));
+  return res.json(toSnake(exchanges.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())));
 });
 router7.get("/chat/my", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -67597,6 +67777,185 @@ router8.patch("/admin/users/:profileId", async (req, res) => {
   return res.json({ ok: true });
 });
 var admin_default = router8;
+router8.get("/admin/users", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(profiles);
+  return res.json(all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+});
+router8.patch("/admin/users/:id/suspend", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { isSuspended, is_suspended } = req.body;
+  const val = isSuspended ?? is_suspended;
+  const [updated] = await db.update(profiles).set({ isSuspended: val }).where(eq(profiles.userId, req.params.id)).returning();
+  return res.json(updated ?? { ok: true });
+});
+router8.patch("/admin/users/:id/vip", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { vipLevel, vip_level } = req.body;
+  const lvl = vipLevel ?? vip_level ?? 0;
+  const [updated] = await db.update(profiles).set({ vipLevel: lvl }).where(eq(profiles.userId, req.params.id)).returning();
+  if (updated) {
+    await db.insert(vipHistory).values({ userId: req.params.id, oldLevel: 0, newLevel: lvl, reason: "admin_manual", changedBy: auth.userId }).catch(() => {
+    });
+  }
+  return res.json(updated ?? { ok: true });
+});
+router8.get("/admin/api-configs", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(paymentApiConfigs);
+  return res.json(all);
+});
+router8.post("/admin/api-configs", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [item] = await db.insert(paymentApiConfigs).values({ id: crypto7.randomUUID(), ...req.body }).returning();
+  return res.json(item);
+});
+router8.patch("/admin/api-configs/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [item] = await db.update(paymentApiConfigs).set(req.body).where(eq(paymentApiConfigs.id, req.params.id)).returning();
+  return res.json(item);
+});
+router8.delete("/admin/api-configs/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(paymentApiConfigs).where(eq(paymentApiConfigs.id, req.params.id));
+  return res.json({ ok: true });
+});
+router8.get("/admin/faq", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(faqItems);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router8.post("/admin/faq", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [item] = await db.insert(faqItems).values({ id: crypto7.randomUUID(), ...req.body }).returning();
+  return res.json(item);
+});
+router8.patch("/admin/faq/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [item] = await db.update(faqItems).set(req.body).where(eq(faqItems.id, req.params.id)).returning();
+  return res.json(item);
+});
+router8.delete("/admin/faq/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(faqItems).where(eq(faqItems.id, req.params.id));
+  return res.json({ ok: true });
+});
+router8.get("/admin/official-docs", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(officialDocuments);
+  return res.json(all.sort((a, b) => (a.sortOrder ?? 999) - (b.sortOrder ?? 999)));
+});
+router8.post("/admin/official-docs", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [item] = await db.insert(officialDocuments).values({ id: crypto7.randomUUID(), ...req.body }).returning();
+  return res.json(item);
+});
+router8.patch("/admin/official-docs/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [item] = await db.update(officialDocuments).set(req.body).where(eq(officialDocuments.id, req.params.id)).returning();
+  return res.json(item);
+});
+router8.delete("/admin/official-docs/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  await db.delete(officialDocuments).where(eq(officialDocuments.id, req.params.id));
+  return res.json({ ok: true });
+});
+router8.get("/admin/popups", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(popupMessages);
+  return res.json(all);
+});
+router8.post("/admin/popups", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [item] = await db.insert(popupMessages).values({ id: crypto7.randomUUID(), ...req.body }).returning();
+  return res.json(item);
+});
+router8.patch("/admin/popups/:id", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const [item] = await db.update(popupMessages).set(req.body).where(eq(popupMessages.id, req.params.id)).returning();
+  return res.json(item);
+});
+router8.get("/admin/chat/conversations", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const msgs = await db.select().from(chatMessages);
+  const sorted = msgs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const userMap = {};
+  sorted.forEach((m) => {
+    if (!userMap[m.userId]) userMap[m.userId] = [];
+    userMap[m.userId].push(m);
+  });
+  const userIds = Object.keys(userMap);
+  if (userIds.length === 0) return res.json([]);
+  const profs = await db.select().from(profiles).where(inArray(profiles.userId, userIds));
+  const result = userIds.map((uid) => {
+    const prof = profs.find((p) => p.userId === uid);
+    const msgs_ = userMap[uid];
+    return { userId: uid, phone: prof?.phone, fullName: prof?.fullName, lastMessage: msgs_[0]?.message, messageCount: msgs_.length, updatedAt: msgs_[0]?.createdAt };
+  });
+  return res.json(result);
+});
+router8.post("/admin/chat/reply", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const { userId, message } = req.body;
+  if (!userId || !message) return res.status(400).json({ error: "userId and message required" });
+  const [msg] = await db.insert(chatMessages).values({ userId, message, sender: "sarah", isAi: true }).returning();
+  return res.json(msg);
+});
+router8.patch("/admin/site-settings/batch", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const settings = Array.isArray(req.body) ? req.body : req.body.settings ?? [];
+  if (!settings.length) return res.status(400).json({ error: "settings array required" });
+  for (const { key, value, category } of settings) {
+    const existing = await db.select().from(siteSettings).where(eq(siteSettings.key, key)).limit(1);
+    if (existing.length > 0) {
+      await db.update(siteSettings).set({ value, updatedAt: /* @__PURE__ */ new Date() }).where(eq(siteSettings.key, key));
+    } else {
+      await db.insert(siteSettings).values({ key, value, category: category ?? "general" });
+    }
+  }
+  return res.json({ ok: true, count: settings.length });
+});
+router8.get("/admin/secrets", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const all = await db.select().from(paymentApiConfigs);
+  return res.json(all.map((c) => ({ ...c, secretKey: c.secretKey ? "***" : null })));
+});
+router8.get("/admin/team", async (req, res) => {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return;
+  const mods = await db.select().from(userRoles).where(eq(userRoles.role, "moderator"));
+  if (mods.length === 0) return res.json([]);
+  const userIds = mods.map((r) => r.userId);
+  const profs = await db.select().from(profiles).where(inArray(profiles.userId, userIds));
+  const perms = await db.select().from(adminPermissions).where(inArray(adminPermissions.userId, userIds));
+  return res.json(userIds.map((uid) => {
+    const prof = profs.find((p) => p.userId === uid);
+    const userPerms = perms.filter((p) => p.userId === uid).map((p) => p.permission);
+    return { userId: uid, phone: prof?.phone, fullName: prof?.fullName, permissions: userPerms };
+  }));
+});
 
 // server/routes/db.ts
 var import_express9 = __toESM(require_express2(), 1);
@@ -67904,18 +68263,18 @@ router9.get("/db", attachUser, async (req, res) => {
     const tableName = TABLE_ALLOWLIST[String(table)];
     if (!tableName) return res.status(400).json({ error: "Unknown table" });
     const tableKey = String(table);
-    const isAdmin3 = req.authUser?.role === "admin";
+    const isAdmin4 = req.authUser?.role === "admin";
     if (!PUBLIC_READ_TABLES.has(tableKey) && !req.authUser) {
       return res.status(401).json({ error: "Authentication required" });
     }
-    if (ADMIN_READ_TABLES.has(tableKey) && !isAdmin3) {
+    if (ADMIN_READ_TABLES.has(tableKey) && !isAdmin4) {
       return res.status(403).json({ error: "Admin access required" });
     }
     const rawFilters = Array.isArray(filter) ? filter : filter ? [filter] : [];
     const params = [];
     let sql2 = `SELECT * FROM "${tableName}"`;
     const conditions = buildWhereClause(rawFilters, params);
-    if (USER_SCOPED_TABLES.has(tableKey) && !isAdmin3 && req.authUser) {
+    if (USER_SCOPED_TABLES.has(tableKey) && !isAdmin4 && req.authUser) {
       params.push(req.authUser.userId);
       conditions.push(`"user_id" = $${params.length}`);
     }
@@ -67949,17 +68308,17 @@ router9.post("/db", requireAuth, async (req, res) => {
     const { table, upsert } = req.query;
     const tableName = TABLE_ALLOWLIST[String(table)];
     if (!tableName) return res.status(400).json({ error: "Unknown table" });
-    const isAdmin3 = req.authUser?.role === "admin";
-    if (ADMIN_ONLY_WRITE_TABLES.has(String(table)) && !isAdmin3) {
+    const isAdmin4 = req.authUser?.role === "admin";
+    if (ADMIN_ONLY_WRITE_TABLES.has(String(table)) && !isAdmin4) {
       return res.status(403).json({ error: "Admin access required" });
     }
     const rows = Array.isArray(req.body) ? req.body : [req.body];
     const results = [];
     for (const row of rows) {
-      if (!isAdmin3 && row.user_id && row.user_id !== req.authUser?.userId) {
+      if (!isAdmin4 && row.user_id && row.user_id !== req.authUser?.userId) {
         return res.status(403).json({ error: "Cannot write data for another user" });
       }
-      if (!isAdmin3) {
+      if (!isAdmin4) {
         const protectedAttempt = Object.keys(row).map((k) => toSnake3(k)).find((c) => PROTECTED_WRITE_COLUMNS.has(c));
         if (protectedAttempt) return res.status(403).json({ error: `Column '${protectedAttempt}' is read-only` });
       }
@@ -67989,12 +68348,12 @@ router9.patch("/db", requireAuth, async (req, res) => {
     const { table, filter } = req.query;
     const tableName = TABLE_ALLOWLIST[String(table)];
     if (!tableName) return res.status(400).json({ error: "Unknown table" });
-    const isAdmin3 = req.authUser?.role === "admin";
-    if (ADMIN_ONLY_WRITE_TABLES.has(String(table)) && !isAdmin3) {
+    const isAdmin4 = req.authUser?.role === "admin";
+    if (ADMIN_ONLY_WRITE_TABLES.has(String(table)) && !isAdmin4) {
       return res.status(403).json({ error: "Admin access required" });
     }
     const updates = req.body;
-    if (!isAdmin3) {
+    if (!isAdmin4) {
       const protectedAttempt = Object.keys(updates).map((k) => toSnake3(k)).find((c) => PROTECTED_WRITE_COLUMNS.has(c));
       if (protectedAttempt) return res.status(403).json({ error: `Column '${protectedAttempt}' is read-only` });
     }
@@ -68005,7 +68364,7 @@ router9.patch("/db", requireAuth, async (req, res) => {
     const params = [...setVals];
     const filters = Array.isArray(filter) ? filter : filter ? [String(filter)] : [];
     const conditions = buildWhereClause(filters, params);
-    if (!isAdmin3) {
+    if (!isAdmin4) {
       const hasUserFilter = filters.some((f) => {
         const [, col, ...rest] = f.split(":");
         return toSnake3(col) === "user_id" && rest.join(":") === req.authUser?.userId;
@@ -68029,15 +68388,15 @@ router9.delete("/db", requireAuth, async (req, res) => {
     const { table, filter } = req.query;
     const tableName = TABLE_ALLOWLIST[String(table)];
     if (!tableName) return res.status(400).json({ error: "Unknown table" });
-    const isAdmin3 = req.authUser?.role === "admin";
-    if (ADMIN_ONLY_WRITE_TABLES.has(String(table)) && !isAdmin3) {
+    const isAdmin4 = req.authUser?.role === "admin";
+    if (ADMIN_ONLY_WRITE_TABLES.has(String(table)) && !isAdmin4) {
       return res.status(403).json({ error: "Admin access required" });
     }
     const filters = Array.isArray(filter) ? filter : filter ? [String(filter)] : [];
     const params = [];
     const conditions = buildWhereClause(filters, params);
     if (!conditions.length) return res.status(400).json({ error: "No filter provided" });
-    if (!isAdmin3) {
+    if (!isAdmin4) {
       const hasUserFilter = filters.some((f) => {
         const [, col, ...rest] = f.split(":");
         return toSnake3(col) === "user_id" && rest.join(":") === req.authUser?.userId;
@@ -68274,14 +68633,14 @@ function getPayoutEmail() {
 function getPayoutPassword() {
   return process.env["NOWPAYMENTS_PASSWORD"] ?? "";
 }
-function getWebhookUrl(path2) {
+function getWebhookUrl(path3) {
   const base = process.env["NOWPAYMENTS_WEBHOOK_URL"];
   if (base) {
     const clean = base.replace(/\/$/, "");
-    return path2 === "webhook" ? clean : `${clean.replace(/\/webhook$/, "")}/${path2}`;
+    return path3 === "webhook" ? clean : `${clean.replace(/\/webhook$/, "")}/${path3}`;
   }
   const domain = process.env["REPLIT_DEV_DOMAIN"];
-  if (domain) return `https://${domain}/api/nowpayments/${path2}`;
+  if (domain) return `https://${domain}/api/nowpayments/${path3}`;
   return "";
 }
 function sortObjectKeys(obj) {
@@ -73775,8 +74134,8 @@ var IcebergError = class extends Error {
     return this.status === 419;
   }
 };
-function buildUrl(baseUrl, path2, query) {
-  const url = new URL(path2, baseUrl);
+function buildUrl(baseUrl, path3, query) {
+  const url = new URL(path3, baseUrl);
   if (query) {
     for (const [key, value] of Object.entries(query)) {
       if (value !== void 0) {
@@ -73806,12 +74165,12 @@ function createFetchClient(options) {
   return {
     async request({
       method,
-      path: path2,
+      path: path3,
       query,
       body,
       headers
     }) {
-      const url = buildUrl(options.baseUrl, path2, query);
+      const url = buildUrl(options.baseUrl, path3, query);
       const authHeaders = await buildAuthHeaders(options.auth);
       const res = await fetchFn(url, {
         method,
@@ -74673,7 +75032,7 @@ var StorageFileApi = class extends BaseApiClient {
   * @param path The relative file path. Should be of the format `folder/subfolder/filename.png`. The bucket must already exist before attempting to upload.
   * @param fileBody The body of the file to be stored in the bucket.
   */
-  async uploadOrUpdate(method, path2, fileBody, fileOptions) {
+  async uploadOrUpdate(method, path3, fileBody, fileOptions) {
     var _this = this;
     return _this.handleOperation(async () => {
       let body;
@@ -74697,7 +75056,7 @@ var StorageFileApi = class extends BaseApiClient {
         if ((typeof ReadableStream !== "undefined" && body instanceof ReadableStream || body && typeof body === "object" && "pipe" in body && typeof body.pipe === "function") && !options.duplex) options.duplex = "half";
       }
       if (fileOptions === null || fileOptions === void 0 ? void 0 : fileOptions.headers) for (const [key, value] of Object.entries(fileOptions.headers)) headers = setHeader(headers, key, value);
-      const cleanPath = _this._removeEmptyFolders(path2);
+      const cleanPath = _this._removeEmptyFolders(path3);
       const _path = _this._getFinalPath(cleanPath);
       const data = await (method == "PUT" ? put : post)(_this.fetch, `${_this.url}/object/${_path}`, body, _objectSpread22({ headers }, (options === null || options === void 0 ? void 0 : options.duplex) ? { duplex: options.duplex } : {}));
       return {
@@ -74774,8 +75133,8 @@ var StorageFileApi = class extends BaseApiClient {
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   * - For React Native, using either `Blob`, `File` or `FormData` does not work as intended. Upload file using `ArrayBuffer` from base64 file data instead, see example below.
   */
-  async upload(path2, fileBody, fileOptions) {
-    return this.uploadOrUpdate("POST", path2, fileBody, fileOptions);
+  async upload(path3, fileBody, fileOptions) {
+    return this.uploadOrUpdate("POST", path3, fileBody, fileOptions);
   }
   /**
   * Upload a file with a token generated from `createSignedUploadUrl`.
@@ -74815,9 +75174,9 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: none
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  async uploadToSignedUrl(path2, token, fileBody, fileOptions) {
+  async uploadToSignedUrl(path3, token, fileBody, fileOptions) {
     var _this3 = this;
-    const cleanPath = _this3._removeEmptyFolders(path2);
+    const cleanPath = _this3._removeEmptyFolders(path3);
     const _path = _this3._getFinalPath(cleanPath);
     const url = new URL(_this3.url + `/object/upload/sign/${_path}`);
     url.searchParams.set("token", token);
@@ -74886,10 +75245,10 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: `insert`
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  async createSignedUploadUrl(path2, options) {
+  async createSignedUploadUrl(path3, options) {
     var _this4 = this;
     return _this4.handleOperation(async () => {
-      let _path = _this4._getFinalPath(path2);
+      let _path = _this4._getFinalPath(path3);
       const headers = _objectSpread22({}, _this4.headers);
       if (options === null || options === void 0 ? void 0 : options.upsert) headers["x-upsert"] = "true";
       const data = await post(_this4.fetch, `${_this4.url}/object/upload/sign/${_path}`, {}, { headers });
@@ -74898,7 +75257,7 @@ var StorageFileApi = class extends BaseApiClient {
       if (!token) throw new StorageError("No token returned by API");
       return {
         signedUrl: url.toString(),
-        path: path2,
+        path: path3,
         token
       };
     });
@@ -74958,8 +75317,8 @@ var StorageFileApi = class extends BaseApiClient {
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   * - For React Native, using either `Blob`, `File` or `FormData` does not work as intended. Update file using `ArrayBuffer` from base64 file data instead, see example below.
   */
-  async update(path2, fileBody, fileOptions) {
-    return this.uploadOrUpdate("PUT", path2, fileBody, fileOptions);
+  async update(path3, fileBody, fileOptions) {
+    return this.uploadOrUpdate("PUT", path3, fileBody, fileOptions);
   }
   /**
   * Moves an existing file to a new path in the same bucket.
@@ -75110,10 +75469,10 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: `select`
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  async createSignedUrl(path2, expiresIn, options) {
+  async createSignedUrl(path3, expiresIn, options) {
     var _this8 = this;
     return _this8.handleOperation(async () => {
-      let _path = _this8._getFinalPath(path2);
+      let _path = _this8._getFinalPath(path3);
       const hasTransform = typeof (options === null || options === void 0 ? void 0 : options.transform) === "object" && options.transform !== null && Object.keys(options.transform).length > 0;
       let data = await post(_this8.fetch, `${_this8.url}/object/sign/${_path}`, _objectSpread22({ expiresIn }, hasTransform ? { transform: options.transform } : {}), { headers: _this8.headers });
       const query = new URLSearchParams();
@@ -75249,13 +75608,13 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: `select`
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  download(path2, options, parameters) {
+  download(path3, options, parameters) {
     const renderPath = typeof (options === null || options === void 0 ? void 0 : options.transform) === "object" && options.transform !== null && Object.keys(options.transform).length > 0 ? "render/image/authenticated" : "object";
     const query = new URLSearchParams();
     if (options === null || options === void 0 ? void 0 : options.transform) this.applyTransformOptsToQuery(query, options.transform);
     if ((options === null || options === void 0 ? void 0 : options.cacheNonce) != null) query.set("cacheNonce", String(options.cacheNonce));
     const queryString = query.toString();
-    const _path = this._getFinalPath(path2);
+    const _path = this._getFinalPath(path3);
     const downloadFn = () => get(this.fetch, `${this.url}/${renderPath}/${_path}${queryString ? `?${queryString}` : ""}`, {
       headers: this.headers,
       noResolveJson: true
@@ -75286,9 +75645,9 @@ var StorageFileApi = class extends BaseApiClient {
   * }
   * ```
   */
-  async info(path2) {
+  async info(path3) {
     var _this10 = this;
-    const _path = _this10._getFinalPath(path2);
+    const _path = _this10._getFinalPath(path3);
     return _this10.handleOperation(async () => {
       return recursiveToCamel(await get(_this10.fetch, `${_this10.url}/object/info/${_path}`, { headers: _this10.headers }));
     });
@@ -75309,9 +75668,9 @@ var StorageFileApi = class extends BaseApiClient {
   *   .exists('folder/avatar1.png')
   * ```
   */
-  async exists(path2) {
+  async exists(path3) {
     var _this11 = this;
-    const _path = _this11._getFinalPath(path2);
+    const _path = _this11._getFinalPath(path3);
     try {
       await head(_this11.fetch, `${_this11.url}/object/${_path}`, { headers: _this11.headers });
       return {
@@ -75390,8 +75749,8 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: none
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  getPublicUrl(path2, options) {
-    const _path = this._getFinalPath(path2);
+  getPublicUrl(path3, options) {
+    const _path = this._getFinalPath(path3);
     const query = new URLSearchParams();
     if (options === null || options === void 0 ? void 0 : options.download) query.set("download", options.download === true ? "" : options.download);
     if (options === null || options === void 0 ? void 0 : options.transform) this.applyTransformOptsToQuery(query, options.transform);
@@ -75530,10 +75889,10 @@ var StorageFileApi = class extends BaseApiClient {
   *   - `objects` table permissions: `select`
   * - Refer to the [Storage guide](/docs/guides/storage/security/access-control) on how access control works
   */
-  async list(path2, options, parameters) {
+  async list(path3, options, parameters) {
     var _this13 = this;
     return _this13.handleOperation(async () => {
-      const body = _objectSpread22(_objectSpread22(_objectSpread22({}, DEFAULT_SEARCH_OPTIONS), options), {}, { prefix: path2 || "" });
+      const body = _objectSpread22(_objectSpread22(_objectSpread22({}, DEFAULT_SEARCH_OPTIONS), options), {}, { prefix: path3 || "" });
       return await post(_this13.fetch, `${_this13.url}/object/list/${_this13.bucketId}`, body, { headers: _this13.headers }, parameters);
     });
   }
@@ -75598,11 +75957,11 @@ var StorageFileApi = class extends BaseApiClient {
     if (typeof Buffer !== "undefined") return Buffer.from(data).toString("base64");
     return btoa(data);
   }
-  _getFinalPath(path2) {
-    return `${this.bucketId}/${path2.replace(/^\/+/, "")}`;
+  _getFinalPath(path3) {
+    return `${this.bucketId}/${path3.replace(/^\/+/, "")}`;
   }
-  _removeEmptyFolders(path2) {
-    return path2.replace(/^\/|\/$/g, "").replace(/\/+/g, "/");
+  _removeEmptyFolders(path3) {
+    return path3.replace(/^\/|\/$/g, "").replace(/\/+/g, "/");
   }
   /** Modifies the `query`, appending values the from `transform` */
   applyTransformOptsToQuery(query, transform) {
@@ -77699,13 +78058,16 @@ function shouldShowDeprecationWarning() {
 if (shouldShowDeprecationWarning()) console.warn("\u26A0\uFE0F  Node.js 18 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 20 or later. For more information, visit: https://github.com/orgs/supabase/discussions/37217");
 
 // server/routes/upload.ts
+import fs from "fs";
+import path from "path";
 var router11 = (0, import_express11.Router)();
 var SUPABASE_URL = process.env.SUPABASE_URL || "";
 var SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+var UPLOADS_DIR = process.env.UPLOAD_DIR || path.resolve(process.cwd(), "public/uploads");
+function useSupabase() {
+  return !!(SUPABASE_URL && SUPABASE_SERVICE_KEY);
+}
 function getSupabase() {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-    throw new Error("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not configured");
-  }
   return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
     auth: { persistSession: false }
   });
@@ -77717,30 +78079,35 @@ async function ensureBucketPublic(supabase, bucket) {
     await supabase.storage.createBucket(bucket, { public: true });
   }
 }
+function ensureLocalDir(dir) {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
 router11.post("/upload", async (req, res) => {
   if (!req.body) return res.status(400).json({ error: "base64, mimeType and fileName are required" });
   const { base64, mimeType, fileName, bucket = "site-assets" } = req.body;
   if (!base64 || !mimeType || !fileName) {
     return res.status(400).json({ error: "base64, mimeType and fileName are required" });
   }
+  const buffer = Buffer.from(base64, "base64");
+  const ext = fileName.split(".").pop()?.toLowerCase() || "bin";
+  const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
   try {
-    const supabase = getSupabase();
-    await ensureBucketPublic(supabase, bucket);
-    const buffer = Buffer.from(base64, "base64");
-    const ext = fileName.split(".").pop()?.toLowerCase() || "bin";
-    const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const filePath = `${uniqueName}`;
-    const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, buffer, {
-      contentType: mimeType,
-      upsert: false
-    });
-    if (uploadError) {
-      console.error("[upload] Supabase Storage error:", uploadError.message);
-      return res.status(500).json({ error: uploadError.message || "Upload failed" });
+    if (useSupabase()) {
+      const supabase = getSupabase();
+      await ensureBucketPublic(supabase, bucket);
+      const { error: uploadError } = await supabase.storage.from(bucket).upload(uniqueName, buffer, { contentType: mimeType, upsert: false });
+      if (uploadError) {
+        console.error("[upload] Supabase Storage error:", uploadError.message);
+        return res.status(500).json({ error: uploadError.message || "Upload failed" });
+      }
+      const { data } = supabase.storage.from(bucket).getPublicUrl(uniqueName);
+      return res.json({ ok: true, url: data.publicUrl });
+    } else {
+      const bucketDir = path.join(UPLOADS_DIR, bucket);
+      ensureLocalDir(bucketDir);
+      fs.writeFileSync(path.join(bucketDir, uniqueName), buffer);
+      return res.json({ ok: true, url: `/uploads/${bucket}/${uniqueName}` });
     }
-    const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
-    const publicUrl = data.publicUrl;
-    return res.json({ ok: true, url: publicUrl });
   } catch (err) {
     console.error("[upload] Error:", err?.message);
     return res.status(500).json({ error: err.message || "Upload failed" });
@@ -78441,7 +78808,7 @@ app.use(
 app.use((0, import_cors.default)());
 app.use(import_express14.default.json({ limit: "50mb" }));
 app.use(import_express14.default.urlencoded({ extended: true, limit: "50mb" }));
-var uploadsDir = process.env.UPLOAD_DIR || path.resolve(process.cwd(), "public/uploads");
+var uploadsDir = process.env.UPLOAD_DIR || path2.resolve(process.cwd(), "public/uploads");
 app.use("/uploads", import_express14.default.static(uploadsDir));
 app.use("/api", routes_default);
 app.use((err, _req, res, next) => {
@@ -78450,11 +78817,11 @@ app.use((err, _req, res, next) => {
   const message = err.message || "Internal server error";
   return res.status(status).json({ error: message });
 });
-var frontendDist = process.env.FRONTEND_DIST || path.resolve(process.cwd(), "dist/public");
-if (existsSync(path.join(frontendDist, "index.html"))) {
+var frontendDist = process.env.FRONTEND_DIST || path2.resolve(process.cwd(), "dist/public");
+if (existsSync(path2.join(frontendDist, "index.html"))) {
   app.use(import_express14.default.static(frontendDist));
   app.get("/{*path}", (_req, res) => {
-    res.sendFile(path.join(frontendDist, "index.html"));
+    res.sendFile(path2.join(frontendDist, "index.html"));
   });
 }
 var app_default = app;
