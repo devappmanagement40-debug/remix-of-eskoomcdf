@@ -11,7 +11,7 @@ import {
   Clock, ArrowDown, Edit2, Trash2, Plus, X, Save, ChevronDown, ChevronUp,
   Layers, Eye, EyeOff, Ban, UserCheck, Pencil, TrendingUp, Activity,
   Globe, ImageIcon, UploadIcon, Bot, Power, ArrowLeft, Send, Star, Gift,
-  HelpCircle, Info, Smartphone, Wallet, FileText, Loader2, Coins
+  HelpCircle, Info, Smartphone, Wallet, FileText, Loader2, Coins, Key
 } from "lucide-react";
 
 // ==================== TYPES ====================
@@ -76,6 +76,7 @@ const tabs = [
   { key: "payments", icon: CreditCard, label: "Dépôts" },
   { key: "wmethods", icon: Wallet, label: "Retraits" },
   { key: "apiconfigs", icon: Power, label: "APIs" },
+  { key: "secrets", icon: Key, label: "Secrets" },
   { key: "links", icon: Link2, label: "Links" },
   { key: "popups", icon: Bell, label: "Popups" },
   { key: "vip", icon: TrendingUp, label: "Levels" },
@@ -315,6 +316,7 @@ const AdminPanel = () => {
         {activeTab === "payments" && <PaymentsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "wmethods" && <WithdrawalMethodsTab settings={siteSettings} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "apiconfigs" && <ApiConfigsTab configs={apiConfigs} countries={countries} paymentLogs={paymentLogs} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
+        {activeTab === "secrets" && <SecretsTab showSuccess={showSuccess} showError={showError} />}
         {activeTab === "links" && <LinksTab links={socialLinks} reload={loadAll} showSuccess={showSuccess} />}
         {activeTab === "annonces" && <AnnoncesTab reload={loadAll} showSuccess={showSuccess} showError={showError} />}
         {activeTab === "popups" && <PopupsTab popups={popups} reload={loadAll} showSuccess={showSuccess} showError={showError} />}
@@ -4124,6 +4126,109 @@ const ApiConfigsTab = ({ configs, countries, paymentLogs, reload, showSuccess, s
           ))}
         </div>
       )}
+    </div>
+  );
+};
+
+// ==================== SECRETS TAB ====================
+const SECRET_FIELDS = [
+  { key: "secret_nowpayments_api_key", label: "NowPayments API Key", placeholder: "ak-xxxx..." },
+  { key: "secret_nowpayments_ipn_secret", label: "NowPayments IPN Secret", placeholder: "ipn-secret..." },
+  { key: "secret_nowpayments_email", label: "NowPayments Email", placeholder: "email@domaine.com" },
+  { key: "secret_nowpayments_password", label: "NowPayments Password", placeholder: "mot de passe..." },
+  { key: "secret_supabase_service_role_key", label: "Supabase Service Role Key", placeholder: "eyJhbGci..." },
+  { key: "secret_supabase_url", label: "Supabase URL", placeholder: "https://xxx.supabase.co" },
+];
+
+const SecretsTab = ({ showSuccess, showError }: { showSuccess: (t: string, m: string) => void; showError: (t: string, m: string) => void }) => {
+  const [status, setStatus] = useState<Record<string, boolean>>({});
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState<string | null>(null);
+  const [visible, setVisible] = useState<Record<string, boolean>>({});
+
+  const token = () => getAuthToken() || "";
+
+  useEffect(() => { loadStatus(); }, []);
+
+  const loadStatus = async () => {
+    try {
+      const res = await fetch("/api/admin/secrets", { headers: { Authorization: `Bearer ${token()}` } });
+      if (res.ok) {
+        const data: { key: string; isSet: boolean }[] = await res.json();
+        const s: Record<string, boolean> = {};
+        data.forEach(d => { s[d.key] = d.isSet; });
+        setStatus(s);
+      }
+    } catch {}
+  };
+
+  const handleSave = async (field: typeof SECRET_FIELDS[0]) => {
+    const val = values[field.key]?.trim();
+    if (!val) { showError("Champ vide", "Saisissez une valeur avant de sauvegarder"); return; }
+    setSaving(field.key);
+    try {
+      const res = await fetch(`/api/site-settings/${field.key}`, {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ value: val, category: "secrets" }),
+      });
+      if (res.ok) {
+        showSuccess("Sauvegardé ✅", `${field.label} mis à jour dans Supabase`);
+        setValues(prev => ({ ...prev, [field.key]: "" }));
+        loadStatus();
+      } else {
+        const d = await res.json();
+        showError("Erreur", d.error || "Impossible de sauvegarder");
+      }
+    } finally { setSaving(null); }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Key size={16} className="text-primary" />
+          <p className="text-sm font-bold text-foreground">Clés Secrètes — Stockées dans Supabase DB</p>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Ces clés sont sauvegardées dans la table <code className="bg-secondary px-1 rounded text-[11px]">site_settings</code> de Supabase.
+          Sur Plesk, seule la variable <code className="bg-secondary px-1 rounded text-[11px]">SUPABASE_DATABASE_URL</code> est requise.
+        </p>
+      </div>
+      {SECRET_FIELDS.map(field => (
+        <div key={field.key} className="bg-card border border-secondary rounded-2xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-bold text-foreground">{field.label}</p>
+            <span className={`text-xs font-bold px-3 py-1 rounded-full ${status[field.key] ? "bg-green-500/15 text-green-500" : "bg-destructive/15 text-destructive"}`}>
+              {status[field.key] ? "✅ Configuré" : "❌ Manquant"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 flex items-center bg-secondary rounded-xl px-4 py-2.5 gap-2">
+              <input
+                type={visible[field.key] ? "text" : "password"}
+                value={values[field.key] || ""}
+                onChange={e => setValues(prev => ({ ...prev, [field.key]: e.target.value }))}
+                placeholder={field.placeholder}
+                className="flex-1 bg-transparent text-foreground text-sm font-mono outline-none placeholder:text-muted-foreground"
+              />
+              <button
+                onClick={() => setVisible(prev => ({ ...prev, [field.key]: !prev[field.key] }))}
+                className="flex-shrink-0 text-muted-foreground hover:text-foreground"
+              >
+                {visible[field.key] ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            </div>
+            <button
+              onClick={() => handleSave(field)}
+              disabled={saving === field.key || !values[field.key]?.trim()}
+              className="bg-primary text-primary-foreground font-bold px-4 py-2.5 rounded-xl text-xs disabled:opacity-50 flex-shrink-0 flex items-center gap-1"
+            >
+              {saving === field.key ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+            </button>
+          </div>
+        </div>
+      ))}
     </div>
   );
 };

@@ -1,18 +1,16 @@
 import { Router } from "express";
 import { createClient } from "@supabase/supabase-js";
+import { getSecret } from "../secrets";
 
 const router = Router();
 
-const SUPABASE_URL = process.env.SUPABASE_URL || "";
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-
 function getSupabase() {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+  const url = getSecret("SUPABASE_URL");
+  const key = getSecret("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) {
     throw new Error("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not configured");
   }
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-    auth: { persistSession: false },
-  });
+  return createClient(url, key, { auth: { persistSession: false } });
 }
 
 async function ensureBucketPublic(supabase: ReturnType<typeof createClient>, bucket: string) {
@@ -42,10 +40,7 @@ router.post("/upload", async (req, res) => {
 
     const { error: uploadError } = await supabase.storage
       .from(bucket)
-      .upload(filePath, buffer, {
-        contentType: mimeType,
-        upsert: false,
-      });
+      .upload(filePath, buffer, { contentType: mimeType, upsert: false });
 
     if (uploadError) {
       console.error("[upload] Supabase Storage error:", uploadError.message);
@@ -53,9 +48,7 @@ router.post("/upload", async (req, res) => {
     }
 
     const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
-    const publicUrl = data.publicUrl;
-
-    return res.json({ ok: true, url: publicUrl });
+    return res.json({ ok: true, url: data.publicUrl });
   } catch (err: any) {
     console.error("[upload] Error:", err?.message);
     return res.status(500).json({ error: err.message || "Upload failed" });

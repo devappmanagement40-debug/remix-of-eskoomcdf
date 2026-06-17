@@ -3,14 +3,16 @@ import crypto from "crypto";
 import { db, recharges, withdrawals, profiles, userSessions, userRoles } from "@workspace/db";
 import { eq, sql, and } from "drizzle-orm";
 
+import { getSecret } from "../secrets";
+
 const router = Router();
 const NP_API = "https://api.nowpayments.io/v1";
 
 // ---- Config helpers ----
-function getApiKey(): string { return process.env["NOWPAYMENTS_API_KEY"] ?? ""; }
-function getIpnSecret(): string { return process.env["NOWPAYMENTS_IPN_SECRET"] ?? ""; }
-function getPayoutEmail(): string { return process.env["NOWPAYMENTS_EMAIL"] ?? ""; }
-function getPayoutPassword(): string { return process.env["NOWPAYMENTS_PASSWORD"] ?? ""; }
+function getApiKey(): string { return getSecret("NOWPAYMENTS_API_KEY"); }
+function getIpnSecret(): string { return getSecret("NOWPAYMENTS_IPN_SECRET"); }
+function getPayoutEmail(): string { return getSecret("NOWPAYMENTS_EMAIL"); }
+function getPayoutPassword(): string { return getSecret("NOWPAYMENTS_PASSWORD"); }
 
 // ---- Admin auth guard ----
 async function requireAdmin(req: any, res: any): Promise<{ userId: string } | null> {

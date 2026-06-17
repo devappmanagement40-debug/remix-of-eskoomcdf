@@ -21240,7 +21240,7 @@ var require_application = __commonJS({
       return this;
     };
     app2.render = function render(name, options, callback) {
-      var cache = this.cache;
+      var cache2 = this.cache;
       var done = callback;
       var engines = this.engines;
       var opts = options;
@@ -21254,7 +21254,7 @@ var require_application = __commonJS({
         renderOptions.cache = this.enabled("view cache");
       }
       if (renderOptions.cache) {
-        view = cache[name];
+        view = cache2[name];
       }
       if (!view) {
         var View3 = this.get("view");
@@ -21270,7 +21270,7 @@ var require_application = __commonJS({
           return done(err);
         }
         if (renderOptions.cache) {
-          cache[name] = view;
+          cache2[name] = view;
         }
       }
       tryRender(view, renderOptions, done);
@@ -26986,12 +26986,12 @@ var require_levels = __commonJS({
     function genLsCache(instance) {
       const formatter = instance[formattersSym].level;
       const { labels } = instance.levels;
-      const cache = {};
+      const cache2 = {};
       for (const label in labels) {
         const level = formatter(labels[label], Number(label));
-        cache[label] = JSON.stringify(level).slice(0, -1);
+        cache2[label] = JSON.stringify(level).slice(0, -1);
       }
-      instance[lsCacheSym] = cache;
+      instance[lsCacheSym] = cache2;
       return instance;
     }
     function isStandardLevel(level, useOnlyCustomLevels) {
@@ -41566,12 +41566,12 @@ var init_session = __esm({
     init_tracing();
     init_db();
     PgPreparedQuery = class {
-      constructor(query, cache, queryMetadata, cacheConfig) {
+      constructor(query, cache2, queryMetadata, cacheConfig) {
         this.query = query;
-        this.cache = cache;
+        this.cache = cache2;
         this.queryMetadata = queryMetadata;
         this.cacheConfig = cacheConfig;
-        if (cache && cache.strategy() === "all" && cacheConfig === void 0) {
+        if (cache2 && cache2.strategy() === "all" && cacheConfig === void 0) {
           this.cacheConfig = { enable: true, autoInvalidate: true };
         }
         if (!this.cacheConfig?.enable) {
@@ -41781,8 +41781,8 @@ var init_session2 = __esm({
     init_utils();
     ({ Pool: Pool2, types: types2 } = esm_default);
     NodePgPreparedQuery = class extends PgPreparedQuery {
-      constructor(client, queryString, params, logger2, cache, queryMetadata, cacheConfig, fields, name, _isResponseInArrayMode, customResultMapper) {
-        super({ sql: queryString, params }, cache, queryMetadata, cacheConfig);
+      constructor(client, queryString, params, logger2, cache2, queryMetadata, cacheConfig, fields, name, _isResponseInArrayMode, customResultMapper) {
+        super({ sql: queryString, params }, cache2, queryMetadata, cacheConfig);
         this.client = client;
         this.queryString = queryString;
         this.params = params;
@@ -62661,14 +62661,36 @@ async function isAdmin2(userId) {
   const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, userId)).limit(1);
   return role?.role === "admin";
 }
+var SECRET_PREFIX = "secret_";
+var MANAGED_SECRETS = [
+  "secret_nowpayments_api_key",
+  "secret_nowpayments_ipn_secret",
+  "secret_nowpayments_email",
+  "secret_nowpayments_password",
+  "secret_supabase_service_role_key",
+  "secret_supabase_url"
+];
 router6.get("/site-settings", async (req, res) => {
   const all = await db.select().from(siteSettings);
-  return res.json(all);
+  return res.json(all.filter((s) => !s.key.startsWith(SECRET_PREFIX)));
 });
 router6.get("/site-settings/:key", async (req, res) => {
+  if (req.params.key.startsWith(SECRET_PREFIX)) return res.status(403).json({ error: "Forbidden" });
   const [setting] = await db.select().from(siteSettings).where(eq(siteSettings.key, req.params.key)).limit(1);
   if (!setting) return res.status(404).json({ error: "Not found" });
   return res.json(setting);
+});
+router6.get("/admin/secrets", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken4(token);
+  if (!me || !await isAdmin2(me.userId)) return res.status(403).json({ error: "Forbidden" });
+  const all = await db.select().from(siteSettings);
+  const result = MANAGED_SECRETS.map((key) => ({
+    key,
+    isSet: all.some((s) => s.key === key && !!s.value?.trim())
+  }));
+  return res.json(result);
 });
 router6.put("/site-settings/:key", async (req, res) => {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -63584,19 +63606,53 @@ var db_default = router8;
 var import_express9 = __toESM(require_express2(), 1);
 init_src();
 import crypto7 from "crypto";
+
+// src/secrets.ts
+init_src();
+var SECRET_PREFIX2 = "secret_";
+var REFRESH_MS = 5 * 60 * 1e3;
+var cache = {};
+var lastLoaded = 0;
+async function loadSecrets() {
+  try {
+    const rows = await db.select().from(siteSettings);
+    const fresh = {};
+    for (const row of rows) {
+      if (row.key.startsWith(SECRET_PREFIX2) && row.value?.trim()) {
+        const envName = row.key.slice(SECRET_PREFIX2.length).toUpperCase();
+        fresh[envName] = row.value.trim();
+      }
+    }
+    cache = fresh;
+    lastLoaded = Date.now();
+    const count = Object.keys(fresh).length;
+    console.log(`[secrets] ${count} secret(s) loaded from Supabase DB`);
+  } catch (err) {
+    console.error("[secrets] Failed to load from DB:", err?.message);
+  }
+}
+function getSecret(envKey) {
+  if (Date.now() - lastLoaded > REFRESH_MS) {
+    loadSecrets().catch(() => {
+    });
+  }
+  return cache[envKey] || process.env[envKey] || "";
+}
+
+// src/routes/nowpayments.ts
 var router9 = (0, import_express9.Router)();
 var NP_API = "https://api.nowpayments.io/v1";
 function getApiKey() {
-  return process.env["NOWPAYMENTS_API_KEY"] ?? "";
+  return getSecret("NOWPAYMENTS_API_KEY");
 }
 function getIpnSecret() {
-  return process.env["NOWPAYMENTS_IPN_SECRET"] ?? "";
+  return getSecret("NOWPAYMENTS_IPN_SECRET");
 }
 function getPayoutEmail() {
-  return process.env["NOWPAYMENTS_EMAIL"] ?? "";
+  return getSecret("NOWPAYMENTS_EMAIL");
 }
 function getPayoutPassword() {
-  return process.env["NOWPAYMENTS_PASSWORD"] ?? "";
+  return getSecret("NOWPAYMENTS_PASSWORD");
 }
 async function requireAdmin(req, res) {
   const token = req.headers.authorization?.replace("Bearer ", "");
@@ -73170,15 +73226,13 @@ if (shouldShowDeprecationWarning()) console.warn("\u26A0\uFE0F  Node.js 18 and b
 
 // src/routes/upload.ts
 var router10 = (0, import_express10.Router)();
-var SUPABASE_URL = process.env.SUPABASE_URL || "";
-var SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 function getSupabase() {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+  const url = getSecret("SUPABASE_URL");
+  const key = getSecret("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key) {
     throw new Error("SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is not configured");
   }
-  return createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-    auth: { persistSession: false }
-  });
+  return createClient(url, key, { auth: { persistSession: false } });
 }
 async function ensureBucketPublic(supabase, bucket) {
   const { data: buckets } = await supabase.storage.listBuckets();
@@ -73200,17 +73254,13 @@ router10.post("/upload", async (req, res) => {
     const ext = fileName.split(".").pop()?.toLowerCase() || "bin";
     const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     const filePath = `${uniqueName}`;
-    const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, buffer, {
-      contentType: mimeType,
-      upsert: false
-    });
+    const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, buffer, { contentType: mimeType, upsert: false });
     if (uploadError) {
       console.error("[upload] Supabase Storage error:", uploadError.message);
       return res.status(500).json({ error: uploadError.message || "Upload failed" });
     }
     const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
-    const publicUrl = data.publicUrl;
-    return res.json({ ok: true, url: publicUrl });
+    return res.json({ ok: true, url: data.publicUrl });
   } catch (err) {
     console.error("[upload] Error:", err?.message);
     return res.status(500).json({ error: err.message || "Upload failed" });
@@ -74171,12 +74221,14 @@ var port = Number(rawPort);
 if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${rawPort}"`);
 }
-app_default.listen(port, (err) => {
-  if (err) {
-    logger.error({ err }, "Error listening on port");
-    process.exit(1);
-  }
-  logger.info({ port }, "Server listening");
+loadSecrets().finally(() => {
+  app_default.listen(port, (err) => {
+    if (err) {
+      logger.error({ err }, "Error listening on port");
+      process.exit(1);
+    }
+    logger.info({ port }, "Server listening");
+  });
 });
 /*! Bundled license information:
 

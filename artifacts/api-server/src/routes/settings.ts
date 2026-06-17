@@ -27,15 +27,40 @@ async function isAdmin(userId: string) {
   return role?.role === "admin";
 }
 
+const SECRET_PREFIX = "secret_";
+
+const MANAGED_SECRETS = [
+  "secret_nowpayments_api_key",
+  "secret_nowpayments_ipn_secret",
+  "secret_nowpayments_email",
+  "secret_nowpayments_password",
+  "secret_supabase_service_role_key",
+  "secret_supabase_url",
+];
+
 router.get("/site-settings", async (req, res) => {
   const all = await db.select().from(siteSettings);
-  return res.json(all);
+  return res.json(all.filter(s => !s.key.startsWith(SECRET_PREFIX)));
 });
 
 router.get("/site-settings/:key", async (req, res) => {
+  if (req.params.key.startsWith(SECRET_PREFIX)) return res.status(403).json({ error: "Forbidden" });
   const [setting] = await db.select().from(siteSettings).where(eq(siteSettings.key, req.params.key)).limit(1);
   if (!setting) return res.status(404).json({ error: "Not found" });
   return res.json(setting);
+});
+
+router.get("/admin/secrets", async (req, res) => {
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "Unauthorized" });
+  const me = await getProfileFromToken(token);
+  if (!me || !await isAdmin(me.userId)) return res.status(403).json({ error: "Forbidden" });
+  const all = await db.select().from(siteSettings);
+  const result = MANAGED_SECRETS.map(key => ({
+    key,
+    isSet: all.some(s => s.key === key && !!s.value?.trim()),
+  }));
+  return res.json(result);
 });
 
 router.put("/site-settings/:key", async (req, res) => {
