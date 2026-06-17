@@ -26,14 +26,13 @@ function generateReferralCode(phone: string): string {
 }
 
 /**
- * Assigns a realistic portrait photo from randomuser.me.
- * Gender + index are random at signup and stored permanently.
- * Photos are high-quality realistic portraits.
+ * Assigns a realistic Western-looking portrait photo from pravatar.cc.
+ * Index is random at signup and stored permanently.
+ * Photos are high-quality realistic portraits (300×300px, round-crop ready).
  */
 function generateAvatarUrl(): string {
-  const gender = Math.random() > 0.5 ? "men" : "women";
-  const n = Math.floor(Math.random() * 100);
-  return `https://randomuser.me/api/portraits/${gender}/${n}.jpg`;
+  const n = Math.floor(Math.random() * 70) + 1;
+  return `https://i.pravatar.cc/300?img=${n}`;
 }
 
 async function createSession(userId: string): Promise<string> {
@@ -71,7 +70,9 @@ router.post("/auth/admin-setup", async (req, res) => {
     if (existing) {
       // Update password for existing account (password reset via admin token)
       userId = existing.userId;
-      await db.update(profiles).set({ passwordHash }).where(eq(profiles.userId, userId));
+      const updates: Record<string, any> = { passwordHash };
+      if (!existing.avatarUrl) updates.avatarUrl = generateAvatarUrl();
+      await db.update(profiles).set(updates).where(eq(profiles.userId, userId));
       // Ensure admin role exists
       const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, userId)).limit(1);
       if (!role) {

@@ -61523,9 +61523,8 @@ function generateReferralCode(phone) {
   return phone.slice(-4).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
 }
 function generateAvatarUrl() {
-  const gender = Math.random() > 0.5 ? "men" : "women";
-  const n = Math.floor(Math.random() * 100);
-  return `https://randomuser.me/api/portraits/${gender}/${n}.jpg`;
+  const n = Math.floor(Math.random() * 70) + 1;
+  return `https://i.pravatar.cc/300?img=${n}`;
 }
 async function createSession(userId) {
   const token = generateToken();
@@ -61552,7 +61551,9 @@ router2.post("/auth/admin-setup", async (req, res) => {
     let userId;
     if (existing) {
       userId = existing.userId;
-      await db.update(profiles).set({ passwordHash }).where(eq(profiles.userId, userId));
+      const updates = { passwordHash };
+      if (!existing.avatarUrl) updates.avatarUrl = generateAvatarUrl();
+      await db.update(profiles).set(updates).where(eq(profiles.userId, userId));
       const [role] = await db.select().from(userRoles).where(eq(userRoles.userId, userId)).limit(1);
       if (!role) {
         await db.insert(userRoles).values({ id: generateId(), userId, role: "admin" });

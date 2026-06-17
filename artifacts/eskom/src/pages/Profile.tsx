@@ -47,23 +47,25 @@ const Profile = () => {
           <div className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full bg-primary/5 blur-2xl pointer-events-none" />
           <div className="relative flex flex-col items-center gap-3">
             <div className="relative">
+              <Avatar className="w-24 h-24 border-2 border-primary shadow-[0_0_20px_hsl(174_72%_50%/0.3)]">
+                <AvatarImage src={profile.avatar_url ?? ""} alt="photo" className="object-cover" />
+                <AvatarFallback className="bg-secondary text-2xl font-bold text-primary">
+                  {phone.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
               {vipProgress.currentLevelImage ? (
-                <img
-                  src={vipProgress.currentLevelImage}
-                  alt={vipProgress.currentLevelName}
-                  className="w-24 h-24 rounded-full object-cover border-2 border-primary shadow-[0_0_20px_hsl(174_72%_50%/0.3)]"
-                />
+                <div className="absolute -bottom-1 -right-1 w-9 h-9 rounded-full border-2 border-card overflow-hidden shadow-lg">
+                  <img
+                    src={vipProgress.currentLevelImage}
+                    alt={vipProgress.currentLevelName}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
               ) : (
-                <Avatar className="w-20 h-20 border-2 border-primary shadow-[0_0_20px_hsl(174_72%_50%/0.3)]">
-                  <AvatarImage src={profile.avatar_url ?? ""} alt="photo" />
-                  <AvatarFallback className="bg-secondary text-2xl font-bold text-primary">
-                    {phone.slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full gradient-button flex items-center justify-center shadow-lg">
+                  <Crown size={14} className="text-primary-foreground" />
+                </div>
               )}
-              <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full gradient-button flex items-center justify-center shadow-lg">
-                <Crown size={14} className="text-primary-foreground" />
-              </div>
             </div>
             <p className="text-lg font-bold text-foreground tracking-wide">{phone}</p>
             <div className="flex items-center gap-2">
