@@ -55,7 +55,7 @@ const Profile = () => {
                 />
               ) : (
                 <Avatar className="w-20 h-20 border-2 border-primary shadow-[0_0_20px_hsl(174_72%_50%/0.3)]">
-                  <AvatarImage src="" />
+                  <AvatarImage src={profile.avatar_url ?? ""} />
                   <AvatarFallback className="bg-secondary text-2xl font-bold text-primary">
                     {phone.slice(0, 2).toUpperCase()}
                   </AvatarFallback>

@@ -207,6 +207,11 @@ router.post("/auth/login", async (req, res) => {
       }
     }
 
+    // Auto-assign avatar if missing (covers users created before avatarUrl was added)
+    if (!profile.avatarUrl) {
+      await db.update(profiles).set({ avatarUrl: generateAvatarUrl() }).where(eq(profiles.userId, profile.userId));
+    }
+
     const accessToken = await createSession(profile.userId);
 
     return res.json({

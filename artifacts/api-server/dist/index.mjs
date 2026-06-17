@@ -48443,6 +48443,9 @@ router2.post("/auth/login", async (req, res) => {
         return res.status(403).json({ error: "Account suspended" });
       }
     }
+    if (!profile.avatarUrl) {
+      await db.update(profiles).set({ avatarUrl: generateAvatarUrl() }).where(eq(profiles.userId, profile.userId));
+    }
     const accessToken = await createSession(profile.userId);
     return res.json({
       ok: true,
@@ -52199,6 +52202,21 @@ router11.post("/admin/chat-reply", async (req, res) => {
     isFromUser: false
   }).returning();
   return res.json(toSnake3(msg));
+});
+router11.post("/admin/fix-missing-avatars", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+  function generateAvatarUrl2() {
+    const n = Math.floor(Math.random() * 70) + 1;
+    return `https://i.pravatar.cc/300?img=${n}`;
+  }
+  const usersWithoutAvatar = await db.select({ userId: profiles.userId }).from(profiles).where(isNull(profiles.avatarUrl));
+  let fixed = 0;
+  for (const u of usersWithoutAvatar) {
+    await db.update(profiles).set({ avatarUrl: generateAvatarUrl2() }).where(eq(profiles.userId, u.userId));
+    fixed++;
+  }
+  return res.json({ ok: true, fixed, total: usersWithoutAvatar.length });
 });
 var admin_default = router11;
 

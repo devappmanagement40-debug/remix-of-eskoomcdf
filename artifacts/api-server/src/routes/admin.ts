@@ -11,7 +11,7 @@ import {
   recharges, withdrawals, userWallets,
   productSeries, products, paymentLogs,
 } from "@workspace/db";
-import { eq, inArray, desc, and } from "drizzle-orm";
+import { eq, inArray, desc, and, isNull } from "drizzle-orm";
 import crypto from "crypto";
 
 const router = Router();
@@ -1105,6 +1105,31 @@ router.post("/admin/chat-reply", async (req, res) => {
     isFromUser: false,
   }).returning();
   return res.json(toSnake(msg));
+});
+
+// ─── Fix missing avatars (batch) ─────────────────────────────────────────────
+router.post("/admin/fix-missing-avatars", async (req, res) => {
+  const auth = await requireAdminOnly(req, res);
+  if (!auth) return;
+
+  function generateAvatarUrl(): string {
+    const n = Math.floor(Math.random() * 70) + 1;
+    return `https://i.pravatar.cc/300?img=${n}`;
+  }
+
+  const usersWithoutAvatar = await db.select({ userId: profiles.userId })
+    .from(profiles)
+    .where(isNull(profiles.avatarUrl));
+
+  let fixed = 0;
+  for (const u of usersWithoutAvatar) {
+    await db.update(profiles)
+      .set({ avatarUrl: generateAvatarUrl() })
+      .where(eq(profiles.userId, u.userId));
+    fixed++;
+  }
+
+  return res.json({ ok: true, fixed, total: usersWithoutAvatar.length });
 });
 
 export default router;
