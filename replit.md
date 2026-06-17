@@ -28,7 +28,7 @@ A fintech/investment mobile-style React app with user authentication, product pu
 - **Database**: Supabase PostgreSQL ONLY — `SUPABASE_DATABASE_URL` env var required everywhere (Replit dev + Plesk prod)
 - **Auth pattern**: phone numbers stored directly; bcryptjs hashing; sessions stored in `user_sessions` table with bearer tokens.
 - **Admin roles**: stored in `user_roles` table with `app_role` enum (admin/moderator/user).
-- **Admin access**: secret URL `/admin/827728389992871772661616161626€` — never expose this URL
+- **Admin access**: secret URL `/admin/827728389992871772661616161626E` — never expose this URL (€ remplacé par E — caractère non-ASCII causait un problème de routing)
 - **File uploads**: local filesystem under `public/uploads/` served via `/uploads` static route.
 - **No Supabase SDK**: the `supabase` export in `client.ts` is a local stub that routes all calls to the Express API.
 

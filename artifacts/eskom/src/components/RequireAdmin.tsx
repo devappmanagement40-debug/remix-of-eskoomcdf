@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { localAuth, getAuthToken } from "@/integrations/supabase/client";
 
-const ADMIN_LOGIN_PATH = "/admin/827728389992871772661616161626€";
+const ADMIN_LOGIN_PATH = "/admin/827728389992871772661616161626E";
 
 const RequireAdmin = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
