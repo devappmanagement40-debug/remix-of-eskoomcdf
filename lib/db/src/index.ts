@@ -4,18 +4,20 @@ import * as schema from "./schema";
 
 const { Pool } = pg;
 
-const rawConnectionString = process.env.DATABASE_URL;
+const rawConnectionString = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
 
 if (!rawConnectionString) {
-  throw new Error("DATABASE_URL environment variable is required.");
+  throw new Error("SUPABASE_DATABASE_URL or DATABASE_URL environment variable is required.");
 }
 
-// Strip sslmode from connection string — Replit's local Postgres does not use SSL
+const isSupabase = rawConnectionString.includes("supabase.com") || rawConnectionString.includes("pooler.supabase");
+
+// Strip sslmode — we handle SSL explicitly via pool options
 const connectionString = rawConnectionString.replace(/[?&]sslmode=[^&]*/g, "").replace(/\?$/, "");
 
 export const pool = new Pool({
   connectionString,
-  ssl: false,
+  ssl: isSupabase ? { rejectUnauthorized: false } : false,
 });
 
 export const db = drizzle(pool, { schema });
