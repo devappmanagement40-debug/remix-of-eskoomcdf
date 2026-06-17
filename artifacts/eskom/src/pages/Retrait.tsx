@@ -194,7 +194,7 @@ const Retrait = () => {
     }
   };
 
-  const canSubmit = !submitting && wallets.length > 0 && numAmount >= minAmount && numAmount <= withdrawableBalance && isWithinSchedule;
+  const canSubmit = !submitting && wallets.length > 0 && numAmount >= minAmount && (maxAmount <= 0 || numAmount <= maxAmount) && numAmount > 0 && numAmount <= withdrawableBalance && isWithinSchedule;
 
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Loading...</p></div>;
 

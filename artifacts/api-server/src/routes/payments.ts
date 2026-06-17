@@ -87,13 +87,43 @@ async function atomicRejectWithdrawal(withdrawalId: string, adminNote?: string |
 
   if (!updated) return null; // Already handled by another concurrent call
 
-  // SQL-level atomic refund — safe against concurrent reads
+  // SQL-level atomic refund — restore balance + sub-balances (earnings first approximation)
   const amount = Number(withdrawal.amount);
+  // Fetch current sub-balances to compute split restoration
+  const [currentProfile] = await db.select({
+    earningsBalance: profiles.earningsBalance,
+    referralBalance: profiles.referralBalance,
+    balance: profiles.balance,
+  }).from(profiles).where(eq(profiles.userId, withdrawal.userId)).limit(1);
+
+  const curEarnings = Number(currentProfile?.earningsBalance ?? 0);
+  const curReferral = Number(currentProfile?.referralBalance ?? 0);
+
+  // Restore proportionally: if both are 0 (fully depleted), restore all to earningsBalance
+  // Otherwise split proportionally to what remains, so total withdrawable is restored correctly
+  let restoreEarnings: number;
+  let restoreReferral: number;
+  if (curEarnings === 0 && curReferral === 0) {
+    restoreEarnings = amount;
+    restoreReferral = 0;
+  } else if (curEarnings === 0) {
+    restoreEarnings = 0;
+    restoreReferral = amount;
+  } else if (curReferral === 0) {
+    restoreEarnings = amount;
+    restoreReferral = 0;
+  } else {
+    const total = curEarnings + curReferral;
+    restoreEarnings = Math.round((curEarnings / total) * amount);
+    restoreReferral = amount - restoreEarnings;
+  }
+
   await db
     .update(profiles)
     .set({
-      balance: sql`${profiles.balance} + ${amount}`,
-      earningsBalance: sql`${profiles.earningsBalance} + ${amount}`,
+      balance:         sql`${profiles.balance}         + ${amount}`,
+      earningsBalance: sql`${profiles.earningsBalance} + ${restoreEarnings}`,
+      referralBalance: sql`${profiles.referralBalance} + ${restoreReferral}`,
       updatedAt: new Date(),
     })
     .where(eq(profiles.userId, withdrawal.userId));
@@ -311,14 +341,51 @@ async function handleWithdrawalSubmit(req: any, res: any) {
   const me = await getProfileFromToken(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
 
-  const { amount, phone, network, countryCode, walletId, feeAmount } = req.body;
+  const { amount, phone, network, countryCode, walletId } = req.body;
+  // feeAmount/netAmount from client are IGNORED — recalculated server-side for security
   if (!amount || !phone) return res.status(400).json({ error: "Amount and phone required" });
 
   const totalAmount = Number(amount);
-  const fee = Number(feeAmount ?? 0);
+  if (isNaN(totalAmount) || totalAmount <= 0) return res.status(400).json({ error: "Invalid amount" });
+
+  // Load settings server-side (fee, limits, deposit_not_withdrawable)
+  const settingsRows = await db.select().from(siteSettings)
+    .where(inArray(siteSettings.key, ["withdrawal_fee_percent", "deposit_not_withdrawable", "withdrawal_min", "withdrawal_max"]));
+  const sm: Record<string, string> = {};
+  settingsRows.forEach(r => { sm[r.key] = r.value ?? ""; });
+
+  const feePercent = Number(sm["withdrawal_fee_percent"] ?? 0);
+  const depositNotWithdrawable = (sm["deposit_not_withdrawable"] ?? "true") !== "false";
+  const wMin = sm["withdrawal_min"] ? Number(sm["withdrawal_min"]) : 0;
+  const wMax = sm["withdrawal_max"] ? Number(sm["withdrawal_max"]) : 0;
+
+  // Server-side fee calculation — cannot be bypassed by client
+  const fee = Math.round(totalAmount * feePercent / 100);
   const net = totalAmount - fee;
 
-  if (Number(me.balance ?? 0) < totalAmount) return res.status(400).json({ error: "Insufficient balance" });
+  // Min / Max validation
+  if (wMin > 0 && totalAmount < wMin) {
+    return res.status(400).json({ error: `Montant minimum : ${wMin} USDT` });
+  }
+  if (wMax > 0 && totalAmount > wMax) {
+    return res.status(400).json({ error: `Montant maximum : ${wMax} USDT` });
+  }
+
+  const currentBalance    = Number(me.balance         ?? 0);
+  const currentEarnings   = Number(me.earningsBalance  ?? 0);
+  const currentReferral   = Number(me.referralBalance  ?? 0);
+
+  // Balance validation — respect deposit_not_withdrawable rule
+  if (depositNotWithdrawable) {
+    const withdrawable = currentEarnings + currentReferral;
+    if (totalAmount > withdrawable) {
+      return res.status(400).json({ error: "Solde retirable insuffisant (gains + parrainage uniquement)" });
+    }
+  } else {
+    if (totalAmount > currentBalance) {
+      return res.status(400).json({ error: "Solde insuffisant" });
+    }
+  }
 
   const [withdrawal] = await db.insert(withdrawals).values({
     id: crypto.randomUUID(),
@@ -331,10 +398,14 @@ async function handleWithdrawalSubmit(req: any, res: any) {
     status: "pending",
   }).returning();
 
-  // Deduct from balance atomically
+  // Proportional deduction: earnings first, then referral, then (if allowed) deposit
+  const deductFromEarnings = Math.min(totalAmount, currentEarnings);
+  const deductFromReferral = Math.min(totalAmount - deductFromEarnings, currentReferral);
+
   await db.update(profiles).set({
-    balance: sql`${profiles.balance} - ${totalAmount}`,
-    earningsBalance: sql`GREATEST(${profiles.earningsBalance} - ${totalAmount}, 0)`,
+    balance:         sql`${profiles.balance}         - ${totalAmount}`,
+    earningsBalance: sql`GREATEST(${profiles.earningsBalance} - ${deductFromEarnings}, 0)`,
+    referralBalance: sql`GREATEST(${profiles.referralBalance} - ${deductFromReferral}, 0)`,
     updatedAt: new Date(),
   }).where(eq(profiles.userId, me.userId));
 
