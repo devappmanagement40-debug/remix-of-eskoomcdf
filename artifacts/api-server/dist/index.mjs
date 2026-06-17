@@ -62036,17 +62036,42 @@ router4.post("/user-products/:id/collect", async (req, res) => {
     and(eq(userProducts.id, req.params.id), eq(userProducts.userId, me.userId))
   ).limit(1);
   if (!up) return res.status(404).json({ error: "Not found" });
+  const now = /* @__PURE__ */ new Date();
+  if (!up.isActive) return res.status(400).json({ error: "Produit inactif" });
+  if (up.expiresAt && up.expiresAt < now) return res.status(400).json({ error: "Produit expir\xE9" });
   const [product] = await db.select().from(products).where(eq(products.id, up.productId)).limit(1);
-  const dailyRev = Number(product?.dailyRevenue ?? 0);
+  if (!product) return res.status(404).json({ error: "Produit introuvable" });
+  const gainType = product.gainType ?? "daily";
+  if (gainType === "blocked") {
+    if (Number(up.totalCollected ?? 0) > 0)
+      return res.status(400).json({ error: "Gains d\xE9j\xE0 collect\xE9s pour ce produit" });
+    const cycles = product.cycles ?? 365;
+    const purchasedAt = up.purchasedAt ? new Date(up.purchasedAt) : null;
+    if (!purchasedAt) return res.status(400).json({ error: "Date d'achat introuvable" });
+    const endDate = new Date(purchasedAt.getTime() + cycles * 24 * 60 * 60 * 1e3);
+    if (now < endDate)
+      return res.status(400).json({ error: `Gains disponibles le ${endDate.toLocaleString("fr-FR")}` });
+  } else {
+    const referenceTime = up.lastCollectedAt ?? up.purchasedAt;
+    if (referenceTime) {
+      const ref = new Date(referenceTime);
+      const hoursSince = (now.getTime() - ref.getTime()) / (1e3 * 60 * 60);
+      if (hoursSince < 24) {
+        const nextCollect = new Date(ref.getTime() + 24 * 60 * 60 * 1e3);
+        return res.status(400).json({ error: `Prochain collecte le ${nextCollect.toLocaleString("fr-FR")}` });
+      }
+    }
+  }
+  const dailyRev = Number(product.dailyRevenue ?? 0);
   const newCollected = Number(up.totalCollected ?? 0) + dailyRev;
   await db.update(userProducts).set({
-    lastCollectedAt: /* @__PURE__ */ new Date(),
+    lastCollectedAt: now,
     totalCollected: String(newCollected)
   }).where(eq(userProducts.id, up.id));
   await db.update(profiles).set({
     balance: String(Number(me.balance ?? 0) + dailyRev),
     earningsBalance: String(Number(me.earningsBalance ?? 0) + dailyRev),
-    updatedAt: /* @__PURE__ */ new Date()
+    updatedAt: now
   }).where(eq(profiles.userId, me.userId));
   return res.json({ collected: dailyRev });
 });
@@ -62143,17 +62168,42 @@ router4.post("/products/user-products/collect", async (req, res) => {
     and(eq(userProducts.id, userProductId), eq(userProducts.userId, me.userId))
   ).limit(1);
   if (!up) return res.status(404).json({ error: "Produit introuvable" });
+  const now = /* @__PURE__ */ new Date();
+  if (!up.isActive) return res.status(400).json({ error: "Produit inactif" });
+  if (up.expiresAt && up.expiresAt < now) return res.status(400).json({ error: "Produit expir\xE9" });
   const [product] = await db.select().from(products).where(eq(products.id, up.productId)).limit(1);
-  const dailyRev = Number(product?.dailyRevenue ?? 0);
+  if (!product) return res.status(404).json({ error: "Produit introuvable" });
+  const gainType = product.gainType ?? "daily";
+  if (gainType === "blocked") {
+    if (Number(up.totalCollected ?? 0) > 0)
+      return res.status(400).json({ error: "Gains d\xE9j\xE0 collect\xE9s pour ce produit" });
+    const cycles = product.cycles ?? 365;
+    const purchasedAt = up.purchasedAt ? new Date(up.purchasedAt) : null;
+    if (!purchasedAt) return res.status(400).json({ error: "Date d'achat introuvable" });
+    const endDate = new Date(purchasedAt.getTime() + cycles * 24 * 60 * 60 * 1e3);
+    if (now < endDate)
+      return res.status(400).json({ error: `Gains disponibles le ${endDate.toLocaleString("fr-FR")}` });
+  } else {
+    const referenceTime = up.lastCollectedAt ?? up.purchasedAt;
+    if (referenceTime) {
+      const ref = new Date(referenceTime);
+      const hoursSince = (now.getTime() - ref.getTime()) / (1e3 * 60 * 60);
+      if (hoursSince < 24) {
+        const nextCollect = new Date(ref.getTime() + 24 * 60 * 60 * 1e3);
+        return res.status(400).json({ error: `Prochain collecte le ${nextCollect.toLocaleString("fr-FR")}` });
+      }
+    }
+  }
+  const dailyRev = Number(product.dailyRevenue ?? 0);
   const newCollected = Number(up.totalCollected ?? 0) + dailyRev;
   await db.update(userProducts).set({
-    lastCollectedAt: /* @__PURE__ */ new Date(),
+    lastCollectedAt: now,
     totalCollected: String(newCollected)
   }).where(eq(userProducts.id, up.id));
   await db.update(profiles).set({
     balance: String(Number(me.balance ?? 0) + dailyRev),
     earningsBalance: String(Number(me.earningsBalance ?? 0) + dailyRev),
-    updatedAt: /* @__PURE__ */ new Date()
+    updatedAt: now
   }).where(eq(profiles.userId, me.userId));
   return res.json({ collected: dailyRev, amount: dailyRev });
 });
@@ -62222,9 +62272,33 @@ async function atomicRejectWithdrawal(withdrawalId, adminNote) {
   )).returning({ id: withdrawals.id });
   if (!updated) return null;
   const amount = Number(withdrawal.amount);
+  const [currentProfile] = await db.select({
+    earningsBalance: profiles.earningsBalance,
+    referralBalance: profiles.referralBalance,
+    balance: profiles.balance
+  }).from(profiles).where(eq(profiles.userId, withdrawal.userId)).limit(1);
+  const curEarnings = Number(currentProfile?.earningsBalance ?? 0);
+  const curReferral = Number(currentProfile?.referralBalance ?? 0);
+  let restoreEarnings;
+  let restoreReferral;
+  if (curEarnings === 0 && curReferral === 0) {
+    restoreEarnings = amount;
+    restoreReferral = 0;
+  } else if (curEarnings === 0) {
+    restoreEarnings = 0;
+    restoreReferral = amount;
+  } else if (curReferral === 0) {
+    restoreEarnings = amount;
+    restoreReferral = 0;
+  } else {
+    const total = curEarnings + curReferral;
+    restoreEarnings = Math.round(curEarnings / total * amount);
+    restoreReferral = amount - restoreEarnings;
+  }
   await db.update(profiles).set({
-    balance: sql`${profiles.balance} + ${amount}`,
-    earningsBalance: sql`${profiles.earningsBalance} + ${amount}`,
+    balance: sql`${profiles.balance}         + ${amount}`,
+    earningsBalance: sql`${profiles.earningsBalance} + ${restoreEarnings}`,
+    referralBalance: sql`${profiles.referralBalance} + ${restoreReferral}`,
     updatedAt: /* @__PURE__ */ new Date()
   }).where(eq(profiles.userId, withdrawal.userId));
   return updated;
@@ -62379,12 +62453,40 @@ async function handleWithdrawalSubmit(req, res) {
   if (!token) return res.status(401).json({ error: "Unauthorized" });
   const me = await getProfileFromToken3(token);
   if (!me) return res.status(401).json({ error: "Unauthorized" });
-  const { amount, phone, network, countryCode, walletId, feeAmount } = req.body;
+  const { amount, phone, network, countryCode, walletId } = req.body;
   if (!amount || !phone) return res.status(400).json({ error: "Amount and phone required" });
   const totalAmount = Number(amount);
-  const fee = Number(feeAmount ?? 0);
+  if (isNaN(totalAmount) || totalAmount <= 0) return res.status(400).json({ error: "Invalid amount" });
+  const settingsRows = await db.select().from(siteSettings).where(inArray(siteSettings.key, ["withdrawal_fee_percent", "deposit_not_withdrawable", "withdrawal_min", "withdrawal_max"]));
+  const sm = {};
+  settingsRows.forEach((r) => {
+    sm[r.key] = r.value ?? "";
+  });
+  const feePercent = Number(sm["withdrawal_fee_percent"] ?? 0);
+  const depositNotWithdrawable = (sm["deposit_not_withdrawable"] ?? "true") !== "false";
+  const wMin = sm["withdrawal_min"] ? Number(sm["withdrawal_min"]) : 0;
+  const wMax = sm["withdrawal_max"] ? Number(sm["withdrawal_max"]) : 0;
+  const fee = Math.round(totalAmount * feePercent / 100);
   const net = totalAmount - fee;
-  if (Number(me.balance ?? 0) < totalAmount) return res.status(400).json({ error: "Insufficient balance" });
+  if (wMin > 0 && totalAmount < wMin) {
+    return res.status(400).json({ error: `Montant minimum : ${wMin} USDT` });
+  }
+  if (wMax > 0 && totalAmount > wMax) {
+    return res.status(400).json({ error: `Montant maximum : ${wMax} USDT` });
+  }
+  const currentBalance = Number(me.balance ?? 0);
+  const currentEarnings = Number(me.earningsBalance ?? 0);
+  const currentReferral = Number(me.referralBalance ?? 0);
+  if (depositNotWithdrawable) {
+    const withdrawable = currentEarnings + currentReferral;
+    if (totalAmount > withdrawable) {
+      return res.status(400).json({ error: "Solde retirable insuffisant (gains + parrainage uniquement)" });
+    }
+  } else {
+    if (totalAmount > currentBalance) {
+      return res.status(400).json({ error: "Solde insuffisant" });
+    }
+  }
   const [withdrawal] = await db.insert(withdrawals).values({
     id: crypto4.randomUUID(),
     userId: me.userId,
@@ -62397,9 +62499,12 @@ async function handleWithdrawalSubmit(req, res) {
     walletId: walletId ?? null,
     status: "pending"
   }).returning();
+  const deductFromEarnings = Math.min(totalAmount, currentEarnings);
+  const deductFromReferral = Math.min(totalAmount - deductFromEarnings, currentReferral);
   await db.update(profiles).set({
-    balance: sql`${profiles.balance} - ${totalAmount}`,
-    earningsBalance: sql`GREATEST(${profiles.earningsBalance} - ${totalAmount}, 0)`,
+    balance: sql`${profiles.balance}         - ${totalAmount}`,
+    earningsBalance: sql`GREATEST(${profiles.earningsBalance} - ${deductFromEarnings}, 0)`,
+    referralBalance: sql`GREATEST(${profiles.referralBalance} - ${deductFromReferral}, 0)`,
     updatedAt: /* @__PURE__ */ new Date()
   }).where(eq(profiles.userId, me.userId));
   return res.json(withdrawal);

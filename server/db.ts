@@ -4,13 +4,16 @@ import * as schema from "../shared/schema";
 
 const { Pool } = pg;
 
-const connectionString = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
+const rawConnectionString = process.env.SUPABASE_DATABASE_URL || process.env.DATABASE_URL;
 
-if (!connectionString) {
+if (!rawConnectionString) {
   throw new Error("SUPABASE_DATABASE_URL or DATABASE_URL environment variable is required.");
 }
 
-const isSupabase = connectionString.includes("supabase.com") || connectionString.includes("pooler.supabase");
+// Strip sslmode from connection string — we handle SSL via pool options
+const connectionString = rawConnectionString.replace(/[?&]sslmode=[^&]*/g, "").replace(/\?$/, "");
+
+const isSupabase = rawConnectionString.includes("supabase.com") || rawConnectionString.includes("pooler.supabase");
 
 export const pool = new Pool({
   connectionString,
