@@ -101,6 +101,8 @@ externalPort = 3000
 APP_DOMAIN = "geenergy.top"
 API_PORT = "8080"
 JWT_SECRET = "268b6600c744aaa246a2455ff54bf823c8fac29402a2b0186c95e028db438eb9aff61acfe6f2157cb77651eb6e5e04de"
+SUPABASE_URL = "https://wrtkihbtkjlatfkttbbo.supabase.co"
+SUPABASE_DATABASE_URL = "postgresql://postgres.wrtkihbtkjlatfkttbbo:Trabit1222508@aws-1-us-east-1.pooler.supabase.com:5432/postgres?sslmode=require"
 
 [userenv.production]
 NOWPAYMENTS_WEBHOOK_URL = "https://geenergy.top/api/nowpayments/webhook"
