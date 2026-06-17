@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "pnpm exec concurrently \"PORT=3001 tsx watch server/index.ts\" \"vite --config vite.config.ts --host 0.0.0.0 --port 5000\"",
+    "dev": "npx concurrently \"PORT=3001 tsx watch server/index.ts\" \"vite --config vite.config.ts --host 0.0.0.0 --port 5000\"",
     "build": "npm run build:client && npm run build:server",
     "build:client": "vite build --config vite.config.ts",
     "build:server": "node build.mjs",
